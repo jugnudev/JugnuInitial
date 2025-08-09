@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { useEvents } from '@/lib/events';
 
 export default function Waitlist() {
   const [location] = useLocation();
   const { data: events = [] } = useEvents();
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string>('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -30,28 +31,34 @@ export default function Waitlist() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
     // Basic spam protection
     if (formData.honeypot) {
       return; // Bot detected
     }
 
-    if (!formData.email) {
-      return; // Email required
+    if (!formData.email.trim()) {
+      setError('Email is required');
+      return;
     }
 
-    // Prepare form data with hidden fields
+    setIsSubmitting(true);
+
+    // Prepare submission data
     const submitData = {
-      ...formData,
-      interest_event: eventSlug || 'general',
-      source,
-      ...utmParams
+      email: formData.email.trim(),
+      name: formData.name.trim() || null,
+      event_slug: eventSlug,
+      source: source || null,
+      utm_source: utmParams.utm_source || null,
+      utm_medium: utmParams.utm_medium || null,
+      utm_campaign: utmParams.utm_campaign || null,
+      utm_content: utmParams.utm_content || null,
     };
 
     try {
-      // TODO: Replace with your actual email service endpoint
-      // This is a Formspree placeholder - swap with Mailchimp/Beehiiv/ConvertKit embed
-      const response = await fetch('https://formspree.io/f/YOUR_FORM_ID', {
+      const response = await fetch('/api/waitlist', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -59,15 +66,32 @@ export default function Waitlist() {
         body: JSON.stringify(submitData)
       });
 
-      if (response.ok) {
+      const result = await response.json();
+
+      if (response.ok && result.ok) {
         // Redirect to thank you page
         window.location.href = '/thank-you';
       } else {
-        setIsSubmitted(true);
+        // Handle specific error cases
+        switch (result.error) {
+          case 'invalid_email':
+            setError('Please enter a valid email address');
+            break;
+          case 'rate_limited':
+            setError('Too many requests. Please try again in a minute.');
+            break;
+          case 'db_error':
+          case 'server_error':
+          default:
+            setError('Something went wrong. Please try again.');
+            break;
+        }
       }
     } catch (error) {
       console.error('Form submission error:', error);
-      setIsSubmitted(true);
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -150,18 +174,24 @@ export default function Waitlist() {
             {/* Submit button */}
             <button
               type="submit"
-              className="w-full inline-flex items-center justify-center px-8 py-4 bg-primary text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200 shadow-lg hover:shadow-xl btn-glow"
+              disabled={isSubmitting}
+              className="w-full inline-flex items-center justify-center px-8 py-4 bg-primary text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200 shadow-lg hover:shadow-xl btn-glow disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="button-submit-waitlist"
             >
-              Join Waitlist
+              {isSubmitting ? 'Joining...' : 'Join Waitlist'}
             </button>
+            
+            {/* Consent text */}
+            <p className="text-sm text-muted text-center">
+              By joining, you agree to receive Jugnu event updates. Unsubscribe anytime.
+            </p>
           </form>
 
-          {/* Success message */}
-          {isSubmitted && (
-            <div className="mt-6 p-4 bg-green-900/20 border border-green-500/30 rounded-xl">
-              <p className="text-green-400 text-center">
-                Thanks for joining! We'll be in touch soon.
+          {/* Error message */}
+          {error && (
+            <div className="mt-6 p-4 bg-red-900/20 border border-red-500/30 rounded-xl" role="alert" aria-live="polite">
+              <p className="text-red-400 text-center">
+                {error}
               </p>
             </div>
           )}

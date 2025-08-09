@@ -1,0 +1,200 @@
+Title: Jugnu — Supabase waitlist storage (server-side, secure)
+
+Goal
+Save /waitlist form submissions to Supabase Postgres with dedupe, UTM/source capture, and a simple CSV export endpoint. Keep all existing UI.
+
+Prereqs (create in Replit Secrets)
+- SUPABASE_URL = <your supabase project URL>
+- SUPABASE_SERVICE_ROLE = <service role key>   # SERVER ONLY (never exposed client-side)
+
+Deps
+- Add: @supabase/supabase-js
+
+DB: create table + indexes (run via Supabase SQL)
+-- enable extension for UUIDs (usually on by default)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE IF NOT EXISTS public.waitlist_signups (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  email text NOT NULL,
+  name text,
+  event_slug text,
+  source text,
+  utm_source text,
+  utm_medium text,
+  utm_campaign text,
+  utm_content text,
+  user_agent text,
+  consent boolean NOT NULL DEFAULT true,
+  -- generated (stored) columns for robust dedupe
+  email_norm text GENERATED ALWAYS AS (lower(email)) STORED,
+  event_key text GENERATED ALWAYS AS (COALESCE(event_slug, 'general')) STORED
+);
+
+-- prevent duplicates per email+event_key
+CREATE UNIQUE INDEX IF NOT EXISTS uq_waitlist_email_event
+  ON public.waitlist_signups (email_norm, event_key);
+
+-- helpful filter indexes
+CREATE INDEX IF NOT EXISTS idx_waitlist_event ON public.waitlist_signups (event_key);
+CREATE INDEX IF NOT EXISTS idx_waitlist_created ON public.waitlist_signups (created_at);
+
+-- RLS (safe defaults)
+ALTER TABLE public.waitlist_signups ENABLE ROW LEVEL SECURITY;
+-- No anon policies. Server inserts use service role and bypass RLS.
+
+Files to add
+
+1) /lib/supabaseAdmin.ts
+--------------------------------
+import { createClient } from "@supabase/supabase-js";
+
+export function getSupabaseAdmin() {
+  const url = process.env.SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE!;
+  if (!url || !key) throw new Error("Missing Supabase server env vars");
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+--------------------------------
+
+2) /app/api/waitlist/route.ts  (App Router)
+--------------------------------
+import { NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+
+type Body = {
+  email?: string;
+  name?: string;
+  event_slug?: string | null;
+  source?: string | null;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  utm_content?: string | null;
+};
+
+const RATE_LIMIT = { windowMs: 60_000, max: 60 };
+const hits = new Map<string, { count: number; ts: number }>();
+
+function rateLimit(ip: string) {
+  const now = Date.now();
+  const h = hits.get(ip);
+  if (!h || now - h.ts > RATE_LIMIT.windowMs) {
+    hits.set(ip, { count: 1, ts: now });
+    return true;
+  }
+  if (h.count >= RATE_LIMIT.max) return false;
+  h.count++; return true;
+}
+
+export async function POST(req: Request) {
+  const ip =
+    (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+    "0.0.0.0";
+  if (!rateLimit(ip)) return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
+
+  let body: Body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
+  }
+
+  const email = (body.email || "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return NextResponse.json({ ok: false, error: "invalid_email" }, { status: 400 });
+
+  const name = (body.name || "").trim() || null;
+  const event_slug = body.event_slug || null;
+  const source = body.source || null;
+  const ua = req.headers.get("user-agent") || null;
+
+  const utm = {
+    utm_source: body.utm_source || null,
+    utm_medium: body.utm_medium || null,
+    utm_campaign: body.utm_campaign || null,
+    utm_content: body.utm_content || null,
+  };
+
+  const supabase = getSupabaseAdmin();
+  const payload = { email, name, event_slug, source, user_agent: ua, consent: true, ...utm };
+
+  // upsert using the unique index on (email_norm, event_key)
+  const { error } = await supabase
+    .from("waitlist_signups")
+    .upsert(payload, { onConflict: "email_norm,event_key", ignoreDuplicates: false });
+
+  if (error) {
+    console.error("waitlist upsert error", error);
+    return NextResponse.json({ ok: false, error: "db_error" }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
+export const dynamic = "force-dynamic";
+--------------------------------
+
+3) /app/api/waitlist/export/route.ts  (CSV export; simple header key)
+--------------------------------
+import { NextResponse } from "next/server";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+
+export async function GET(req: Request) {
+  const key = req.headers.get("x-admin-key");
+  if (key !== process.env.EXPORT_ADMIN_KEY)
+    return new NextResponse("Unauthorized", { status: 401 });
+
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("waitlist_signups")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) return new NextResponse("DB Error", { status: 500 });
+
+  const header = Object.keys(data?.[0] || {
+    created_at: "",
+    email: "",
+    name: "",
+    event_slug: "",
+    source: "",
+    utm_source: "",
+    utm_medium: "",
+    utm_campaign: "",
+    utm_content: "",
+    user_agent: "",
+    consent: ""
+  });
+
+  const rows = (data || []).map(r => header.map(h => (r as any)[h] ?? "").join(","));
+  const csv = [header.join(","), ...rows].join("\n");
+
+  return new NextResponse(csv, {
+    headers: {
+      "content-type": "text/csv; charset=utf-8",
+      "content-disposition": `attachment; filename="waitlist.csv"`
+    }
+  });
+}
+--------------------------------
+
+Wire the /waitlist form (replace client submit)
+- In /app/waitlist/page.tsx, POST JSON to /api/waitlist instead of Formspree.
+- Send: { email, name, event_slug: searchParams.event || null, source: searchParams.source || null, utm_* if present }
+- On 200 -> redirect to /thank-you. If error, show inline message (aria-live) and keep values.
+
+Consent text (CASL-friendly)
+- Under the submit button add: “By joining, you agree to receive Jugnu event updates. Unsubscribe anytime.”
+
+Secrets to add (Replit)
+- SUPABASE_URL
+- SUPABASE_SERVICE_ROLE
+- EXPORT_ADMIN_KEY = <any random string>
+
+QA checklist
+- Submit the waitlist form → you get {ok:true} and redirect to /thank-you.
+- Row appears in Supabase. Duplicate email for same event doesn’t create a second row.
+- UTM/source fields populate when present in the URL.
+- /api/waitlist/export with header x-admin-key: <key> downloads a CSV.
