@@ -163,7 +163,7 @@ export default function Waitlist() {
         <div className="max-w-md mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <h1 className="font-fraunces text-4xl font-bold text-primary mb-4">
+            <h1 className="font-fraunces text-4xl font-bold mb-4 text-[#c05a0e]">
               Join the Waitlist
             </h1>
             <p className="text-lg text-muted">Be first, every time</p>
