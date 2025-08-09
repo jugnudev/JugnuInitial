@@ -1,5 +1,5 @@
 import { useState } from "react";
-import logoImage from "@assets/ChatGPT Image Aug 8, 2025, 03_52_33 PM_1754701983233.png";
+import logoImage from "@assets/JUGNU_1754702116800.png";
 
 export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
