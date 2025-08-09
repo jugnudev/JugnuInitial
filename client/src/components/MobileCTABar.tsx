@@ -21,20 +21,28 @@ export default function MobileCTABar() {
 
   useEffect(() => {
     const handleScroll = () => {
-      const joinSection = document.getElementById('join');
-      if (!joinSection) return;
+      // Hide on waitlist page
+      if (window.location.pathname === '/waitlist') {
+        setIsVisible(false);
+        return;
+      }
       
-      const joinRect = joinSection.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
+      // Hide when scrolled to bottom of page (near footer)
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
       
-      // Hide CTA bar when join section is visible
-      setIsVisible(!(joinRect.top <= windowHeight && joinRect.bottom >= 0));
+      // Hide when near the bottom (within 200px)
+      if (scrollTop + clientHeight >= scrollHeight - 200) {
+        setIsVisible(false);
+      } else {
+        setIsVisible(true);
+      }
     };
 
     const handleFocus = (e: FocusEvent) => {
-      // Hide when input in join section is focused (avoid keyboard overlap)
-      const joinSection = document.getElementById('join');
-      if (joinSection && e.target instanceof HTMLInputElement && joinSection.contains(e.target)) {
+      // Hide when any input is focused (avoid keyboard overlap)
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
         setIsVisible(false);
       }
     };
@@ -42,8 +50,7 @@ export default function MobileCTABar() {
     const handleBlur = (e: FocusEvent) => {
       // Show again when input loses focus (with delay to handle quick focus changes)
       setTimeout(() => {
-        const joinSection = document.getElementById('join');
-        if (joinSection && e.target instanceof HTMLInputElement && joinSection.contains(e.target)) {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
           handleScroll(); // Re-check visibility based on scroll position
         }
       }, 100);
@@ -52,6 +59,9 @@ export default function MobileCTABar() {
     window.addEventListener('scroll', handleScroll);
     document.addEventListener('focusin', handleFocus);
     document.addEventListener('focusout', handleBlur);
+    
+    // Initial check
+    handleScroll();
     
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -67,8 +77,8 @@ export default function MobileCTABar() {
       }`}
       data-testid="mobile-cta-bar"
     >
-      <div className="flex gap-3">
-        {/* Primary CTA - Tickets available */}
+      <div className="flex">
+        {/* Single CTA - Tickets available */}
         {hasTicketsAvailable && (
           <a
             href="#events"
@@ -80,38 +90,14 @@ export default function MobileCTABar() {
           </a>
         )}
         
-        {/* Primary CTA - Waitlist mode */}
-        {isWaitlistMode && (
+        {/* Single CTA - Waitlist mode OR no events */}
+        {(isWaitlistMode || events.length === 0) && (
           <a
             href="/waitlist"
             className="flex-1 inline-flex items-center justify-center py-3 bg-primary text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 transition-all duration-200"
             data-testid="mobile-cta-waitlist"
           >
             Join Waitlist
-          </a>
-        )}
-        
-        {/* Primary CTA - No events */}
-        {events.length === 0 && (
-          <a
-            href="#join"
-            onClick={(e) => { e.preventDefault(); scrollToSection('join'); }}
-            className="flex-1 inline-flex items-center justify-center py-3 bg-primary text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 transition-all duration-200"
-            data-testid="mobile-cta-join-primary"
-          >
-            Join List
-          </a>
-        )}
-        
-        {/* Secondary CTA - Join List (when not primary) */}
-        {(hasTicketsAvailable || isWaitlistMode) && (
-          <a
-            href="#join"
-            onClick={(e) => { e.preventDefault(); scrollToSection('join'); }}
-            className="flex-1 inline-flex items-center justify-center py-3 border border-primary/55 text-text hover:bg-white/5 font-medium tracking-wide rounded-2xl transition-all duration-200"
-            data-testid="mobile-cta-join"
-          >
-            Join List
           </a>
         )}
       </div>

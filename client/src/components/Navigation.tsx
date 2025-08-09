@@ -1,8 +1,18 @@
 import { useState } from "react";
+import { useEvents, useGallery } from "@/lib/events";
 import logoImage from "@assets/JUGNU_1754703056265.png";
 
 export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { data: events = [] } = useEvents();
+  const { data: galleryImages = [] } = useGallery();
+  
+  // Determine what nav items to show
+  const hasTicketsAvailable = events.some(event => 
+    (event.buyUrl || event.eventbriteId || event.ticketTailorId) && !event.soldOut
+  );
+  const showEvents = hasTicketsAvailable;
+  const showGallery = galleryImages.length > 0;
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -30,13 +40,15 @@ export default function Navigation() {
           {/* Desktop Navigation */}
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
-              <button
-                onClick={() => scrollToSection('events')}
-                className="text-text hover:text-accent transition-colors duration-200 font-medium"
-                data-testid="nav-events"
-              >
-                Events
-              </button>
+              {showEvents && (
+                <button
+                  onClick={() => scrollToSection('events')}
+                  className="text-text hover:text-accent transition-colors duration-200 font-medium"
+                  data-testid="nav-events"
+                >
+                  Events
+                </button>
+              )}
               <button
                 onClick={() => scrollToSection('story')}
                 className="text-text hover:text-accent transition-colors duration-200 font-medium"
@@ -44,20 +56,22 @@ export default function Navigation() {
               >
                 Story
               </button>
-              <button
-                onClick={() => scrollToSection('gallery')}
+              {showGallery && (
+                <button
+                  onClick={() => scrollToSection('gallery')}
+                  className="text-text hover:text-accent transition-colors duration-200 font-medium"
+                  data-testid="nav-gallery"
+                >
+                  Gallery
+                </button>
+              )}
+              <a
+                href="/waitlist"
                 className="text-text hover:text-accent transition-colors duration-200 font-medium"
-                data-testid="nav-gallery"
-              >
-                Gallery
-              </button>
-              <button
-                onClick={() => scrollToSection('join')}
-                className="text-text hover:text-accent transition-colors duration-200 font-medium"
-                data-testid="nav-join"
+                data-testid="nav-waitlist"
               >
                 Join
-              </button>
+              </a>
             </div>
           </div>
 
@@ -79,13 +93,15 @@ export default function Navigation() {
         {isMobileMenuOpen && (
           <div className="md:hidden bg-bg/95 backdrop-blur-lg border-t border-white/10">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              <button
-                onClick={() => scrollToSection('events')}
-                className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"
-                data-testid="nav-mobile-events"
-              >
-                Events
-              </button>
+              {showEvents && (
+                <button
+                  onClick={() => scrollToSection('events')}
+                  className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"
+                  data-testid="nav-mobile-events"
+                >
+                  Events
+                </button>
+              )}
               <button
                 onClick={() => scrollToSection('story')}
                 className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"
@@ -93,20 +109,23 @@ export default function Navigation() {
               >
                 Story
               </button>
-              <button
-                onClick={() => scrollToSection('gallery')}
+              {showGallery && (
+                <button
+                  onClick={() => scrollToSection('gallery')}
+                  className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"
+                  data-testid="nav-mobile-gallery"
+                >
+                  Gallery
+                </button>
+              )}
+              <a
+                href="/waitlist"
                 className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"
-                data-testid="nav-mobile-gallery"
-              >
-                Gallery
-              </button>
-              <button
-                onClick={() => scrollToSection('join')}
-                className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"
-                data-testid="nav-mobile-join"
+                data-testid="nav-mobile-waitlist"
+                onClick={() => setIsMobileMenuOpen(false)}
               >
                 Join
-              </button>
+              </a>
             </div>
           </div>
         )}

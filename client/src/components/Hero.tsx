@@ -54,8 +54,8 @@ export default function Hero() {
             Curated South Asian & global culture—nights, pop-ups, and experiences in Vancouver.
           </p>
 
-          {/* Dynamic CTAs */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          {/* Single CTA */}
+          <div className="flex justify-center">
             {/* Tickets available - show Get Tickets */}
             {hasTicketsAvailable && (
               <a
@@ -68,38 +68,14 @@ export default function Hero() {
               </a>
             )}
             
-            {/* Waitlist mode - primary CTA goes to waitlist page */}
-            {isWaitlistMode && (
+            {/* Waitlist mode OR no events - always show Join Waitlist */}
+            {(isWaitlistMode || hasNoEvents) && (
               <a
                 href="/waitlist"
                 className="inline-flex items-center justify-center px-8 py-4 bg-primary text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200 shadow-lg hover:shadow-xl btn-glow"
                 data-testid="button-join-waitlist"
               >
                 Join Waitlist
-              </a>
-            )}
-            
-            {/* No events - primary CTA is Join the List */}
-            {hasNoEvents && (
-              <a
-                href="#join"
-                onClick={(e) => { e.preventDefault(); scrollToSection('join'); }}
-                className="inline-flex items-center justify-center px-8 py-4 bg-primary text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200 shadow-lg hover:shadow-xl btn-glow"
-                data-testid="button-join-list-primary"
-              >
-                Join the List
-              </a>
-            )}
-            
-            {/* Secondary CTA - Join the List (when not the primary) */}
-            {(hasTicketsAvailable || isWaitlistMode) && (
-              <a
-                href="#join"
-                onClick={(e) => { e.preventDefault(); scrollToSection('join'); }}
-                className="inline-flex items-center justify-center px-8 py-4 border border-primary/55 text-text font-medium tracking-wide rounded-2xl hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200"
-                data-testid="button-join-list"
-              >
-                Join the List
               </a>
             )}
           </div>

@@ -3,6 +3,16 @@ import EventCard from "./EventCard";
 
 export default function Events() {
   const { data: events = [], isLoading } = useEvents();
+  
+  // Check if there are any purchasable events
+  const hasPurchasableEvents = events.some(event => 
+    event.buyUrl || event.eventbriteId || event.ticketTailorId
+  );
+  
+  // In waitlist mode (no purchasable events), hide the entire section
+  if (!isLoading && !hasPurchasableEvents) {
+    return <div id="events" className="hidden"></div>;
+  }
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -69,13 +79,13 @@ export default function Events() {
                 <p className="text-muted mb-6">
                   Be first when the frequency hits. Join the list.
                 </p>
-                <button
-                  onClick={() => scrollToSection('join')}
+                <a
+                  href="/waitlist"
                   className="inline-flex items-center justify-center px-6 py-3 bg-primary text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-all duration-200 btn-glow"
-                  data-testid="button-join-list-empty"
+                  data-testid="button-join-waitlist-empty"
                 >
-                  Join the List
-                </button>
+                  Join Waitlist
+                </a>
               </div>
             </div>
           </div>

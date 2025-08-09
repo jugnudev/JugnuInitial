@@ -3,7 +3,6 @@ import Hero from "@/components/Hero";
 import Events from "@/components/Events";
 import Gallery from "@/components/Gallery";
 import Story from "@/components/Story";
-import Join from "@/components/Join";
 
 export default function Home() {
   return (
@@ -33,7 +32,6 @@ export default function Home() {
       <Events />
       <Gallery />
       <Story />
-      <Join />
     </Layout>
   );
 }

@@ -1,0 +1,44 @@
+Title: Jugnu — Waitlist Mode v2.3 (single CTA, no events section)
+
+Goal
+Reduce friction: one CTA and one flow. Keep /waitlist as the canonical capture page. Hide Events and Gallery when empty. Keep all code/features for later.
+
+Changes
+
+1) Hero & mobile sticky CTA
+- Show ONLY one button: "Join Waitlist" → link to "/waitlist".
+- Remove the secondary "Join the List" button everywhere (hero + sticky).
+- Ensure sticky bar respects safe-area and hides at /waitlist or when inputs are focused.
+
+2) Navigation
+- Replace "Join" nav item to link to "/waitlist".
+- Hide "Events" nav item when there are no purchasable events (no buyUrl/eventbriteId/ticketTailorId).
+- Hide "Gallery" nav item if gallery has no images.
+- Keep "Story".
+
+3) Remove duplicate join section
+- Remove the #join section from the landing page entirely (and any anchor scroll code to it).
+- If any code references #join for CTA logic, route those to "/waitlist" instead.
+
+4) Hide the Events section in waitlist mode
+- When ALL events lack (buyUrl || eventbriteId || ticketTailorId), do NOT render the "Upcoming Events" section at all (no empty card).
+- Continue to render the TBA item ONLY on /waitlist (badge in the header) if query param ?event= matches it.
+
+5) Waitlist page polish
+- /waitlist keeps the accessible form (name optional, email required, honeypot, Formspree action).
+- If searchParams.event matches events.json, show small badge: "For: {title}".
+- After submit, redirect to /thank-you (aria-live already set).
+
+6) SEO/robots (unchanged)
+- Respect NEXT_PUBLIC_INDEXABLE flag.
+- Exclude placeholder events from sitemap/JSON-LD.
+
+QA checklist
+- Hero shows a single "Join Waitlist" button (desktop + mobile sticky).
+- Nav has no "Events" or "Gallery" when empty; "Join" goes to /waitlist.
+- Landing page has no duplicate join form.
+- No "Upcoming Events" section is rendered in waitlist mode.
+- /waitlist works end-to-end and shows the event badge when ?event=next-drop is present.
+
+Deliverables
+- Updated hero/sticky/nav components, removed #join section, conditional rendering for Events/Gallery, small tweak to waitlist page header.
