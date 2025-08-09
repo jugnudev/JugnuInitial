@@ -1,4 +1,5 @@
 import { Link } from "wouter";
+import logoImage from "@assets/ChatGPT Image Aug 8, 2025, 03_52_33 PM_1754701983233.png";
 
 export default function Footer() {
   return (
@@ -7,9 +8,11 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row justify-between items-center space-y-6 md:space-y-0">
           {/* Logo and social */}
           <div className="text-center md:text-left">
-            <div className="font-fraunces text-2xl font-semibold tracking-tight text-primary mb-4">
-              Jugnu
-            </div>
+            <img 
+              src={logoImage}
+              alt="Jugnu - Find Your Frequency"
+              className="h-8 mb-4 mx-auto md:mx-0"
+            />
             <div className="flex items-center justify-center md:justify-start space-x-4">
               <a 
                 href="https://instagram.com/thehouseofjugnu" 

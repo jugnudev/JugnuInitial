@@ -1,4 +1,5 @@
 import { useState } from "react";
+import logoImage from "@assets/ChatGPT Image Aug 8, 2025, 03_52_33 PM_1754701983233.png";
 
 export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -17,13 +18,13 @@ export default function Navigation() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <div 
-              className="text-primary font-fraunces text-2xl font-semibold tracking-tight cursor-pointer"
+            <img 
+              src={logoImage}
+              alt="Jugnu - Find Your Frequency"
+              className="h-8 cursor-pointer"
               onClick={() => scrollToSection('hero')}
               data-testid="nav-logo"
-            >
-              Jugnu
-            </div>
+            />
           </div>
 
           {/* Desktop Navigation */}
