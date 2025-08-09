@@ -12,11 +12,18 @@ export default function Story() {
               Jugnu means <span className="text-accent font-medium">firefly</span>. 
             </p>
             
-            <p className="text-lg leading-relaxed text-text">
-              We build nights that feel alive—where Bollywood meets global sounds, where strangers sync, 
-              and the room finds one frequency. Like fireflies gathering in the darkness, we create moments 
-              of collective illumination that transform ordinary evenings into unforgettable experiences.
-            </p>
+            <p className="text-lg leading-relaxed text-text">We chose the firefly because it isn’t the loudest thing in the dark.
+            It’s a quiet signal—a small, living spark that says “I’m here.”
+            Fireflies find each other by frequency. Some even synchronize—not by shouting, but by listening and answering back.
+            That’s our ethos: bring your light, and watch the room respond.
+
+            Jugnu is for the ones who glow on their own—and brighter together.
+            For diasporas and dreamers, for classics and new sounds, for culture that doesn’t need permission.
+            We curate spaces that feel like home and discovery in the same breath:
+            Bollywood at the core, the world at the edges, and a city learning to shine.
+
+            Small sparks. Big nights. Lasting memory.
+            Find Your Frequency.</p>
           </div>
 
           {/* Visual element */}
