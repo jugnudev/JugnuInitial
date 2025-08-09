@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useEvents, useGallery } from "@/lib/events";
-import logoImage from "@assets/2_1754762967070.png";
+import logoImage from "@assets/Upscaled Logo copy_1754763190534.png";
 
 export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
