@@ -36,15 +36,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(429).json({ ok: false, error: "rate_limited" });
       }
 
-      const { email, name, event_slug, source, utm_source, utm_medium, utm_campaign, utm_content } = req.body;
+      const { first_name, last_name, email, event_slug, source, utm_source, utm_medium, utm_campaign, utm_content, consent } = req.body;
 
-      // Validate email
+      // Validate required fields
+      const firstNameTrimmed = (first_name || "").trim();
+      const lastNameTrimmed = (last_name || "").trim();
       const emailTrimmed = (email || "").trim().toLowerCase();
+
+      if (!firstNameTrimmed || firstNameTrimmed.length > 80) {
+        return res.status(400).json({ ok: false, error: "invalid_first_name" });
+      }
+      
+      if (!lastNameTrimmed || lastNameTrimmed.length > 80) {
+        return res.status(400).json({ ok: false, error: "invalid_last_name" });
+      }
+
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed)) {
         return res.status(400).json({ ok: false, error: "invalid_email" });
       }
 
-      const nameTrimmed = (name || "").trim() || null;
+      if (!consent) {
+        return res.status(400).json({ ok: false, error: "consent_required" });
+      }
       const eventSlug = event_slug || null;
       const sourceParam = source || null;
       const userAgent = req.headers['user-agent'] || null;
@@ -60,7 +73,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const supabase = getSupabaseAdmin();
       const payload = {
         email: emailTrimmed,
-        name: nameTrimmed,
+        first_name: firstNameTrimmed,
+        last_name: lastNameTrimmed,
+        name: `${firstNameTrimmed} ${lastNameTrimmed}`, // Keep for backwards compatibility
         event_slug: eventSlug,
         source: sourceParam,
         user_agent: userAgent,
@@ -108,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Generate CSV
       const headers = [
-        "id", "created_at", "email", "name", "event_slug", "source",
+        "id", "created_at", "email", "first_name", "last_name", "name", "event_slug", "source",
         "utm_source", "utm_medium", "utm_campaign", "utm_content", 
         "user_agent", "consent", "email_norm", "event_key"
       ];

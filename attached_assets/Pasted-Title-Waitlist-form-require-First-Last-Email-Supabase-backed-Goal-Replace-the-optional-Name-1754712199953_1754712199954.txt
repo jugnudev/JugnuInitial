@@ -1,0 +1,52 @@
+Title: Waitlist form → require First, Last, Email (Supabase-backed)
+
+Goal
+Replace the optional “Name” field with required **First name**, **Last name**, and **Email**. Save to Supabase in separate columns. Keep all existing waitlist features.
+
+1) DB migration (Supabase SQL)
+ALTER TABLE public.waitlist_signups
+  ADD COLUMN IF NOT EXISTS first_name text,
+  ADD COLUMN IF NOT EXISTS last_name text;
+
+-- (optional) backfill from old name column, best-effort split
+UPDATE public.waitlist_signups
+SET first_name = COALESCE(first_name, NULLIF(split_part(name, ' ', 1), '')),
+    last_name  = COALESCE(last_name, NULLIF(NULLIF(regexp_replace(name, '^[^ ]+ ?', ''), ''), NULL));
+
+-- we will keep "name" for backwards compatibility but stop writing to it.
+
+2) API: /app/api/waitlist/route.ts
+- Update Body type to include first_name and last_name (strings).
+- Validate: first_name and last_name are required (trimmed, 1–80 chars). Return 400 on missing.
+- Normalize email (lowercase/trim) as before.
+- Insert payload includes first_name, last_name; keep name null (or `${first_name} ${last_name}` if you prefer).
+- Upsert logic and unique index on (email_norm,event_key) remain unchanged.
+
+3) Waitlist page UI: /app/waitlist/page.tsx
+- Replace the single “Name (optional)” field with two inputs:
+  • First name (required, autocomplete="given-name")
+  • Last name (required, autocomplete="family-name")
+- Email stays required (autocomplete="email").
+- Inline client-side validation + aria-invalid and aria-describedby on errors.
+- Submit handler posts JSON:
+  {
+    first_name, last_name, email,
+    event_slug: searchParams.event || null,
+    source: searchParams.source || null,
+    utm_* from URL if present
+  }
+- Disable the button while submitting; show an inline error (aria-live="polite") on failure.
+
+4) Consent (CASL-friendly)
+- Add a required checkbox above the submit button:
+  label: “I agree to receive updates about Jugnu events. Unsubscribe anytime.”
+- Send `consent: true` only if checked; otherwise block submit with an error message.
+
+5) Export CSV: /app/api/waitlist/export/route.ts
+- Ensure the CSV header includes first_name and last_name (place them immediately after email for readability).
+
+6) QA checklist
+- Form prevents submission until all three fields + consent are valid.
+- Successful submit redirects to /thank-you.
+- Row in Supabase shows first_name, last_name, email, event_slug, utm fields.
+- Duplicate email for the same event_slug does not create a second row.
