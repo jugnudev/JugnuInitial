@@ -25,7 +25,7 @@ export default function ThankYou() {
                   href="https://instagram.com/thehouseofjugnu"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center w-full px-6 py-3 bg-primary text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200"
+                  className="inline-flex items-center justify-center w-full px-6 py-3 text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200 bg-[#c05a0e]"
                 >
                   <i className="fab fa-instagram mr-2"></i>
                   Follow @thehouseofjugnu
