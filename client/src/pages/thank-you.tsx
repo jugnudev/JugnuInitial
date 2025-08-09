@@ -16,9 +16,7 @@ export default function ThankYou() {
               
               <h1 className="font-fraunces text-3xl font-bold tracking-tight mb-4 text-[#c05a0e]">Welcome to Jugnu</h1>
               
-              <p className="text-muted mb-6 leading-relaxed" aria-live="polite">
-                You're now on the list! We'll let you know when the next drop is about to light up Vancouver.
-              </p>
+              <p className="text-muted mb-6 leading-relaxed" aria-live="polite">You're now on the list! We'll keep you updated with all that's about to come. We're so excited to have you join our community <3</p>
               
               <div className="space-y-4">
                 <a
