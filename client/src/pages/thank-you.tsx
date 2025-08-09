@@ -14,7 +14,7 @@ export default function ThankYou() {
                 <i className="fas fa-check-circle text-4xl text-accent mb-4"></i>
               </div>
               
-              <h1 className="font-fraunces text-3xl font-bold tracking-tight text-primary mb-4">Welcome to Jugnu</h1>
+              <h1 className="font-fraunces text-3xl font-bold tracking-tight mb-4 text-[#c05a0e]">Welcome to Jugnu</h1>
               
               <p className="text-muted mb-6 leading-relaxed" aria-live="polite">
                 You're now on the list! We'll let you know when the next drop is about to light up Vancouver.
