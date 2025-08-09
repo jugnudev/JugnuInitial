@@ -1,5 +1,5 @@
 import { useEvents } from "@/lib/events";
-import logoImage from "@assets/JUGNU_1754702116800.png";
+import heroLogoImage from "@assets/JUGNU_1754702613935.png";
 
 export default function Hero() {
   const { data: events = [] } = useEvents();
@@ -35,11 +35,11 @@ export default function Hero() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
         <div className="max-w-4xl mx-auto">
           {/* Main heading */}
-          <div className="mb-6">
+          <div className="mb-8">
             <img 
-              src={logoImage}
+              src={heroLogoImage}
               alt="Jugnu - Find Your Frequency"
-              className="h-24 sm:h-32 lg:h-40 mx-auto"
+              className="h-32 sm:h-48 lg:h-64 xl:h-72 mx-auto max-w-full"
             />
           </div>
           
