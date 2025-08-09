@@ -4,11 +4,12 @@ import heroLogoImage from "@assets/JUGNU_1754702613935.png";
 export default function Hero() {
   const { data: events = [] } = useEvents();
 
-  // Determine CTA state based on events
+  // Determine CTA state based on events - waitlist mode logic
   const hasTicketsAvailable = events.some(event => 
     (event.buyUrl || event.eventbriteId || event.ticketTailorId) && !event.soldOut
   );
-  const hasWaitlistOnly = events.some(event => event.waitlistUrl && !hasTicketsAvailable);
+  const hasWaitlistEvents = events.some(event => event.waitlistUrl);
+  const isWaitlistMode = !hasTicketsAvailable && hasWaitlistEvents;
   const hasNoEvents = events.length === 0;
 
   const scrollToSection = (sectionId: string) => {
@@ -55,44 +56,51 @@ export default function Hero() {
 
           {/* Dynamic CTAs */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            {/* Tickets available - show Get Tickets */}
             {hasTicketsAvailable && (
-              <button
-                onClick={() => scrollToSection('events')}
+              <a
+                href="#events"
+                onClick={(e) => { e.preventDefault(); scrollToSection('events'); }}
                 className="inline-flex items-center justify-center px-8 py-4 bg-primary text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200 shadow-lg hover:shadow-xl btn-glow"
                 data-testid="button-get-tickets"
               >
                 Get Tickets
-              </button>
+              </a>
             )}
             
-            {hasWaitlistOnly && !hasTicketsAvailable && (
-              <button
-                onClick={() => scrollToSection('events')}
+            {/* Waitlist mode - primary CTA goes to waitlist page */}
+            {isWaitlistMode && (
+              <a
+                href="/waitlist"
                 className="inline-flex items-center justify-center px-8 py-4 bg-primary text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200 shadow-lg hover:shadow-xl btn-glow"
                 data-testid="button-join-waitlist"
               >
                 Join Waitlist
-              </button>
+              </a>
             )}
             
-            {!hasNoEvents && (
-              <button
-                onClick={() => scrollToSection('join')}
-                className="inline-flex items-center justify-center px-8 py-4 border border-primary/55 text-text font-medium tracking-wide rounded-2xl hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200"
-                data-testid="button-join-list"
-              >
-                Join the List
-              </button>
-            )}
-            
+            {/* No events - primary CTA is Join the List */}
             {hasNoEvents && (
-              <button
-                onClick={() => scrollToSection('join')}
+              <a
+                href="#join"
+                onClick={(e) => { e.preventDefault(); scrollToSection('join'); }}
                 className="inline-flex items-center justify-center px-8 py-4 bg-primary text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200 shadow-lg hover:shadow-xl btn-glow"
                 data-testid="button-join-list-primary"
               >
                 Join the List
-              </button>
+              </a>
+            )}
+            
+            {/* Secondary CTA - Join the List (when not the primary) */}
+            {(hasTicketsAvailable || isWaitlistMode) && (
+              <a
+                href="#join"
+                onClick={(e) => { e.preventDefault(); scrollToSection('join'); }}
+                className="inline-flex items-center justify-center px-8 py-4 border border-primary/55 text-text font-medium tracking-wide rounded-2xl hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200"
+                data-testid="button-join-list"
+              >
+                Join the List
+              </a>
             )}
           </div>
         </div>

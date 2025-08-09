@@ -18,7 +18,7 @@ export default function ThankYou() {
                 Welcome to the Frequency
               </h1>
               
-              <p className="text-muted mb-6 leading-relaxed">
+              <p className="text-muted mb-6 leading-relaxed" aria-live="polite">
                 You're now on the list! We'll let you know when the next drop is about to light up Vancouver.
               </p>
               

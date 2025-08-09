@@ -1,0 +1,86 @@
+Title: Jugnu — Waitlist Mode v2.2 (on-site, no external tools)
+
+Goal
+Switch the site to “Waitlist-first” while keeping all existing features and design. Show a single TBA event with a Join Waitlist flow hosted ON the site. Hide Get Tickets until a real event exists.
+
+Do NOT remove any existing files; only add/modify as below.
+
+────────────────────────────────────────────────────────
+1) Data: TBA event (UI visible, not indexed)
+- Overwrite /data/events.json with EXACTLY:
+[
+  {
+    "id": "tba-001",
+    "slug": "next-drop",
+    "title": "Next Drop",
+    "dateISO": null,
+    "venue": "TBA",
+    "city": "Vancouver, BC",
+    "img": "/images/placeholder.jpg",
+    "waitlistUrl": "/waitlist?event=next-drop",
+    "placeholder": true
+  }
+]
+
+2) New route: /waitlist (on-site form)
+- Create /app/waitlist/page.tsx
+- Reads searchParams: event (slug), source, and any utm_*.
+- UI: H1 “Join the Waitlist”, sub “Be first when the frequency hits.”
+- If event slug matches an item in /data/events.json, show a small badge like: "For: {title}".
+- Form (accessible):
+  • fields: name (optional), email (required)
+  • hidden inputs: interest_event (slug or "general"), source, any utm_* present
+  • spam honeypot input (visually hidden)
+  • action: Formspree placeholder endpoint (TODO comment with instructions to swap Mailchimp/Beehiiv/ConvertKit embed later)
+- On success: redirect to /thank-you (already exists). Add aria-live="polite" to the success message on /thank-you if not present.
+
+3) CTA logic (site-wide)
+- Define “waitlist mode” = there is NO event with (buyUrl || eventbriteId || ticketTailorId) AND there is at least one event with waitlistUrl.
+- In waitlist mode:
+  • Hero primary CTA = “Join Waitlist” → link to "/waitlist" (no event param).
+  • Hero secondary CTA = “Join the List” → scroll to #join.
+  • Mobile sticky bar mirrors the same primary/secondary CTAs.
+  • Hide any “Get Tickets” buttons globally.
+- EventCard:
+  • If waitlistUrl exists AND no buyUrl/IDs → render a single primary button “Join Waitlist”.
+    - If waitlistUrl startsWith("#"): smooth-scroll
+    - If waitlistUrl startsWith("/"): client-side navigate (next/navigation)
+    - Else (http/https): open in new tab
+  • If dateISO is null → show badge “TBA” and DO NOT render Google/ICS calendar links.
+
+4) Gallery handling
+- If /public/images/gallery is empty → hide the entire Gallery section but keep the #gallery anchor (so the nav doesn’t jump).
+
+5) Timezone + formatting
+- Create a small util (if not present) to format date badges using Intl with timeZone "America/Vancouver". Return “TBA” when dateISO is null. Use this util everywhere dates render (UI + JSON-LD).
+
+6) SEO / robots / sitemap
+- Respect an env flag for indexing:
+  • If process.env.NEXT_PUBLIC_INDEXABLE !== "true", inject <meta name="robots" content="noindex,nofollow"> on ALL pages and serve robots.txt with:
+    User-agent: *
+    Disallow: /
+- Exclude any event with placeholder:true from sitemap.xml and from JSON-LD.
+- Organization JSON-LD should include sameAs: ["https://instagram.com/thehouseofjugnu"].
+
+7) Accessibility polish
+- All disabled controls must use aria-disabled + visible focus states.
+- Tooltips (if any) use role="tooltip".
+- /thank-you success message uses aria-live="polite".
+- Mobile sticky CTA bar respects safe-area (env(safe-area-inset-bottom)) and hides when #join is in view OR when an input in the #join form is focused (avoid keyboard overlap).
+
+8) Do NOT remove calendar code
+- Keep the Google/ICS integration in place for future-dated events, but suppress both links whenever dateISO is null.
+
+9) QA (please verify before finishing)
+- With the provided events.json:
+  • Hero + sticky bar show “Join Waitlist” primary and “Join the List” secondary.
+  • Event card shows TBA badge and a working “Join Waitlist” button that routes to /waitlist?event=next-drop.
+  • No “Get Tickets” displayed anywhere.
+  • Gallery section hidden if there are no images, but the nav anchor remains.
+  • Organization JSON-LD present; no Event JSON-LD emitted for placeholder items.
+  • robots.txt disallows indexing unless NEXT_PUBLIC_INDEXABLE is "true".
+
+Deliverables
+- New file: /app/waitlist/page.tsx
+- Updated: Hero/Sticky CTA logic, EventCard (waitlist rules + TBA badge + no calendar on null date), date formatting util, robots/sitemap/JSON-LD handling, README notes on swapping email provider and enabling index.
+- Short note: list of files touched and how to flip out of waitlist mode (add a real event with buyUrl or embed ID, and set NEXT_PUBLIC_INDEXABLE="true").

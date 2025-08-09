@@ -1,4 +1,5 @@
 import { getCalendarLinks } from "@/lib/calendar";
+import { formatEventDate } from "@/lib/dates";
 import TicketButton from "./TicketButton";
 
 export interface EventItem {
@@ -14,17 +15,22 @@ export interface EventItem {
   ticketTailorId?: string;
   soldOut?: boolean;
   waitlistUrl?: string;
+  placeholder?: boolean;
 }
-
-const tz = "America/Vancouver";
-const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: tz });
-const month = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: tz });
-const day = new Intl.DateTimeFormat("en-US", { day: "2-digit", timeZone: tz });
 
 function dateBadge(iso: string | null) {
   if (!iso) return "TBA";
-  const d = new Date(iso);
-  return `${weekday.format(d).toUpperCase()} • ${month.format(d).toUpperCase()} ${day.format(d)}`;
+  
+  try {
+    const d = new Date(iso);
+    const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: "America/Vancouver" });
+    const month = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: "America/Vancouver" });
+    const day = new Intl.DateTimeFormat("en-US", { day: "2-digit", timeZone: "America/Vancouver" });
+    
+    return `${weekday.format(d).toUpperCase()} • ${month.format(d).toUpperCase()} ${day.format(d)}`;
+  } catch (error) {
+    return "TBA";
+  }
 }
 
 interface EventCardProps {
@@ -111,8 +117,8 @@ export default function EventCard({ event }: EventCardProps) {
             size="lg"
           />
           
-          {/* Add to Calendar */}
-          {cal && (
+          {/* Add to Calendar - only show when date exists */}
+          {cal && hasDate && (
             <div className="flex items-center gap-2">
               <button 
                 type="button" 

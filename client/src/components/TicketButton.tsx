@@ -92,6 +92,36 @@ export default function TicketButton({
   }
 
   if (state === "comingsoon") {
+    // Show waitlist button if available
+    if (waitlistUrl) {
+      const handleWaitlistClick = () => {
+        if (waitlistUrl.startsWith('#')) {
+          // Smooth scroll to section
+          const element = document.getElementById(waitlistUrl.slice(1));
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        } else if (waitlistUrl.startsWith('/')) {
+          // Client-side navigation
+          window.location.href = waitlistUrl;
+        } else {
+          // External URL - open in new tab
+          window.open(waitlistUrl, '_blank', 'noopener,noreferrer');
+        }
+      };
+
+      return (
+        <button
+          type="button"
+          onClick={handleWaitlistClick}
+          className={cn(btnBase, sizes, primary, className)}
+          data-testid="button-join-waitlist"
+        >
+          Join Waitlist
+        </button>
+      );
+    }
+
     return (
       <button
         type="button"

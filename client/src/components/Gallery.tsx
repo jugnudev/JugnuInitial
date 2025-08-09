@@ -7,8 +7,8 @@ export default function Gallery() {
   const [selectedImage, setSelectedImage] = useState<{ src: string; alt: string } | null>(null);
 
   if (galleryImages.length === 0 && !isLoading) {
-    // Hide gallery section if no images
-    return null;
+    // Hide gallery section if no images, but keep anchor for navigation
+    return <div id="gallery" className="hidden"></div>;
   }
 
   if (isLoading) {
