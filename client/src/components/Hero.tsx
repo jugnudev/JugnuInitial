@@ -29,10 +29,8 @@ export default function Hero() {
         <div className="firefly"></div>
         <div className="firefly"></div>
       </div>
-
       {/* Background glow */}
       <div className="absolute inset-0 bg-gradient-radial from-glow/10 via-transparent to-transparent"></div>
-
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
         <div className="max-w-4xl mx-auto">
           {/* Main heading */}
@@ -45,7 +43,7 @@ export default function Hero() {
           </div>
           
           {/* Subheading */}
-          <h2 className="font-fraunces text-2xl sm:text-3xl lg:text-4xl font-medium tracking-tight text-accent mb-8">
+          <h2 className="font-fraunces text-2xl sm:text-3xl lg:text-4xl font-medium tracking-tight mb-8 text-[#c05a0e]">
             Find Your Frequency
           </h2>
           
