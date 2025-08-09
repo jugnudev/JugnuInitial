@@ -1,5 +1,5 @@
 import { useEvents } from "@/lib/events";
-import heroLogoImage from "@assets/JUGNU_1754702613935.png";
+import heroLogoImage from "@assets/JUGNU copy_1754761471235.png";
 
 export default function Hero() {
   const { data: events = [] } = useEvents();
