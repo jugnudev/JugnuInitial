@@ -9,7 +9,7 @@ export default function Story() {
           
           <div className="prose prose-lg prose-invert max-w-none">
             <p className="text-xl leading-relaxed text-muted mb-8">
-              Jugnu means <span className="text-accent font-medium">firefly</span>. 
+              Jugnu means <span className="font-medium text-[#c05a0e]">firefly</span>. 
             </p>
             
             <p className="text-lg leading-relaxed text-text">We chose the firefly because it isn’t the loudest thing in the dark.
