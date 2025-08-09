@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import logoImage from "@assets/JUGNU copy_1754761471235.png";
+import logoImage from "@assets/2_1754762967070.png";
 
 export default function Footer() {
   return (
