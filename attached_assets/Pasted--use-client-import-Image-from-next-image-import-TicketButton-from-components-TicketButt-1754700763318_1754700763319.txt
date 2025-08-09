@@ -1,0 +1,100 @@
+"use client";
+
+import Image from "next/image";
+import { TicketButton } from "@/components/TicketButton";
+import { getCalendarLinks } from "@/lib/calendar";
+
+export type EventItem = {
+  id: string;
+  slug: string;
+  title: string;
+  dateISO: string | null;
+  venue: string;
+  city: string;
+  img: string;
+  buyUrl?: string;
+  eventbriteId?: string;
+  ticketTailorId?: string;
+  soldOut?: boolean;
+  waitlistUrl?: string;
+};
+
+const tz = "America/Vancouver";
+const weekday = new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone: tz });
+const month = new Intl.DateTimeFormat("en-US", { month: "short", timeZone: tz });
+const day = new Intl.DateTimeFormat("en-US", { day: "2-digit", timeZone: tz });
+
+function dateBadge(iso: string | null) {
+  if (!iso) return "TBA";
+  const d = new Date(iso);
+  return `${weekday.format(d).toUpperCase()} • ${month.format(d).toUpperCase()} ${day.format(d)}`;
+}
+
+export default function EventCard({ event }: { event: EventItem }) {
+  const hasDate = Boolean(event.dateISO);
+  const badge = dateBadge(event.dateISO);
+
+  const cal = hasDate
+    ? getCalendarLinks({
+        title: event.title,
+        startISO: event.dateISO!,
+        // default end = +3h
+        endISO: new Date(new Date(event.dateISO!).getTime() + 3 * 60 * 60 * 1000).toISOString(),
+        location: `${event.venue}, ${event.city}`,
+        description: "Jugnu — Find Your Frequency",
+      })
+    : null;
+
+  return (
+    <article className="overflow-hidden rounded-2xl border border-white/5 bg-black/30 shadow-inner">
+      <div className="relative aspect-[16/9] w-full">
+        <Image
+          src={event.img}
+          alt={`${event.title} cover`}
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 50vw"
+          priority={false}
+        />
+        <div className="absolute left-3 top-3 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-[--text] backdrop-blur">
+          {badge}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 p-4 md:p-5">
+        <h3 className="text-lg font-semibold tracking-tight text-[--text]">{event.title}</h3>
+        <p className="text-sm text-[--muted]">{event.venue} • {event.city}</p>
+
+        <div className="mt-1 flex flex-wrap items-center gap-3">
+          <TicketButton
+            buyUrl={event.buyUrl}
+            eventbriteId={event.eventbriteId}
+            ticketTailorId={event.ticketTailorId}
+            waitlistUrl={event.waitlistUrl}
+            soldOut={event.soldOut}
+            size="lg"
+          />
+          {cal && (
+            <>
+              <a
+                href={cal.google}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm underline opacity-90 hover:opacity-100"
+              >
+                Add to Google
+              </a>
+              <a
+                href={cal.ics}
+                download={`${event.slug}.ics`}
+                className="text-sm underline opacity-90 hover:opacity-100"
+              >
+                Download .ics
+              </a>
+            </>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}

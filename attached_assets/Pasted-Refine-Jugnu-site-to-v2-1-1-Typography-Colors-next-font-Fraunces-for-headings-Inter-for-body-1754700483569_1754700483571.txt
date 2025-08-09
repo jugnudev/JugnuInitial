@@ -1,0 +1,84 @@
+Refine Jugnu site to v2.1
+
+1) Typography & Colors
+- next/font: Fraunces for headings, Inter for body.
+- Tailwind styles: headings tracking-tight, body leading-relaxed; button text tracking-wide.
+- Color vars: --bg:#0B0B0B; --text:#E7E3DE; --muted:#B9AFA6; --primary:#A46530; --primary-700:#844F28; --accent:#F29A3A; --glow:#F6D35A
+
+2) Hero polish
+- Subtle “firefly” dots (radial-gradient using --glow) drifting; disable when prefers-reduced-motion.
+- Primary CTA styling = filled copper; secondary = ghost outline.
+
+3) Mobile sticky CTA
+- Fixed bottom bar on <=768px showing context-aware CTAs (see #4). Respect safe-area insets. Hide when scrolled to #join.
+
+4) Events-aware CTA logic
+- Source: /data/events.json
+- If any event has (buyUrl || eventbriteId || ticketTailorId) && !soldOut → Hero + sticky show ["Get Tickets"(primary), "Join the List"(ghost)].
+- Else if any event has waitlistUrl → show ["Join Waitlist"(primary), "Join the List"(ghost)].
+- Else (0 events) → show only ["Join the List"(primary)] and hide any “Get Tickets” buttons.
+
+5) Events section
+- Card fields: { title, dateISO, venue, city, img, buyUrl?, eventbriteId?, ticketTailorId?, soldOut?, waitlistUrl? }
+- Date badge format: "SAT • SEP 20".
+- Add “Add to Calendar” (Google + ICS) per event.
+- Empty state (when no events):
+  - Title: “New dates are lighting up soon.”
+  - Copy: “Be first when the frequency hits. Join the list.”
+  - Button: “Join the List” → scroll to #join
+  - Subtle firefly glow behind card.
+
+6) TicketButton stub (future-proof)
+- components/TicketButton.tsx
+  Props { buyUrl?, eventbriteId?, ticketTailorId?, label?="Get Tickets" }
+  Now: if buyUrl present → window.open(buyUrl, "_blank"); 
+       else if soldOut → disabled “Sold Out” + optional “Join Waitlist” if waitlistUrl exists;
+       else → disabled “Tickets Coming Soon”.
+  Include TODO functions for Eventbrite/Ticket Tailor modal init but do not load vendor scripts yet.
+
+7) Email capture
+- Provider-agnostic form (name+email) with honeypot. Action = Formspree placeholder; clear TODO comments showing where to paste Mailchimp/Beehiiv/ConvertKit embed later.
+- Success → /thank-you page with IG button (@thehouseofjugnu) + “Add to Calendar for our next drop” ICS link.
+
+8) Gallery handling
+- CSS columns masonry, lazy-loaded, lightbox on click.
+- If /public/images/gallery is empty → hide the Gallery section entirely.
+
+9) SEO/Analytics
+- Title, meta description, canonical, OG/Twitter cards (/public/og.png).
+- JSON-LD: Organization + first upcoming Event (if any).
+- GA4/Plausible load only if env present.
+
+10) A11y & Performance
+- Visible focus rings, keyboard-accessible controls.
+- next/image with blurDataURL; keep hero assets small; LCP < 2.5s mobile.
+
+11) Housekeeping
+- 404 page styled.
+- README: where to paste provider/ticket IDs, how to edit events.json, how to add gallery photos, how to enable analytics.
+
+Deliver: updated code + note of the files you touched.
+Quick starters you can paste into data/events.json
+A) No events yet
+
+json
+Copy
+Edit
+[]
+B) Tease a drop (waitlist mode)
+
+json
+Copy
+Edit
+[
+  {
+    "id": "tba-001",
+    "slug": "next-drop",
+    "title": "Next Drop",
+    "dateISO": null,
+    "venue": "TBA",
+    "city": "Vancouver, BC",
+    "img": "/images/placeholder.jpg",
+    "waitlistUrl": "https://example.com/waitlist"
+  }
+]

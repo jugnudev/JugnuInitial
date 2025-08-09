@@ -1,0 +1,186 @@
+here’s a drop-in TicketButton.tsx stub plus a tiny lib/ticketing.ts you can paste into your project. It’s accessible, mobile-friendly, and future-proofed for Eventbrite/Ticket Tailor embeds. For now it opens buyUrl in a new tab and handles Sold Out / Waitlist / Coming Soon states.
+
+components/TicketButton.tsx
+tsx
+Copy
+Edit
+"use client";
+
+import * as React from "react";
+import { openEventbriteCheckout, openTicketTailorCheckout } from "@/lib/ticketing";
+import clsx from "clsx";
+
+type Props = {
+  buyUrl?: string;
+  eventbriteId?: string;
+  ticketTailorId?: string;
+  waitlistUrl?: string;
+  soldOut?: boolean;
+  label?: string;              // defaults to "Get Tickets"
+  className?: string;
+  size?: "md" | "lg";          // visual only
+};
+
+export function TicketButton({
+  buyUrl,
+  eventbriteId,
+  ticketTailorId,
+  waitlistUrl,
+  soldOut = false,
+  label = "Get Tickets",
+  className,
+  size = "md",
+}: Props) {
+  // Determine state
+  const hasDirectBuy = Boolean(buyUrl);
+  const hasEmbedId   = Boolean(eventbriteId || ticketTailorId);
+
+  let state: "buy" | "soldout" | "comingsoon" = "comingsoon";
+  if (soldOut) state = "soldout";
+  else if (hasDirectBuy || hasEmbedId) state = "buy";
+
+  const btnBase =
+    "inline-flex items-center justify-center rounded-2xl px-5 font-medium transition " +
+    "focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[--accent] " +
+    "disabled:opacity-60 disabled:cursor-not-allowed";
+
+  const sizes = size === "lg" ? "h-12 text-base" : "h-10 text-sm";
+
+  const primary =
+    "bg-[--primary] text-black/90 hover:bg-[--primary-700] ring-offset-[--bg] shadow-sm";
+
+  const ghost =
+    "border border-[color:var(--primary)_/_55%] text-[--text] hover:bg-white/5 ring-offset-[--bg]";
+
+  async function handleClick() {
+    if (state !== "buy") return;
+
+    // 1) Simple link-out now
+    if (hasDirectBuy && typeof window !== "undefined") {
+      window.open(buyUrl!, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    // 2) Future: open vendor modal (kept as TODOs in lib/ticketing.ts)
+    if (eventbriteId) {
+      await openEventbriteCheckout(eventbriteId);
+      return;
+    }
+    if (ticketTailorId) {
+      await openTicketTailorCheckout(ticketTailorId);
+      return;
+    }
+  }
+
+  // Render
+  if (state === "soldout") {
+    return (
+      <div className={clsx("flex items-center gap-3", className)}>
+        <button
+          type="button"
+          className={clsx(btnBase, sizes, ghost)}
+          aria-disabled
+          title="Sold Out"
+        >
+          Sold Out
+        </button>
+        {waitlistUrl && (
+          <a
+            className={clsx(btnBase, sizes, primary)}
+            href={waitlistUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Join Waitlist
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  if (state === "comingsoon") {
+    return (
+      <button
+        type="button"
+        className={clsx(btnBase, sizes, ghost, className)}
+        aria-disabled
+        title="Tickets coming soon"
+      >
+        Tickets Coming Soon
+      </button>
+    );
+  }
+
+  // state === "buy"
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className={clsx(btnBase, sizes, primary, className)}
+    >
+      {label}
+    </button>
+  );
+}
+
+export default TicketButton;
+lib/ticketing.ts (stubbed for later)
+ts
+Copy
+Edit
+// Minimal vendor stubs. These are intentionally NO-OPs until you choose a platform.
+
+let eventbriteLoaded = false;
+let ticketTailorLoaded = false;
+
+export async function openEventbriteCheckout(eventId: string) {
+  // TODO: Load Eventbrite widget script once, then open modal.
+  // Example (when you’re ready):
+  // if (!eventbriteLoaded) {
+  //   await loadScript("https://www.eventbrite.com/static/widgets/eb_widgets.js");
+  //   eventbriteLoaded = true;
+  // }
+  // // @ts-ignore - EB global after script load
+  // window.EBWidgets.createWidget({
+  //   widgetType: "checkout",
+  //   eventId,
+  //   modal: true
+  // });
+  console.warn("[ticketing] Eventbrite modal not wired yet. eventId=", eventId);
+}
+
+export async function openTicketTailorCheckout(eventId: string) {
+  // TODO: Load Ticket Tailor script once, then open modal.
+  // Example (when you’re ready):
+  // if (!ticketTailorLoaded) {
+  //   await loadScript("https://cdn.tickettailor.com/js/widgets/min/widget.js");
+  //   ticketTailorLoaded = true;
+  // }
+  // // @ts-ignore - TT global after script load
+  // window.TicketTailor.embed(eventId, { modal: true });
+  console.warn("[ticketing] Ticket Tailor modal not wired yet. eventId=", eventId);
+}
+
+// Optional helper for future script loading
+export function loadScript(src: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) return resolve();
+    const s = document.createElement("script");
+    s.src = src;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error(`Failed to load ${src}`));
+    document.head.appendChild(s);
+  });
+}
+How to use (inside your EventCard)
+tsx
+Copy
+Edit
+<TicketButton
+  buyUrl={event.buyUrl}                // optional
+  eventbriteId={event.eventbriteId}    // optional (future)
+  ticketTailorId={event.ticketTailorId}// optional (future)
+  waitlistUrl={event.waitlistUrl}      // optional
+  soldOut={event.soldOut}              // optional
+/>

@@ -1,0 +1,109 @@
+Project: Jugnu — “Find Your Frequency”
+Goal: A fast, mobile-first landing site that matches the Jugnu logo aesthetic, collects emails, lists events from JSON, and is ready to plug in Eventbrite/Ticket Tailor later (via a stubbed TicketButton component). Keep scope lean and ship-ready.
+
+Stack
+- Next.js (App Router) + TypeScript
+- Tailwind CSS
+- No DB. Data from /data/events.json
+- Clean, accessible, lighthouse-friendly
+
+Brand (match the logo attached by user)
+- Dark base with copper/amber accent.
+- Create CSS variables in globals.css and Tailwind theme:
+  --bg:#0B0B0B; --text:#E7E3DE; --muted:#B9AFA6; --primary:#A46530; --primary-700:#844F28; --accent:#F29A3A; --glow:#F6D35A
+- Fonts: Headings = "Fraunces", Body = "Inter" (load via next/font)
+
+Routes & sections (single page v1)
+- /  (Landing)
+  1) Sticky Nav: left logo (use /public/logo.svg placeholder), right anchors [Events, Story, Gallery, Join]
+  2) Hero:
+     - Title “Jugnu”
+     - Subhead: “Find Your Frequency”
+     - One-liner: “Curated South Asian & global culture—nights, pop-ups, and experiences in Vancouver.”
+     - CTAs: [Get Tickets] → scroll to #events, [Join the List] → scroll to #join
+     - Background: subtle radial glow using --glow; no heavy video
+  3) Events (#events):
+     - Grid of EventCard from /data/events.json
+     - Each card: date badge, title, venue, city, image, and a <TicketButton> (see below)
+     - Empty state message: “New dates are lighting up soon. Join the list to be first.”
+  4) Gallery (#gallery):
+     - Masonry-ish grid (CSS columns), 8–12 images, lazy-loaded, rounded-2xl, soft hover glow
+  5) Story (#story):
+     - Short copy: “Jugnu means firefly. We build nights that feel alive—where Bollywood meets global sounds, where strangers sync, and the room finds one frequency.”
+  6) Join (#join):
+     - Email capture block with provider-agnostic form (see Email section)
+  7) Footer:
+     - Instagram: @thehouseofjugnu
+     - Contact email placeholder (TODO)
+     - © Jugnu, Privacy, Terms links
+
+Email (provider-agnostic for now)
+- Implement a simple, accessible POST form with name + email.
+- Default action: Formspree placeholder (commented with TODO to swap in Mailchimp/Beehiiv/ConvertKit embed code later).
+- On submit: redirect to /thank-you with copy + IG follow button.
+- Keep a minimal /lib/email.md explaining how to replace with provider embed.
+
+Ticketing (stubbed; easy to wire later)
+- components/TicketButton.tsx:
+  - Props: { buyUrl?: string; eventbriteId?: string; ticketTailorId?: string; label?: string }
+  - For now: if buyUrl → open in new tab; else disabled with tooltip “Tickets coming soon.”
+  - Include TODO comments & functions to later initialize Eventbrite/TicketTailor modal widgets (load scripts once).
+- EventCard uses TicketButton and supports states: soldOut (renders “Sold Out”), waitlistUrl (renders “Join Waitlist”).
+
+Data
+- /data/events.json example with 2 events:
+  [
+    {
+      "id":"jugnu-001",
+      "slug":"late-night-secrets",
+      "title":"Late Night Secrets",
+      "dateISO":"2025-09-20T22:00:00-07:00",
+      "venue":"TBA",
+      "city":"Vancouver, BC",
+      "img":"/images/sample-event-1.jpg",
+      "buyUrl":"https://example.com/tickets"
+    },
+    {
+      "id":"jugnu-002",
+      "slug":"bollywood-beyond",
+      "title":"Bollywood & Beyond",
+      "dateISO":"2025-10-18T22:00:00-07:00",
+      "venue":"TBA",
+      "city":"Vancouver, BC",
+      "img":"/images/sample-event-2.jpg",
+      "soldOut": true,
+      "waitlistUrl":"https://example.com/waitlist"
+    }
+  ]
+
+Design system
+- Mobile-first (test at 390px). Big spacing (py-12 mobile / py-16 desktop).
+- Buttons: rounded-2xl, focus-visible rings, hover adds faint outer glow.
+- Cards: 1px border (#1A1D1E), subtle inner shadow for depth.
+- Smooth scroll for anchor links; prefers-reduced-motion respected.
+
+SEO & Analytics
+- <Head> with title, meta description, canonical, OG/Twitter cards.
+- JSON-LD: Organization + a sample Event (first upcoming).
+- GA4/Plausible placeholders via env var (if present, load; else skip).
+
+Accessibility & Performance
+- High color contrast; keyboard navigable components.
+- Next/Image with blur placeholders; lazy-load gallery; compress images.
+- Lighthouse targets: Perf ≥90, A11y ≥95 on mobile.
+
+Project scaffolding
+- /app/page.tsx (sections), /components/* (Nav, Hero, EventCard, TicketButton), /data/events.json
+- /public/images/* sample assets, /public/logo.svg placeholder (user will replace with their logo)
+- /app/thank-you/page.tsx (simple success screen with IG button)
+- /app/privacy & /app/terms placeholder pages
+- tailwind.config.ts with CSS vars theme
+- README.md: how to (1) replace logo/colors, (2) swap email provider, (3) wire Eventbrite/TicketTailor in TicketButton, (4) edit events.json, (5) add analytics IDs
+
+Polish
+- Add subtle “firefly” keyframe: a small radial glow dot that gently pulses in the hero background.
+- Ensure no console errors, type-safe props, and clean ESLint/Prettier defaults.
+
+Deliverables
+- Running app in Replit with the above.
+- Brief README instructions and screenshots of mobile hero + events grid.
