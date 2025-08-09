@@ -87,9 +87,7 @@ export default function Waitlist() {
             <h1 className="font-fraunces text-4xl font-bold text-primary mb-4">
               Join the Waitlist
             </h1>
-            <p className="text-lg text-muted">
-              Be first when the frequency hits.
-            </p>
+            <p className="text-lg text-muted">Be first, every time</p>
             
             {/* Event badge */}
             {targetEvent && (
