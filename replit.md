@@ -80,11 +80,23 @@ Preferred communication style: Simple, everyday language.
 - **tsx**: TypeScript execution environment
 - **esbuild**: Fast JavaScript bundler for production
 
-### Current State (Waitlist Mode v2.3)
-- **Single Flow**: One CTA leads to /waitlist page for maximum conversion
-- **Hidden Sections**: Events and Gallery sections hidden when empty, preserved for future use
-- **Navigation**: Events/Gallery nav items conditionally shown based on content
-- **No Duplication**: Removed duplicate join forms, single capture point at /waitlist
+### Community Events System (Added v2.4)
+- **ICS Calendar Import**: Automated import from Google Calendar ICS feeds with structured description parsing
+- **Event Data Parsing**: Extracts Tickets, Source, Image, Tags, Organizer, PriceFrom from event descriptions
+- **Weekly Events Feed**: Shows upcoming South Asian events in Vancouver for next 7 days
+- **Admin Management**: Manual event upsert endpoint for corrections and additions
+- **UI Integration**: Dedicated /community page with filtering, calendar integration, and responsive cards
+
+### Current State (Waitlist Mode v2.3 + Community v2.4)
+- **Dual Purpose**: Waitlist mode for Jugnu events + Community calendar for broader ecosystem
+- **Smart Navigation**: Community link always visible, Events/Gallery conditionally shown
+- **Enhanced Cards**: Remote image support, price chips, tag filtering, calendar integration
+- **Admin Tools**: ICS import cron job + manual event management via API
+
+### Active Integrations
+- **Supabase**: Full database backend with community_events table and RLS
+- **Google Calendar**: ICS feed parsing with structured description support
+- **Calendar Export**: Google Calendar and ICS file generation for event adds
 
 ### Planned Integrations
 - **Eventbrite API**: For event ticket sales and management

@@ -195,12 +195,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const [venue, ...addressParts] = location.split(',').map(s => s.trim());
             const address = addressParts.join(', ') || null;
 
-            const organizer = event.organizer ? 
+            let organizer = event.organizer ? 
               (typeof event.organizer === 'string' ? event.organizer : 
                (event.organizer as any)?.params?.CN || 
                (event.organizer as any)?.val || 
                String(event.organizer)) : null;
+            
             const status = startAt >= oneDayAgo ? 'upcoming' : 'past';
+            
+            // Parse structured data from DESCRIPTION
+            const description = event.description || '';
+            let ticketsUrl: string | null = null;
+            let sourceUrl: string | null = null;
+            let imageUrl: string | null = null;
+            let tags: string[] = [];
+            let priceFrom: number | null = null;
+            
+            // Parse structured fields (case-insensitive, allow spaces)
+            const lines = description.split(/\r?\n/);
+            const urlRegex = /https?:\/\/[^\s]+/gi;
+            const allUrls: string[] = [];
+            
+            for (const line of lines) {
+              const trimmedLine = line.trim();
+              
+              // Extract URLs from this line
+              const lineUrls = trimmedLine.match(urlRegex) || [];
+              allUrls.push(...lineUrls);
+              
+              // Parse structured fields
+              const ticketsMatch = trimmedLine.match(/^tickets\s*:\s*(https?:\/\/[^\s]+)/i);
+              const sourceMatch = trimmedLine.match(/^source\s*:\s*(https?:\/\/[^\s]+)/i);
+              const imageMatch = trimmedLine.match(/^image\s*:\s*(https?:\/\/[^\s]+)/i);
+              const tagsMatch = trimmedLine.match(/^tags\s*:\s*(.+)/i);
+              const organizerMatch = trimmedLine.match(/^organizer\s*:\s*(.+)/i);
+              const priceMatch = trimmedLine.match(/^pricefrom\s*:\s*(\d+(?:\.\d{2})?)/i);
+              
+              if (ticketsMatch) {
+                ticketsUrl = ticketsMatch[1];
+              } else if (sourceMatch) {
+                sourceUrl = sourceMatch[1];
+              } else if (imageMatch) {
+                imageUrl = imageMatch[1];
+              } else if (tagsMatch) {
+                tags = tagsMatch[1]
+                  .split(',')
+                  .map(tag => tag.trim().toLowerCase())
+                  .filter(tag => tag.length > 0);
+              } else if (organizerMatch) {
+                organizer = organizerMatch[1].trim();
+              } else if (priceMatch) {
+                priceFrom = parseFloat(priceMatch[1]);
+              }
+            }
+            
+            // Fallback: if no tickets URL but URLs exist, use first URL as tickets
+            if (!ticketsUrl && allUrls.length > 0) {
+              ticketsUrl = allUrls[0];
+            }
             
             // Generate source hash for upsert
             const sourceHash = createHash('sha1')
@@ -218,11 +270,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               organizer,
               status,
               sourceHash,
-              tags: [] as string[],
-              ticketsUrl: null,
-              sourceUrl: null,
-              imageUrl: null,
-              priceFrom: null,
+              tags,
+              ticketsUrl,
+              sourceUrl,
+              imageUrl,
+              priceFrom,
               neighborhood: null,
               featured: false,
             };
@@ -245,6 +297,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   end_at: eventData.endAt,
                   organizer: eventData.organizer,
                   status: eventData.status,
+                  tags: eventData.tags,
+                  tickets_url: eventData.ticketsUrl,
+                  source_url: eventData.sourceUrl,
+                  image_url: eventData.imageUrl,
+                  price_from: eventData.priceFrom,
                   updated_at: new Date().toISOString(),
                 })
                 .eq('source_hash', sourceHash);

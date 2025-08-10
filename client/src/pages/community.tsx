@@ -101,12 +101,20 @@ export default function Community() {
           <img
             src={event.imageUrl}
             alt={event.title}
-            className="w-full h-48 object-cover rounded-xl"
+            className="w-full h-48 object-cover rounded-2xl"
             loading="lazy"
           />
         ) : (
-          <div className="w-full h-48 bg-gradient-to-br from-primary/20 to-accent/20 rounded-xl flex items-center justify-center">
-            <Calendar className="w-12 h-12 text-primary" />
+          <div className="relative w-full h-48 bg-gradient-to-br from-[#c05a0e]/30 via-[#d4691a]/20 to-[#b8540d]/25 rounded-2xl overflow-hidden">
+            {/* Firefly glow effect */}
+            <div className="absolute inset-0">
+              <div className="firefly-small absolute top-6 left-8 w-2 h-2 bg-[#c05a0e]/60 rounded-full animate-pulse"></div>
+              <div className="firefly-small absolute bottom-8 right-12 w-1.5 h-1.5 bg-[#d4691a]/50 rounded-full animate-pulse" style={{ animationDelay: '0.8s' }}></div>
+              <div className="firefly-small absolute top-12 right-6 w-1 h-1 bg-[#b8540d]/70 rounded-full animate-pulse" style={{ animationDelay: '1.5s' }}></div>
+            </div>
+            <div className="flex items-center justify-center h-full relative z-10">
+              <Calendar className="w-12 h-12 text-[#c05a0e]/80" />
+            </div>
           </div>
         )}
       </div>
@@ -116,10 +124,18 @@ export default function Community() {
         {formatEventDate(event.startAt)}
       </div>
 
-      {/* Event Title */}
-      <h3 className="font-fraunces text-xl font-bold text-white mb-2 line-clamp-2">
-        {event.title}
-      </h3>
+      {/* Event Title and Price */}
+      <div className="flex items-start justify-between mb-2">
+        <h3 className="font-fraunces text-xl font-bold text-white line-clamp-2 flex-1">
+          {event.title}
+        </h3>
+        {event.priceFrom && (
+          <div className="inline-flex items-center px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-medium ml-3 flex-shrink-0">
+            <DollarSign className="w-3 h-3 mr-1" />
+            from ${event.priceFrom}
+          </div>
+        )}
+      </div>
 
       {/* Venue & Location */}
       {event.venue && (
@@ -142,11 +158,17 @@ export default function Community() {
         <span className="text-sm">{formatEventTime(event.startAt, event.endAt)}</span>
       </div>
 
-      {/* Price */}
-      {event.priceFrom && (
-        <div className="inline-flex items-center px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-medium mb-4">
-          <DollarSign className="w-3 h-3 mr-1" />
-          from ${event.priceFrom}
+      {/* Tags */}
+      {event.tags && event.tags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {event.tags.map((tag) => (
+            <span
+              key={tag}
+              className="inline-flex items-center px-2 py-1 bg-white/10 text-text rounded-full text-xs font-medium capitalize"
+            >
+              {tag}
+            </span>
+          ))}
         </div>
       )}
 
