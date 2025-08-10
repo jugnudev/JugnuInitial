@@ -1,0 +1,60 @@
+Title: Community UX v2 — details modal + category filters + soft auto-refresh
+
+Goal
+Make community cards clickable with a modal, move Add to Calendar into the modal, ensure tag → category mapping works, and refresh data automatically if stale.
+
+1) Supabase migration (SQL)
+ALTER TABLE public.community_events
+  ADD COLUMN IF NOT EXISTS description text,
+  ADD COLUMN IF NOT EXISTS category text; -- 'concert' | 'club' | 'comedy' | 'festival' | 'other'
+CREATE INDEX IF NOT EXISTS idx_ce_category ON public.community_events (category);
+
+2) Importer updates (/app/api/community/cron/import-ics/route.ts)
+- Store the raw ICS DESCRIPTION as description (trimmed).
+- Tag parsing stays (from “Tags:” line). Add category mapping:
+  • If tags include one of ['concert','club','comedy','festival'] -> category = that value.
+  • Else infer:
+      - /(concert|live|tour|singer|band|diljit|atif|arijit)/i -> 'concert'
+      - /(club|dj|night|party|bollywood night|desi night|bhangra)/i -> 'club'
+      - /(comedy|comic|stand ?up)/i -> 'comedy'
+      - /(festival|mela|fair)/i -> 'festival'
+      - else 'other'
+- Upsert now also writes description and category.
+
+3) Weekly API (/app/api/community/weekly/route.ts)
+- Accept query 'category' (concert|club|comedy|festival).
+- If provided, filter by category (case-insensitive).
+- Soft auto-refresh: before querying, check the most recent updated_at in community_events.
+  If table empty OR max(updated_at) < now() - 6 hours, kick off a background import:
+    • import the importer function internally OR fetch the cron endpoint with header x-admin-key=process.env.EXPORT_ADMIN_KEY (do NOT await; ignore errors).
+  Continue returning current data immediately.
+
+4) UI — /app/community/page.tsx
+- Filter chip row uses categories: All, Concert, Club, Comedy, Festival.
+  • When a chip is selected, call the weekly API with ?category=<lowercase>.
+- Card behavior:
+  • Entire card is clickable (button role, keyboard accessible). Also add a ghost “See details” button.
+  • Keep a small “Get Tickets” button on the card if tickets_url exists.
+  • Remove “Add to Calendar” from the card; it will live in the modal.
+- New component: components/community/DetailsModal.tsx
+  • Props: event (id, title, start_at, end_at, venue, address, neighborhood, city, organizer, description, image_url, tickets_url, category, tags, price_from)
+  • Show large poster (or branded placeholder), title, date/time (Vancouver formatter), venue with a “Open in Maps” link (maps.google.com/?q=encoded venue/address), organizer line, tag chips, and description (sanitize & line-breaks).
+  • Primary CTA: “Get Tickets” (tickets_url, new tab, disabled if missing).
+  • Secondary CTA group: “Add to Google” + “Download .ics” (use existing calendar helper; end = start+3h if missing).
+  • Close on ESC and overlay click; focus trap & aria-modal=true.
+  • Deep link: if URL has ?e=<id>, open the modal on load; closing removes the query param.
+
+5) Routing glue
+- When a card opens the modal, push a query param `?e=<id>` using next/navigation. When closing, remove it.
+- If a user hits a link that already includes ?e=<id>, preload that event and open the modal.
+
+6) Copy/labels
+- On the page header, keep “This Week” (or “This Month” if you switched).
+- Card chip for price: show “from $X” only if price_from is present and > 0.
+
+7) QA
+- Clicking a card opens the modal; keyboard users can open with Enter and close with ESC.
+- “Get Tickets” visible on card (if link exists) and inside modal.
+- “Add to Calendar” moved to modal and works (Google + ICS).
+- Category chips filter results correctly based on the Tags: line in Calendar (e.g., “Tags: concert, bollywood” -> category=concert).
+- Hitting /community?e=<some-id> opens the modal on page load.

@@ -256,6 +256,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (!ticketsUrl && allUrls.length > 0) {
               ticketsUrl = allUrls[0];
             }
+
+            // Determine category from tags first, then infer from content
+            let category = 'other';
+            const validCategories = ['concert', 'club', 'comedy', 'festival'];
+            const tagCategory = tags.find(tag => validCategories.includes(tag));
+            
+            if (tagCategory) {
+              category = tagCategory;
+            } else {
+              // Infer category from title and description
+              const combinedText = `${title} ${description}`.toLowerCase();
+              
+              if (/(concert|live|tour|singer|band|diljit|atif|arijit)/i.test(combinedText)) {
+                category = 'concert';
+              } else if (/(club|dj|night|party|bollywood night|desi night|bhangra)/i.test(combinedText)) {
+                category = 'club';
+              } else if (/(comedy|comic|stand ?up)/i.test(combinedText)) {
+                category = 'comedy';
+              } else if (/(festival|mela|fair)/i.test(combinedText)) {
+                category = 'festival';
+              }
+            }
             
             // Generate source hash for upsert
             const sourceHash = createHash('sha1')
@@ -264,6 +286,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             const eventData = {
               title,
+              description: description.trim() || null,
+              category,
               startAt: startAt.toISOString(),
               endAt: endAt.toISOString(),
               timezone,
@@ -295,6 +319,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 .from('community_events')
                 .update({
                   title: eventData.title,
+                  description: eventData.description,
+                  category: eventData.category,
                   venue: eventData.venue,
                   address: eventData.address,
                   end_at: eventData.endAt,
@@ -315,6 +341,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 .from('community_events')
                 .insert({
                   title: eventData.title,
+                  description: eventData.description,
+                  category: eventData.category,
                   start_at: eventData.startAt,
                   end_at: eventData.endAt,
                   timezone: eventData.timezone,
@@ -418,7 +446,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/community/weekly", async (req, res) => {
     try {
       const supabase = getSupabaseAdmin();
-      const { tag } = req.query;
+      const { category } = req.query;
+      
+      // Check if data is stale and trigger background refresh
+      const { data: lastUpdate } = await supabase
+        .from('community_events')
+        .select('updated_at')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+      const isStale = !lastUpdate || new Date(lastUpdate.updated_at) < sixHoursAgo;
+      
+      if (isStale) {
+        // Trigger background import (don't await - fire and forget)
+        const adminKey = process.env.EXPORT_ADMIN_KEY;
+        if (adminKey) {
+          fetch(`${req.protocol}://${req.get('host')}/api/community/cron/import-ics`, {
+            method: 'GET',
+            headers: { 'x-admin-key': adminKey }
+          }).catch(() => {}); // Ignore errors
+        }
+      }
       
       const now = new Date();
       const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -431,20 +481,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .lte('start_at', oneWeekFromNow.toISOString())
         .order('start_at', { ascending: true });
 
+      // Filter by category if provided
+      if (category && typeof category === 'string' && category !== 'all') {
+        query = query.ilike('category', category.toLowerCase());
+      }
+
       const { data, error } = await query;
 
       if (error) throw error;
 
-      // Filter by tag on the client side if provided
-      let filteredData = data || [];
-      if (tag && typeof tag === 'string') {
-        const tagLower = tag.toLowerCase();
-        filteredData = filteredData.filter(event => 
-          event.tags && event.tags.some((t: string) => t.toLowerCase() === tagLower)
-        );
-      }
-
-      res.json({ ok: true, events: filteredData });
+      res.json({ ok: true, events: data || [] });
     } catch (error) {
       console.error("Weekly events error:", error);
       res.status(500).json({ ok: false, error: "server_error" });

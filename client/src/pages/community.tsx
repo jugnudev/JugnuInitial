@@ -1,13 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { Calendar, MapPin, ExternalLink, Clock, DollarSign } from "lucide-react";
 import Layout from "@/components/Layout";
 import { getCalendarLinks } from "@/lib/calendar";
+import DetailsModal from "@/components/community/DetailsModal";
+import { useLocation } from "wouter";
 
 interface CommunityEvent {
   id: string;
   title: string;
+  description?: string;
+  category?: string;
   startAt: string;
   endAt?: string;
   venue?: string;
@@ -23,7 +27,7 @@ interface CommunityEvent {
   status: string;
 }
 
-const tagFilters = [
+const categoryFilters = [
   { label: "All", value: "" },
   { label: "Concert", value: "concert" },
   { label: "Club", value: "club" },
@@ -32,13 +36,16 @@ const tagFilters = [
 ];
 
 export default function Community() {
-  const [selectedTag, setSelectedTag] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedEvent, setSelectedEvent] = useState<CommunityEvent | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [location, navigate] = useLocation();
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["/api/community/weekly", selectedTag],
+    queryKey: ["/api/community/weekly", selectedCategory],
     queryFn: async () => {
-      const url = selectedTag 
-        ? `/api/community/weekly?tag=${encodeURIComponent(selectedTag)}`
+      const url = selectedCategory 
+        ? `/api/community/weekly?category=${encodeURIComponent(selectedCategory)}`
         : "/api/community/weekly";
       const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch events");
@@ -47,6 +54,39 @@ export default function Community() {
   });
 
   const events: CommunityEvent[] = data?.events || [];
+
+  // Deep linking - check for event ID in URL params
+  useEffect(() => {
+    const params = new URLSearchParams(location.split('?')[1] || '');
+    const eventId = params.get('e');
+    
+    if (eventId && events.length > 0) {
+      const event = events.find(e => e.id === eventId);
+      if (event) {
+        setSelectedEvent(event);
+        setIsModalOpen(true);
+      }
+    }
+  }, [location, events]);
+
+  const openModal = (event: CommunityEvent) => {
+    setSelectedEvent(event);
+    setIsModalOpen(true);
+    // Add query parameter for deep linking
+    const params = new URLSearchParams(location.split('?')[1] || '');
+    params.set('e', event.id);
+    navigate(`/community?${params.toString()}`);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedEvent(null);
+    // Remove query parameter
+    const params = new URLSearchParams(location.split('?')[1] || '');
+    params.delete('e');
+    const newQuery = params.toString();
+    navigate(newQuery ? `/community?${newQuery}` : '/community');
+  };
 
   const formatEventDate = (startAt: string) => {
     try {
@@ -86,47 +126,13 @@ export default function Community() {
     }
   };
 
-  const handleAddToCalendar = (event: CommunityEvent) => {
-    try {
-      const startDate = new Date(event.startAt);
-      if (isNaN(startDate.getTime())) {
-        alert("Invalid event date");
-        return;
-      }
-      
-      const endDate = event.endAt ? new Date(event.endAt) : new Date(startDate.getTime() + 3 * 60 * 60 * 1000);
-      if (isNaN(endDate.getTime())) {
-        alert("Invalid event end date");
-        return;
-      }
-      
-      const { google, ics } = getCalendarLinks({
-        title: event.title,
-        startISO: startDate.toISOString(),
-        endISO: endDate.toISOString(),
-        location: [event.venue, event.address, event.city].filter(Boolean).join(", "),
-        description: event.organizer ? `Organized by ${event.organizer}` : "",
-      });
-
-      // Create a simple menu to choose calendar app
-      const userChoice = confirm("Add to Google Calendar? (OK for Google, Cancel to download ICS file)");
-      if (userChoice) {
-        window.open(google, '_blank');
-      } else {
-        // Download ICS file
-        const link = document.createElement('a');
-        link.href = ics;
-        link.download = `${event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ics`;
-        link.click();
-      }
-    } catch (error) {
-      console.error("Error adding to calendar:", error);
-      alert("Error adding event to calendar");
-    }
-  };
-
   const renderEventCard = (event: CommunityEvent) => (
-    <div key={event.id} className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors duration-200">
+    <button
+      key={event.id}
+      onClick={() => openModal(event)}
+      className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors duration-200 text-left group cursor-pointer"
+      data-testid={`card-event-${event.id}`}
+    >
       {/* Event Image */}
       <div className="mb-4">
         {event.imageUrl ? (
@@ -157,96 +163,64 @@ export default function Community() {
       </div>
 
       {/* Event Title and Price */}
-      <div className="flex items-start justify-between mb-2">
-        <h3 className="font-fraunces text-xl font-bold text-white line-clamp-2 flex-1">
+      <div className="flex items-start justify-between mb-3">
+        <h3 className="font-fraunces text-xl font-bold text-white leading-tight pr-4 group-hover:text-primary transition-colors">
           {event.title}
         </h3>
-        {event.priceFrom && (
-          <div className="inline-flex items-center px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-medium ml-3 flex-shrink-0">
-            <DollarSign className="w-3 h-3 mr-1" />
-            from ${event.priceFrom}
+        {event.priceFrom && parseFloat(event.priceFrom) > 0 && (
+          <div className="flex items-center gap-1 bg-primary/20 text-primary px-2 py-1 rounded-lg text-sm font-medium shrink-0">
+            <DollarSign className="w-3 h-3" />
+            {event.priceFrom}
           </div>
         )}
       </div>
 
-      {/* Venue & Location */}
-      {event.venue && (
-        <div className="flex items-start text-muted mb-2">
-          <MapPin className="w-4 h-4 mt-1 mr-2 flex-shrink-0" />
-          <span className="text-sm">
-            {event.venue}
-            {(event.neighborhood || event.city) && (
-              <span className="text-muted/70">
-                {" • "}{event.neighborhood || event.city}
-              </span>
-            )}
-          </span>
+      {/* Venue and Time */}
+      <div className="space-y-2 mb-4">
+        {event.venue && (
+          <div className="flex items-start gap-2">
+            <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+            <div>
+              <p className="text-white text-sm font-medium">{event.venue}</p>
+              {event.address && (
+                <p className="text-muted text-xs">{event.address}</p>
+              )}
+            </div>
+          </div>
+        )}
+        
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-primary shrink-0" />
+          <p className="text-muted text-sm">{formatEventTime(event.startAt, event.endAt)}</p>
         </div>
-      )}
-
-      {/* Time */}
-      <div className="flex items-center text-muted mb-4">
-        <Clock className="w-4 h-4 mr-2" />
-        <span className="text-sm">{formatEventTime(event.startAt, event.endAt)}</span>
       </div>
-
-      {/* Tags */}
-      {event.tags && event.tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {event.tags.map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center px-2 py-1 bg-white/10 text-text rounded-full text-xs font-medium capitalize"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
 
       {/* Organizer */}
       {event.organizer && (
-        <p className="text-sm text-muted mb-4">
-          By {event.organizer}
-          {event.sourceUrl && (
-            <a
-              href={event.sourceUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-accent hover:text-accent/80 ml-1"
-              data-testid={`link-source-${event.id}`}
-            >
-              <ExternalLink className="w-3 h-3 inline" />
-            </a>
-          )}
-        </p>
+        <p className="text-muted text-sm mb-4">by {event.organizer}</p>
       )}
 
       {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <div className="flex items-center justify-between">
+        <div className="text-muted text-sm group-hover:text-white transition-colors">
+          See details
+        </div>
+        
         {event.ticketsUrl && (
-          <a
-            href={event.ticketsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-1 inline-flex items-center justify-center px-4 py-2 bg-primary text-black/90 font-medium rounded-xl hover:bg-primary/90 transition-colors duration-200"
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              window.open(event.ticketsUrl, '_blank', 'noopener,noreferrer');
+            }}
+            className="inline-flex items-center px-4 py-2 bg-primary text-black/90 font-medium rounded-xl hover:bg-primary/90 transition-colors duration-200 text-sm"
             data-testid={`button-tickets-${event.id}`}
           >
             Get Tickets
-            <ExternalLink className="w-4 h-4 ml-2" />
-          </a>
+            <ExternalLink className="w-3 h-3 ml-1" />
+          </div>
         )}
-        
-        <button
-          onClick={() => handleAddToCalendar(event)}
-          className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-primary/50 text-primary font-medium rounded-xl hover:bg-primary/10 transition-colors duration-200"
-          data-testid={`button-calendar-${event.id}`}
-        >
-          <Calendar className="w-4 h-4 mr-2" />
-          Add to Calendar
-        </button>
       </div>
-    </div>
+    </button>
   );
 
   return (
@@ -262,14 +236,14 @@ export default function Community() {
             <p className="text-lg text-muted/80 max-w-2xl mx-auto mt-2">Concerts, club nights, comedy, festivals and more! Community-curated.</p>
           </div>
 
-          {/* Tag Filters */}
+          {/* Category Filters */}
           <div className="flex flex-wrap justify-center gap-3 mb-8">
-            {tagFilters.map((filter) => (
+            {categoryFilters.map((filter) => (
               <button
                 key={filter.value}
-                onClick={() => setSelectedTag(filter.value)}
+                onClick={() => setSelectedCategory(filter.value)}
                 className={`px-4 py-2 rounded-xl font-medium transition-colors duration-200 ${
-                  selectedTag === filter.value
+                  selectedCategory === filter.value
                     ? "bg-primary text-black"
                     : "bg-white/10 text-text hover:bg-white/20"
                 }`}
@@ -326,6 +300,13 @@ export default function Community() {
           )}
         </div>
       </div>
+
+      {/* Details Modal */}
+      <DetailsModal
+        event={selectedEvent}
+        isOpen={isModalOpen}
+        onClose={closeModal}
+      />
     </Layout>
   );
 }
