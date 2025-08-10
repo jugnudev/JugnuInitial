@@ -1,0 +1,101 @@
+Title: Jugnu — Community “This Week” (ICS import + Supabase + UI)
+
+Goal
+Create a /community page that shows the next 7 days of South Asian events in Vancouver. Source: Google Calendar ICS feeds imported into Supabase. Include manual admin upsert endpoint for fixes.
+
+Deps
+- Add npm package: node-ical
+
+Env (Replit Secrets to read)
+- COMMUNITY_ICS_URLS   # comma-separated Google Calendar “Secret address in iCal format” .ics URLs
+- CITY_TZ=America/Vancouver
+- EXPORT_ADMIN_KEY     # already used elsewhere (admin endpoints)
+
+Supabase (run this SQL in Supabase)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+CREATE TABLE IF NOT EXISTS public.community_events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  title text NOT NULL,
+  start_at timestamptz NOT NULL,
+  end_at timestamptz,
+  timezone text NOT NULL DEFAULT 'America/Vancouver',
+  venue text,
+  address text,
+  neighborhood text,
+  city text NOT NULL DEFAULT 'Vancouver, BC',
+  organizer text,
+  tickets_url text,
+  source_url text,
+  image_url text,
+  price_from numeric,
+  tags text[],
+  status text NOT NULL DEFAULT 'upcoming', -- upcoming | soldout | canceled | past | pending
+  featured boolean NOT NULL DEFAULT false,
+  source_hash text
+);
+
+CREATE INDEX IF NOT EXISTS idx_ce_start ON public.community_events (start_at);
+CREATE INDEX IF NOT EXISTS idx_ce_status ON public.community_events (status);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_ce_sourcehash ON public.community_events (source_hash);
+
+ALTER TABLE public.community_events ENABLE ROW LEVEL SECURITY;
+-- No anon policies; we will write via service role only.
+
+Server: ICS importer
+- Add /app/api/community/cron/import-ics/route.ts (GET)
+  • Require header x-admin-key === process.env.EXPORT_ADMIN_KEY
+  • Read COMMUNITY_ICS_URLS (comma-split). For each URL:
+    - fetch the .ics, parse with node-ical
+    - For each VEVENT with DTSTART:
+      title = SUMMARY
+      start_at = DTSTART (preserve timezone; fall back to CITY_TZ)
+      end_at = DTEND || start_at + 3h
+      venue/address from LOCATION (best-effort split)
+      organizer = ORGANIZER or null (we’ll refine in Prompt 2)
+      tickets_url, source_url, image_url, tags, price_from (we’ll parse from DESCRIPTION in Prompt 2; leave null/[] for now)
+      status = 'upcoming' if start_at >= now()-1d else 'past'
+      source_hash = sha1( title + '|' + (start_at UTC ISO) + '|' + coalesce(venue,'') )
+    - Upsert by source_hash: if exists, update title/venue/address/end_at/organizer/status; else insert
+  • After processing all feeds: set status='past' for rows where start_at < now()-1d
+  • Return JSON { ok:true, imported, updated, markedPast }
+
+Server: Admin upsert (manual fixes)
+- Add /app/api/community/admin/upsert/route.ts (POST)
+  • Require x-admin-key === process.env.EXPORT_ADMIN_KEY
+  • Body: { id?, title, start_at (ISO), end_at?, venue?, address?, neighborhood?, city?, organizer?, tickets_url?, source_url?, image_url?, tags?:string[], price_from?, status? }
+  • If id provided → update row and set updated_at=now(); else insert with a generated source_hash if missing
+  • Return { ok:true, id }
+
+Server: Weekly feed for UI
+- Add /app/api/community/weekly/route.ts (GET)
+  • Optional query: tag (string)
+  • Return events where status in ('upcoming','soldout') AND start_at between now() and now()+7d (use CITY_TZ) ordered by start_at asc
+  • If tag provided, filter rows where tags includes that tag (case-insensitive)
+
+UI: /app/community/page.tsx
+- Header: “South Asian Events in Vancouver — This Week”
+- Subcopy: “Concerts, club nights, comedy, and festivals. Community-curated.”
+- Client filters: Tag (All, Concert, Club, Comedy, Festival). Filter client-side from the weekly endpoint.
+- Card layout (reuse our aesthetic):
+  • Date badge using existing Vancouver formatter (“SAT • SEP 20”)
+  • Title
+  • Venue • neighborhood/city
+  • Buttons: [Get Tickets] (tickets_url target=_blank) and [Add to Calendar] (use our existing calendar helper; only show if start_at exists; end_at default +3h)
+  • If image_url exists, render rounded-2xl; if null, show a branded gradient placeholder
+  • “By {organizer}” and small “via organizer” link to source_url if present
+  • If price_from, render a tiny “from $X” chip
+- Empty state: “No listings for the next 7 days. Check back soon or follow @thehouseofjugnu.”
+
+Nav & SEO
+- Add “Community” to top nav → /community
+- Hide the main “Events” nav item if there are no purchasable Jugnu events (unchanged logic)
+- Respect NEXT_PUBLIC_INDEXABLE: add <meta name="robots" content="noindex"> when false
+- Reasonable meta title/description for /community
+
+QA checklist
+- With COMMUNITY_ICS_URLS unset, /community shows empty state
+- After setting the secret and calling the cron, events appear
+- Links open in new tab; time zone formatting is Vancouver; Lighthouse good on mobile

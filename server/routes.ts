@@ -2,6 +2,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getSupabaseAdmin } from "./supabaseAdmin";
+import { createHash } from "crypto";
+import * as ical from "node-ical";
+import { insertCommunityEventSchema, updateCommunityEventSchema } from "@shared/schema";
 
 // Rate limiting for waitlist endpoint
 const rateLimit = { windowMs: 60_000, max: 60 };
@@ -149,6 +152,242 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Export error:", error);
       res.status(500).send("Server Error");
+    }
+  });
+
+  // Community Events - ICS Import Cron Endpoint
+  app.get("/api/community/cron/import-ics", async (req, res) => {
+    try {
+      // Require admin key
+      const adminKey = req.headers['x-admin-key'];
+      if (adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: "unauthorized" });
+      }
+
+      const icsUrls = process.env.COMMUNITY_ICS_URLS;
+      if (!icsUrls) {
+        return res.json({ ok: true, imported: 0, updated: 0, markedPast: 0, message: "No ICS URLs configured" });
+      }
+
+      const supabase = getSupabaseAdmin();
+      const urls = icsUrls.split(',').map(url => url.trim()).filter(Boolean);
+      let imported = 0;
+      let updated = 0;
+
+      const timezone = process.env.CITY_TZ || 'America/Vancouver';
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+      for (const url of urls) {
+        try {
+          const response = await fetch(url);
+          const icsData = await response.text();
+          const events = ical.parseICS(icsData);
+
+          for (const event of Object.values(events)) {
+            if (event.type !== 'VEVENT' || !event.start) continue;
+
+            const title = event.summary || 'Untitled Event';
+            const startAt = new Date(event.start);
+            const endAt = event.end ? new Date(event.end) : new Date(startAt.getTime() + 3 * 60 * 60 * 1000); // +3h default
+            
+            // Extract venue and address from location
+            const location = event.location || '';
+            const [venue, ...addressParts] = location.split(',').map(s => s.trim());
+            const address = addressParts.join(', ') || null;
+
+            const organizer = event.organizer ? 
+              (typeof event.organizer === 'string' ? event.organizer : 
+               (event.organizer as any)?.params?.CN || 
+               (event.organizer as any)?.val || 
+               String(event.organizer)) : null;
+            const status = startAt >= oneDayAgo ? 'upcoming' : 'past';
+            
+            // Generate source hash for upsert
+            const sourceHash = createHash('sha1')
+              .update(`${title}|${startAt.toISOString()}|${venue || ''}`)
+              .digest('hex');
+
+            const eventData = {
+              title,
+              startAt: startAt.toISOString(),
+              endAt: endAt.toISOString(),
+              timezone,
+              venue: venue || null,
+              address,
+              city: 'Vancouver, BC',
+              organizer,
+              status,
+              sourceHash,
+              tags: [] as string[],
+              ticketsUrl: null,
+              sourceUrl: null,
+              imageUrl: null,
+              priceFrom: null,
+              neighborhood: null,
+              featured: false,
+            };
+
+            // Check if event exists by source_hash
+            const { data: existingEvent } = await supabase
+              .from('community_events')
+              .select('id')
+              .eq('source_hash', sourceHash)
+              .single();
+
+            if (existingEvent) {
+              // Update existing event
+              await supabase
+                .from('community_events')
+                .update({
+                  title: eventData.title,
+                  venue: eventData.venue,
+                  address: eventData.address,
+                  end_at: eventData.endAt,
+                  organizer: eventData.organizer,
+                  status: eventData.status,
+                  updated_at: new Date().toISOString(),
+                })
+                .eq('source_hash', sourceHash);
+              updated++;
+            } else {
+              // Insert new event
+              await supabase
+                .from('community_events')
+                .insert({
+                  title: eventData.title,
+                  start_at: eventData.startAt,
+                  end_at: eventData.endAt,
+                  timezone: eventData.timezone,
+                  venue: eventData.venue,
+                  address: eventData.address,
+                  city: eventData.city,
+                  organizer: eventData.organizer,
+                  status: eventData.status,
+                  source_hash: eventData.sourceHash,
+                  tags: eventData.tags,
+                  tickets_url: eventData.ticketsUrl,
+                  source_url: eventData.sourceUrl,
+                  image_url: eventData.imageUrl,
+                  price_from: eventData.priceFrom,
+                  neighborhood: eventData.neighborhood,
+                  featured: eventData.featured,
+                });
+              imported++;
+            }
+          }
+        } catch (urlError) {
+          console.error(`Error processing ICS URL ${url}:`, urlError);
+        }
+      }
+
+      // Mark past events
+      const { count: markedPastCount } = await supabase
+        .from('community_events')
+        .update({ 
+          status: 'past',
+          updated_at: new Date().toISOString()
+        })
+        .lt('start_at', oneDayAgo.toISOString())
+        .neq('status', 'past');
+
+      const markedPast = markedPastCount || 0;
+
+      res.json({ ok: true, imported, updated, markedPast });
+    } catch (error) {
+      console.error("ICS import error:", error);
+      res.status(500).json({ ok: false, error: "server_error" });
+    }
+  });
+
+  // Community Events - Admin Upsert Endpoint
+  app.post("/api/community/admin/upsert", async (req, res) => {
+    try {
+      // Require admin key
+      const adminKey = req.headers['x-admin-key'];
+      if (adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: "unauthorized" });
+      }
+
+      const supabase = getSupabaseAdmin();
+      const { id, ...eventData } = req.body;
+
+      // Validate the data
+      const validated = id ? 
+        updateCommunityEventSchema.parse({ id, ...eventData }) :
+        insertCommunityEventSchema.parse(eventData);
+
+      if (id) {
+        // Update existing event
+        const { data, error } = await supabase
+          .from('community_events')
+          .update({
+            ...validated,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', id)
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        res.json({ ok: true, id: data.id });
+      } else {
+        // Insert new event
+        const sourceHash = validated.sourceHash || createHash('sha1')
+          .update(`${validated.title}|${new Date().toISOString()}|${validated.venue || ''}`)
+          .digest('hex');
+
+        const { data, error } = await supabase
+          .from('community_events')
+          .insert({
+            ...validated,
+            source_hash: sourceHash,
+          })
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        res.json({ ok: true, id: data.id });
+      }
+    } catch (error) {
+      console.error("Admin upsert error:", error);
+      res.status(500).json({ ok: false, error: "server_error" });
+    }
+  });
+
+  // Community Events - Weekly Feed Endpoint
+  app.get("/api/community/weekly", async (req, res) => {
+    try {
+      const supabase = getSupabaseAdmin();
+      const { tag } = req.query;
+      
+      const now = new Date();
+      const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      let query = supabase
+        .from('community_events')
+        .select('*')
+        .in('status', ['upcoming', 'soldout'])
+        .gte('start_at', now.toISOString())
+        .lte('start_at', oneWeekFromNow.toISOString())
+        .order('start_at', { ascending: true });
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // Filter by tag on the client side if provided
+      let filteredData = data || [];
+      if (tag && typeof tag === 'string') {
+        const tagLower = tag.toLowerCase();
+        filteredData = filteredData.filter(event => 
+          event.tags && event.tags.some((t: string) => t.toLowerCase() === tagLower)
+        );
+      }
+
+      res.json({ ok: true, events: filteredData });
+    } catch (error) {
+      console.error("Weekly events error:", error);
+      res.status(500).json({ ok: false, error: "server_error" });
     }
   });
 

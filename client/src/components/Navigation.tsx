@@ -56,6 +56,13 @@ export default function Navigation() {
               >
                 Story
               </button>
+              <a
+                href="/community"
+                className="text-text hover:text-accent transition-colors duration-200 font-medium"
+                data-testid="nav-community"
+              >
+                Community
+              </a>
               {showGallery && (
                 <button
                   onClick={() => scrollToSection('gallery')}
@@ -109,6 +116,14 @@ export default function Navigation() {
               >
                 Story
               </button>
+              <a
+                href="/community"
+                className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"
+                data-testid="nav-mobile-community"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Community
+              </a>
               {showGallery && (
                 <button
                   onClick={() => scrollToSection('gallery')}
