@@ -204,9 +204,7 @@ export default function Community() {
             <h1 className="font-fraunces text-4xl lg:text-5xl font-bold tracking-tight mb-4 text-[#c05a0e]">
               South Asian Events in Vancouver
             </h1>
-            <p className="text-xl text-muted max-w-2xl mx-auto">
-              This Week
-            </p>
+            <p className="text-xl text-muted max-w-2xl mx-auto">This Month</p>
             <p className="text-lg text-muted/80 max-w-2xl mx-auto mt-2">
               Concerts, club nights, comedy, and festivals. Community-curated.
             </p>
