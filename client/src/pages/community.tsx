@@ -259,9 +259,7 @@ export default function Community() {
               South Asian Events in Vancouver
             </h1>
             <p className="text-xl text-muted max-w-2xl mx-auto">This Month</p>
-            <p className="text-lg text-muted/80 max-w-2xl mx-auto mt-2">
-              Concerts, club nights, comedy, and festivals. Community-curated.
-            </p>
+            <p className="text-lg text-muted/80 max-w-2xl mx-auto mt-2">Concerts, club nights, comedy, festivals and more! Community-curated.</p>
           </div>
 
           {/* Tag Filters */}
