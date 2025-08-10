@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 import { createHash } from "crypto";
-import * as ical from "node-ical";
+import ical from "node-ical";
 import { insertCommunityEventSchema, updateCommunityEventSchema } from "@shared/schema";
 
 // Rate limiting for waitlist endpoint
@@ -181,30 +181,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const response = await fetch(url);
           const icsData = await response.text();
-          const events = ical.parseICS(icsData);
+          
+          // Use the main parseICS method if available, otherwise sync.parseICS
+          const events = typeof ical.parseICS === 'function' ? ical.parseICS(icsData) : ical.sync.parseICS(icsData);
 
           for (const event of Object.values(events)) {
-            if (event.type !== 'VEVENT' || !event.start) continue;
+            const calendarEvent = event as any; // Type assertion for node-ical events
+            if (calendarEvent.type !== 'VEVENT' || !calendarEvent.start) continue;
 
-            const title = event.summary || 'Untitled Event';
-            const startAt = new Date(event.start);
-            const endAt = event.end ? new Date(event.end) : new Date(startAt.getTime() + 3 * 60 * 60 * 1000); // +3h default
+            const title = calendarEvent.summary || 'Untitled Event';
+            const startAt = new Date(calendarEvent.start);
+            const endAt = calendarEvent.end ? new Date(calendarEvent.end) : new Date(startAt.getTime() + 3 * 60 * 60 * 1000); // +3h default
             
             // Extract venue and address from location
-            const location = event.location || '';
-            const [venue, ...addressParts] = location.split(',').map(s => s.trim());
+            const location = calendarEvent.location || '';
+            const [venue, ...addressParts] = location.split(',').map((s: string) => s.trim());
             const address = addressParts.join(', ') || null;
 
-            let organizer = event.organizer ? 
-              (typeof event.organizer === 'string' ? event.organizer : 
-               (event.organizer as any)?.params?.CN || 
-               (event.organizer as any)?.val || 
-               String(event.organizer)) : null;
+            let organizer = calendarEvent.organizer ? 
+              (typeof calendarEvent.organizer === 'string' ? calendarEvent.organizer : 
+               (calendarEvent.organizer as any)?.params?.CN || 
+               (calendarEvent.organizer as any)?.val || 
+               String(calendarEvent.organizer)) : null;
             
             const status = startAt >= oneDayAgo ? 'upcoming' : 'past';
             
             // Parse structured data from DESCRIPTION
-            const description = event.description || '';
+            const description = calendarEvent.description || '';
             let ticketsUrl: string | null = null;
             let sourceUrl: string | null = null;
             let imageUrl: string | null = null;
@@ -240,8 +243,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               } else if (tagsMatch) {
                 tags = tagsMatch[1]
                   .split(',')
-                  .map(tag => tag.trim().toLowerCase())
-                  .filter(tag => tag.length > 0);
+                  .map((tag: string) => tag.trim().toLowerCase())
+                  .filter((tag: string) => tag.length > 0);
               } else if (organizerMatch) {
                 organizer = organizerMatch[1].trim();
               } else if (priceMatch) {

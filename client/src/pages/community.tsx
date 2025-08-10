@@ -49,47 +49,79 @@ export default function Community() {
   const events: CommunityEvent[] = data?.events || [];
 
   const formatEventDate = (startAt: string) => {
-    const date = new Date(startAt);
-    const dayOfWeek = format(date, "EEE").toUpperCase();
-    const monthDay = format(date, "MMM d").toUpperCase();
-    return `${dayOfWeek} • ${monthDay}`;
+    try {
+      const date = new Date(startAt);
+      if (isNaN(date.getTime())) {
+        return "TBA";
+      }
+      const dayOfWeek = format(date, "EEE").toUpperCase();
+      const monthDay = format(date, "MMM d").toUpperCase();
+      return `${dayOfWeek} • ${monthDay}`;
+    } catch (error) {
+      console.error("Error formatting date:", startAt, error);
+      return "TBA";
+    }
   };
 
   const formatEventTime = (startAt: string, endAt?: string) => {
-    const start = new Date(startAt);
-    const startTime = format(start, "h:mm a");
-    
-    if (endAt) {
-      const end = new Date(endAt);
-      const endTime = format(end, "h:mm a");
-      return `${startTime} - ${endTime}`;
+    try {
+      const start = new Date(startAt);
+      if (isNaN(start.getTime())) {
+        return "Time TBA";
+      }
+      const startTime = format(start, "h:mm a");
+      
+      if (endAt) {
+        const end = new Date(endAt);
+        if (!isNaN(end.getTime())) {
+          const endTime = format(end, "h:mm a");
+          return `${startTime} - ${endTime}`;
+        }
+      }
+      
+      return startTime;
+    } catch (error) {
+      console.error("Error formatting time:", startAt, endAt, error);
+      return "Time TBA";
     }
-    
-    return startTime;
   };
 
   const handleAddToCalendar = (event: CommunityEvent) => {
-    const startDate = new Date(event.startAt);
-    const endDate = event.endAt ? new Date(event.endAt) : new Date(startDate.getTime() + 3 * 60 * 60 * 1000);
-    
-    const { google, ics } = getCalendarLinks({
-      title: event.title,
-      startISO: startDate.toISOString(),
-      endISO: endDate.toISOString(),
-      location: [event.venue, event.address, event.city].filter(Boolean).join(", "),
-      description: event.organizer ? `Organized by ${event.organizer}` : "",
-    });
+    try {
+      const startDate = new Date(event.startAt);
+      if (isNaN(startDate.getTime())) {
+        alert("Invalid event date");
+        return;
+      }
+      
+      const endDate = event.endAt ? new Date(event.endAt) : new Date(startDate.getTime() + 3 * 60 * 60 * 1000);
+      if (isNaN(endDate.getTime())) {
+        alert("Invalid event end date");
+        return;
+      }
+      
+      const { google, ics } = getCalendarLinks({
+        title: event.title,
+        startISO: startDate.toISOString(),
+        endISO: endDate.toISOString(),
+        location: [event.venue, event.address, event.city].filter(Boolean).join(", "),
+        description: event.organizer ? `Organized by ${event.organizer}` : "",
+      });
 
-    // Create a simple menu to choose calendar app
-    const userChoice = confirm("Add to Google Calendar? (OK for Google, Cancel to download ICS file)");
-    if (userChoice) {
-      window.open(google, '_blank');
-    } else {
-      // Download ICS file
-      const link = document.createElement('a');
-      link.href = ics;
-      link.download = `${event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ics`;
-      link.click();
+      // Create a simple menu to choose calendar app
+      const userChoice = confirm("Add to Google Calendar? (OK for Google, Cancel to download ICS file)");
+      if (userChoice) {
+        window.open(google, '_blank');
+      } else {
+        // Download ICS file
+        const link = document.createElement('a');
+        link.href = ics;
+        link.download = `${event.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.ics`;
+        link.click();
+      }
+    } catch (error) {
+      console.error("Error adding to calendar:", error);
+      alert("Error adding event to calendar");
     }
   };
 
