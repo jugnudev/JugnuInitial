@@ -303,6 +303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const lines = cleanedForParsing.split(/\r?\n/);
             const urlRegex = /https?:\/\/[^\s"'<>]+/gi;
             let allUrls: string[] = [];
+            let featured = false; // v2.8 Featured parsing
             
             for (const line of lines) {
               const trimmedLine = line.trim();
@@ -318,6 +319,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const tagsMatch = trimmedLine.match(/^tags\s*:\s*(.+)/i);
               const organizerMatch = trimmedLine.match(/^organizer\s*:\s*(.+)/i);
               const priceMatch = trimmedLine.match(/^pricefrom\s*:\s*(\d+(?:\.\d{2})?)/i);
+              // v2.8 Featured parsing
+              const featuredMatch = trimmedLine.match(/^featured\s*:\s*(true|yes|1)\s*$/i);
               
               if (ticketsMatch) {
                 ticketsUrl = ticketsMatch[1];
@@ -334,6 +337,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 organizer = organizerMatch[1].trim();
               } else if (priceMatch) {
                 priceFrom = parseFloat(priceMatch[1]);
+              } else if (featuredMatch) {
+                featured = true;
               }
             }
             
@@ -480,7 +485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               imageUrl,
               priceFrom,
               neighborhood: null,
-              featured: false,
+              featured: featured, // v2.8 Use parsed featured value
             };
 
             // v2.7 Two-step upsert strategy for solid deduplication
@@ -1075,17 +1080,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (manualDedup && events.length > 0) {
         const seen = new Set();
         events = events.filter(event => {
-          if (!event.canonical_key) return true; // Keep events without canonical_key
-          if (seen.has(event.canonical_key)) return false; // Skip duplicates
-          seen.add(event.canonical_key);
+          if (!(event as any).canonical_key) return true; // Keep events without canonical_key
+          if (seen.has((event as any).canonical_key)) return false; // Skip duplicates
+          seen.add((event as any).canonical_key);
           return true;
         });
       }
 
-      res.json({ ok: true, events });
+      // v2.8 Format: Extract featured event and return { featured, items }
+      let featured = null;
+      let items = events;
+      
+      // Find the first featured event in the filtered set
+      const featuredIndex = events.findIndex(event => event.featured === true);
+      if (featuredIndex !== -1) {
+        featured = events[featuredIndex];
+        // Remove featured event from items array
+        items = events.filter((_, index) => index !== featuredIndex);
+      }
+
+      res.json({ ok: true, featured, items });
     } catch (error) {
       console.error("Weekly events error:", error);
       res.status(500).json({ ok: false, error: "server_error" });
+    }
+  });
+
+  // v2.8 Admin endpoint to toggle featured status
+  app.post("/api/community/admin/feature", async (req, res) => {
+    try {
+      // Require admin key
+      const adminKey = req.headers['x-admin-key'];
+      if (adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: "unauthorized" });
+      }
+
+      const { id, featured } = req.body;
+      
+      if (!id || typeof featured !== 'boolean') {
+        return res.status(400).json({ ok: false, error: "invalid_input" });
+      }
+
+      const supabase = getSupabaseAdmin();
+
+      if (featured) {
+        // When setting featured=true, first unset all other featured events
+        await supabase
+          .from('community_events')
+          .update({ featured: false })
+          .eq('featured', true);
+        
+        // Then set this event as featured
+        const { error: setError } = await supabase
+          .from('community_events')
+          .update({ featured: true, updated_at: new Date().toISOString() })
+          .eq('id', id);
+        
+        if (setError) {
+          throw new Error(`Failed to set featured: ${setError.message}`);
+        }
+      } else {
+        // When setting featured=false, just unset this event
+        const { error: unsetError } = await supabase
+          .from('community_events')
+          .update({ featured: false, updated_at: new Date().toISOString() })
+          .eq('id', id);
+        
+        if (unsetError) {
+          throw new Error(`Failed to unset featured: ${unsetError.message}`);
+        }
+      }
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error('Feature toggle error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ ok: false, error: 'Failed to toggle featured', details: errorMessage });
     }
   });
 
@@ -1114,7 +1184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ ok: true, events: events || [], count: events?.length || 0 });
     } catch (error) {
       console.error("Debug all events error:", error);
-      res.status(500).json({ ok: false, error: "server_error", details: error.message });
+      res.status(500).json({ ok: false, error: "server_error", details: (error as Error).message });
     }
   });
 

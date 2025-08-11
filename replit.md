@@ -80,26 +80,31 @@ Preferred communication style: Simple, everyday language.
 - **tsx**: TypeScript execution environment
 - **esbuild**: Fast JavaScript bundler for production
 
-### Community Events System (Updated v2.6)
+### Community Events System (Updated v2.8)
 - **ICS Calendar Import**: Automated import from Google Calendar ICS feeds with structured description parsing
-- **Event Data Parsing**: Extracts Tickets, Source, Image, Tags, Organizer, PriceFrom from event descriptions
+- **Event Data Parsing**: Extracts Tickets, Source, Image, Tags, Organizer, PriceFrom, Featured from event descriptions
 - **Clean Description Processing**: HTML-to-text conversion, removes structured lines, preserves readable content
 - **Monthly Events Feed**: Shows upcoming South Asian events in Vancouver for next 30 days (default changed from 7)
 - **Category Filtering**: Smart categorization (concert, club, comedy, festival) with UI filtering
+- **Featured Hero System v2.8**: Large 16:9 hero cards for featured events with copper glow styling
+- **2-Column Grid Layout**: Desktop 2-per-row (mobile 1-per-row) with consistent 16:9 aspect ratios
 - **Enhanced Modal**: Share functionality, "Show more" for long descriptions, improved layout
-- **Admin Management**: Manual event upsert endpoint for corrections and additions
-- **UI Integration**: Dedicated /community page with filtering, calendar integration, and responsive cards
+- **Admin Management**: Manual event upsert endpoint + featured toggle API for corrections and additions
+- **UI Integration**: Dedicated /community page with featured/regular separation, filtering, calendar integration
 - **Accurate Date/Time (v2.6)**: All-day event detection, timezone extraction from ICS, eliminates "TBA" displays
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
+- **Featured Event Parsing**: Auto-detect "Featured: true|yes|1" from calendar descriptions or use admin API
 
-### Current State (Waitlist Mode v2.3 + Community v2.7 Solid Deduplication)
+### Current State (Waitlist Mode v2.3 + Community v2.8 Featured Hero + 2-Column Grid)
 - **Dual Purpose**: Waitlist mode for Jugnu events + Community calendar for broader ecosystem
 - **Smart Navigation**: Community link always visible, Events/Gallery conditionally shown, proper routing from /community
-- **Enhanced Cards**: Remote image support, venue•city display, category filtering, calendar integration
+- **Featured Hero v2.8**: Large 16:9 hero display for featured events with copper glow styling and prominent CTAs
+- **2-Column Grid Layout**: Desktop shows 2 events per row (1 on mobile) with 16:9 aspect ratio cards for visual consistency
 - **Enhanced Modal**: Share with Web Share API + smooth cursor-positioned toast notifications, cleaned descriptions with "Show more"
-- **Admin Tools**: ICS import cron job + manual event management via API + description cleaning
+- **Admin Tools**: ICS import cron job + manual event management via API + description cleaning + featured toggle endpoint
 - **Accurate Date/Time**: Timezone-aware formatting with all-day event detection, eliminates "TBA" displays
 - **Solid Deduplication v2.7**: Prevents duplicates using ICS UIDs + canonical keys (title+date+venue), manual dedup at query time
+- **Featured Event Management**: Parse "Featured: true" from Google Calendar descriptions or use admin API to toggle featured status
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS

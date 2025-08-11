@@ -13,6 +13,9 @@
   --primary-700: hsl(29, 52%, 32%);
   --accent: hsl(28, 89%, 57%);
   --glow: hsl(46, 91%, 65%);
+  --copper-500: hsl(24, 76%, 45%);
+  --copper-600: hsl(24, 76%, 40%);
+  --copper-900: hsl(24, 76%, 20%);
 
   /* shadcn defaults for compatibility */
   --background: hsl(0, 0%, 4.3%);

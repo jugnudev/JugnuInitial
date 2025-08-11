@@ -21,6 +21,11 @@ export default {
         },
         accent: "var(--accent)",
         glow: "var(--glow)",
+        copper: {
+          500: "var(--copper-500)",
+          600: "var(--copper-600)",
+          900: "var(--copper-900)",
+        },
         
         // shadcn compatibility
         background: "var(--background)",

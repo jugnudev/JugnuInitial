@@ -1,0 +1,74 @@
+Title: Community v2.8 — Featured hero + 2-column grid + 16:9 cards
+
+Goals
+- Add a large “Featured” event hero at the top (spans full width).
+- Make the grid 2 per row on desktop (1 per row on mobile).
+- Use 16:9 aspect ratio for all event images.
+- Let me mark an event as featured via Supabase or via a “Featured: true” line in Google Calendar descriptions.
+
+1) API shape: weekly feed returns a featured + items
+- Update /app/api/community/weekly/route.ts:
+  • Keep existing filters: range=week|month (default month), category optional.
+  • Query all matching events (status in 'upcoming','soldout') within window, ordered by start_at asc.
+  • Pick featured = the first row in the filtered set where featured=true.
+  • Return JSON: { featured, items } where items excludes featured (if any).
+  • If a category is selected and no row in that category is featured, return { featured: null, items: [...] } (no cross-category featured).
+
+2) Importer: parse “Featured: true|yes|1” from DESCRIPTION
+- In /app/api/community/cron/import-ics/route.ts, after parsing other fields:
+  • If DESCRIPTION contains a “Featured:” line (case-insensitive) with a truthy value (true/yes/1), set payload.featured = true.
+  • Otherwise do not touch the existing featured value (so admin can set it).
+- Ensure upsert writes `featured` along with other fields.
+
+3) Admin endpoint to toggle featured (optional but helpful)
+- Add /app/api/community/admin/feature/route.ts (POST, x-admin-key required)
+  • Body: { id, featured: boolean }
+  • When featured=true:
+      - UPDATE community_events SET featured=false WHERE featured=true;
+      - UPDATE community_events SET featured=true WHERE id = $id;
+  • When featured=false:
+      - UPDATE community_events SET featured=false WHERE id = $id;
+  • Return { ok:true }.
+- Note in README how to call it via curl.
+
+4) UI — /app/community/page.tsx
+- Layout:
+  • If response.featured exists, render a **FeaturedHero** at the top, then a grid of the remaining items.
+  • Grid: 1 column on mobile, 2 columns from md and up. (Tailwind: grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8)
+- Cards:
+  • Image wrapper uses aspect-[16/9] with next/image object-cover; keep gradient overlay/date chip/category pill.
+  • Keep small “Get Tickets” on card (if tickets_url).
+  • Click opens the DetailsModal (unchanged).
+
+5) FeaturedHero component
+- New: components/community/FeaturedHero.tsx
+  • 16:9 poster, full width, rounded-2xl with subtle copper glow.
+  • Overlays: 
+      - Top-left date badge (“SAT • SEP 20”) 
+      - Top-right category pill
+      - Bottom: big title, venue • city, optional “from $X”
+  • CTAs: Primary “Get Tickets” (if tickets_url), secondary “View details” (opens modal), tertiary “Add to Google” + “Download .ics” in the modal only (don’t put calendar buttons on the hero to keep it clean).
+  • On click anywhere, open DetailsModal (same deep-link behavior ?e=<id>).
+
+6) Modal + Cards: show only venue • city on card; full street address remains in modal.
+- Keep the existing “Open in Maps” link and Share button in the modal.
+- Ensure all images (cards + hero) use aspect-[16/9].
+
+7) Styling polish
+- Hover: subtle copper outer-glow on cards (shadow ring) and scale-105 on poster images (reduced-motion respected).
+- Touch targets: min-h-12 for card click zone; big CTAs on mobile.
+
+8) QA
+- With at least 2 events in the next 30 days:
+  • One marked featured=true → shows as large hero at top; it does NOT repeat in the grid.
+  • Grid shows 2-up on desktop, 1-up on mobile.
+  • Images crop nicely at 16:9; no layout shift.
+  • Category filters still work: if the featured event isn’t in the selected category, hero hides.
+  • “Featured: true” line in Calendar description sets featured on next import.
+  • Admin feature endpoint can toggle featured without editing Calendar.
+
+9) README updates
+- Add a note:
+  • “To feature an event, either:
+      a) In Supabase, toggle featured=true on the row, or
+      b) In Google Calendar description add: ‘Featured: true’ (runs on next import).”

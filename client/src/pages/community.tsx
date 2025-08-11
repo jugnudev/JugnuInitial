@@ -4,6 +4,7 @@ import { Calendar, MapPin, ExternalLink, Clock, DollarSign } from "lucide-react"
 import Layout from "@/components/Layout";
 import { getCalendarLinks } from "@/lib/calendar";
 import DetailsModal from "@/components/community/DetailsModal";
+import FeaturedHero from "@/components/community/FeaturedHero";
 import { useLocation } from "wouter";
 import { formatDateBadge, formatTime } from "@/utils/dateFormatters";
 
@@ -55,21 +56,25 @@ export default function Community() {
     },
   });
 
-  const events: CommunityEvent[] = data?.events || [];
+  // v2.8 API response format
+  const featured: CommunityEvent | null = data?.featured || null;
+  const events: CommunityEvent[] = data?.items || [];
 
   // Deep linking - check for event ID in URL params
   useEffect(() => {
     const params = new URLSearchParams(location.split('?')[1] || '');
     const eventId = params.get('e');
     
-    if (eventId && events.length > 0) {
-      const event = events.find(e => e.id === eventId);
+    if (eventId) {
+      // Check both featured and regular events
+      const allEvents = [...(featured ? [featured] : []), ...events];
+      const event = allEvents.find(e => e.id === eventId);
       if (event) {
         setSelectedEvent(event);
         setIsModalOpen(true);
       }
     }
-  }, [location, events]);
+  }, [location, featured, events]);
 
   const openModal = (event: CommunityEvent) => {
     setSelectedEvent(event);
@@ -96,16 +101,16 @@ export default function Community() {
     <div
       key={event.id}
       onClick={() => openModal(event)}
-      className="group w-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:border-primary/30 hover:shadow-[0_0_0_1px] hover:shadow-primary/30 transition-all duration-200 cursor-pointer min-h-14"
+      className="group w-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:border-copper-500/30 hover:shadow-lg hover:shadow-copper-500/20 hover:scale-[1.02] transition-all duration-300 cursor-pointer min-h-12"
       data-testid={`card-event-${event.id}`}
     >
-      {/* Event Image with 4:3 aspect ratio */}
-      <div className="relative aspect-[4/3] bg-gradient-to-br from-[#c05a0e]/30 via-[#d4691a]/20 to-[#b8540d]/25">
+      {/* Event Image with 16:9 aspect ratio */}
+      <div className="relative aspect-[16/9] bg-gradient-to-br from-[#c05a0e]/30 via-[#d4691a]/20 to-[#b8540d]/25 overflow-hidden">
         {event.image_url ? (
           <img
             src={event.image_url}
             alt={event.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
         ) : (
@@ -135,7 +140,7 @@ export default function Community() {
             {event.title}
           </h3>
           <p className="text-white/80 text-sm mb-2">
-            {event.venue && event.city ? `${event.venue} • ${event.city}` : event.city}
+            {event.venue ? `${event.venue} • ${event.city}` : event.city}
           </p>
           
           {/* Price display */}
@@ -149,7 +154,7 @@ export default function Community() {
           {event.tickets_url && (
             <div className="flex justify-end">
               <div 
-                className="px-2 py-1 bg-primary/90 text-black text-xs rounded font-medium hover:bg-primary transition-colors"
+                className="px-3 py-1 bg-primary/90 text-black text-xs rounded font-medium hover:bg-primary transition-colors min-h-6"
                 onClick={(e) => {
                   e.stopPropagation();
                   window.open(event.tickets_url, '_blank', 'noopener,noreferrer');
@@ -210,15 +215,25 @@ export default function Community() {
             </div>
           )}
 
-          {/* Events Grid */}
+          {/* v2.8 Featured Hero */}
+          {!isLoading && !error && featured && (
+            <div className="mb-12">
+              <FeaturedHero 
+                event={featured} 
+                onViewDetails={() => openModal(featured)} 
+              />
+            </div>
+          )}
+
+          {/* v2.8 Events Grid - 2 columns on desktop */}
           {!isLoading && !error && events.length > 0 && (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 md:gap-8 grid-cols-1 md:grid-cols-2">
               {events.map(renderEventCard)}
             </div>
           )}
 
           {/* Empty State */}
-          {!isLoading && !error && events.length === 0 && (
+          {!isLoading && !error && events.length === 0 && !featured && (
             <div className="text-center py-12">
               <Calendar className="w-16 h-16 text-muted mx-auto mb-4" />
               <h3 className="font-fraunces text-2xl font-bold text-white mb-2">
