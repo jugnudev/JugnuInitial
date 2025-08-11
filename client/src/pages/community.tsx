@@ -127,99 +127,75 @@ export default function Community() {
   };
 
   const renderEventCard = (event: CommunityEvent) => (
-    <button
+    <div
       key={event.id}
       onClick={() => openModal(event)}
-      className="w-full bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-colors duration-200 text-left group cursor-pointer"
+      className="group w-full bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl overflow-hidden hover:border-primary/30 hover:shadow-[0_0_0_1px] hover:shadow-primary/30 transition-all duration-200 cursor-pointer min-h-14"
       data-testid={`card-event-${event.id}`}
     >
-      {/* Event Image */}
-      <div className="mb-4">
+      {/* Event Image with 4:3 aspect ratio */}
+      <div className="relative aspect-[4/3] bg-gradient-to-br from-[#c05a0e]/30 via-[#d4691a]/20 to-[#b8540d]/25">
         {event.imageUrl ? (
           <img
             src={event.imageUrl}
             alt={event.title}
-            className="w-full h-48 object-cover rounded-2xl"
+            className="w-full h-full object-cover"
             loading="lazy"
           />
         ) : (
-          <div className="relative w-full h-48 bg-gradient-to-br from-[#c05a0e]/30 via-[#d4691a]/20 to-[#b8540d]/25 rounded-2xl overflow-hidden">
-            {/* Firefly glow effect */}
-            <div className="absolute inset-0">
-              <div className="firefly-small absolute top-6 left-8 w-2 h-2 bg-[#c05a0e]/60 rounded-full animate-pulse"></div>
-              <div className="firefly-small absolute bottom-8 right-12 w-1.5 h-1.5 bg-[#d4691a]/50 rounded-full animate-pulse" style={{ animationDelay: '0.8s' }}></div>
-              <div className="firefly-small absolute top-12 right-6 w-1 h-1 bg-[#b8540d]/70 rounded-full animate-pulse" style={{ animationDelay: '1.5s' }}></div>
-            </div>
-            <div className="flex items-center justify-center h-full relative z-10">
-              <Calendar className="w-12 h-12 text-[#c05a0e]/80" />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Date Badge */}
-      <div className="inline-flex items-center px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium mb-3">
-        {formatEventDate(event.startAt)}
-      </div>
-
-      {/* Event Title and Price */}
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="font-fraunces text-xl font-bold text-white leading-tight pr-4 group-hover:text-primary transition-colors">
-          {event.title}
-        </h3>
-        {event.priceFrom && parseFloat(event.priceFrom) > 0 && (
-          <div className="flex items-center gap-1 bg-primary/20 text-primary px-2 py-1 rounded-lg text-sm font-medium shrink-0">
-            <DollarSign className="w-3 h-3" />
-            {event.priceFrom}
-          </div>
-        )}
-      </div>
-
-      {/* Venue and Time */}
-      <div className="space-y-2 mb-4">
-        {event.venue && (
-          <div className="flex items-start gap-2">
-            <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-            <div>
-              <p className="text-white text-sm font-medium">
-                {event.venue} • {event.city}
-              </p>
-            </div>
+          <div className="w-full h-full flex items-center justify-center">
+            <Calendar className="w-12 h-12 text-[#c05a0e]/80" />
           </div>
         )}
         
-        <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-primary shrink-0" />
-          <p className="text-muted text-sm">{formatEventTime(event.startAt, event.endAt)}</p>
-        </div>
-      </div>
-
-      {/* Organizer */}
-      {event.organizer && (
-        <p className="text-muted text-sm mb-4">by {event.organizer}</p>
-      )}
-
-      {/* Action Buttons */}
-      <div className="flex items-center justify-between">
-        <div className="text-muted text-sm group-hover:text-white transition-colors">
-          See details
+        {/* Soft copper gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        
+        {/* Date chip - top left */}
+        <div className="absolute top-3 left-3 px-2 py-1 bg-black/70 text-white text-xs rounded-md font-medium">
+          {formatEventDate(event.startAt)}
         </div>
         
-        {event.ticketsUrl && (
-          <div
-            onClick={(e) => {
-              e.stopPropagation();
-              window.open(event.ticketsUrl, '_blank', 'noopener,noreferrer');
-            }}
-            className="inline-flex items-center px-4 py-2 bg-primary text-black/90 font-medium rounded-xl hover:bg-primary/90 transition-colors duration-200 text-sm"
-            data-testid={`button-tickets-${event.id}`}
-          >
-            Get Tickets
-            <ExternalLink className="w-3 h-3 ml-1" />
+        {/* Category pill - top right */}
+        {event.category && (
+          <div className="absolute top-3 right-3 px-2 py-1 bg-primary/90 text-black text-xs rounded-full font-medium capitalize">
+            {event.category}
           </div>
         )}
+        
+        {/* Bottom overlay with content */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+          <h3 className="font-semibold text-lg leading-tight line-clamp-2 mb-1">
+            {event.title}
+          </h3>
+          <p className="text-white/80 text-sm mb-2">
+            {event.venue && event.city ? `${event.venue} • ${event.city}` : event.city}
+          </p>
+          
+          {/* Price display */}
+          {event.priceFrom && parseFloat(event.priceFrom) > 0 && (
+            <div className="text-white/90 text-sm font-medium mb-2">
+              from ${event.priceFrom}
+            </div>
+          )}
+          
+          {/* Small Get Tickets button if tickets_url exists */}
+          {event.ticketsUrl && (
+            <div className="flex justify-end">
+              <div 
+                className="px-2 py-1 bg-primary/90 text-black text-xs rounded font-medium hover:bg-primary transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(event.ticketsUrl, '_blank', 'noopener,noreferrer');
+                }}
+              >
+                Get Tickets
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </button>
+    </div>
   );
 
   return (

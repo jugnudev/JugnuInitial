@@ -135,25 +135,28 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
   };
 
   const handleShare = async () => {
-    const url = window.location.href;
+    // Create deep link with event ID
+    const baseUrl = window.location.origin + window.location.pathname;
+    const deepLink = `${baseUrl}?e=${event.id}`;
+    
     const shareData = {
       title: event.title,
-      text: `${event.title} — ${event.venue}`,
-      url
+      text: `${event.title} — ${event.venue || event.city}`,
+      url: deepLink,
     };
 
     try {
       if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
         await navigator.share(shareData);
       } else {
-        // Fallback: copy to clipboard
-        await navigator.clipboard.writeText(url);
+        // Fallback: copy deep link to clipboard
+        await navigator.clipboard.writeText(deepLink);
         alert('Link copied to clipboard!');
       }
     } catch (error) {
       // Final fallback: copy to clipboard
       try {
-        await navigator.clipboard.writeText(url);
+        await navigator.clipboard.writeText(deepLink);
         alert('Link copied to clipboard!');
       } catch (clipboardError) {
         console.error('Share failed:', error, clipboardError);
@@ -170,14 +173,15 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
     >
-      <div className="relative w-full max-w-2xl max-h-[90vh] bg-bg border border-white/10 rounded-2xl overflow-hidden">
-        {/* Header with close button */}
+      {/* Mobile: Full-screen sheet */}
+      <div className="md:hidden flex flex-col h-full bg-bg">
+        {/* Header with close button - Mobile */}
         <div className="absolute top-4 right-4 z-10">
           <button
             onClick={onClose}
@@ -189,29 +193,36 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
           </button>
         </div>
 
-        <div className="overflow-y-auto max-h-[90vh]">
-          {/* Event Image */}
-          <div className="relative h-64">
-            {event.imageUrl ? (
-              <img
-                src={event.imageUrl}
-                alt={event.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-[#c05a0e]/30 via-[#d4691a]/20 to-[#b8540d]/25 flex items-center justify-center">
-                <Calendar className="w-16 h-16 text-[#c05a0e]/80" />
-              </div>
-            )}
-          </div>
+        {/* Large poster on top - Mobile */}
+        <div className="relative h-80 flex-shrink-0">
+          {event.imageUrl ? (
+            <img
+              src={event.imageUrl}
+              alt={event.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-[#c05a0e]/30 via-[#d4691a]/20 to-[#b8540d]/25 flex items-center justify-center">
+              <Calendar className="w-16 h-16 text-[#c05a0e]/80" />
+            </div>
+          )}
+        </div>
 
-          {/* Content */}
+        {/* Content scroll area - Mobile */}
+        <div className="flex-1 overflow-y-auto pb-20">
           <div className="p-6 space-y-6">
-            {/* Title and Category */}
+            {/* Title + category pill + price */}
             <div>
-              <h1 id="modal-title" className="font-fraunces text-3xl font-bold text-white mb-2">
-                {event.title}
-              </h1>
+              <div className="flex items-start justify-between mb-3">
+                <h1 id="modal-title" className="font-fraunces text-2xl font-bold text-white leading-tight pr-4">
+                  {event.title}
+                </h1>
+                {event.priceFrom && parseFloat(event.priceFrom) > 0 && (
+                  <div className="text-primary text-lg font-semibold shrink-0">
+                    from ${event.priceFrom}
+                  </div>
+                )}
+              </div>
               {event.category && (
                 <span className="inline-flex items-center px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium capitalize">
                   {event.category}
@@ -219,16 +230,16 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
               )}
             </div>
 
-            {/* Date and Time */}
-            <div className="flex items-start gap-3">
-              <Clock className="w-5 h-5 text-primary mt-1" />
+            {/* Date/time badge */}
+            <div className="flex items-center gap-3">
+              <Clock className="w-5 h-5 text-primary" />
               <div>
                 <p className="text-white font-medium">{formatEventDate(event.startAt)}</p>
                 <p className="text-muted">{formatEventTime(event.startAt, event.endAt)}</p>
               </div>
             </div>
 
-            {/* Venue */}
+            {/* Venue + city + address */}
             {event.venue && (
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-primary mt-1" />
@@ -253,41 +264,7 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
               </div>
             )}
 
-            {/* Price */}
-            {event.priceFrom && parseFloat(event.priceFrom) > 0 && (
-              <div className="flex items-center gap-3">
-                <DollarSign className="w-5 h-5 text-primary" />
-                <p className="text-white">From ${event.priceFrom}</p>
-              </div>
-            )}
-
-            {/* Organizer */}
-            {event.organizer && (
-              <div>
-                <p className="text-muted">Organized by</p>
-                <p className="text-white font-medium">{event.organizer}</p>
-              </div>
-            )}
-
-            {/* Tags */}
-            {event.tags && event.tags.length > 0 && (
-              <div>
-                <p className="text-muted mb-2">Tags</p>
-                <div className="flex flex-wrap gap-2">
-                  {event.tags.map((tag, index) => (
-                    <span
-                      key={index}
-                      className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 text-text rounded-lg text-sm"
-                    >
-                      <Tag className="w-3 h-3" />
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Description */}
+            {/* About this event */}
             {descriptionParagraphs.length > 0 && (
               <div className="space-y-3">
                 <h3 className="text-white font-medium text-lg">About this event</h3>
@@ -318,15 +295,45 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="flex flex-col gap-4 pt-4 border-t border-white/10">
-              {/* Primary CTA - Get Tickets */}
+            {/* Tags */}
+            {event.tags && event.tags.length > 0 && (
+              <div className="flex items-start gap-3">
+                <Tag className="w-5 h-5 text-primary mt-1" />
+                <div className="flex flex-wrap gap-2">
+                  {event.tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-white/10 text-white text-sm rounded-md"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Sticky CTA bar - Mobile */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-bg/95 backdrop-blur border-t border-white/10">
+          <div className="flex gap-3">
+            {/* Share button - far left */}
+            <button
+              onClick={handleShare}
+              className="p-3 border border-primary/50 text-primary rounded-xl hover:bg-primary/10 transition-colors"
+              aria-label="Share event"
+              data-testid="button-share"
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+            
+            <div className="flex-1">
               {event.ticketsUrl ? (
                 <a
                   href={event.ticketsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center px-6 py-3 bg-primary text-black/90 font-medium rounded-xl hover:bg-primary/90 transition-colors duration-200"
+                  className="w-full inline-flex items-center justify-center px-6 py-3 bg-primary text-black/90 font-medium rounded-xl hover:bg-primary/90 transition-colors"
                   data-testid="button-get-tickets"
                 >
                   Get Tickets
@@ -337,23 +344,201 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
                   No tickets available
                 </div>
               )}
+            </div>
+          </div>
+          
+          {/* Secondary actions */}
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={() => handleAddToCalendar('google')}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-primary/50 text-primary font-medium rounded-xl hover:bg-primary/10 transition-colors text-sm whitespace-nowrap"
+              data-testid="button-add-google"
+            >
+              <Calendar className="w-4 h-4 mr-2" />
+              Add to Google
+            </button>
+            <button
+              onClick={() => handleAddToCalendar('ics')}
+              className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-primary/50 text-primary font-medium rounded-xl hover:bg-primary/10 transition-colors text-sm"
+              data-testid="button-download-ics"
+            >
+              Download .ics
+            </button>
+          </div>
+        </div>
+      </div>
 
-              {/* Secondary Actions */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                {/* Share Button */}
+      {/* Desktop: Centered dialog, 2-column layout */}
+      <div className="hidden md:flex items-center justify-center p-4 h-full">
+        <div className="relative w-full max-w-5xl max-h-[90vh] bg-bg border border-white/10 rounded-2xl overflow-hidden flex">
+          {/* Header with close button */}
+          <div className="absolute top-4 right-4 z-10">
+            <button
+              onClick={onClose}
+              className="p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+              aria-label="Close modal"
+              data-testid="button-close-modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Left column: Poster */}
+          <div className="w-1/2 relative">
+            {event.imageUrl ? (
+              <img
+                src={event.imageUrl}
+                alt={event.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[#c05a0e]/30 via-[#d4691a]/20 to-[#b8540d]/25 flex items-center justify-center">
+                <Calendar className="w-16 h-16 text-[#c05a0e]/80" />
+              </div>
+            )}
+          </div>
+
+          {/* Right column: Content */}
+          <div className="w-1/2 flex flex-col">
+            <div className="flex-1 overflow-y-auto p-6 pb-20">
+              <div className="space-y-6">
+                {/* Title + category pill + price */}
+                <div>
+                  <div className="flex items-start justify-between mb-3">
+                    <h1 id="modal-title" className="font-fraunces text-3xl font-bold text-white leading-tight pr-4">
+                      {event.title}
+                    </h1>
+                    {event.priceFrom && parseFloat(event.priceFrom) > 0 && (
+                      <div className="text-primary text-xl font-semibold shrink-0">
+                        from ${event.priceFrom}
+                      </div>
+                    )}
+                  </div>
+                  {event.category && (
+                    <span className="inline-flex items-center px-3 py-1 bg-primary/20 text-primary rounded-full text-sm font-medium capitalize">
+                      {event.category}
+                    </span>
+                  )}
+                </div>
+
+                {/* Date/time badge */}
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="text-white font-medium">{formatEventDate(event.startAt)}</p>
+                    <p className="text-muted">{formatEventTime(event.startAt, event.endAt)}</p>
+                  </div>
+                </div>
+
+                {/* Venue + city + address */}
+                {event.venue && (
+                  <div className="flex items-start gap-3">
+                    <MapPin className="w-5 h-5 text-primary mt-1" />
+                    <div className="flex-1">
+                      <p className="text-white font-medium">{event.venue}</p>
+                      <p className="text-muted">{event.city}</p>
+                      {event.address && (
+                        <p className="text-muted text-sm mt-1">{event.address}</p>
+                      )}
+                      <button
+                        onClick={openInMaps}
+                        className="text-primary hover:text-primary/80 text-sm mt-1 inline-flex items-center gap-1"
+                        data-testid="button-open-maps"
+                      >
+                        Open in Maps <ExternalLink className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* About this event */}
+                {descriptionParagraphs.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-white font-medium text-lg">About this event</h3>
+                    <div 
+                      className={`text-muted space-y-2 ${
+                        needsShowMore && !isDescriptionExpanded ? 'line-clamp-8' : ''
+                      }`}
+                    >
+                      {descriptionParagraphs.map((paragraph, index) => (
+                        <p key={index} className="whitespace-pre-line">
+                          {paragraph}
+                        </p>
+                      ))}
+                    </div>
+                    {needsShowMore && (
+                      <button
+                        onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                        className="inline-flex items-center gap-1 text-primary hover:text-primary/80 text-sm font-medium"
+                      >
+                        {isDescriptionExpanded ? 'Show less' : 'Show more'}
+                        {isDescriptionExpanded ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Tags */}
+                {event.tags && event.tags.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <Tag className="w-5 h-5 text-primary mt-1" />
+                    <div className="flex flex-wrap gap-2">
+                      {event.tags.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 bg-white/10 text-white text-sm rounded-md"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Sticky CTA bar - Desktop */}
+            <div className="p-6 bg-bg border-t border-white/10">
+              <div className="flex items-center gap-3 mb-3">
+                {/* Share button - far left */}
                 <button
                   onClick={handleShare}
-                  className="flex-1 inline-flex items-center justify-center px-4 py-3 border border-primary/50 text-primary font-medium rounded-xl hover:bg-primary/10 transition-colors duration-200"
+                  className="p-3 border border-primary/50 text-primary rounded-xl hover:bg-primary/10 transition-colors"
+                  aria-label="Share event"
                   data-testid="button-share"
                 >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Share
+                  <Share2 className="w-4 h-4" />
                 </button>
-
-                {/* Calendar Actions */}
+                
+                <div className="flex-1">
+                  {event.ticketsUrl ? (
+                    <a
+                      href={event.ticketsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full inline-flex items-center justify-center px-6 py-3 bg-primary text-black/90 font-medium rounded-xl hover:bg-primary/90 transition-colors"
+                      data-testid="button-get-tickets"
+                    >
+                      Get Tickets
+                      <ExternalLink className="w-4 h-4 ml-2" />
+                    </a>
+                  ) : (
+                    <div className="w-full inline-flex items-center justify-center px-6 py-3 bg-white/10 text-muted font-medium rounded-xl cursor-not-allowed">
+                      No tickets available
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Secondary actions */}
+              <div className="flex gap-2">
                 <button
                   onClick={() => handleAddToCalendar('google')}
-                  className="flex-1 inline-flex items-center justify-center px-4 py-3 border border-primary/50 text-primary font-medium rounded-xl hover:bg-primary/10 transition-colors duration-200 whitespace-nowrap"
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-primary/50 text-primary font-medium rounded-xl hover:bg-primary/10 transition-colors text-sm whitespace-nowrap"
                   data-testid="button-add-google"
                 >
                   <Calendar className="w-4 h-4 mr-2" />
@@ -361,10 +546,9 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
                 </button>
                 <button
                   onClick={() => handleAddToCalendar('ics')}
-                  className="flex-1 inline-flex items-center justify-center px-4 py-3 border border-primary/50 text-primary font-medium rounded-xl hover:bg-primary/10 transition-colors duration-200"
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-primary/50 text-primary font-medium rounded-xl hover:bg-primary/10 transition-colors text-sm"
                   data-testid="button-download-ics"
                 >
-                  <Calendar className="w-4 h-4 mr-2" />
                   Download .ics
                 </button>
               </div>
