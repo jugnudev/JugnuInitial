@@ -488,6 +488,19 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
                     </div>
                   </div>
                 )}
+                
+                {/* Footer - Organizer Link */}
+                <div className="mt-8 pt-6 border-t border-white/10">
+                  <p className="text-sm text-muted/70 text-center">
+                    Organizer? <a 
+                      href="/community/feature" 
+                      className="text-primary hover:text-primary/80 transition-colors"
+                      data-testid="link-organizer-feature"
+                    >
+                      Request to be featured
+                    </a>
+                  </p>
+                </div>
               </div>
             </div>
 

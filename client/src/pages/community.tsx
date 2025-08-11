@@ -182,22 +182,35 @@ export default function Community() {
             <p className="text-lg text-muted/80 max-w-2xl mx-auto mt-2">Concerts, club nights, comedy, festivals and more! Community-curated.</p>
           </div>
 
-          {/* Category Filters */}
-          <div className="flex flex-wrap justify-center gap-3 mb-8">
-            {categoryFilters.map((filter) => (
-              <button
-                key={filter.value}
-                onClick={() => setSelectedCategory(filter.value)}
-                className={`px-4 py-2 rounded-xl font-medium transition-colors duration-200 ${
-                  selectedCategory === filter.value
-                    ? "bg-primary text-black"
-                    : "bg-white/10 text-text hover:bg-white/20"
-                }`}
-                data-testid={`filter-${filter.value || "all"}`}
+          {/* Category Filters + Request Feature Link */}
+          <div className="flex flex-wrap justify-center items-center gap-3 mb-8">
+            <div className="flex flex-wrap justify-center gap-3">
+              {categoryFilters.map((filter) => (
+                <button
+                  key={filter.value}
+                  onClick={() => setSelectedCategory(filter.value)}
+                  className={`px-4 py-2 rounded-xl font-medium transition-colors duration-200 ${
+                    selectedCategory === filter.value
+                      ? "bg-primary text-black"
+                      : "bg-white/10 text-text hover:bg-white/20"
+                  }`}
+                  data-testid={`filter-${filter.value || "all"}`}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
+            
+            {/* Request Feature Link */}
+            <div className="border-l border-white/20 pl-3 ml-3">
+              <a
+                href="/community/feature"
+                className="text-sm text-primary hover:text-primary/80 transition-colors font-medium"
+                data-testid="link-request-feature"
               >
-                {filter.label}
-              </button>
-            ))}
+                Request Feature
+              </a>
+            </div>
           </div>
 
           {/* Loading State */}

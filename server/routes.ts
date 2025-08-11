@@ -1216,6 +1216,254 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // v2.9 Feature request submission endpoint
+  app.post("/api/community/feature", async (req, res) => {
+    try {
+      const { 
+        organizer_name, 
+        email, 
+        event_url, 
+        category, 
+        title, 
+        start_iso, 
+        venue, 
+        city, 
+        image_url, 
+        message, 
+        rights_confirmed,
+        honeypot 
+      } = req.body;
+
+      // Basic spam protection
+      if (honeypot && honeypot.length > 0) {
+        return res.status(400).json({ ok: false, error: "Invalid submission" });
+      }
+
+      // Validate required fields
+      if (!organizer_name || !email || !event_url || !category || !rights_confirmed) {
+        return res.status(400).json({ ok: false, error: "Missing required fields" });
+      }
+
+      // Validate URLs
+      try {
+        new URL(event_url);
+        if (image_url) new URL(image_url);
+      } catch {
+        return res.status(400).json({ ok: false, error: "Invalid URL format" });
+      }
+
+      const supabase = getSupabaseAdmin();
+
+      // Insert feature request
+      const { data, error } = await supabase
+        .from('feature_requests')
+        .insert({
+          organizer_name: organizer_name.trim(),
+          email: email.toLowerCase().trim(),
+          event_url: event_url.trim(),
+          category: category.toLowerCase(),
+          title: title?.trim() || null,
+          start_iso: start_iso || null,
+          venue: venue?.trim() || null,
+          city: city?.trim() || 'Vancouver, BC',
+          image_url: image_url?.trim() || null,
+          message: message?.trim() || null,
+          rights_confirmed: rights_confirmed,
+          status: 'pending'
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Feature request insert error:', error);
+        throw new Error('Failed to submit request');
+      }
+
+      res.json({ ok: true, id: data.id });
+    } catch (error) {
+      console.error('Feature request error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to submit request' });
+    }
+  });
+
+  // v2.9 Admin: List pending feature requests
+  app.get("/api/community/admin/feature-requests", async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: "unauthorized" });
+      }
+
+      const supabase = getSupabaseAdmin();
+
+      const { data, error } = await supabase
+        .from('feature_requests')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Feature requests list error:', error);
+        throw error;
+      }
+
+      res.json({ ok: true, requests: data || [] });
+    } catch (error) {
+      console.error('Admin feature requests error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to fetch requests' });
+    }
+  });
+
+  // v2.9 Admin: Approve feature request
+  app.post("/api/community/admin/feature-requests/approve", async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: "unauthorized" });
+      }
+
+      const { request_id } = req.body;
+      if (!request_id) {
+        return res.status(400).json({ ok: false, error: "request_id required" });
+      }
+
+      const supabase = getSupabaseAdmin();
+
+      // Fetch the request
+      const { data: request, error: fetchError } = await supabase
+        .from('feature_requests')
+        .select('*')
+        .eq('id', request_id)
+        .single();
+
+      if (fetchError || !request) {
+        return res.status(404).json({ ok: false, error: "Request not found" });
+      }
+
+      let eventId = request.linked_event_id;
+
+      // Try to match existing event if not already linked
+      if (!eventId) {
+        // Try URL matching first
+        const { data: urlMatches } = await supabase
+          .from('community_events')
+          .select('id')
+          .or(`source_url.eq.${request.event_url},tickets_url.eq.${request.event_url}`)
+          .limit(1);
+
+        if (urlMatches && urlMatches.length > 0) {
+          eventId = urlMatches[0].id;
+        }
+        // If we have title and date, try canonical key matching
+        else if (request.title && request.start_iso) {
+          const startDate = new Date(request.start_iso);
+          const normalizedTitle = request.title.toLowerCase().replace(/[^\w\s]/g, '').trim();
+          const dateStr = startDate.toISOString().split('T')[0];
+          const normalizedVenue = (request.venue || '').toLowerCase().replace(/[^\w\s]/g, '').trim();
+          const canonicalKey = `${normalizedTitle}_${dateStr}_${normalizedVenue}`;
+
+          const { data: canonicalMatches } = await supabase
+            .from('community_events')
+            .select('id')
+            .eq('canonical_key', canonicalKey)
+            .limit(1);
+
+          if (canonicalMatches && canonicalMatches.length > 0) {
+            eventId = canonicalMatches[0].id;
+          }
+        }
+      }
+
+      // If no match found, create new event
+      if (!eventId) {
+        const newEventData = {
+          title: request.title || 'Featured Event',
+          start_at: request.start_iso || new Date().toISOString(),
+          venue: request.venue,
+          city: request.city || 'Vancouver, BC',
+          image_url: request.image_url,
+          category: request.category || 'other',
+          source_url: request.event_url,
+          tickets_url: request.event_url,
+          status: 'upcoming',
+          featured: false, // Will be set below
+          timezone: 'America/Vancouver'
+        };
+
+        const { data: newEvent, error: createError } = await supabase
+          .from('community_events')
+          .insert(newEventData)
+          .select('id')
+          .single();
+
+        if (createError) {
+          console.error('Failed to create new event:', createError);
+          throw new Error('Failed to create event');
+        }
+
+        eventId = newEvent.id;
+      }
+
+      // Set featured=false for all events, then true for this one
+      await supabase
+        .from('community_events')
+        .update({ featured: false })
+        .eq('featured', true);
+
+      await supabase
+        .from('community_events')
+        .update({ featured: true, updated_at: new Date().toISOString() })
+        .eq('id', eventId);
+
+      // Update request status
+      await supabase
+        .from('feature_requests')
+        .update({ 
+          status: 'approved', 
+          linked_event_id: eventId 
+        })
+        .eq('id', request_id);
+
+      res.json({ ok: true, event_id: eventId });
+    } catch (error) {
+      console.error('Approve request error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to approve request' });
+    }
+  });
+
+  // v2.9 Admin: Reject feature request
+  app.post("/api/community/admin/feature-requests/reject", async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: "unauthorized" });
+      }
+
+      const { request_id, reason } = req.body;
+      if (!request_id) {
+        return res.status(400).json({ ok: false, error: "request_id required" });
+      }
+
+      const supabase = getSupabaseAdmin();
+
+      const { error } = await supabase
+        .from('feature_requests')
+        .update({ status: 'rejected' })
+        .eq('id', request_id);
+
+      if (error) {
+        console.error('Reject request error:', error);
+        throw error;
+      }
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error('Reject request error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to reject request' });
+    }
+  });
+
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
 

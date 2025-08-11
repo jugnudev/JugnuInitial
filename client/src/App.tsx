@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/home";
 import Community from "@/pages/community";
+import CommunityFeature from "@/pages/CommunityFeature";
 import Waitlist from "@/pages/waitlist";
 import ThankYou from "@/pages/thank-you";
 import Privacy from "@/pages/privacy";
@@ -16,6 +17,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/community" component={Community} />
+      <Route path="/community/feature" component={CommunityFeature} />
       <Route path="/waitlist" component={Waitlist} />
       <Route path="/thank-you" component={ThankYou} />
       <Route path="/privacy" component={Privacy} />

@@ -70,15 +70,25 @@ function FeaturedHero({ event, onViewDetails }: FeaturedHeroProps) {
             </div>
           </div>
 
-          {/* Category Badge */}
-          {event.category && (
+          {/* Category Badge & Featured Badge */}
+          <div className="flex gap-2">
+            {/* Featured Badge */}
             <Badge 
               variant="secondary" 
-              className={`${getCategoryColor(event.category)} text-white border-0 text-sm px-3 py-1 capitalize font-medium shadow-lg`}
+              className="bg-copper-500/90 text-white border-0 text-sm px-3 py-1 font-medium shadow-lg"
             >
-              {event.category}
+              Featured
             </Badge>
-          )}
+            
+            {event.category && (
+              <Badge 
+                variant="secondary" 
+                className={`${getCategoryColor(event.category)} text-white border-0 text-sm px-3 py-1 capitalize font-medium shadow-lg`}
+              >
+                {event.category}
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Bottom Content */}

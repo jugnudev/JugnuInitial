@@ -1,0 +1,95 @@
+Title: Community v2.9 — “Request Featured” intake + admin approval
+
+Goal
+Add a public form for organizers to request Featured placement and a tiny admin flow to approve/reject. Approval sets the event as featured (the top hero).
+
+Secrets (optional)
+- INBOX_EMAIL (for future email-notify TODO)
+- REQUESTS_WEBHOOK_URL (Slack/Discord webhook; optional)
+
+1) Supabase SQL (run once)
+CREATE TABLE IF NOT EXISTS public.feature_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  organizer_name text NOT NULL,
+  email text NOT NULL,
+  event_url text NOT NULL,              -- Eventbrite/IG/website
+  title text,                           -- optional (helps if no calendar yet)
+  start_iso timestamptz,                -- optional
+  venue text,                           -- optional
+  city text DEFAULT 'Vancouver, BC',
+  image_url text,                       -- optional poster
+  category text,                        -- concert|club|comedy|festival|other
+  message text,                         -- why feature?
+  rights_confirmed boolean NOT NULL DEFAULT false,
+  status text NOT NULL DEFAULT 'pending',   -- pending|approved|rejected
+  linked_event_id uuid REFERENCES public.community_events(id)
+);
+ALTER TABLE public.feature_requests ENABLE ROW LEVEL SECURITY;
+
+2) Public page + API
+- Page: /app/community/feature/page.tsx
+  • H1: “Request Featured Placement”
+  • Copy: short explainer + guidelines (posters, dates, rights to imagery)
+  • Form (accessible, client-validated):
+      - Organizer name (required)
+      - Contact email (required)
+      - Event link (required)  (Eventbrite/IG/Official site)
+      - Category (select: concert/club/comedy/festival/other)
+      - Optional: Title, Start date & time (America/Vancouver), Venue, City (default Vancouver, BC), Poster URL
+      - Message (optional)
+      - Checkbox (required): “I confirm I have rights to the poster/image and event info.”
+      - Honeypot hidden field for spam
+  • On submit → POST JSON to /api/community/feature (see below). On success → /thank-you with a small note.
+
+- API: /app/api/community/feature/route.ts (POST)
+  • Rate-limit by IP (60/min), validate fields, lowercase/trim email.
+  • Insert into feature_requests with status='pending'.
+  • Try to loosely match an existing community_events row:
+      - If event_url domain matches community_events.source_url OR tickets_url → set linked_event_id (best-effort).
+  • (Optional) If REQUESTS_WEBHOOK_URL set → POST a brief summary.
+  • Return { ok:true }.
+
+3) Admin endpoints (header x-admin-key == EXPORT_ADMIN_KEY)
+- GET /app/api/community/admin/feature-requests (list pending)
+  • Returns latest 50 pending requests with key fields.
+
+- POST /app/api/community/admin/feature-requests/approve
+  Body: { request_id: string }
+  Flow:
+    a) Fetch request. If linked_event_id is null, try to match:
+       - WHERE source_url = event_url OR tickets_url = event_url
+       - Else, if title+start_iso present, compute canonical_key (same logic as importer) and try match on canonical_key.
+    b) If still none, create a new community_events row with available request data:
+         title, start_at=start_iso, venue, city, image_url, category (or 'other'),
+         source_url=event_url, tickets_url=event_url, status='upcoming'
+    c) Set featured=false for all, then featured=true for the chosen event id.
+    d) Update feature_requests.status='approved', linked_event_id=<id>.
+    e) Return { ok:true, event_id }.
+
+- POST /app/api/community/admin/feature-requests/reject
+  Body: { request_id: string, reason?: string }
+  • Update status='rejected'. (TODO: email notify later)
+
+4) UI hooks
+- On /community page header (right side), add a small link: “Request Feature” → /community/feature
+- In DetailsModal footer (secondary area), add a text link “Organizer? Request to be featured” → /community/feature
+- On FeaturedHero card (top), add a subtle “Featured” badge (already present if you added one; if not, add now).
+
+5) Safety & UX polish
+- Validate URLs (must start http/https).
+- Ensure modal/backdrop doesn’t block nav clicks when closed.
+- Keep all date formatting in America/Vancouver.
+- Keep images 16:9; if poster URL missing, use branded placeholder.
+
+6) README
+- Add a short “Featured requests” section:
+  • Link to /community/feature for organizers.
+  • How to approve: call admin approve endpoint with request_id (or toggle in Supabase + use existing /admin/feature endpoint).
+  • Pricing/terms: placeholders for now (manually invoice/DM). Stripe integration can come later.
+
+QA
+- Submit a request from /community/feature → row in feature_requests as pending.
+- GET admin list → shows your request.
+- Approve → either links to existing event (by URL) or creates one, flips featured=true, sets others false.
+- /community shows the approved event as the hero; it doesn’t duplicate in the grid.

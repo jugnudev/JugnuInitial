@@ -95,16 +95,18 @@ Preferred communication style: Simple, everyday language.
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 - **Featured Event Parsing**: Auto-detect "Featured: true|yes|1" from calendar descriptions or use admin API
 
-### Current State (Waitlist Mode v2.3 + Community v2.8 Featured Hero + 2-Column Grid)
+### Current State (Waitlist Mode v2.3 + Community v2.9 Request Featured Intake + Admin Approval)
 - **Dual Purpose**: Waitlist mode for Jugnu events + Community calendar for broader ecosystem
 - **Smart Navigation**: Community link always visible, Events/Gallery conditionally shown, proper routing from /community
 - **Featured Hero v2.8**: Large 16:9 hero display for featured events with copper glow styling and prominent CTAs
 - **2-Column Grid Layout**: Desktop shows 2 events per row (1 on mobile) with 16:9 aspect ratio cards for visual consistency
+- **Request Featured System v2.9**: Public form at /community/feature for organizers to request featured placement
+- **Admin Approval Workflow**: Admin endpoints to approve/reject feature requests with automatic event creation and featured assignment
 - **Enhanced Modal**: Share with Web Share API + smooth cursor-positioned toast notifications, cleaned descriptions with "Show more"
-- **Admin Tools**: ICS import cron job + manual event management via API + description cleaning + featured toggle endpoint
+- **Admin Tools**: ICS import cron job + manual event management via API + description cleaning + featured toggle endpoint + feature request management
 - **Accurate Date/Time**: Timezone-aware formatting with all-day event detection, eliminates "TBA" displays
 - **Solid Deduplication v2.7**: Prevents duplicates using ICS UIDs + canonical keys (title+date+venue), manual dedup at query time
-- **Featured Event Management**: Parse "Featured: true" from Google Calendar descriptions or use admin API to toggle featured status
+- **Featured Event Management**: Parse "Featured: true" from Google Calendar descriptions, public request form, or admin API toggle
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS
