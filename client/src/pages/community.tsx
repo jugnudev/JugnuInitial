@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { format } from "date-fns";
 import { Calendar, MapPin, ExternalLink, Clock, DollarSign } from "lucide-react";
 import Layout from "@/components/Layout";
 import { getCalendarLinks } from "@/lib/calendar";
 import DetailsModal from "@/components/community/DetailsModal";
 import { useLocation } from "wouter";
+import { formatDateBadge, formatTime } from "@/utils/dateFormatters";
 
 interface CommunityEvent {
   id: string;
@@ -14,6 +14,8 @@ interface CommunityEvent {
   category?: string;
   startAt: string;
   endAt?: string;
+  timezone: string;
+  isAllDay: boolean;
   venue?: string;
   address?: string;
   neighborhood?: string;
@@ -88,43 +90,7 @@ export default function Community() {
     navigate(newQuery ? `/community?${newQuery}` : '/community');
   };
 
-  const formatEventDate = (startAt: string) => {
-    try {
-      const date = new Date(startAt);
-      if (isNaN(date.getTime())) {
-        return "TBA";
-      }
-      const dayOfWeek = format(date, "EEE").toUpperCase();
-      const monthDay = format(date, "MMM d").toUpperCase();
-      return `${dayOfWeek} • ${monthDay}`;
-    } catch (error) {
-      console.error("Error formatting date:", startAt, error);
-      return "TBA";
-    }
-  };
-
-  const formatEventTime = (startAt: string, endAt?: string) => {
-    try {
-      const start = new Date(startAt);
-      if (isNaN(start.getTime())) {
-        return "Time TBA";
-      }
-      const startTime = format(start, "h:mm a");
-      
-      if (endAt) {
-        const end = new Date(endAt);
-        if (!isNaN(end.getTime())) {
-          const endTime = format(end, "h:mm a");
-          return `${startTime} - ${endTime}`;
-        }
-      }
-      
-      return startTime;
-    } catch (error) {
-      console.error("Error formatting time:", startAt, endAt, error);
-      return "Time TBA";
-    }
-  };
+  // Use the new timezone-aware formatters
 
   const renderEventCard = (event: CommunityEvent) => (
     <div
@@ -153,7 +119,7 @@ export default function Community() {
         
         {/* Date chip - top left */}
         <div className="absolute top-3 left-3 px-2 py-1 bg-black/70 text-white text-xs rounded-md font-medium">
-          {formatEventDate(event.startAt)}
+          {formatDateBadge(event.startAt, event.timezone)}
         </div>
         
         {/* Category pill - top right */}

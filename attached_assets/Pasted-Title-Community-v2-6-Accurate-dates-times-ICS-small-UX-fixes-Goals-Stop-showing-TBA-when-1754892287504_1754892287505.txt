@@ -1,0 +1,64 @@
+Title: Community v2.6 — Accurate dates/times (ICS) + small UX fixes
+
+Goals
+- Stop showing “TBA” when the Google Calendar event has a real time.
+- Correctly detect **all-day** vs **timed** events from ICS and format in **America/Vancouver**.
+- Keep street address only in the modal (card shows venue • city).
+- Keep Share button (already added).
+
+1) DB migration (Supabase SQL)
+ALTER TABLE public.community_events
+  ADD COLUMN IF NOT EXISTS is_all_day boolean DEFAULT false;
+
+2) Importer fix (/app/api/community/cron/import-ics/route.ts)
+- When reading each VEVENT:
+  • Detect all-day entries:
+    - If DTSTART is **date-only** (VALUE=DATE) ⇒ is_all_day=true
+    - OR if start/end span whole days and the start time is midnight (00:00:00) with duration%24h===0 ⇒ is_all_day=true
+    - Else is_all_day=false
+  • Always set timezone:
+    - Use the tz on DTSTART if present
+    - Else, use CITY_TZ (America/Vancouver)
+  • Store:
+    - start_at = the exact instant in UTC (use .toISOString())  ❗️do not null this for all-day
+    - end_at   = DTEND if present, else start_at + 3h
+    - timezone = detected tz string
+    - is_all_day = boolean above
+- Keep existing parsing for Tickets/Source/Image/Tags/Organizer/PriceFrom and category mapping.
+- On upsert, update is_all_day and timezone as well.
+
+Implementation notes (ok to use node-ical helpers):
+- You can read the raw DTSTART property type through node-ical; if not available, fall back to:
+  const allDay = !/T\d{6}/.test(rawDtStart) || (
+    start.getUTCHours()===0 && end && (end - start) % 86400000 === 0
+  );
+
+3) API range uses timezone
+- In /app/api/community/weekly/route.ts:
+  • Keep `range=month` default (30 days).
+  • Compute `nowTz` and window end in **CITY_TZ** and pass as ISO to the DB filter.
+  • Filtering by `category` remains case-insensitive.
+
+4) UI formatting
+- Centralize a formatter util (if not already): 
+  formatDateBadge(iso, tz) → "SAT • SEP 20"
+  formatTime(iso, tz, isAllDay) → 
+    - if isAllDay ⇒ "All day" 
+    - else ⇒ "9:00 PM" (12-hour, no seconds)
+- Event Card:
+  • Date badge from formatDateBadge
+  • Time line uses formatTime; never show “Time TBA” when it’s a timed event.
+  • Keep venue • city only on the card.
+- DetailsModal:
+  • Under the clock row show the same time string; if we also show end time, render "9:00 PM – 12:00 AM".
+  • “Add to Google” stays `whitespace-nowrap`.
+
+5) QA
+- Create two calendar items to test:
+  A) **Timed:** 9:00 PM–12:00 AM with description template → card shows time “9:00 PM”.
+  B) **All-day:** date-only entry → card shows “All day”.
+- Re-run importer, refresh /community. 
+- Category chips continue to work; Share copies/deeplinks on desktop and uses native share on mobile.
+
+6) (Security) Rotate admin key
+- I previously used the admin key in a curl while testing. Rotate EXPORT_ADMIN_KEY in Secrets and redeploy.

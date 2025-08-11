@@ -80,7 +80,7 @@ Preferred communication style: Simple, everyday language.
 - **tsx**: TypeScript execution environment
 - **esbuild**: Fast JavaScript bundler for production
 
-### Community Events System (Updated v2.4)
+### Community Events System (Updated v2.6)
 - **ICS Calendar Import**: Automated import from Google Calendar ICS feeds with structured description parsing
 - **Event Data Parsing**: Extracts Tickets, Source, Image, Tags, Organizer, PriceFrom from event descriptions
 - **Clean Description Processing**: HTML-to-text conversion, removes structured lines, preserves readable content
@@ -89,13 +89,16 @@ Preferred communication style: Simple, everyday language.
 - **Enhanced Modal**: Share functionality, "Show more" for long descriptions, improved layout
 - **Admin Management**: Manual event upsert endpoint for corrections and additions
 - **UI Integration**: Dedicated /community page with filtering, calendar integration, and responsive cards
+- **Accurate Date/Time (v2.6)**: All-day event detection, timezone extraction from ICS, eliminates "TBA" displays
+- **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 
-### Current State (Waitlist Mode v2.3 + Community v2.4 Enhanced)
+### Current State (Waitlist Mode v2.3 + Community v2.6 Date/Time Enhanced)
 - **Dual Purpose**: Waitlist mode for Jugnu events + Community calendar for broader ecosystem
 - **Smart Navigation**: Community link always visible, Events/Gallery conditionally shown, proper routing from /community
 - **Enhanced Cards**: Remote image support, venue•city display, category filtering, calendar integration
 - **Enhanced Modal**: Share with Web Share API, cleaned descriptions with "Show more", single-line buttons
 - **Admin Tools**: ICS import cron job + manual event management via API + description cleaning
+- **Accurate Date/Time**: Timezone-aware formatting with all-day event detection, eliminates "TBA" displays
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS

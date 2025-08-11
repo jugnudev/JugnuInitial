@@ -19,6 +19,7 @@ export const communityEvents = pgTable("community_events", {
   startAt: timestamp("start_at", { withTimezone: true }).notNull(),
   endAt: timestamp("end_at", { withTimezone: true }),
   timezone: text("timezone").notNull().default("America/Vancouver"),
+  isAllDay: boolean("is_all_day").notNull().default(false),
   venue: text("venue"),
   address: text("address"),
   neighborhood: text("neighborhood"),

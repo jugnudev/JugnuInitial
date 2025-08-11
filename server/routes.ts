@@ -191,8 +191,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (calendarEvent.type !== 'VEVENT' || !calendarEvent.start) continue;
 
             const title = calendarEvent.summary || 'Untitled Event';
-            const startAt = new Date(calendarEvent.start);
-            const endAt = calendarEvent.end ? new Date(calendarEvent.end) : new Date(startAt.getTime() + 3 * 60 * 60 * 1000); // +3h default
+            
+            // Detect all-day events and handle timezone properly
+            let startAt = new Date(calendarEvent.start);
+            let endAt = calendarEvent.end ? new Date(calendarEvent.end) : new Date(startAt.getTime() + 3 * 60 * 60 * 1000);
+            let isAllDay = false;
+            let eventTimezone = timezone; // Default to CITY_TZ
+            
+            // Check if event is all-day
+            // Method 1: Check if DTSTART has VALUE=DATE (node-ical sets datetype)
+            if (calendarEvent.datetype === 'date') {
+              isAllDay = true;
+            } else {
+              // Method 2: Check if start time is midnight and duration is multiple of 24 hours
+              const startHours = startAt.getUTCHours();
+              const durationMs = endAt.getTime() - startAt.getTime();
+              const is24HourMultiple = durationMs % (24 * 60 * 60 * 1000) === 0;
+              
+              if (startHours === 0 && is24HourMultiple && durationMs >= 24 * 60 * 60 * 1000) {
+                isAllDay = true;
+              }
+            }
+            
+            // Extract timezone from DTSTART if available
+            if (calendarEvent.start && typeof calendarEvent.start === 'object' && (calendarEvent.start as any).tz) {
+              eventTimezone = (calendarEvent.start as any).tz;
+            } else if (calendarEvent.params && calendarEvent.params.TZID) {
+              eventTimezone = calendarEvent.params.TZID;
+            }
+            
+            // Ensure dates are stored as UTC ISO strings
+            startAt = new Date(calendarEvent.start);
+            endAt = calendarEvent.end ? new Date(calendarEvent.end) : new Date(startAt.getTime() + 3 * 60 * 60 * 1000);
             
             // Extract venue and address from location
             const location = calendarEvent.location || '';
@@ -316,7 +346,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               category,
               startAt: startAt.toISOString(),
               endAt: endAt.toISOString(),
-              timezone,
+              timezone: eventTimezone,
+              isAllDay,
               venue: venue || null,
               address,
               city: 'Vancouver, BC',
@@ -350,6 +381,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   venue: eventData.venue,
                   address: eventData.address,
                   end_at: eventData.endAt,
+                  timezone: eventData.timezone,
+                  is_all_day: eventData.isAllDay,
                   organizer: eventData.organizer,
                   status: eventData.status,
                   tags: eventData.tags,
@@ -372,6 +405,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   start_at: eventData.startAt,
                   end_at: eventData.endAt,
                   timezone: eventData.timezone,
+                  is_all_day: eventData.isAllDay,
                   venue: eventData.venue,
                   address: eventData.address,
                   city: eventData.city,
@@ -574,10 +608,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      const now = new Date();
+      // Compute date range in Vancouver timezone
+      const timezone = process.env.CITY_TZ || 'America/Vancouver';
+      const nowTz = new Date(new Date().toLocaleString('en-US', { timeZone: timezone }));
+      
       // Default to month (30 days), allow ?range=week for 7 days
       const daysAhead = range === 'week' ? 7 : 30;
-      const endDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+      const endDateTz = new Date(nowTz.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+      
+      // Convert back to UTC for database filtering
+      const now = new Date();
+      const endDate = new Date(endDateTz.getTime() + (new Date().getTimezoneOffset() * 60 * 1000));
 
       let query = supabase
         .from('community_events')

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { X, ExternalLink, Calendar, MapPin, Clock, DollarSign, Tag, Share2, Copy, ChevronDown, ChevronUp } from "lucide-react";
-import { format } from "date-fns";
 import { getCalendarLinks } from "@/lib/calendar";
+import { formatEventDate, formatEventTime } from "@/utils/dateFormatters";
 
 interface CommunityEvent {
   id: string;
@@ -10,6 +10,8 @@ interface CommunityEvent {
   category?: string;
   startAt: string;
   endAt?: string;
+  timezone: string;
+  isAllDay: boolean;
   venue?: string;
   address?: string;
   neighborhood?: string;
@@ -61,36 +63,7 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
 
   if (!isOpen || !event) return null;
 
-  const formatEventDate = (startAt: string) => {
-    try {
-      const date = new Date(startAt);
-      if (isNaN(date.getTime())) return "TBA";
-      return format(date, "EEEE, MMMM d, yyyy");
-    } catch {
-      return "TBA";
-    }
-  };
-
-  const formatEventTime = (startAt: string, endAt?: string) => {
-    try {
-      const start = new Date(startAt);
-      if (isNaN(start.getTime())) return "Time TBA";
-      
-      const startTime = format(start, "h:mm a");
-      
-      if (endAt) {
-        const end = new Date(endAt);
-        if (!isNaN(end.getTime())) {
-          const endTime = format(end, "h:mm a");
-          return `${startTime} - ${endTime}`;
-        }
-      }
-      
-      return startTime;
-    } catch {
-      return "Time TBA";
-    }
-  };
+  // Use imported formatters for timezone-aware display
 
   const handleAddToCalendar = (type: 'google' | 'ics') => {
     try {
@@ -234,8 +207,8 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
             <div className="flex items-center gap-3">
               <Clock className="w-5 h-5 text-primary" />
               <div>
-                <p className="text-white font-medium">{formatEventDate(event.startAt)}</p>
-                <p className="text-muted">{formatEventTime(event.startAt, event.endAt)}</p>
+                <p className="text-white font-medium">{formatEventDate(event.startAt, event.timezone)}</p>
+                <p className="text-muted">{formatEventTime(event.startAt, event.endAt, event.timezone, event.isAllDay)}</p>
               </div>
             </div>
 
@@ -425,8 +398,8 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
                 <div className="flex items-center gap-3">
                   <Clock className="w-5 h-5 text-primary" />
                   <div>
-                    <p className="text-white font-medium">{formatEventDate(event.startAt)}</p>
-                    <p className="text-muted">{formatEventTime(event.startAt, event.endAt)}</p>
+                    <p className="text-white font-medium">{formatEventDate(event.startAt, event.timezone)}</p>
+                    <p className="text-muted">{formatEventTime(event.startAt, event.endAt, event.timezone, event.isAllDay)}</p>
                   </div>
                 </div>
 
