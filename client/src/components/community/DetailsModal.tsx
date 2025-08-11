@@ -32,15 +32,15 @@ interface DetailsModalProps {
 export default function DetailsModal({ event, isOpen, onClose }: DetailsModalProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   
-  if (!isOpen || !event) return null;
-  
   // Parse description into paragraphs and check if it needs "Show more"
-  const descriptionParagraphs = event.description 
+  const descriptionParagraphs = event?.description 
     ? event.description.split('\n\n').filter(p => p.trim().length > 0)
     : [];
   
-  const descriptionLines = event.description ? event.description.split('\n').length : 0;
+  const descriptionLines = event?.description ? event.description.split('\n').length : 0;
   const needsShowMore = descriptionLines > 8;
+
+  if (!isOpen || !event) return null;
 
   const formatEventDate = (startAt: string) => {
     try {
