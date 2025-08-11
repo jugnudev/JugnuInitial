@@ -335,9 +335,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
             
-            // Generate source hash for upsert
+            // Generate source hash for upsert - include more fields to detect changes
             const sourceHash = createHash('sha1')
-              .update(`${title}|${startAt.toISOString()}|${venue || ''}`)
+              .update(`${title}|${startAt.toISOString()}|${venue || ''}|${description || ''}|${organizer || ''}|${ticketsUrl || ''}|${imageUrl || ''}`)
               .digest('hex');
 
             const eventData = {
@@ -651,6 +651,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ ok: true, events: data || [] });
     } catch (error) {
       console.error("Weekly events error:", error);
+      res.status(500).json({ ok: false, error: "server_error" });
+    }
+  });
+
+  // Clear existing events and force fresh import with updated source_hash logic
+  app.post("/api/community/admin/clear-and-reimport", async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+      return res.status(401).json({ ok: false, error: "unauthorized" });
+    }
+
+    try {
+      const supabase = getSupabaseAdmin();
+
+      // Clear all existing events
+      await supabase
+        .from('community_events')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+
+      res.json({ ok: true, message: "Events cleared, fresh import will happen on next request" });
+    } catch (error) {
+      console.error("Clear and reimport error:", error);
       res.status(500).json({ ok: false, error: "server_error" });
     }
   });
