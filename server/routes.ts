@@ -372,7 +372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             if (existingEvent) {
               // Update existing event
-              await supabase
+              const { error: updateError } = await supabase
                 .from('community_events')
                 .update({
                   title: eventData.title,
@@ -382,7 +382,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   address: eventData.address,
                   end_at: eventData.endAt,
                   timezone: eventData.timezone,
-                  is_all_day: eventData.isAllDay,
                   organizer: eventData.organizer,
                   status: eventData.status,
                   tags: eventData.tags,
@@ -393,10 +392,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   updated_at: new Date().toISOString(),
                 })
                 .eq('source_hash', sourceHash);
-              updated++;
+              
+              if (updateError) {
+                console.error(`Failed to update event "${eventData.title}":`, updateError);
+              } else {
+                updated++;
+              }
             } else {
               // Insert new event
-              await supabase
+              const { error: insertError } = await supabase
                 .from('community_events')
                 .insert({
                   title: eventData.title,
@@ -405,7 +409,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   start_at: eventData.startAt,
                   end_at: eventData.endAt,
                   timezone: eventData.timezone,
-                  is_all_day: eventData.isAllDay,
                   venue: eventData.venue,
                   address: eventData.address,
                   city: eventData.city,
@@ -420,7 +423,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   neighborhood: eventData.neighborhood,
                   featured: eventData.featured,
                 });
-              imported++;
+              
+              if (insertError) {
+                console.error(`Failed to insert event "${eventData.title}":`, insertError);
+              } else {
+                imported++;
+              }
             }
           }
         } catch (urlError) {
@@ -655,6 +663,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to see all events in database
+  app.get("/api/community/debug/all-events", async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+      return res.status(401).json({ ok: false, error: "unauthorized" });
+    }
+
+    try {
+      const supabase = getSupabaseAdmin();
+      console.log("Testing Supabase connection...");
+      
+      const { data: events, error } = await supabase
+        .from('community_events')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Supabase query error:", error);
+        throw error;
+      }
+
+      console.log(`Found ${events?.length || 0} events in database`);
+      res.json({ ok: true, events: events || [], count: events?.length || 0 });
+    } catch (error) {
+      console.error("Debug all events error:", error);
+      res.status(500).json({ ok: false, error: "server_error", details: error.message });
+    }
+  });
+
   // Clear existing events and force fresh import with updated source_hash logic
   app.post("/api/community/admin/clear-and-reimport", async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
@@ -666,12 +703,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const supabase = getSupabaseAdmin();
 
       // Clear all existing events
-      await supabase
+      const { error: deleteError } = await supabase
         .from('community_events')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+        .gte('id', '00000000-0000-0000-0000-000000000000'); // Delete all
 
-      res.json({ ok: true, message: "Events cleared, fresh import will happen on next request" });
+      if (deleteError) {
+        console.error("Delete error:", deleteError);
+        return res.status(500).json({ ok: false, error: "delete_failed" });
+      }
+
+      res.json({ ok: true, message: "Events cleared successfully" });
     } catch (error) {
       console.error("Clear and reimport error:", error);
       res.status(500).json({ ok: false, error: "server_error" });
