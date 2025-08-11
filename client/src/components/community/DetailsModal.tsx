@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { X, ExternalLink, Calendar, MapPin, Clock, DollarSign, Tag, Share2, Copy } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, ExternalLink, Calendar, MapPin, Clock, DollarSign, Tag, Share2, Copy, ChevronDown, ChevronUp } from "lucide-react";
 import { format } from "date-fns";
 import { getCalendarLinks } from "@/lib/calendar";
 
@@ -30,7 +30,17 @@ interface DetailsModalProps {
 }
 
 export default function DetailsModal({ event, isOpen, onClose }: DetailsModalProps) {
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  
   if (!isOpen || !event) return null;
+  
+  // Parse description into paragraphs and check if it needs "Show more"
+  const descriptionParagraphs = event.description 
+    ? event.description.split('\n\n').filter(p => p.trim().length > 0)
+    : [];
+  
+  const descriptionLines = event.description ? event.description.split('\n').length : 0;
+  const needsShowMore = descriptionLines > 8;
 
   const formatEventDate = (startAt: string) => {
     try {
@@ -280,12 +290,33 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
             )}
 
             {/* Description */}
-            {event.description && (
-              <div>
-                <p className="text-muted mb-2">About this event</p>
-                <div className="text-white/90 whitespace-pre-line">
-                  {event.description}
+            {descriptionParagraphs.length > 0 && (
+              <div className="space-y-3">
+                <h3 className="text-white font-medium text-lg">About this event</h3>
+                <div 
+                  className={`text-muted space-y-2 ${
+                    needsShowMore && !isDescriptionExpanded ? 'line-clamp-8' : ''
+                  }`}
+                >
+                  {descriptionParagraphs.map((paragraph, index) => (
+                    <p key={index} className="whitespace-pre-line">
+                      {paragraph}
+                    </p>
+                  ))}
                 </div>
+                {needsShowMore && (
+                  <button
+                    onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                    className="inline-flex items-center gap-1 text-primary hover:text-primary/80 text-sm font-medium"
+                  >
+                    {isDescriptionExpanded ? 'Show less' : 'Show more'}
+                    {isDescriptionExpanded ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+                )}
               </div>
             )}
 

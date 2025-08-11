@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 import { createHash } from "crypto";
 import ical from "node-ical";
+import he from "he";
 import { insertCommunityEventSchema, updateCommunityEventSchema } from "@shared/schema";
 
 // Rate limiting for waitlist endpoint
@@ -257,6 +258,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
               ticketsUrl = allUrls[0];
             }
 
+            // Clean description: convert HTML to text and remove structured lines
+            let cleanDescription = description;
+            if (cleanDescription) {
+              // Convert HTML to text
+              cleanDescription = cleanDescription
+                .replace(/<br\s*\/?>/gi, '\n')
+                .replace(/<\/?(div|p)[^>]*>/gi, '\n')
+                .replace(/<[^>]+>/g, '') // Strip all HTML tags
+                .replace(/&[a-zA-Z0-9#]+;/g, (match: string) => he.decode(match)); // Decode HTML entities
+              
+              // Remove structured lines (case-insensitive)
+              const cleanLines = cleanDescription
+                .split(/\r?\n/)
+                .filter((line: string) => {
+                  const trimmed = line.trim();
+                  return !(/^(tickets|source|image|tags|organizer|pricefrom)\s*:\s*/i.test(trimmed));
+                });
+              
+              // Collapse multiple blank lines and trim
+              cleanDescription = cleanLines
+                .join('\n')
+                .replace(/\n\s*\n\s*\n/g, '\n\n') // Replace 3+ newlines with 2
+                .trim();
+            }
+            
             // Determine category from tags first, then infer from content
             let category = 'other';
             const validCategories = ['concert', 'club', 'comedy', 'festival'];
@@ -266,7 +292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               category = tagCategory;
             } else {
               // Infer category from title and description
-              const combinedText = `${title} ${description}`.toLowerCase();
+              const combinedText = `${title} ${cleanDescription || description}`.toLowerCase();
               
               if (/(concert|live|tour|singer|band|diljit|atif|arijit)/i.test(combinedText)) {
                 category = 'concert';
@@ -286,7 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             const eventData = {
               title,
-              description: description.trim() || null,
+              description: cleanDescription || null,
               category,
               startAt: startAt.toISOString(),
               endAt: endAt.toISOString(),

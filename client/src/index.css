@@ -182,3 +182,11 @@
 .btn-glow:hover {
   box-shadow: 0 0 20px hsla(28, 89%, 57%, 0.3);
 }
+
+/* Line clamp utility for description show more/less */
+.line-clamp-8 {
+  display: -webkit-box;
+  -webkit-line-clamp: 8;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

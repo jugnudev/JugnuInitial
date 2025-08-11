@@ -80,18 +80,22 @@ Preferred communication style: Simple, everyday language.
 - **tsx**: TypeScript execution environment
 - **esbuild**: Fast JavaScript bundler for production
 
-### Community Events System (Added v2.4)
+### Community Events System (Updated v2.4)
 - **ICS Calendar Import**: Automated import from Google Calendar ICS feeds with structured description parsing
 - **Event Data Parsing**: Extracts Tickets, Source, Image, Tags, Organizer, PriceFrom from event descriptions
-- **Weekly Events Feed**: Shows upcoming South Asian events in Vancouver for next 7 days
+- **Clean Description Processing**: HTML-to-text conversion, removes structured lines, preserves readable content
+- **Monthly Events Feed**: Shows upcoming South Asian events in Vancouver for next 30 days (default changed from 7)
+- **Category Filtering**: Smart categorization (concert, club, comedy, festival) with UI filtering
+- **Enhanced Modal**: Share functionality, "Show more" for long descriptions, improved layout
 - **Admin Management**: Manual event upsert endpoint for corrections and additions
 - **UI Integration**: Dedicated /community page with filtering, calendar integration, and responsive cards
 
-### Current State (Waitlist Mode v2.3 + Community v2.4)
+### Current State (Waitlist Mode v2.3 + Community v2.4 Enhanced)
 - **Dual Purpose**: Waitlist mode for Jugnu events + Community calendar for broader ecosystem
-- **Smart Navigation**: Community link always visible, Events/Gallery conditionally shown
-- **Enhanced Cards**: Remote image support, price chips, tag filtering, calendar integration
-- **Admin Tools**: ICS import cron job + manual event management via API
+- **Smart Navigation**: Community link always visible, Events/Gallery conditionally shown, proper routing from /community
+- **Enhanced Cards**: Remote image support, venue•city display, category filtering, calendar integration
+- **Enhanced Modal**: Share with Web Share API, cleaned descriptions with "Show more", single-line buttons
+- **Admin Tools**: ICS import cron job + manual event management via API + description cleaning
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS
