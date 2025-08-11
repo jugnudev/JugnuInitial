@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { X, ExternalLink, Calendar, MapPin, Clock, DollarSign, Tag } from "lucide-react";
+import { X, ExternalLink, Calendar, MapPin, Clock, DollarSign, Tag, Share2, Copy } from "lucide-react";
 import { format } from "date-fns";
 import { getCalendarLinks } from "@/lib/calendar";
 
@@ -105,6 +105,34 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
     window.open(`https://maps.google.com/?q=${query}`, '_blank');
   };
 
+  const handleShare = async () => {
+    const url = window.location.href;
+    const shareData = {
+      title: event.title,
+      text: `${event.title} — ${event.venue}`,
+      url
+    };
+
+    try {
+      if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(url);
+        alert('Link copied to clipboard!');
+      }
+    } catch (error) {
+      // Final fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(url);
+        alert('Link copied to clipboard!');
+      } catch (clipboardError) {
+        console.error('Share failed:', error, clipboardError);
+        alert('Unable to share. Please copy the URL manually.');
+      }
+    }
+  };
+
   const handleOverlayClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -203,6 +231,9 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
                       {event.address}, {event.city}
                     </p>
                   )}
+                  {!event.address && event.city && (
+                    <p className="text-muted">{event.city}</p>
+                  )}
                   <button
                     onClick={openInMaps}
                     className="text-primary hover:text-primary/80 text-sm mt-1 inline-flex items-center gap-1"
@@ -259,30 +290,41 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
             )}
 
             {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-white/10">
+            <div className="flex flex-col gap-4 pt-4 border-t border-white/10">
               {/* Primary CTA - Get Tickets */}
               {event.ticketsUrl ? (
                 <a
                   href={event.ticketsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-primary text-black/90 font-medium rounded-xl hover:bg-primary/90 transition-colors duration-200"
+                  className="w-full inline-flex items-center justify-center px-6 py-3 bg-primary text-black/90 font-medium rounded-xl hover:bg-primary/90 transition-colors duration-200"
                   data-testid="button-get-tickets"
                 >
                   Get Tickets
                   <ExternalLink className="w-4 h-4 ml-2" />
                 </a>
               ) : (
-                <div className="flex-1 inline-flex items-center justify-center px-6 py-3 bg-white/10 text-muted font-medium rounded-xl cursor-not-allowed">
+                <div className="w-full inline-flex items-center justify-center px-6 py-3 bg-white/10 text-muted font-medium rounded-xl cursor-not-allowed">
                   No tickets available
                 </div>
               )}
 
-              {/* Calendar Actions */}
-              <div className="flex gap-2">
+              {/* Secondary Actions */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Share Button */}
+                <button
+                  onClick={handleShare}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-3 border border-primary/50 text-primary font-medium rounded-xl hover:bg-primary/10 transition-colors duration-200"
+                  data-testid="button-share"
+                >
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
+                </button>
+
+                {/* Calendar Actions */}
                 <button
                   onClick={() => handleAddToCalendar('google')}
-                  className="flex-1 inline-flex items-center justify-center px-4 py-3 border border-primary/50 text-primary font-medium rounded-xl hover:bg-primary/10 transition-colors duration-200"
+                  className="flex-1 inline-flex items-center justify-center px-4 py-3 border border-primary/50 text-primary font-medium rounded-xl hover:bg-primary/10 transition-colors duration-200 whitespace-nowrap"
                   data-testid="button-add-google"
                 >
                   <Calendar className="w-4 h-4 mr-2" />

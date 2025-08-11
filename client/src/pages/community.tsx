@@ -181,10 +181,9 @@ export default function Community() {
           <div className="flex items-start gap-2">
             <MapPin className="w-4 h-4 text-primary mt-0.5 shrink-0" />
             <div>
-              <p className="text-white text-sm font-medium">{event.venue}</p>
-              {event.address && (
-                <p className="text-muted text-xs">{event.address}</p>
-              )}
+              <p className="text-white text-sm font-medium">
+                {event.venue} • {event.city}
+              </p>
             </div>
           </div>
         )}
@@ -281,10 +280,13 @@ export default function Community() {
             <div className="text-center py-12">
               <Calendar className="w-16 h-16 text-muted mx-auto mb-4" />
               <h3 className="font-fraunces text-2xl font-bold text-white mb-2">
-                No events this week
+                {selectedCategory ? `No ${selectedCategory} events this month` : 'No events this month'}
               </h3>
               <p className="text-muted max-w-md mx-auto mb-6">
-                No listings for the next 7 days. Check back soon or follow @thehouseofjugnu.
+                {selectedCategory 
+                  ? `No ${selectedCategory} events in the next 30 days. Try another category or check back soon.`
+                  : 'No listings for the next 30 days. Check back soon or follow @thehouseofjugnu.'
+                }
               </p>
               <a
                 href="https://instagram.com/thehouseofjugnu"

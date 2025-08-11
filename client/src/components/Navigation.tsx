@@ -28,13 +28,14 @@ export default function Navigation() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <img 
-              src={logoImage}
-              alt="Jugnu - Find Your Frequency"
-              className="h-8 cursor-pointer"
-              onClick={() => scrollToSection('hero')}
-              data-testid="nav-logo"
-            />
+            <a href="/">
+              <img 
+                src={logoImage}
+                alt="Jugnu - Find Your Frequency"
+                className="h-8 cursor-pointer"
+                data-testid="nav-logo"
+              />
+            </a>
           </div>
 
           {/* Desktop Navigation */}
@@ -49,13 +50,13 @@ export default function Navigation() {
                   Events
                 </button>
               )}
-              <button
-                onClick={() => scrollToSection('story')}
+              <a
+                href="/#story"
                 className="text-text hover:text-accent transition-colors duration-200 font-medium"
                 data-testid="nav-story"
               >
                 Story
-              </button>
+              </a>
               <a
                 href="/community"
                 className="text-text hover:text-accent transition-colors duration-200 font-medium"
@@ -109,13 +110,14 @@ export default function Navigation() {
                   Events
                 </button>
               )}
-              <button
-                onClick={() => scrollToSection('story')}
+              <a
+                href="/#story"
                 className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"
                 data-testid="nav-mobile-story"
+                onClick={() => setIsMobileMenuOpen(false)}
               >
                 Story
-              </button>
+              </a>
               <a
                 href="/community"
                 className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"

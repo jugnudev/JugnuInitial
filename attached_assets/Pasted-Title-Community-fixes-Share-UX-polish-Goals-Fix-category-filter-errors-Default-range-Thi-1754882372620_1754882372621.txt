@@ -1,0 +1,75 @@
+Title: Community fixes + Share + UX polish
+
+Goals
+- Fix category filter errors
+- Default range = This Month (30 days) with optional ?range=week
+- Make cards show only venue+city; move street address to modal
+- Add Share in the details modal (Web Share API + fallback copy)
+- Make header/nav links work from /community
+- Keep “Add to Google” on one line
+
+1) DB backfill (Supabase SQL)
+-- Ensure columns exist
+ALTER TABLE public.community_events
+  ADD COLUMN IF NOT EXISTS description text,
+  ADD COLUMN IF NOT EXISTS category text;
+CREATE INDEX IF NOT EXISTS idx_ce_category ON public.community_events (category);
+
+-- Backfill category from existing tags or heuristics
+UPDATE public.community_events
+SET category = COALESCE(
+  category,
+  CASE
+    WHEN coalesce(tags,'{}') @> ARRAY['concert']::text[] THEN 'concert'
+    WHEN coalesce(tags,'{}') @> ARRAY['club']::text[] THEN 'club'
+    WHEN coalesce(tags,'{}') @> ARRAY['comedy']::text[] THEN 'comedy'
+    WHEN coalesce(tags,'{}') @> ARRAY['festival']::text[] THEN 'festival'
+    WHEN (title || ' ' || coalesce(description,'')) ~* '(concert|live|tour|singer|band|atif|arijit|diljit)' THEN 'concert'
+    WHEN (title || ' ' || coalesce(description,'')) ~* '(club|dj|night|party|bollywood night|desi night|bhangra)' THEN 'club'
+    WHEN (title || ' ' || coalesce(description,'')) ~* '(comedy|stand ?up|comic)' THEN 'comedy'
+    WHEN (title || ' ' || coalesce(description,'')) ~* '(festival|mela|fair)' THEN 'festival'
+    ELSE 'other'
+  END
+)
+WHERE category IS NULL;
+
+2) Importer tweaks (/app/api/community/cron/import-ics/route.ts)
+- When parsing Tags:, force category = first match in ['concert','club','comedy','festival'] (case-insensitive).
+- Lowercase category before saving.
+- Leave street address in `address`; keep card display to venue+city only.
+
+3) Weekly API (/app/api/community/weekly/route.ts)
+- Accept query: category (string, case-insensitive) and range=week|month.
+- Default range=month → start_at BETWEEN now() AND now()+interval '30 days'
+- If category is provided:
+  WHERE lower(category) = lower($1)
+  (Do not fail when category is null; just return 0 rows gracefully.)
+- Keep the 6h soft auto-refresh, but never block the response.
+
+4) Community page (/app/community/page.tsx)
+- Update the header subline to “This Month”.
+- Filter chips now request the API with ?category=<lowercase> (concert|club|comedy|festival). If the API returns 0 items, show “No events in this category yet.”
+- Card:
+  • Show venue • city only. Hide street address on the card.
+  • Keep a small “Get Tickets” (if tickets_url).
+  • Card opens DetailsModal on click/Enter.
+- DetailsModal:
+  • Show full address (if present) and add “Open in Maps” → https://maps.google.com/?q=<encoded venue/address>.
+  • Add a Share button:
+      - If navigator.share exists: share({ title, text: `${title} — ${venue}`, url: window.location.href })
+      - Else: copy the deep link (/community?e=<id>) to clipboard and show “Link copied”.
+  • Ensure the “Add to Google” button text is single-line: apply `whitespace-nowrap`.
+  • Maintain focus trap + aria-modal.
+
+5) Nav/Logo routing
+- Make the logo link to “/”.
+- Make “Story” link to “/#story” (NOT just “#story”), so it works from /community.
+- Ensure no invisible overlay blocks clicks when the modal is closed (z-index & pointer-events).
+
+6) QA checklist
+- /community loads with “This Month”.
+- Category chips work; no error toast; “All” shows everything in the next 30 days.
+- New events appear after running the importer if within the 30-day window.
+- Card shows venue+city; street address only appears in the modal with “Open in Maps”.
+- Modal has Share; “Add to Google” doesn’t wrap.
+- Logo and Story nav links work from /community.

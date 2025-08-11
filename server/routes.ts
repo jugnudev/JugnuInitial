@@ -387,6 +387,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Schema Migration - Add columns and backfill categories
+  app.post("/api/community/admin/migrate", async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+      return res.status(401).json({ ok: false, error: "unauthorized" });
+    }
+
+    try {
+      const supabase = getSupabaseAdmin();
+
+      // Try to add columns using a simple query (may fail if already exist, which is fine)
+      try {
+        await supabase.rpc('exec_sql', {
+          query: `
+            ALTER TABLE public.community_events 
+            ADD COLUMN IF NOT EXISTS description text,
+            ADD COLUMN IF NOT EXISTS category text;
+          `
+        });
+      } catch (sqlError) {
+        console.log("Column creation may have failed (might already exist):", sqlError);
+      }
+
+      // Get all events to backfill categories  
+      const { data: events, error: fetchError } = await supabase
+        .from('community_events')
+        .select('id, title, description, tags, category');
+
+      if (fetchError) {
+        console.error("Failed to fetch events:", fetchError);
+        return res.status(500).json({ ok: false, error: "fetch_failed" });
+      }
+
+      let migrated = 0;
+      if (events && events.length > 0) {
+        for (const event of events) {
+          // Skip if already has category
+          if (event.category && event.category !== '') continue;
+          
+          let category = 'other';
+          
+          // Check tags first
+          if (event.tags?.includes('concert')) category = 'concert';
+          else if (event.tags?.includes('club')) category = 'club';
+          else if (event.tags?.includes('comedy')) category = 'comedy';
+          else if (event.tags?.includes('festival')) category = 'festival';
+          else {
+            // Infer from title and description
+            const combinedText = `${event.title} ${event.description || ''}`.toLowerCase();
+            
+            if (/(concert|live|tour|singer|band|atif|arijit|diljit)/i.test(combinedText)) {
+              category = 'concert';
+            } else if (/(club|dj|night|party|bollywood night|desi night|bhangra)/i.test(combinedText)) {
+              category = 'club';
+            } else if (/(comedy|stand ?up|comic)/i.test(combinedText)) {
+              category = 'comedy';
+            } else if (/(festival|mela|fair)/i.test(combinedText)) {
+              category = 'festival';
+            }
+          }
+          
+          const { error: updateError } = await supabase
+            .from('community_events')
+            .update({ category })
+            .eq('id', event.id);
+          
+          if (!updateError) migrated++;
+        }
+      }
+
+      res.json({ ok: true, migrated, total: events?.length || 0 });
+    } catch (error) {
+      console.error("Migration error:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ ok: false, error: "migration_failed", details: errorMessage });
+    }
+  });
+
   // Community Events - Admin Upsert Endpoint
   app.post("/api/community/admin/upsert", async (req, res) => {
     try {
@@ -446,9 +524,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/community/weekly", async (req, res) => {
     try {
       const supabase = getSupabaseAdmin();
-      const { category } = req.query;
+      const { category, range } = req.query;
       
-      // Check if data is stale and trigger background refresh
+      // Check if data is stale and trigger background refresh (non-blocking)
       const { data: lastUpdate } = await supabase
         .from('community_events')
         .select('updated_at')
@@ -471,19 +549,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const now = new Date();
-      const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      // Default to month (30 days), allow ?range=week for 7 days
+      const daysAhead = range === 'week' ? 7 : 30;
+      const endDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
 
       let query = supabase
         .from('community_events')
         .select('*')
         .in('status', ['upcoming', 'soldout'])
         .gte('start_at', now.toISOString())
-        .lte('start_at', oneWeekFromNow.toISOString())
+        .lte('start_at', endDate.toISOString())
         .order('start_at', { ascending: true });
 
-      // Filter by category if provided
+      // Filter by category if provided (gracefully handle missing column)
       if (category && typeof category === 'string' && category !== 'all') {
-        query = query.ilike('category', category.toLowerCase());
+        try {
+          query = query.eq('category', category.toLowerCase());
+        } catch (columnError) {
+          // If category column doesn't exist, ignore the filter
+          console.log('Category column not available, ignoring filter');
+        }
       }
 
       const { data, error } = await query;
