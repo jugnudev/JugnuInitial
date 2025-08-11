@@ -257,10 +257,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let tags: string[] = [];
             let priceFrom: number | null = null;
             
+            console.log(`Processing event: ${title}`);
+            console.log(`Raw description: ${description.substring(0, 200)}...`);
+            
+            // Enhanced HTML cleaning to extract URLs properly
+            let cleanedForParsing = description
+              .replace(/<br\s*\/?>/gi, '\n')
+              .replace(/<\/?(div|p)[^>]*>/gi, '\n')
+              .replace(/<a[^>]*href=["']([^"']*)["'][^>]*>/gi, '$1\n') // Extract href URLs and add newline
+              .replace(/<a[^>]*>/gi, '') // Remove opening <a> tags without href
+              .replace(/<\/a>/gi, '') // Remove closing </a> tags
+              .replace(/[">]/g, '\n') // Split on quotes and > symbols to separate URLs
+              .replace(/<[^>]+>/g, '') // Strip remaining HTML tags
+              .replace(/&[a-zA-Z0-9#]+;/g, (match: string) => he.decode(match)) // Decode HTML entities
+              .replace(/\s+/g, ' ') // Normalize whitespace
+              .trim();
+            
+            console.log(`Cleaned for parsing: ${cleanedForParsing.substring(0, 200)}...`);
+            
             // Parse structured fields (case-insensitive, allow spaces)
-            const lines = description.split(/\r?\n/);
-            const urlRegex = /https?:\/\/[^\s]+/gi;
-            const allUrls: string[] = [];
+            const lines = cleanedForParsing.split(/\r?\n/);
+            const urlRegex = /https?:\/\/[^\s"'<>]+/gi;
+            let allUrls: string[] = [];
             
             for (const line of lines) {
               const trimmedLine = line.trim();
@@ -270,9 +288,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               allUrls.push(...lineUrls);
               
               // Parse structured fields
-              const ticketsMatch = trimmedLine.match(/^tickets\s*:\s*(https?:\/\/[^\s]+)/i);
-              const sourceMatch = trimmedLine.match(/^source\s*:\s*(https?:\/\/[^\s]+)/i);
-              const imageMatch = trimmedLine.match(/^image\s*:\s*(https?:\/\/[^\s]+)/i);
+              const ticketsMatch = trimmedLine.match(/^tickets\s*:\s*(https?:\/\/[^\s"'<>]+)/i);
+              const sourceMatch = trimmedLine.match(/^source\s*:\s*(https?:\/\/[^\s"'<>]+)/i);
+              const imageMatch = trimmedLine.match(/^image\s*:\s*(https?:\/\/[^\s"'<>]+)/i);
               const tagsMatch = trimmedLine.match(/^tags\s*:\s*(.+)/i);
               const organizerMatch = trimmedLine.match(/^organizer\s*:\s*(.+)/i);
               const priceMatch = trimmedLine.match(/^pricefrom\s*:\s*(\d+(?:\.\d{2})?)/i);
@@ -295,10 +313,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
             
-            // Fallback: if no tickets URL but URLs exist, use first URL as tickets
+            console.log(`Found URLs: ${JSON.stringify(allUrls)}`);
+            console.log(`Parsed - tickets: ${ticketsUrl}, image: ${imageUrl}, tags: ${JSON.stringify(tags)}`);
+            
+            // Enhanced fallback logic for better URL detection
             if (!ticketsUrl && allUrls.length > 0) {
-              ticketsUrl = allUrls[0];
+              // Find Eventbrite URL first
+              const eventbriteUrl = allUrls.find(url => url.includes('eventbrite.ca') || url.includes('eventbrite.com'));
+              if (eventbriteUrl) {
+                // Clean the Eventbrite URL to remove any trailing artifacts
+                ticketsUrl = eventbriteUrl.split(/["\s<>]/)[0];
+              } else {
+                ticketsUrl = allUrls[0].split(/["\s<>]/)[0];
+              }
             }
+            
+            // Clean the tickets URL if it contains artifacts
+            if (ticketsUrl && (ticketsUrl.includes('"') || ticketsUrl.includes('<') || ticketsUrl.includes('>'))) {
+              ticketsUrl = ticketsUrl.split(/["\s<>]/)[0];
+            }
+            
+            // Also check if any URLs in allUrls need cleaning
+            allUrls = allUrls.map(url => {
+              if (url.includes('"') || url.includes('<') || url.includes('>')) {
+                return url.split(/["\s<>]/)[0];
+              }
+              return url;
+            }).filter(url => url.startsWith('http'));
+            
+            // If no explicit image URL provided, try to look for image URLs in description
+            if (!imageUrl) {
+              // Look for direct image URLs in description or allUrls
+              const imageUrlPattern = /https?:\/\/[^\s"'<>]*\.(jpg|jpeg|png|gif|webp)(\?[^\s"'<>]*)?/gi;
+              const imageUrls = cleanedForParsing.match(imageUrlPattern);
+              if (imageUrls && imageUrls.length > 0) {
+                imageUrl = imageUrls[0].split(/["\s<>]/)[0];
+              } else {
+                // Check if any of the extracted URLs are image URLs
+                const imageFromAllUrls = allUrls.find(url => {
+                  console.log(`Checking URL for image: ${url}`);
+                  // Standard image file extensions
+                  if (/\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url)) {
+                    console.log(`Found image URL by extension: ${url}`);
+                    return true;
+                  }
+                  // Eventbrite image CDN URLs
+                  if (url.includes('img.evbuc.com') || url.includes('cdn.evbuc.com')) {
+                    console.log(`Found Eventbrite image URL: ${url}`);
+                    return true;
+                  }
+                  // Other common image CDN patterns
+                  if (url.includes('cloudinary.com') || url.includes('imgur.com') || 
+                      url.includes('images.unsplash.com') || url.includes('pexels.com')) {
+                    console.log(`Found CDN image URL: ${url}`);
+                    return true;
+                  }
+                  return false;
+                });
+                if (imageFromAllUrls) {
+                  imageUrl = imageFromAllUrls;
+                  console.log(`Set image URL to: ${imageUrl}`);
+                }
+              }
+            }
+            
+            console.log(`Final URLs - tickets: ${ticketsUrl}, image: ${imageUrl}`);
 
             // Clean description: convert HTML to text and remove structured lines
             let cleanDescription = description;
