@@ -9,9 +9,20 @@
  */
 export function formatDateBadge(iso: string, tz: string = 'America/Vancouver'): string {
   try {
+    if (!iso) {
+      return 'TBA';
+    }
+    
     const date = new Date(iso);
+    if (isNaN(date.getTime())) {
+      return 'TBA';
+    }
+    
+    // Ensure timezone is valid
+    const timezone = tz || 'America/Vancouver';
+    
     const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: tz,
+      timeZone: timezone,
       weekday: 'short',
       month: 'short',
       day: 'numeric',
@@ -24,7 +35,7 @@ export function formatDateBadge(iso: string, tz: string = 'America/Vancouver'): 
     
     return `${weekday.toUpperCase()} • ${month.toUpperCase()} ${day}`;
   } catch (error) {
-    console.error('Error formatting date badge:', error);
+    console.error('Error formatting date badge:', error, { iso, tz });
     return 'TBA';
   }
 }
@@ -41,10 +52,21 @@ export function formatTime(iso: string, tz: string = 'America/Vancouver', isAllD
     return 'All day';
   }
   
+  if (!iso) {
+    return 'Time TBA';
+  }
+  
   try {
     const date = new Date(iso);
+    if (isNaN(date.getTime())) {
+      return 'Time TBA';
+    }
+    
+    // Ensure timezone is valid
+    const timezone = tz || 'America/Vancouver';
+    
     const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: tz,
+      timeZone: timezone,
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
@@ -52,7 +74,7 @@ export function formatTime(iso: string, tz: string = 'America/Vancouver', isAllD
     
     return formatter.format(date);
   } catch (error) {
-    console.error('Error formatting time:', error);
+    console.error('Error formatting time:', error, { iso, tz, isAllDay });
     return 'Time TBA';
   }
 }
@@ -98,9 +120,20 @@ export function formatTimeRange(
  */
 export function formatEventDate(iso: string, tz: string = 'America/Vancouver'): string {
   try {
+    if (!iso) {
+      return 'Date TBA';
+    }
+    
     const date = new Date(iso);
+    if (isNaN(date.getTime())) {
+      return 'Date TBA';
+    }
+    
+    // Ensure timezone is valid
+    const timezone = tz || 'America/Vancouver';
+    
     const formatter = new Intl.DateTimeFormat('en-US', {
-      timeZone: tz,
+      timeZone: timezone,
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -109,7 +142,7 @@ export function formatEventDate(iso: string, tz: string = 'America/Vancouver'): 
     
     return formatter.format(date);
   } catch (error) {
-    console.error('Error formatting event date:', error);
+    console.error('Error formatting event date:', error, { iso, tz });
     return 'Date TBA';
   }
 }

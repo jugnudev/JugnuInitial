@@ -8,19 +8,19 @@ interface CommunityEvent {
   title: string;
   description?: string;
   category?: string;
-  startAt: string;
-  endAt?: string;
+  start_at: string;
+  end_at?: string;
   timezone: string;
-  isAllDay: boolean;
+  is_all_day?: boolean;
   venue?: string;
   address?: string;
   neighborhood?: string;
   city: string;
   organizer?: string;
-  ticketsUrl?: string;
-  sourceUrl?: string;
-  imageUrl?: string;
-  priceFrom?: string;
+  tickets_url?: string;
+  source_url?: string;
+  image_url?: string;
+  price_from?: string;
   tags?: string[];
   status: string;
 }
@@ -67,13 +67,13 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
 
   const handleAddToCalendar = (type: 'google' | 'ics') => {
     try {
-      const startDate = new Date(event.startAt);
+      const startDate = new Date(event.start_at);
       if (isNaN(startDate.getTime())) {
         alert("Invalid event date");
         return;
       }
       
-      const endDate = event.endAt ? new Date(event.endAt) : new Date(startDate.getTime() + 3 * 60 * 60 * 1000);
+      const endDate = event.end_at ? new Date(event.end_at) : new Date(startDate.getTime() + 3 * 60 * 60 * 1000);
       if (isNaN(endDate.getTime())) {
         alert("Invalid event end date");
         return;
@@ -168,9 +168,9 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
 
         {/* Large poster on top - Mobile */}
         <div className="relative h-80 flex-shrink-0">
-          {event.imageUrl ? (
+          {event.image_url ? (
             <img
-              src={event.imageUrl}
+              src={event.image_url}
               alt={event.title}
               className="w-full h-full object-cover"
             />
@@ -190,9 +190,9 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
                 <h1 id="modal-title" className="font-fraunces text-2xl font-bold text-white leading-tight pr-4">
                   {event.title}
                 </h1>
-                {event.priceFrom && parseFloat(event.priceFrom) > 0 && (
+                {event.price_from && parseFloat(event.price_from) > 0 && (
                   <div className="text-primary text-lg font-semibold shrink-0">
-                    from ${event.priceFrom}
+                    from ${event.price_from}
                   </div>
                 )}
               </div>
@@ -207,8 +207,8 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
             <div className="flex items-center gap-3">
               <Clock className="w-5 h-5 text-primary" />
               <div>
-                <p className="text-white font-medium">{formatEventDate(event.startAt, event.timezone)}</p>
-                <p className="text-muted">{formatEventTime(event.startAt, event.endAt, event.timezone, event.isAllDay)}</p>
+                <p className="text-white font-medium">{formatEventDate(event.start_at, event.timezone)}</p>
+                <p className="text-muted">{formatEventTime(event.start_at, event.end_at, event.timezone, event.is_all_day)}</p>
               </div>
             </div>
 
@@ -301,9 +301,9 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
             </button>
             
             <div className="flex-1">
-              {event.ticketsUrl ? (
+              {event.tickets_url ? (
                 <a
-                  href={event.ticketsUrl}
+                  href={event.tickets_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center px-6 py-3 bg-primary text-black/90 font-medium rounded-xl hover:bg-primary/90 transition-colors"
@@ -358,9 +358,9 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
 
           {/* Left column: Poster */}
           <div className="w-1/2 relative">
-            {event.imageUrl ? (
+            {event.image_url ? (
               <img
-                src={event.imageUrl}
+                src={event.image_url}
                 alt={event.title}
                 className="w-full h-full object-cover"
               />
@@ -381,9 +381,9 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
                     <h1 id="modal-title" className="font-fraunces text-3xl font-bold text-white leading-tight pr-4">
                       {event.title}
                     </h1>
-                    {event.priceFrom && parseFloat(event.priceFrom) > 0 && (
+                    {event.price_from && parseFloat(event.price_from) > 0 && (
                       <div className="text-primary text-xl font-semibold shrink-0">
-                        from ${event.priceFrom}
+                        from ${event.price_from}
                       </div>
                     )}
                   </div>
@@ -398,8 +398,8 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
                 <div className="flex items-center gap-3">
                   <Clock className="w-5 h-5 text-primary" />
                   <div>
-                    <p className="text-white font-medium">{formatEventDate(event.startAt, event.timezone)}</p>
-                    <p className="text-muted">{formatEventTime(event.startAt, event.endAt, event.timezone, event.isAllDay)}</p>
+                    <p className="text-white font-medium">{formatEventDate(event.start_at, event.timezone)}</p>
+                    <p className="text-muted">{formatEventTime(event.start_at, event.end_at, event.timezone, event.is_all_day)}</p>
                   </div>
                 </div>
 
@@ -488,9 +488,9 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
                 </button>
                 
                 <div className="flex-1">
-                  {event.ticketsUrl ? (
+                  {event.tickets_url ? (
                     <a
-                      href={event.ticketsUrl}
+                      href={event.tickets_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full inline-flex items-center justify-center px-6 py-3 bg-primary text-black/90 font-medium rounded-xl hover:bg-primary/90 transition-colors"

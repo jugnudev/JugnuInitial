@@ -12,19 +12,19 @@ interface CommunityEvent {
   title: string;
   description?: string;
   category?: string;
-  startAt: string;
-  endAt?: string;
+  start_at: string;
+  end_at?: string;
   timezone: string;
-  isAllDay: boolean;
+  is_all_day?: boolean;
   venue?: string;
   address?: string;
   neighborhood?: string;
   city: string;
   organizer?: string;
-  ticketsUrl?: string;
-  sourceUrl?: string;
-  imageUrl?: string;
-  priceFrom?: string;
+  tickets_url?: string;
+  source_url?: string;
+  image_url?: string;
+  price_from?: string;
   tags?: string[];
   status: string;
 }
@@ -101,9 +101,9 @@ export default function Community() {
     >
       {/* Event Image with 4:3 aspect ratio */}
       <div className="relative aspect-[4/3] bg-gradient-to-br from-[#c05a0e]/30 via-[#d4691a]/20 to-[#b8540d]/25">
-        {event.imageUrl ? (
+        {event.image_url ? (
           <img
-            src={event.imageUrl}
+            src={event.image_url}
             alt={event.title}
             className="w-full h-full object-cover"
             loading="lazy"
@@ -119,7 +119,7 @@ export default function Community() {
         
         {/* Date chip - top left */}
         <div className="absolute top-3 left-3 px-2 py-1 bg-black/70 text-white text-xs rounded-md font-medium">
-          {formatDateBadge(event.startAt, event.timezone)}
+          {formatDateBadge(event.start_at, event.timezone)}
         </div>
         
         {/* Category pill - top right */}
@@ -139,20 +139,20 @@ export default function Community() {
           </p>
           
           {/* Price display */}
-          {event.priceFrom && parseFloat(event.priceFrom) > 0 && (
+          {event.price_from && parseFloat(event.price_from) > 0 && (
             <div className="text-white/90 text-sm font-medium mb-2">
-              from ${event.priceFrom}
+              from ${event.price_from}
             </div>
           )}
           
           {/* Small Get Tickets button if tickets_url exists */}
-          {event.ticketsUrl && (
+          {event.tickets_url && (
             <div className="flex justify-end">
               <div 
                 className="px-2 py-1 bg-primary/90 text-black text-xs rounded font-medium hover:bg-primary transition-colors"
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(event.ticketsUrl, '_blank', 'noopener,noreferrer');
+                  window.open(event.tickets_url, '_blank', 'noopener,noreferrer');
                 }}
               >
                 Get Tickets

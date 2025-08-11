@@ -463,7 +463,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           query: `
             ALTER TABLE public.community_events 
             ADD COLUMN IF NOT EXISTS description text,
-            ADD COLUMN IF NOT EXISTS category text;
+            ADD COLUMN IF NOT EXISTS category text,
+            ADD COLUMN IF NOT EXISTS is_all_day boolean DEFAULT false;
           `
         });
       } catch (sqlError) {
@@ -622,7 +623,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let query = supabase
         .from('community_events')
-        .select('*')
+        .select(`
+          id, created_at, updated_at, title, description, category,
+          start_at, end_at, timezone, venue, address, 
+          neighborhood, city, organizer, tickets_url, source_url, 
+          image_url, price_from, tags, status, featured, source_hash
+        `)
         .in('status', ['upcoming', 'soldout'])
         .gte('start_at', now.toISOString())
         .lte('start_at', endDate.toISOString())
