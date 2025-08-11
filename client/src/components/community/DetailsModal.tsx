@@ -33,6 +33,8 @@ interface DetailsModalProps {
 
 export default function DetailsModal({ event, isOpen, onClose }: DetailsModalProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
+  const [toastPosition, setToastPosition] = useState({ x: 0, y: 0 });
   
   // Always call useEffect hook - no conditional logic before hooks
   useEffect(() => {
@@ -107,7 +109,7 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
     window.open(`https://maps.google.com/?q=${query}`, '_blank');
   };
 
-  const handleShare = async () => {
+  const handleShare = async (e: React.MouseEvent) => {
     // Create deep link with event ID
     const baseUrl = window.location.origin + window.location.pathname;
     const deepLink = `${baseUrl}?e=${event.id}`;
@@ -118,24 +120,39 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
       url: deepLink,
     };
 
+    // Get cursor position for toast placement
+    const rect = e.currentTarget.getBoundingClientRect();
+    setToastPosition({
+      x: rect.left + rect.width / 2,
+      y: rect.top - 10
+    });
+
     try {
       if (navigator.share && navigator.canShare && navigator.canShare(shareData)) {
         await navigator.share(shareData);
       } else {
-        // Fallback: copy deep link to clipboard
+        // Fallback: copy deep link to clipboard and show toast
         await navigator.clipboard.writeText(deepLink);
-        alert('Link copied to clipboard!');
+        showToast();
       }
     } catch (error) {
-      // Final fallback: copy to clipboard
+      // Final fallback: copy to clipboard and show toast
       try {
         await navigator.clipboard.writeText(deepLink);
-        alert('Link copied to clipboard!');
+        showToast();
       } catch (clipboardError) {
         console.error('Share failed:', error, clipboardError);
-        alert('Unable to share. Please copy the URL manually.');
+        // Even for errors, try to show a helpful toast instead of alert
+        showToast('Unable to copy link');
       }
     }
+  };
+
+  const showToast = (message = 'Link copied to clipboard!') => {
+    setShowCopiedToast(true);
+    setTimeout(() => {
+      setShowCopiedToast(false);
+    }, 2000);
   };
 
   const handleOverlayClick = (e: React.MouseEvent) => {
@@ -292,7 +309,7 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
           <div className="flex gap-3">
             {/* Share button - far left */}
             <button
-              onClick={handleShare}
+              onClick={(e) => handleShare(e)}
               className="p-3 border border-primary/50 text-primary rounded-xl hover:bg-primary/10 transition-colors"
               aria-label="Share event"
               data-testid="button-share"
@@ -479,7 +496,7 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
               <div className="flex items-center gap-3 mb-3">
                 {/* Share button - far left */}
                 <button
-                  onClick={handleShare}
+                  onClick={(e) => handleShare(e)}
                   className="p-3 border border-primary/50 text-primary rounded-xl hover:bg-primary/10 transition-colors"
                   aria-label="Share event"
                   data-testid="button-share"
@@ -529,6 +546,24 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
           </div>
         </div>
       </div>
+
+      {/* Toast notification for copied link */}
+      {showCopiedToast && (
+        <div
+          className="fixed z-[60] px-3 py-2 bg-black/90 text-white text-sm rounded-lg pointer-events-none transform -translate-x-1/2 -translate-y-full transition-all duration-200 ease-out"
+          style={{
+            left: `${toastPosition.x}px`,
+            top: `${toastPosition.y}px`,
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <Copy className="w-3 h-3" />
+            Link copied to clipboard!
+          </div>
+          {/* Arrow pointing down */}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-black/90"></div>
+        </div>
+      )}
     </div>
   );
 }
