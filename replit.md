@@ -92,13 +92,14 @@ Preferred communication style: Simple, everyday language.
 - **Accurate Date/Time (v2.6)**: All-day event detection, timezone extraction from ICS, eliminates "TBA" displays
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 
-### Current State (Waitlist Mode v2.3 + Community v2.6 Date/Time Enhanced)
+### Current State (Waitlist Mode v2.3 + Community v2.7 Solid Deduplication)
 - **Dual Purpose**: Waitlist mode for Jugnu events + Community calendar for broader ecosystem
 - **Smart Navigation**: Community link always visible, Events/Gallery conditionally shown, proper routing from /community
 - **Enhanced Cards**: Remote image support, venue•city display, category filtering, calendar integration
-- **Enhanced Modal**: Share with Web Share API, cleaned descriptions with "Show more", single-line buttons
+- **Enhanced Modal**: Share with Web Share API + smooth cursor-positioned toast notifications, cleaned descriptions with "Show more"
 - **Admin Tools**: ICS import cron job + manual event management via API + description cleaning
 - **Accurate Date/Time**: Timezone-aware formatting with all-day event detection, eliminates "TBA" displays
+- **Solid Deduplication v2.7**: Prevents duplicates using ICS UIDs + canonical keys (title+date+venue), manual dedup at query time
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS

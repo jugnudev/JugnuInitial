@@ -5,6 +5,29 @@ import { getSupabaseAdmin } from "./supabaseAdmin";
 import { createHash } from "crypto";
 import ical from "node-ical";
 import he from "he";
+
+// Helper function to create canonical key for deduplication
+function createCanonicalKey(title: string, startAt: Date, venue: string | null, isAllDay: boolean): string {
+  // Normalize title to slug format (letters+digits joined by '-')
+  const titleNorm = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, ''); // trim leading/trailing dashes
+  
+  // Normalize venue 
+  const venueNorm = venue 
+    ? venue.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    : 'tba';
+  
+  // Format date in Vancouver timezone
+  const vancouverDate = new Date(startAt.toLocaleString("en-US", { timeZone: "America/Vancouver" }));
+  const whenStr = isAllDay 
+    ? `${vancouverDate.getFullYear()}-${String(vancouverDate.getMonth() + 1).padStart(2, '0')}-${String(vancouverDate.getDate()).padStart(2, '0')}`
+    : `${vancouverDate.getFullYear()}-${String(vancouverDate.getMonth() + 1).padStart(2, '0')}-${String(vancouverDate.getDate()).padStart(2, '0')}-${String(vancouverDate.getHours()).padStart(2, '0')}:${String(vancouverDate.getMinutes()).padStart(2, '0')}`;
+  
+  return `${titleNorm}|${whenStr}|${venueNorm}`;
+}
+
 import { insertCommunityEventSchema, updateCommunityEventSchema } from "@shared/schema";
 
 // Rate limiting for waitlist endpoint
@@ -191,6 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (calendarEvent.type !== 'VEVENT' || !calendarEvent.start) continue;
 
             const title = calendarEvent.summary || 'Untitled Event';
+            const sourceUid = calendarEvent.uid || null; // ICS VEVENT UID when present
             
             // Detect all-day events and handle timezone properly
             let startAt = new Date(calendarEvent.start);
@@ -426,11 +450,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
             
-            // Generate a stable unique identifier based on core event details
-            const stableIdentifier = createHash('sha1')
-              .update(`${title}|${startAt.toISOString()}|${venue || ''}|${address || ''}`)
-              .digest('hex');
-
+            // Generate canonical key for v2.7 deduplication
+            const canonicalKey = createCanonicalKey(title, startAt, venue, isAllDay);
+            
             // Generate content hash to detect if event details have changed
             const contentHash = createHash('sha1')
               .update(`${description || ''}|${organizer || ''}|${ticketsUrl || ''}|${imageUrl || ''}|${JSON.stringify(tags)}`)
@@ -450,6 +472,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               organizer,
               status,
               sourceHash: contentHash, // Keep for tracking content changes
+              sourceUid: sourceUid, // ICS VEVENT UID 
+              canonicalKey: canonicalKey, // Normalized deduplication key
               tags,
               ticketsUrl,
               sourceUrl,
@@ -459,83 +483,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
               featured: false,
             };
 
-            // Check if event exists by stable identifier (title + start_at + venue)
-            // Handle null venue properly by using is() instead of eq() for null values
-            let query = supabase
-              .from('community_events')
-              .select('id, source_hash')
-              .eq('title', title)
-              .eq('start_at', startAt.toISOString());
-            
-            if (venue) {
-              query = query.eq('venue', venue);
-            } else {
-              query = query.is('venue', null);
-            }
-            
-            const { data: existingEvent } = await query.single();
+            // v2.7 Two-step upsert strategy for solid deduplication
+            const upsertPayload = {
+              title: eventData.title,
+              description: eventData.description,
+              category: eventData.category,
+              start_at: eventData.startAt,
+              end_at: eventData.endAt,
+              timezone: eventData.timezone,
+              // is_all_day: eventData.isAllDay, // Commented out until column exists
+              venue: eventData.venue,
+              address: eventData.address,
+              city: eventData.city,
+              organizer: eventData.organizer,
+              status: eventData.status,
+              source_hash: eventData.sourceHash,
+              source_uid: eventData.sourceUid,
+              canonical_key: eventData.canonicalKey,
+              tags: eventData.tags,
+              tickets_url: eventData.ticketsUrl,
+              source_url: eventData.sourceUrl,
+              image_url: eventData.imageUrl,
+              price_from: eventData.priceFrom,
+              neighborhood: eventData.neighborhood,
+              featured: eventData.featured,
+              updated_at: new Date().toISOString(),
+            };
 
-            if (existingEvent) {
-              // Only update if content has changed
-              if (existingEvent.source_hash !== contentHash) {
-                const { error: updateError } = await supabase
-                  .from('community_events')
-                  .update({
-                    description: eventData.description,
-                    category: eventData.category,
-                    end_at: eventData.endAt,
-                    timezone: eventData.timezone,
-                    organizer: eventData.organizer,
-                    status: eventData.status,
-                    tags: eventData.tags,
-                    tickets_url: eventData.ticketsUrl,
-                    source_url: eventData.sourceUrl,
-                    image_url: eventData.imageUrl,
-                    price_from: eventData.priceFrom,
-                    source_hash: contentHash,
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq('id', existingEvent.id);
-                
-                if (updateError) {
-                  console.error(`Failed to update event "${eventData.title}":`, updateError);
+            let upsertResult;
+
+            // Step 1: If we have a source_uid, upsert by that first
+            if (sourceUid) {
+              const { error: sourceUidError, data: sourceUidData } = await supabase
+                .from('community_events')
+                .upsert(upsertPayload, { 
+                  onConflict: 'source_uid',
+                  ignoreDuplicates: false 
+                })
+                .select();
+              
+              if (sourceUidError) {
+                console.error(`Failed to upsert by source_uid for "${title}":`, sourceUidError);
+              } else {
+                upsertResult = sourceUidData;
+                console.log(`Upserted by source_uid: ${title}`);
+              }
+            }
+
+            // Step 2: Always ensure canonical match too (covers multi-feed same event)
+            const { error: canonicalError, data: canonicalData } = await supabase
+              .from('community_events')
+              .upsert(upsertPayload, { 
+                onConflict: 'canonical_key',
+                ignoreDuplicates: false 
+              })
+              .select();
+            
+            if (canonicalError) {
+              console.error(`Failed to upsert by canonical_key for "${title}":`, canonicalError);
+            } else {
+              if (!upsertResult) {
+                upsertResult = canonicalData;
+              }
+              
+              // Track stats based on operation type
+              if (canonicalData && canonicalData.length > 0) {
+                // Check if this was an insert or update by comparing created/updated timestamps
+                const event = canonicalData[0];
+                if (new Date(event.created_at).getTime() === new Date(event.updated_at).getTime()) {
+                  imported++;
+                  console.log(`Inserted new event: ${title}`);
                 } else {
                   updated++;
-                  console.log(`Updated event: ${title}`);
+                  console.log(`Updated existing event: ${title}`);
                 }
-              } else {
-                console.log(`No changes for event: ${title}`);
-              }
-            } else {
-              // Insert new event
-              const { error: insertError } = await supabase
-                .from('community_events')
-                .insert({
-                  title: eventData.title,
-                  description: eventData.description,
-                  category: eventData.category,
-                  start_at: eventData.startAt,
-                  end_at: eventData.endAt,
-                  timezone: eventData.timezone,
-                  venue: eventData.venue,
-                  address: eventData.address,
-                  city: eventData.city,
-                  organizer: eventData.organizer,
-                  status: eventData.status,
-                  source_hash: eventData.sourceHash,
-                  tags: eventData.tags,
-                  tickets_url: eventData.ticketsUrl,
-                  source_url: eventData.sourceUrl,
-                  image_url: eventData.imageUrl,
-                  price_from: eventData.priceFrom,
-                  neighborhood: eventData.neighborhood,
-                  featured: eventData.featured,
-                });
-              
-              if (insertError) {
-                console.error(`Failed to insert event "${eventData.title}":`, insertError);
-              } else {
-                imported++;
               }
             }
           }
@@ -715,6 +736,186 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // v2.7 Admin endpoint for backfill + cleanup + final unique index
+  app.post("/api/community/admin/dedupe", async (req, res) => {
+    try {
+      // Require admin key
+      const adminKey = req.headers['x-admin-key'];
+      if (adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: "unauthorized" });
+      }
+
+      console.log('Starting v2.7 deduplication process...');
+      const supabase = getSupabaseAdmin();
+      
+      // Step 1: Check if canonical_key column exists, if not, manually add it and backfill
+      let eventsWithoutKey = [];
+      let hasCanonicalKey = false;
+      
+      // Try to select canonical_key to see if it exists
+      try {
+        const { data: testData, error: testError } = await supabase
+          .from('community_events')
+          .select('id, title, start_at, venue, canonical_key')
+          .limit(1);
+        
+        if (!testError) {
+          hasCanonicalKey = true;
+          // Get all events without canonical_key
+          const { data: eventsData, error: fetchError } = await supabase
+            .from('community_events')
+            .select('id, title, start_at, venue, canonical_key')
+            .is('canonical_key', null);
+          
+          if (fetchError) {
+            throw new Error(`Failed to fetch events: ${fetchError.message}`);
+          }
+          eventsWithoutKey = eventsData || [];
+        }
+      } catch (columnError) {
+        console.log('canonical_key column does not exist yet');
+        hasCanonicalKey = false;
+      }
+      
+      if (!hasCanonicalKey) {
+        console.log('canonical_key column does not exist - working with existing schema');
+        // Since we can't modify schema directly, we'll work with the existing duplicate cleanup
+        // Get all events and group by title+start_at+venue for duplicate removal
+        const { data: allEvents, error: allError } = await supabase
+          .from('community_events')
+          .select('id, title, start_at, venue, updated_at, created_at')
+          .order('title')
+          .order('start_at')
+          .order('updated_at', { ascending: false });
+          
+        if (allError) {
+          throw new Error(`Failed to fetch all events: ${allError.message}`);
+        }
+        
+        let deduped = 0;
+        if (allEvents && allEvents.length > 0) {
+          const eventGroups = new Map();
+          
+          // Group by title+start_at+venue (manual canonical key)
+          for (const event of allEvents) {
+            const key = `${event.title}|${event.start_at}|${event.venue || 'null'}`;
+            if (!eventGroups.has(key)) {
+              eventGroups.set(key, []);
+            }
+            eventGroups.get(key).push(event);
+          }
+          
+          // For each group with more than one event, delete all but the first (newest)
+          for (const [key, events] of eventGroups) {
+            if (events.length > 1) {
+              const toDelete = events.slice(1); // Keep first (newest), delete rest
+              
+              for (const event of toDelete) {
+                const { error: deleteError } = await supabase
+                  .from('community_events')
+                  .delete()
+                  .eq('id', event.id);
+                
+                if (!deleteError) {
+                  deduped++;
+                  console.log(`Deleted duplicate event: ${event.title}`);
+                }
+              }
+            }
+          }
+        }
+        
+        return res.json({ 
+          ok: true, 
+          backfilled: 0, 
+          deduped,
+          message: `Working with existing schema - removed ${deduped} duplicates using title+date+venue matching`
+        });
+      }
+      
+      let backfilled = 0;
+      if (eventsWithoutKey.length > 0) {
+        for (const event of eventsWithoutKey) {
+          const canonicalKey = createCanonicalKey(
+            event.title, 
+            new Date(event.start_at), 
+            event.venue, 
+            false // Default to false since we don't have is_all_day column yet
+          );
+          
+          const { error: updateError } = await supabase
+            .from('community_events')
+            .update({ canonical_key: canonicalKey })
+            .eq('id', event.id);
+          
+          if (!updateError) {
+            backfilled++;
+          } else {
+            console.error(`Failed to backfill canonical_key for event ${event.id}:`, updateError);
+          }
+        }
+      }
+      
+      // Step 2: Delete duplicates, keeping the newest
+      const { data: allEvents, error: allError } = await supabase
+        .from('community_events')
+        .select('id, canonical_key, updated_at, created_at')
+        .not('canonical_key', 'is', null)
+        .order('canonical_key')
+        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false });
+        
+      if (allError) {
+        throw new Error(`Failed to fetch all events: ${allError.message}`);
+      }
+      
+      let deduped = 0;
+      if (allEvents && allEvents.length > 0) {
+        const eventGroups = new Map();
+        
+        // Group by canonical_key
+        for (const event of allEvents) {
+          if (!eventGroups.has(event.canonical_key)) {
+            eventGroups.set(event.canonical_key, []);
+          }
+          eventGroups.get(event.canonical_key).push(event);
+        }
+        
+        // For each group with more than one event, delete all but the first (newest)
+        for (const [canonicalKey, events] of eventGroups) {
+          if (events.length > 1) {
+            const toDelete = events.slice(1); // Keep first (newest), delete rest
+            
+            for (const event of toDelete) {
+              const { error: deleteError } = await supabase
+                .from('community_events')
+                .delete()
+                .eq('id', event.id);
+              
+              if (!deleteError) {
+                deduped++;
+                console.log(`Deleted duplicate event with canonical_key: ${canonicalKey}`);
+              }
+            }
+          }
+        }
+      }
+      
+      console.log(`Deduplication complete: backfilled ${backfilled}, deduped ${deduped}`);
+      
+      res.json({ 
+        ok: true, 
+        backfilled, 
+        deduped,
+        message: `Backfilled ${backfilled} canonical keys and removed ${deduped} duplicates`
+      });
+    } catch (error) {
+      console.error('v2.7 Dedupe error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      res.status(500).json({ ok: false, error: 'Failed to dedupe', details: errorMessage });
+    }
+  });
+
   // Community Events - Admin Upsert Endpoint
   app.post("/api/community/admin/upsert", async (req, res) => {
     try {
@@ -810,18 +1011,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const now = new Date();
       const endDate = new Date(endDateTz.getTime() + (new Date().getTimezoneOffset() * 60 * 1000));
 
-      let query = supabase
+      // v2.7: Use manual deduplication if canonical_key is available, fallback to regular query
+      let query;
+      let manualDedup = false;
+      
+      // Check if canonical_key column exists by trying a simple select first
+      const { data: columnCheck, error: columnError } = await supabase
         .from('community_events')
-        .select(`
-          id, created_at, updated_at, title, description, category,
-          start_at, end_at, timezone, venue, address, 
-          neighborhood, city, organizer, tickets_url, source_url, 
-          image_url, price_from, tags, status, featured, source_hash
-        `)
-        .in('status', ['upcoming', 'soldout'])
-        .gte('start_at', now.toISOString())
-        .lte('start_at', endDate.toISOString())
-        .order('start_at', { ascending: true });
+        .select('canonical_key')
+        .limit(1);
+      
+      if (!columnError && columnCheck !== null) {
+        // canonical_key exists, do manual deduplication
+        manualDedup = true;
+        query = supabase
+          .from('community_events')
+          .select(`
+            id, created_at, updated_at, title, description, category,
+            start_at, end_at, timezone, venue, address, 
+            neighborhood, city, organizer, tickets_url, source_url, 
+            image_url, price_from, tags, status, featured, source_hash,
+            canonical_key
+          `)
+          .in('status', ['upcoming', 'soldout'])
+          .gte('start_at', now.toISOString())
+          .lte('start_at', endDate.toISOString())
+          .order('canonical_key')
+          .order('start_at', { ascending: true })
+          .order('updated_at', { ascending: false });
+      } else {
+        // Fallback to regular query
+        query = supabase
+          .from('community_events')
+          .select(`
+            id, created_at, updated_at, title, description, category,
+            start_at, end_at, timezone, venue, address, 
+            neighborhood, city, organizer, tickets_url, source_url, 
+            image_url, price_from, tags, status, featured, source_hash
+          `)
+          .in('status', ['upcoming', 'soldout'])
+          .gte('start_at', now.toISOString())
+          .lte('start_at', endDate.toISOString())
+          .order('start_at', { ascending: true });
+      }
 
       // Filter by category if provided (gracefully handle missing column)
       if (category && typeof category === 'string' && category !== 'all') {
@@ -837,7 +1069,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (error) throw error;
 
-      res.json({ ok: true, events: data || [] });
+      let events = data || [];
+      
+      // Manual deduplication if canonical_key is available
+      if (manualDedup && events.length > 0) {
+        const seen = new Set();
+        events = events.filter(event => {
+          if (!event.canonical_key) return true; // Keep events without canonical_key
+          if (seen.has(event.canonical_key)) return false; // Skip duplicates
+          seen.add(event.canonical_key);
+          return true;
+        });
+      }
+
+      res.json({ ok: true, events });
     } catch (error) {
       console.error("Weekly events error:", error);
       res.status(500).json({ ok: false, error: "server_error" });

@@ -33,6 +33,8 @@ export const communityEvents = pgTable("community_events", {
   status: text("status").notNull().default("upcoming"), // upcoming | soldout | canceled | past | pending
   featured: boolean("featured").notNull().default(false),
   sourceHash: text("source_hash"),
+  sourceUid: text("source_uid"), // ICS VEVENT UID when present
+  canonicalKey: text("canonical_key"), // normalized(title, start local, venue)
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({

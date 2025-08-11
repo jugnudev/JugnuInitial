@@ -1,0 +1,77 @@
+Title: Community v2.7 — Solid dedupe (source_uid + canonical_key) + one-time cleanup
+
+Goal
+Stop duplicates ever appearing, even if the same event exists in multiple calendars or an organizer edits the title/venue slightly. Use ICS UID when available and a deterministic canonical key as fallback. Also remove existing duplicates.
+
+DB migration (Supabase SQL)
+-- New identity columns
+ALTER TABLE public.community_events
+  ADD COLUMN IF NOT EXISTS source_uid text,           -- ICS VEVENT UID when present
+  ADD COLUMN IF NOT EXISTS canonical_key text;        -- normalized(title, start local, venue)
+
+-- Uniques (coexist)
+CREATE UNIQUE INDEX IF NOT EXISTS uq_ce_source_uid
+  ON public.community_events (source_uid)
+  WHERE source_uid IS NOT NULL;
+
+-- We'll backfill canonical_key first, then lock it unique
+-- (index added after backfill/cleanup)
+
+Importer updates  (/app/api/community/cron/import-ics/route.ts)
+1) When parsing each VEVENT from node-ical:
+   - const sourceUid = ev.uid || null
+   - Build canonicalKey:
+     • titleNorm  = slug(lower(title))  // letters+digits joined by '-'
+     • venueNorm  = slug(lower(venue || 'tba'))
+     • if is_all_day: whenStr = format(start in CITY_TZ, 'yyyy-MM-dd')
+       else:         whenStr = format(start in CITY_TZ, 'yyyy-MM-dd-HH:mm') // minute precision
+     • canonicalKey = `${titleNorm}|${whenStr}|${venueNorm}`
+
+   - Include source_uid and canonical_key in the row payload.
+
+2) Upsert strategy (two-step to cover both identities):
+   - If source_uid exists:
+       await supabase.from('community_events')
+         .upsert(payload, { onConflict: 'source_uid' });
+     // then always ensure canonical match too (covers multi-feed same event)
+     await supabase.from('community_events')
+         .upsert(payload, { onConflict: 'canonical_key' });
+   - If no source_uid:
+       await supabase.from('community_events')
+         .upsert(payload, { onConflict: 'canonical_key' });
+
+3) Ensure both code paths keep: title, start_at, end_at, timezone, is_all_day, venue, address, city,
+   category, tags, tickets_url, source_url, image_url, price_from, description, featured, status,
+   updated_at = now().
+
+API query hardening  (/app/api/community/weekly/route.ts)
+- When selecting rows for the feed, de-dup at query time too:
+  SELECT DISTINCT ON (canonical_key) *
+  FROM community_events
+  WHERE … (range/category)
+  ORDER BY canonical_key, start_at ASC, updated_at DESC;
+
+Admin: backfill + cleanup route
+- Create /app/api/community/admin/dedupe/route.ts (POST, x-admin-key required):
+  1) For each row missing canonical_key, recompute it using the same logic as importer.
+  2) Delete duplicates, keeping the newest:
+     WITH ranked AS (
+       SELECT id, canonical_key,
+              ROW_NUMBER() OVER (PARTITION BY canonical_key ORDER BY updated_at DESC, created_at DESC) rn
+       FROM community_events WHERE canonical_key IS NOT NULL
+     )
+     DELETE FROM community_events WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
+  3) Return { ok:true, deduped: N }
+
+After cleanup, add unique index
+- In code: once /admin/dedupe returns ok, run this SQL:
+  CREATE UNIQUE INDEX IF NOT EXISTS uq_ce_canonical_key
+    ON public.community_events (canonical_key);
+
+UI (no visual change)
+- No UI change needed beyond using the de-duped weekly API.
+
+QA
+- Run importer twice -> no new copies.
+- Same event in two calendars (different UIDs) -> one row (same canonical_key).
+- Edit title slightly or add address -> still one row (same source_uid path updates existing).
