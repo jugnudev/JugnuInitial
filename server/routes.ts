@@ -426,9 +426,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
             
-            // Generate source hash for upsert - include more fields to detect changes
-            const sourceHash = createHash('sha1')
-              .update(`${title}|${startAt.toISOString()}|${venue || ''}|${description || ''}|${organizer || ''}|${ticketsUrl || ''}|${imageUrl || ''}`)
+            // Generate a stable unique identifier based on core event details
+            const stableIdentifier = createHash('sha1')
+              .update(`${title}|${startAt.toISOString()}|${venue || ''}|${address || ''}`)
+              .digest('hex');
+
+            // Generate content hash to detect if event details have changed
+            const contentHash = createHash('sha1')
+              .update(`${description || ''}|${organizer || ''}|${ticketsUrl || ''}|${imageUrl || ''}|${JSON.stringify(tags)}`)
               .digest('hex');
 
             const eventData = {
@@ -444,7 +449,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               city: 'Vancouver, BC',
               organizer,
               status,
-              sourceHash,
+              sourceHash: contentHash, // Keep for tracking content changes
               tags,
               ticketsUrl,
               sourceUrl,
@@ -454,40 +459,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
               featured: false,
             };
 
-            // Check if event exists by source_hash
+            // Check if event exists by stable identifier (title + start_at + venue)
             const { data: existingEvent } = await supabase
               .from('community_events')
-              .select('id')
-              .eq('source_hash', sourceHash)
+              .select('id, source_hash')
+              .eq('title', title)
+              .eq('start_at', startAt.toISOString())
+              .eq('venue', venue || null)
               .single();
 
             if (existingEvent) {
-              // Update existing event
-              const { error: updateError } = await supabase
-                .from('community_events')
-                .update({
-                  title: eventData.title,
-                  description: eventData.description,
-                  category: eventData.category,
-                  venue: eventData.venue,
-                  address: eventData.address,
-                  end_at: eventData.endAt,
-                  timezone: eventData.timezone,
-                  organizer: eventData.organizer,
-                  status: eventData.status,
-                  tags: eventData.tags,
-                  tickets_url: eventData.ticketsUrl,
-                  source_url: eventData.sourceUrl,
-                  image_url: eventData.imageUrl,
-                  price_from: eventData.priceFrom,
-                  updated_at: new Date().toISOString(),
-                })
-                .eq('source_hash', sourceHash);
-              
-              if (updateError) {
-                console.error(`Failed to update event "${eventData.title}":`, updateError);
+              // Only update if content has changed
+              if (existingEvent.source_hash !== contentHash) {
+                const { error: updateError } = await supabase
+                  .from('community_events')
+                  .update({
+                    description: eventData.description,
+                    category: eventData.category,
+                    end_at: eventData.endAt,
+                    timezone: eventData.timezone,
+                    organizer: eventData.organizer,
+                    status: eventData.status,
+                    tags: eventData.tags,
+                    tickets_url: eventData.ticketsUrl,
+                    source_url: eventData.sourceUrl,
+                    image_url: eventData.imageUrl,
+                    price_from: eventData.priceFrom,
+                    source_hash: contentHash,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq('id', existingEvent.id);
+                
+                if (updateError) {
+                  console.error(`Failed to update event "${eventData.title}":`, updateError);
+                } else {
+                  updated++;
+                  console.log(`Updated event: ${title}`);
+                }
               } else {
-                updated++;
+                console.log(`No changes for event: ${title}`);
               }
             } else {
               // Insert new event
@@ -622,6 +632,79 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Migration error:", error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       res.status(500).json({ ok: false, error: "migration_failed", details: errorMessage });
+    }
+  });
+
+  // Admin endpoint to clean up duplicate events
+  app.post("/api/community/admin/cleanup-duplicates", async (req, res) => {
+    try {
+      // Require admin key
+      const adminKey = req.headers['x-admin-key'];
+      if (adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: "unauthorized" });
+      }
+
+      console.log('Starting duplicate cleanup...');
+      const supabase = getSupabaseAdmin();
+      
+      // Get all events grouped by title, start_at, venue
+      const { data: allEvents, error: fetchError } = await supabase
+        .from('community_events')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (fetchError) {
+        throw fetchError;
+      }
+      
+      // Group events by unique key (title + start_at + venue)
+      const eventGroups = new Map();
+      for (const event of allEvents || []) {
+        const key = `${event.title}|${event.start_at}|${event.venue || ''}`;
+        if (!eventGroups.has(key)) {
+          eventGroups.set(key, []);
+        }
+        eventGroups.get(key).push(event);
+      }
+      
+      let deletedCount = 0;
+      
+      // For each group, keep the best one and delete the rest
+      for (const [key, events] of eventGroups) {
+        if (events.length > 1) {
+          console.log(`Found ${events.length} duplicates for: ${key}`);
+          
+          // Sort by: has image > has clean tickets > most recent
+          events.sort((a, b) => {
+            const aScore = (a.image_url ? 100 : 0) + 
+                          (a.tickets_url && !a.tickets_url.includes('>') ? 50 : 0) +
+                          (new Date(a.created_at).getTime() / 1000000);
+            const bScore = (b.image_url ? 100 : 0) + 
+                          (b.tickets_url && !b.tickets_url.includes('>') ? 50 : 0) +
+                          (new Date(b.created_at).getTime() / 1000000);
+            return bScore - aScore;
+          });
+          
+          // Keep the first (best) one, delete the rest
+          const toDelete = events.slice(1);
+          for (const event of toDelete) {
+            const { error: deleteError } = await supabase
+              .from('community_events')
+              .delete()
+              .eq('id', event.id);
+            
+            if (!deleteError) {
+              deletedCount++;
+              console.log(`Deleted duplicate: ${event.title} (${event.id})`);
+            }
+          }
+        }
+      }
+      
+      res.json({ ok: true, deletedCount, message: `Cleaned up ${deletedCount} duplicate events` });
+    } catch (error) {
+      console.error('Cleanup error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to cleanup duplicates' });
     }
   });
 
