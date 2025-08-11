@@ -196,7 +196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let startAt = new Date(calendarEvent.start);
             let endAt = calendarEvent.end ? new Date(calendarEvent.end) : new Date(startAt.getTime() + 3 * 60 * 60 * 1000);
             let isAllDay = false;
-            let eventTimezone = timezone; // Default to CITY_TZ
+            let eventTimezone = 'America/Vancouver'; // Default to Vancouver timezone
             
             // Check if event is all-day
             // Method 1: Check if DTSTART has VALUE=DATE (node-ical sets datetype)
@@ -218,6 +218,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
               eventTimezone = (calendarEvent.start as any).tz;
             } else if (calendarEvent.params && calendarEvent.params.TZID) {
               eventTimezone = calendarEvent.params.TZID;
+            }
+            
+            // Normalize timezone names to ensure consistency
+            if (eventTimezone && eventTimezone.includes('Vancouver')) {
+              eventTimezone = 'America/Vancouver';
+            } else if (eventTimezone && (eventTimezone.includes('Pacific') || eventTimezone.includes('PST') || eventTimezone.includes('PDT'))) {
+              eventTimezone = 'America/Vancouver';
+            }
+            
+            // Ensure we always have a valid Vancouver timezone
+            if (!eventTimezone || eventTimezone === 'Etc/UTC' || eventTimezone === 'UTC') {
+              eventTimezone = 'America/Vancouver';
             }
             
             // Ensure dates are stored as UTC ISO strings
