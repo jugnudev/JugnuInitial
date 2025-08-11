@@ -32,6 +32,25 @@ interface DetailsModalProps {
 export default function DetailsModal({ event, isOpen, onClose }: DetailsModalProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   
+  // Always call useEffect hook - no conditional logic before hooks
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen, onClose]);
+  
   // Parse description into paragraphs and check if it needs "Show more"
   const descriptionParagraphs = event?.description 
     ? event.description.split('\n\n').filter(p => p.trim().length > 0)
@@ -148,27 +167,6 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
       onClose();
     }
   };
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
-
-  // Add escape key listener
-  useEffect(() => {
-    if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
 
   return (
     <div

@@ -1,0 +1,45 @@
+Title: Community v2.5 — Premium card + modal polish
+
+Goals
+Improve visual quality on laptop & phone, keep current data/logic.
+
+Cards
+- Make entire card clickable; add subtle copper hover glow (shadow-[0_0_0_1px] … shadow-copper/30).
+- Image area: 4:3 with soft copper gradient overlay; date chip top-left; category pill top-right.
+- Bottom overlay: title (semibold), venue • city (muted), small “Get Tickets” if tickets_url exists.
+- Ensure large tap targets on mobile (min h-14 for the click area).
+
+Modal (Details)
+- Layout:
+  • Mobile: full-screen sheet with large poster on top, content scroll, sticky bottom CTA bar.
+  • Desktop: centered dialog, 2-column (poster left, content right).
+- Content order (right column on desktop):
+  1) Title + category pill + optional “from $X”
+  2) Date/time badge (“SAT • SEP 20 • 9:00 PM” or “TBA”)
+  3) Venue + city; show full street address only here
+     - Add “Open in Maps” link (already implemented)
+  4) “About this event” (cleaned body from Patch 1)
+  5) Tag chips (optional)
+- Sticky CTA bar (mobile & desktop):
+  • Primary: Get Tickets (disabled/hidden if no tickets_url)
+  • Secondary group: Add to Google (whitespace-nowrap) + Download .ics
+  • Share button at far left (see below)
+
+Share
+- In DetailsModal footer:
+  • If navigator.share -> await share({ title, text: `${title} — ${venue}`, url: current deep link })
+  • Else: copy deep link (/community?e=<id>) to clipboard + show “Link copied”.
+  • aria-label on button and proper focus styles.
+
+Filter/Range
+- Keep “This Month” default.
+- Category chips call the API with ?category=<concert|club|comedy|festival>. If empty, show a friendly empty state (no error toast).
+
+Nav
+- Ensure logo -> "/" and “Story” -> "/#story" work from /community (no overlay intercept).
+
+QA
+- Card looks richer with chips and overlay; tap opens modal.
+- Modal feels premium on both mobile and desktop; sticky footer CTAs work.
+- Share works on iOS/Android; fallback copies the link on desktop.
+- “Add to Google” stays on one line.
