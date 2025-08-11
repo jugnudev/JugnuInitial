@@ -460,13 +460,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             };
 
             // Check if event exists by stable identifier (title + start_at + venue)
-            const { data: existingEvent } = await supabase
+            // Handle null venue properly by using is() instead of eq() for null values
+            let query = supabase
               .from('community_events')
               .select('id, source_hash')
               .eq('title', title)
-              .eq('start_at', startAt.toISOString())
-              .eq('venue', venue || null)
-              .single();
+              .eq('start_at', startAt.toISOString());
+            
+            if (venue) {
+              query = query.eq('venue', venue);
+            } else {
+              query = query.is('venue', null);
+            }
+            
+            const { data: existingEvent } = await query.single();
 
             if (existingEvent) {
               // Only update if content has changed
