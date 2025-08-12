@@ -143,6 +143,21 @@
   }
 }
 
+/* Gradient utilities for Premium Explore UI */
+.bg-gradient-radial {
+  background: radial-gradient(circle, var(--tw-gradient-stops));
+}
+
+/* Additional gradient utilities */
+.bg-gradient-copper-glow {
+  background: linear-gradient(135deg, rgba(180, 80, 13, 0.3) 0%, rgba(212, 105, 26, 0.2) 50%, rgba(184, 84, 13, 0.3) 100%);
+}
+
+/* Dark gradient backgrounds for hero sections */
+.bg-dark-gradient {
+  background: radial-gradient(circle at center, #1a1a1a 0%, #0f0f0f 50%, #050505 100%);
+}
+
 .masonry-item {
   break-inside: avoid;
   margin-bottom: 1rem;

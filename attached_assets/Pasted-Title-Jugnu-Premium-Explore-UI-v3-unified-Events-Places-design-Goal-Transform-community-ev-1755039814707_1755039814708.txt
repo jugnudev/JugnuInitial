@@ -1,0 +1,128 @@
+Title: Jugnu — Premium Explore UI v3 (unified Events & Places design)
+
+Goal
+Transform /community (events) and /places into a cohesive, premium “Explore” experience:
+- Hero headline + subdued gradient background
+- Featured hero card (full-width 16:9)
+- Two-column grid (1-col on mobile), elegant 16:9 cards
+- Minimal, intuitive controls: Search + Segmented Control + Filter Drawer
+- Simplified categories (grouped), lots of whitespace, subtle motion
+
+Keep all existing functionality (modals, deep links, ICS, featured logic, admin endpoints).
+
+1) Shared layout & design system
+- Create /components/explore/PageHero.tsx
+  • Props: title, subtitle, pill?, actions? (e.g., “Request Feature”, “List your place”)
+  • Background: dark-to-darker radial gradient w/ subtle copper specks (reuse firefly layer at 15% opacity)
+  • Max width container: max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 (breathing room)
+
+- Create /components/explore/Toolbar.tsx
+  • Left: Search input (rounded-2xl, subtle inset ring)
+  • Center: SegmentedControl (small, 4 options max)
+  • Right: “Filters” button → opens slide-over FilterDrawer
+  • Mobile: Search full-width; segmented is horizontally scrollable; Filters as icon button
+
+- Create /components/explore/FilterDrawer.tsx (slide-over)
+  • For Events: date range (This Week/Month), optional neighborhoods multi-select, tags multi-select
+  • For Places: neighborhood multi-select, price level (₹–₹₹₹₹), tags multi-select (chai, biryani, vegan, halal, Punjabi, South-Indian, etc.)
+  • “Clear all” + “Apply” buttons; show count of active filters on “Filters” button badge
+
+- Create /components/explore/FeaturedHero.tsx
+  • 16:9 full width, rounded-2xl with copper glow and subtle parallax on hover
+  • Overlays: date badge (events) or type/price (places); title; venue • city/neighborhood; “from $X” or small perk
+  • Primary CTA: “Get Tickets” (events) or “Visit Website/Book” (places)
+  • Secondary: “View details” (opens modal)
+  • Respect prefers-reduced-motion; keyboard accessible
+
+- Create /components/explore/Card.tsx (base for both)
+  • 16:9 image (next/image, object-cover), gradient overlay
+  • Top-left small badge (date for events / type for places)
+  • Top-right pill if sponsored/featured
+  • Bottom: title (line-clamp-2), subline (venue • city OR neighborhood • city)
+  • Small inline CTA “Get Tickets” or “Website” if present
+  • Entire card clickable; opens the Details modal
+  • Framer Motion: fade + lift on appear; hover ring glow subtle
+
+2) Simplified taxonomy (grouping)
+- Add /lib/taxonomy.ts with helpers:
+
+  // Places groups (surface as segmented control)
+  export const PLACE_GROUPS = ['Eat & Drink','Shops & Services','Culture & Faith','All'] as const;
+  // Map existing place types to groups:
+  // Eat & Drink: restaurant, café, dessert
+  // Shops & Services: grocer, fashion, beauty
+  // Culture & Faith: temple, gurdwara, mosque, gallery, dance, organization
+  export function mapPlaceTypeToGroup(type: string): PlaceGroup { ... }
+
+  // Events keep core categories:
+  export const EVENT_CATEGORIES = ['All','Concert','Club','Comedy','Festival'] as const;
+
+- Update /app/places/page.tsx
+  • Replace the big chip cloud with:
+    - PageHero: “South Asian Places in Vancouver”
+    - Toolbar: Search + SegmentedControl (Eat & Drink / Shops & Services / Culture & Faith / All) + Filters
+    - FeaturedHeroPlace if API returns featured
+    - Grid: 1 col mobile, 2 cols md+ (gap-8)
+  • Query /api/places/list with group param -> backend maps to underlying types (use taxonomy.mapPlaceTypeToGroup)
+  • Remove inline street addresses from cards; keep venue • city; full address only in modal
+  • Keep DetailsModalPlace; add blurred-poster backdrop behind details column; sticky bottom CTA bar on mobile
+
+- Update /app/community/page.tsx
+  • Replace chips with:
+    - PageHero: “South Asian Events in Vancouver”
+    - Toolbar: Search (q on title/organizer/venue) + SegmentedControl (All / Concert / Club / Comedy / Festival) + Filters (range=Week|Month, neighborhoods)
+    - FeaturedHero (existing featured event) then grid (2-up)
+  • Cards remain 16:9; subline is venue • city; “Get Tickets” small inline; no street address on card
+  • Details modal keeps Share, Maps, calendar actions
+
+3) API adjustments for clean controls
+- /app/api/places/list
+  • Accept group param: 'eat'|'shops'|'culture'|'all'
+  • If group provided, map to types server-side (taxonomy.ts) and filter
+  • Support search q across (name, tags, neighborhood)
+  • Return { featured, items } where featured is excluded from items
+
+- /app/api/community/weekly
+  • Add q param (search on title, organizer, venue)
+  • category stays; range = week|month (default month)
+  • Still dedupe by canonical_key; return { featured, items }
+
+4) Visual polish & spacing
+- Typography scale: big H1 (text-5xl md:text-6xl), generous leading, max-w-prose subtitle
+- Whitespace: 56–72px vertical rhythm between sections; cards get p-4 md:p-5 inner padding; rounded-2xl and ring-1 ring-white/5
+- Hover state: shadow-[0_0_0_1px_theme(colors.amber.500/25)] + subtle translate-y-0.5
+- Motion: framer-motion fade/slide-in list stagger; respects reduced motion
+
+5) Accessibility & nav
+- Ensure logo links to “/” and “Story” links to “/#story” from all pages
+- All controls keyboard reachable; modal focus trap; ESC closes; ARIA labelling on all CTA icons
+- Keep deep-linking (?e=<id> for events, ?p=<id> for places)
+
+6) Empty states
+- Replace generic empty with premium version:
+  • Illustration placeholder, copy: “Nothing here yet.”
+  • Simple CTA (“Add your event” / “List your place”) linking to existing submit forms
+  • Helpful tips (e.g., “Try Week instead of Month”)
+
+7) Performance & SEO
+- Add skeleton placeholders for cards while loading
+- Use next/image with priority on featured hero only
+- Titles & meta updated; respect NEXT_PUBLIC_INDEXABLE
+
+8) Testing checklist
+- /community and /places load with new hero + toolbar + featured + 2-up grid
+- Segmented control switches server queries; Filters drawer works and shows badge count
+- Search filters both pages; results de-duped; featured excluded from grid
+- Cards are 16:9; images crop nicely; tap opens modal; Share works; “Open in Maps” works
+- Street address appears only in modal; venue • city on cards
+- Mobile: full-screen sheet modal; sticky CTA bar; scroll no jank
+
+9) Keep existing content & logic
+- Do not remove existing modals, admin endpoints, importer, or featured toggles
+- Preserve current colors/brand (copper/amber on charcoal), just apply the new layout
+
+Deliverables
+- New shared components: PageHero, Toolbar, FilterDrawer, FeaturedHero, Card (and variant wrappers)
+- Updated /community and /places pages to use shared Explore UI
+- Updated APIs to support q + group/category params
+- README note: how groups map + how to feature items + where to adjust taxonomy

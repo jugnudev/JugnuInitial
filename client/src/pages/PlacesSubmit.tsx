@@ -44,7 +44,7 @@ const typeOptions = [
 ];
 
 const neighborhoodOptions = [
-  { value: "", label: "Select area (optional)" },
+  { value: "not-specified", label: "Select area (optional)" },
   { value: "Downtown", label: "Downtown" },
   { value: "Gastown", label: "Gastown" },
   { value: "Kitsilano", label: "Kitsilano" },
@@ -85,7 +85,7 @@ export default function PlacesSubmit() {
         body: JSON.stringify({
           name: data.name,
           type: data.type,
-          neighborhood: data.neighborhood || null,
+          neighborhood: data.neighborhood === 'not-specified' ? null : data.neighborhood,
           address: data.address || null,
           website_url: data.website_url || null,
           instagram: data.instagram || null,

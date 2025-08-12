@@ -30,6 +30,19 @@ function createCanonicalKey(title: string, startAt: Date, venue: string | null, 
 
 import { insertCommunityEventSchema, updateCommunityEventSchema } from "@shared/schema";
 
+// Helper function for group filtering (duplicated from client taxonomy)
+function getTypesForGroup(group: string): string[] {
+  if (group === 'all') return [];
+  
+  const groupMap: Record<string, string[]> = {
+    'eat': ['restaurant', 'cafe', 'dessert'],
+    'shops': ['grocer', 'fashion', 'beauty'],
+    'culture': ['temple', 'gurdwara', 'mosque', 'gallery', 'dance', 'org', 'other']
+  };
+  
+  return groupMap[group] || [];
+}
+
 // Rate limiting for waitlist endpoint
 const rateLimit = { windowMs: 60_000, max: 60 };
 const hits = new Map<string, { count: number; ts: number }>();
@@ -1467,7 +1480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Places directory API endpoints
   app.get("/api/places/list", async (req, res) => {
     try {
-      const { type, neighborhood, q, featured_first = '1', limit = '50', offset = '0' } = req.query;
+      const { type, group, neighborhood, q, featured_first = '1', limit = '50', offset = '0' } = req.query;
 
       const supabase = getSupabaseAdmin();
       
@@ -1482,12 +1495,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         query = query.eq('type', type);
       }
       
+      // Handle group filtering (maps to multiple types)
+      if (group && group !== 'all') {
+        const groupTypes = getTypesForGroup(group as string);
+        if (groupTypes.length > 0) {
+          query = query.in('type', groupTypes);
+        }
+      }
+      
       if (neighborhood && neighborhood !== 'all') {
-        query = query.eq('neighborhood', neighborhood);
+        query = query.eq('neighborhood', neighborhood as string);
       }
 
       if (q) {
-        query = query.or(`name.ilike.%${q}%, tags.cs.{${q}}`);
+        query = query.or(`name.ilike.%${q as string}%, tags.cs.{${q as string}}`);
       }
 
       // Get all matching places first
