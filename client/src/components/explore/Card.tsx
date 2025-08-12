@@ -2,6 +2,7 @@ import { ExternalLink, MapPin, Calendar, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { formatPriceLevel } from "@/lib/taxonomy";
+import { formatDateBadge, isValidISO } from "@/lib/dates";
 
 interface BaseItem {
   id: string;
@@ -15,6 +16,9 @@ interface BaseItem {
 interface EventItem extends BaseItem {
   type: 'event';
   date: string;
+  start_at?: string;
+  is_all_day?: boolean | string;
+  timezone?: string;
   venue: string;
   city: string;
   buyUrl?: string;
@@ -42,7 +46,9 @@ interface CardProps {
   index?: number;
 }
 
-const getTypeColor = (type: string) => {
+const getTypeColor = (type?: string) => {
+  if (!type) return "bg-gray-500/90";
+  
   const colors = {
     // Event categories
     concert: "bg-purple-500/90",
@@ -66,17 +72,48 @@ const getTypeColor = (type: string) => {
   return colors[type.toLowerCase() as keyof typeof colors] || "bg-gray-500/90";
 };
 
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return {
-    month: date.toLocaleDateString('en-US', { month: 'short' }),
-    day: date.getDate(),
-    weekday: date.toLocaleDateString('en-US', { weekday: 'short' })
-  };
+const getDateBadgeInfo = (eventItem: EventItem) => {
+  // Use start_at if available (newer data structure), fallback to date
+  const dateString = eventItem.start_at || eventItem.date;
+  const timezone = eventItem.timezone || 'America/Vancouver';
+  const allDay = typeof eventItem.is_all_day === 'string' ? eventItem.is_all_day === 'true' : Boolean(eventItem.is_all_day);
+  
+  const badge = formatDateBadge(dateString, timezone, allDay);
+  
+  if (badge === 'TBA') {
+    return { shouldShow: false, content: null };
+  }
+  
+  // Extract day and month for the compact badge display
+  if (!isValidISO(dateString)) {
+    return { shouldShow: false, content: null };
+  }
+  
+  try {
+    const date = new Date(dateString);
+    const day = new Intl.DateTimeFormat('en-US', { 
+      day: 'numeric',
+      timeZone: timezone 
+    }).format(date);
+    const month = new Intl.DateTimeFormat('en-US', { 
+      month: 'short',
+      timeZone: timezone 
+    }).format(date);
+    
+    return { 
+      shouldShow: true, 
+      content: { day, month, fullBadge: badge }
+    };
+  } catch (error) {
+    return { shouldShow: false, content: null };
+  }
 };
 
 export default function Card({ item, onClick, index = 0 }: CardProps) {
   const isSponsored = item.sponsored && (!item.sponsored_until || new Date(item.sponsored_until) > new Date());
+  
+  // Get date info for events
+  const dateInfo = item.type === 'event' ? getDateBadgeInfo(item) : null;
 
   const getPrimaryAction = () => {
     if (item.type === 'event') {
@@ -132,10 +169,19 @@ export default function Card({ item, onClick, index = 0 }: CardProps) {
         <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
           {/* Date/Type Badge */}
           {item.type === 'event' ? (
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-2 text-white text-center min-w-[50px]">
-              <div className="text-lg font-bold leading-none">{formatDate(item.date).day}</div>
-              <div className="text-xs opacity-90">{formatDate(item.date).month}</div>
-            </div>
+            dateInfo?.shouldShow ? (
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-2 text-white text-center min-w-[50px]">
+                <div className="text-lg font-bold leading-none">{dateInfo.content!.day}</div>
+                <div className="text-xs opacity-90">{dateInfo.content!.month}</div>
+              </div>
+            ) : (
+              <Badge 
+                variant="secondary" 
+                className="bg-white/10 backdrop-blur-sm border border-white/20 text-white text-xs px-2 py-1 font-medium"
+              >
+                TBA
+              </Badge>
+            )
           ) : (
             <Badge 
               variant="secondary" 

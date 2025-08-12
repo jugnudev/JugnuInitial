@@ -1,0 +1,42 @@
+Title: Explore v3.1 — fix date badges + polish + graceful fallbacks
+
+Goals
+- Eliminate “NaN / Invalid Date” badges on event cards.
+- Robust ICS time parsing (all-day vs timed) and Vancouver timezone formatting.
+- Small Explore UI polish (breathing room & consistent badge text).
+
+1) Date utilities
+- Add /lib/dates.ts with:
+  export function isValidISO(s?: string): boolean
+  export function formatDateBadge(iso?: string, tz='America/Vancouver', allDay?: boolean): string
+  export function formatTimeRange(startISO?: string, endISO?: string, tz='America/Vancouver', allDay?: boolean): string
+  Implementation notes:
+    • Guard: if !iso or invalid → return 'TBA'
+    • Use Intl.DateTimeFormat with { weekday:'short', month:'short', day:'numeric', timeZone: tz } → e.g., 'Fri • Aug 15'
+    • Time range: if allDay → 'All day'; else format to '9:00 PM' or '9:00 PM – 12:00 AM'
+
+2) Importer sanity
+- In /app/api/community/cron/import-ics/route.ts:
+  • Ensure is_all_day detection is correct: VALUE=DATE or DTSTART without time → true.
+  • Always persist start_at (UTC) and timezone string (default 'America/Vancouver').
+  • If DTEND missing and not all-day → set end_at = start_at + 3h.
+  • Never write null dates when DTSTART exists.
+
+3) UI usage
+- Replace any ad-hoc date logic in:
+  • Community Card & FeaturedHero → use formatDateBadge(start_at, timezone, is_all_day)
+  • DetailsModal → use formatTimeRange(start_at, end_at, timezone, is_all_day)
+- If formatDateBadge returns 'TBA', hide the dark badge and show a tiny 'TBA' text next to title instead (no “Invalid Date” tooltip).
+- Keep cards showing only “venue • city”; full street address stays in the modal.
+
+4) Explore polish
+- Increase vertical rhythm on /community and /places:
+  • Section paddings: hero → toolbar (mt-10 md:mt-14), grid gap md:gap-8
+- Ensure the “Request Featured” / “List your place” button in PageHero uses subtle glow on hover (no heavy dropshadow).
+- Keep 16:9 everywhere; images object-cover; respect prefers-reduced-motion.
+
+5) QA
+- Create two calendar entries:
+  A) Timed event → badge shows 'Fri • Aug 15', time shows '9:00 PM' (and range if end present).
+  B) All-day event → badge shows 'Fri • Aug 15', time shows 'All day'.
+- No card shows 'Invalid Date' anywhere.

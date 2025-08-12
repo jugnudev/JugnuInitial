@@ -168,7 +168,7 @@ export default function PlacesExplore() {
         actions={
           <Button
             onClick={() => window.open("/places/submit", "_blank")}
-            className="bg-primary hover:bg-primary/90 text-black font-medium px-6 py-3"
+            className="bg-primary hover:bg-primary/90 hover:shadow-[0_0_20px_hsla(28,89%,57%,0.3)] text-black font-medium px-6 py-3 transition-all duration-300"
           >
             <ExternalLink className="w-4 h-4 mr-2" />
             List Your Place
@@ -177,7 +177,7 @@ export default function PlacesExplore() {
       />
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 mt-10 md:mt-14">
         {/* Toolbar */}
         <Toolbar
           searchValue={searchValue}
@@ -211,7 +211,8 @@ export default function PlacesExplore() {
             <FeaturedHero
               item={{
                 ...featuredPlace,
-                type: 'place' as const
+                type: 'place' as const,
+                place_type: featuredPlace.type || 'restaurant'
               }}
               onViewDetails={() => handlePlaceClick(featuredPlace)}
             />
@@ -220,13 +221,14 @@ export default function PlacesExplore() {
 
         {/* Places Grid */}
         {!isLoading && hasResults && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             {places.map((place, index) => (
               <Card
                 key={place.id}
                 item={{
                   ...place,
-                  type: 'place' as const
+                  type: 'place' as const,
+                  place_type: place.type || 'restaurant'
                 }}
                 onClick={() => handlePlaceClick(place)}
                 index={index}

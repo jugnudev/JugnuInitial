@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { formatPriceLevel } from "@/lib/taxonomy";
+import { formatDateBadge, formatTimeRange } from "@/lib/dates";
 
 interface BaseFeaturedItem {
   id: string;
@@ -16,6 +17,9 @@ interface BaseFeaturedItem {
 interface FeaturedEvent extends BaseFeaturedItem {
   type: 'event';
   date: string;
+  start_at?: string;
+  is_all_day?: boolean | string;
+  timezone?: string;
   venue: string;
   city: string;
   buyUrl?: string;
@@ -66,17 +70,35 @@ const getTypeColor = (type: string) => {
   return colors[type.toLowerCase() as keyof typeof colors] || "bg-gray-500/90";
 };
 
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return {
-    month: date.toLocaleDateString('en-US', { month: 'short' }),
-    day: date.getDate(),
-    time: date.toLocaleDateString('en-US', { weekday: 'short' }) + ' • ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-  };
+const getEventDateInfo = (item: FeaturedEvent) => {
+  const dateString = item.start_at || item.date;
+  const timezone = item.timezone || 'America/Vancouver';
+  const allDay = typeof item.is_all_day === 'string' ? item.is_all_day === 'true' : Boolean(item.is_all_day);
+  
+  const badge = formatDateBadge(dateString, timezone, allDay);
+  const timeRange = formatTimeRange(dateString, undefined, timezone, allDay);
+  
+  // Extract day and month for display
+  try {
+    const date = new Date(dateString);
+    const day = new Intl.DateTimeFormat('en-US', { 
+      day: 'numeric',
+      timeZone: timezone 
+    }).format(date);
+    const month = new Intl.DateTimeFormat('en-US', { 
+      month: 'short',
+      timeZone: timezone 
+    }).format(date);
+    
+    return { badge, timeRange, day, month };
+  } catch (error) {
+    return { badge: 'TBA', timeRange: 'TBA', day: 'TBA', month: 'TBA' };
+  }
 };
 
 export default function FeaturedHero({ item, onViewDetails }: FeaturedHeroProps) {
   const isSponsored = item.sponsored && (!item.sponsored_until || new Date(item.sponsored_until) > new Date());
+  const eventDateInfo = item.type === 'event' ? getEventDateInfo(item) : null;
   
   const getPrimaryAction = () => {
     if (item.type === 'event') {
@@ -131,12 +153,21 @@ export default function FeaturedHero({ item, onViewDetails }: FeaturedHeroProps)
         <div className="flex justify-between items-start">
           {/* Date/Type Badge */}
           {item.type === 'event' ? (
-            <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-3 text-white">
-              <div className="text-center">
-                <div className="text-2xl font-bold leading-none">{formatDate(item.date).day}</div>
-                <div className="text-sm opacity-90">{formatDate(item.date).month}</div>
+            eventDateInfo?.badge !== 'TBA' ? (
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-3 text-white">
+                <div className="text-center">
+                  <div className="text-2xl font-bold leading-none">{eventDateInfo.day}</div>
+                  <div className="text-sm opacity-90">{eventDateInfo.month}</div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <Badge 
+                variant="secondary" 
+                className="bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm px-3 py-2 font-medium"
+              >
+                TBA
+              </Badge>
+            )
           ) : (
             <Badge 
               variant="secondary" 
@@ -187,10 +218,10 @@ export default function FeaturedHero({ item, onViewDetails }: FeaturedHeroProps)
                 </span>
               </div>
 
-              {item.type === 'event' && (
+              {item.type === 'event' && eventDateInfo && eventDateInfo.timeRange !== 'TBA' && (
                 <div className="flex items-center gap-2">
                   <Clock className="w-5 h-5 shrink-0" />
-                  <span className="text-lg">{formatDate(item.date).time}</span>
+                  <span className="text-lg">{eventDateInfo.timeRange}</span>
                 </div>
               )}
 

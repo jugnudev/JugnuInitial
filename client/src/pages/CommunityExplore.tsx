@@ -18,6 +18,10 @@ interface CommunityEvent {
   description?: string;
   venue?: string;
   date: string;
+  start_at?: string;
+  end_at?: string;
+  is_all_day?: boolean | string;
+  timezone?: string;
   city: string;
   category?: string;
   buyUrl?: string;
@@ -29,6 +33,7 @@ interface CommunityEvent {
   featured: boolean;
   sponsored: boolean;
   sponsored_until?: string;
+  status?: string;
 }
 
 interface EventsResponse {
@@ -166,7 +171,7 @@ export default function CommunityExplore() {
         actions={
           <Button
             onClick={() => window.open("/community/feature", "_blank")}
-            className="bg-primary hover:bg-primary/90 text-black font-medium px-6 py-3"
+            className="bg-primary hover:bg-primary/90 hover:shadow-[0_0_20px_hsla(28,89%,57%,0.3)] text-black font-medium px-6 py-3 transition-all duration-300"
           >
             <ExternalLink className="w-4 h-4 mr-2" />
             Request Featured
@@ -175,7 +180,7 @@ export default function CommunityExplore() {
       />
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 mt-10 md:mt-14">
         {/* Toolbar */}
         <Toolbar
           searchValue={searchValue}
@@ -212,6 +217,8 @@ export default function CommunityExplore() {
                 type: 'event' as const,
                 name: featuredEvent.title,
                 venue: featuredEvent.venue || '',
+                date: featuredEvent.start_at || featuredEvent.date,
+                is_all_day: typeof featuredEvent.is_all_day === 'string' ? featuredEvent.is_all_day === 'true' : Boolean(featuredEvent.is_all_day),
               }}
               onViewDetails={() => handleEventClick(featuredEvent)}
             />
@@ -220,7 +227,7 @@ export default function CommunityExplore() {
 
         {/* Events Grid */}
         {!isLoading && hasResults && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
             {events.map((event, index) => (
               <Card
                 key={event.id}
@@ -229,6 +236,8 @@ export default function CommunityExplore() {
                   type: 'event' as const,
                   name: event.title,
                   venue: event.venue || '',
+                  date: event.start_at || event.date,
+                  is_all_day: typeof event.is_all_day === 'string' ? event.is_all_day === 'true' : Boolean(event.is_all_day),
                 }}
                 onClick={() => handleEventClick(event)}
                 index={index}

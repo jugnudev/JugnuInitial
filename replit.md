@@ -95,12 +95,16 @@ Preferred communication style: Simple, everyday language.
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 - **Featured Event Parsing**: Auto-detect "Featured: true|yes|1" from calendar descriptions or use admin API
 
-### Current State (Places Directory v1 + Community v2.9 + Waitlist Mode v2.3)
+### Current State (Explore v3.1 + Premium UI + Places Directory v1 + Community v2.9 + Waitlist Mode v2.3)
+- **Premium Explore UI v3.1**: Unified design system with robust date handling, enhanced UX polish, and graceful fallbacks
+- **Date Utilities v3.1**: Comprehensive `/lib/dates.ts` with timezone-aware formatting, all-day event detection, NaN/Invalid Date elimination
+- **Enhanced UI Polish**: Increased vertical rhythm (mt-10 md:mt-14), enhanced grid spacing (md:gap-8), subtle button glow effects
 - **Dual Purpose**: Waitlist mode for Jugnu events + Community calendar + Places directory for South Asian businesses
 - **Smart Navigation**: Community and Places always visible, Events/Gallery conditionally shown
+- **Unified Components**: Shared PageHero, Toolbar, FilterDrawer, FeaturedHero, Card, EmptyState across Events and Places
 - **Places Directory v1**: South Asian restaurants, cafes, shops & cultural spots with featured hero system, 2-column grid, filtering
 - **Places Features**: Type filtering (restaurant, cafe, dessert, etc), neighborhood filtering, search, featured hero with copper glow
-- **Places Components**: FeaturedHeroPlace, PlaceCard, DetailsModalPlace with 16:9 aspect ratios and premium UX patterns
+- **Places Database**: SQL schema ready for Supabase deployment with RLS policies and sample data
 - **Places Submission**: Public form at /places/submit for business owners to list their places (requires admin approval)
 - **Places API**: Full CRUD endpoints for listing, admin upsert, featuring, and public submissions with status management
 - **Featured Hero v2.8**: Large 16:9 hero display for featured places and events with copper glow styling and prominent CTAs
@@ -109,9 +113,10 @@ Preferred communication style: Simple, everyday language.
 - **Admin Approval Workflow**: Admin endpoints to approve/reject requests with automatic creation and featured assignment
 - **Enhanced Modals**: Share with Web Share API + smooth cursor-positioned toast notifications, cleaned descriptions with "Show more"
 - **Admin Tools**: ICS import cron job + manual management via API + description cleaning + featured toggle endpoints
-- **Accurate Date/Time**: Timezone-aware formatting with all-day event detection, eliminates "TBA" displays
+- **Robust Date Handling**: Timezone-aware formatting with all-day event detection, eliminates "TBA" displays, graceful fallbacks
 - **Solid Deduplication v2.7**: Prevents duplicates using ICS UIDs + canonical keys (title+date+venue), manual dedup at query time
 - **Consistent Design Language**: Same copper theming, 16:9 aspect ratios, modal patterns across Events and Places
+- **TypeScript Excellence**: All components properly typed, boolean conversions handled, interface consistency maintained
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS
