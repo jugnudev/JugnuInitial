@@ -64,6 +64,13 @@ export default function Navigation() {
               >
                 Community
               </a>
+              <a
+                href="/places"
+                className="text-text hover:text-accent transition-colors duration-200 font-medium"
+                data-testid="nav-places"
+              >
+                Places
+              </a>
               {showGallery && (
                 <button
                   onClick={() => scrollToSection('gallery')}
@@ -125,6 +132,14 @@ export default function Navigation() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Community
+              </a>
+              <a
+                href="/places"
+                className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"
+                data-testid="nav-mobile-places"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Places
               </a>
               {showGallery && (
                 <button

@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/home";
 import Community from "@/pages/community";
 import CommunityFeature from "@/pages/CommunityFeature";
+import Places from "@/pages/places";
+import PlacesSubmit from "@/pages/PlacesSubmit";
 import Waitlist from "@/pages/waitlist";
 import ThankYou from "@/pages/thank-you";
 import Privacy from "@/pages/privacy";
@@ -18,6 +20,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/community" component={Community} />
       <Route path="/community/feature" component={CommunityFeature} />
+      <Route path="/places" component={Places} />
+      <Route path="/places/submit" component={PlacesSubmit} />
       <Route path="/waitlist" component={Waitlist} />
       <Route path="/thank-you" component={ThankYou} />
       <Route path="/privacy" component={Privacy} />

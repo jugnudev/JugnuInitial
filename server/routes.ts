@@ -1464,6 +1464,225 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Places directory API endpoints
+  app.get("/api/places/list", async (req, res) => {
+    try {
+      const { type, neighborhood, q, featured_first = '1', limit = '50', offset = '0' } = req.query;
+
+      const supabase = getSupabaseAdmin();
+      
+      // Build query
+      let query = supabase
+        .from('places')
+        .select('*')
+        .eq('status', 'active');
+
+      // Apply filters
+      if (type && type !== 'all') {
+        query = query.eq('type', type);
+      }
+      
+      if (neighborhood && neighborhood !== 'all') {
+        query = query.eq('neighborhood', neighborhood);
+      }
+
+      if (q) {
+        query = query.or(`name.ilike.%${q}%, tags.cs.{${q}}`);
+      }
+
+      // Get all matching places first
+      const { data: allPlaces, error } = await query.order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Places query error:', error);
+        throw error;
+      }
+
+      const places = allPlaces || [];
+
+      // Separate featured and regular items
+      let featured = null;
+      let items = places;
+
+      if (featured_first === '1') {
+        const featuredPlace = places.find(p => p.featured);
+        if (featuredPlace) {
+          featured = featuredPlace;
+          items = places.filter(p => p.id !== featuredPlace.id);
+        }
+      }
+
+      // Sort items: sponsored first (not expired), then by created_at desc
+      items.sort((a, b) => {
+        const now = new Date();
+        const aSponsored = a.sponsored && (!a.sponsored_until || new Date(a.sponsored_until) > now);
+        const bSponsored = b.sponsored && (!b.sponsored_until || new Date(b.sponsored_until) > now);
+        
+        if (aSponsored && !bSponsored) return -1;
+        if (!aSponsored && bSponsored) return 1;
+        
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+
+      // Apply pagination to items
+      const startIndex = parseInt(offset);
+      const limitNum = parseInt(limit);
+      const paginatedItems = items.slice(startIndex, startIndex + limitNum);
+
+      res.json({ 
+        ok: true, 
+        featured,
+        items: paginatedItems,
+        total: items.length
+      });
+    } catch (error) {
+      console.error('Places list error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to fetch places' });
+    }
+  });
+
+  // Admin: Upsert place
+  app.post("/api/places/admin/upsert", async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: "unauthorized" });
+      }
+
+      const supabase = getSupabaseAdmin();
+      const placeData = req.body;
+
+      let result;
+      if (placeData.id) {
+        // Update existing
+        const { data, error } = await supabase
+          .from('places')
+          .update({ ...placeData, updated_at: new Date().toISOString() })
+          .eq('id', placeData.id)
+          .select('id')
+          .single();
+        
+        if (error) throw error;
+        result = data;
+      } else {
+        // Insert new or upsert by name+neighborhood
+        const { data, error } = await supabase
+          .from('places')
+          .upsert(placeData, { 
+            onConflict: 'name,neighborhood',
+            ignoreDuplicates: false 
+          })
+          .select('id')
+          .single();
+        
+        if (error) throw error;
+        result = data;
+      }
+
+      res.json({ ok: true, id: result.id });
+    } catch (error) {
+      console.error('Places upsert error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to upsert place' });
+    }
+  });
+
+  // Admin: Feature place
+  app.post("/api/places/admin/feature", async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: "unauthorized" });
+      }
+
+      const { id, featured } = req.body;
+      const supabase = getSupabaseAdmin();
+
+      if (featured) {
+        // Set all others to false first
+        await supabase
+          .from('places')
+          .update({ featured: false })
+          .eq('featured', true);
+      }
+
+      // Update the target place
+      const { error } = await supabase
+        .from('places')
+        .update({ 
+          featured: featured, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error('Places feature error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to update featured status' });
+    }
+  });
+
+  // Public: Submit place
+  app.post("/api/places/submit", async (req, res) => {
+    try {
+      const { 
+        name, 
+        type, 
+        neighborhood, 
+        address, 
+        website_url, 
+        instagram, 
+        description, 
+        image_url, 
+        tags,
+        honeypot 
+      } = req.body;
+
+      // Basic spam protection
+      if (honeypot && honeypot.length > 0) {
+        return res.status(400).json({ ok: false, error: "Invalid submission" });
+      }
+
+      // Validate required fields
+      if (!name || !type) {
+        return res.status(400).json({ ok: false, error: "Missing required fields" });
+      }
+
+      const supabase = getSupabaseAdmin();
+
+      // Insert with hidden status for review
+      const { data, error } = await supabase
+        .from('places')
+        .insert({
+          name: name.trim(),
+          type: type.toLowerCase(),
+          neighborhood: neighborhood?.trim() || null,
+          address: address?.trim() || null,
+          website_url: website_url?.trim() || null,
+          instagram: instagram?.trim() || null,
+          description: description?.trim() || null,
+          image_url: image_url?.trim() || null,
+          tags: tags || [],
+          status: 'hidden', // Requires admin approval
+          featured: false,
+          sponsored: false
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('Place submission error:', error);
+        throw new Error('Failed to submit place');
+      }
+
+      res.json({ ok: true, id: data.id });
+    } catch (error) {
+      console.error('Place submit error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to submit place' });
+    }
+  });
+
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
 

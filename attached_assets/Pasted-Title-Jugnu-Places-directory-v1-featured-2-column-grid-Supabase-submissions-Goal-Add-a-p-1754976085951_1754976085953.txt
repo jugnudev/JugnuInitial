@@ -1,0 +1,120 @@
+Title: Jugnu — Places directory v1 (featured + 2-column grid + Supabase + submissions)
+
+Goal
+Add a premium “Places” section that lists South Asian restaurants & cultural spots in Vancouver with a featured hero, 2-up grid, filters, and a public submit form. Keep visual language consistent with Community events (16:9, copper glow, modals).
+
+1) Supabase schema (run in SQL Editor)
+CREATE TABLE IF NOT EXISTS public.places (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  name text NOT NULL,
+  type text NOT NULL,                  -- restaurant|cafe|dessert|grocer|fashion|beauty|dance|temple|gurdwara|mosque|gallery|org|other
+  description text,
+  neighborhood text,                   -- Downtown, Gastown, Kits, Surrey, Richmond, Burnaby, etc.
+  address text,
+  city text NOT NULL DEFAULT 'Vancouver, BC',
+  lat double precision,
+  lng double precision,
+  phone text,
+  website_url text,
+  booking_url text,                    -- OpenTable/Resy or reservation page
+  delivery_urls jsonb,                 -- { "ubereats": "...", "doordash": "...", "skipthedishes": "..." }
+  instagram text,
+  price_level int,                     -- 1-4
+  tags text[],                         -- ["chaat","biryani","vegan","halal","south-indian","punjabi",...]
+  image_url text,
+  gallery jsonb,                       -- ["url1","url2",...]
+  source_url text,                     -- original listing/press
+  featured boolean NOT NULL DEFAULT false,
+  sponsored boolean NOT NULL DEFAULT false,
+  sponsored_until timestamptz,
+  status text NOT NULL DEFAULT 'active' -- active|hidden
+);
+CREATE INDEX IF NOT EXISTS idx_places_type ON public.places (type);
+CREATE INDEX IF NOT EXISTS idx_places_featured ON public.places (featured);
+CREATE INDEX IF NOT EXISTS idx_places_neighborhood ON public.places (neighborhood);
+ALTER TABLE public.places ENABLE ROW LEVEL SECURITY;
+
+2) API (App Router)
+/app/api/places/list/route.ts (GET)
+- Query params: type?, neighborhood?, q?, featured_first=1|0 (default 1), limit?, offset?
+- Return JSON { featured, items }:
+  • featured = the first row with featured=true that matches the filters (optional).
+  • items = remaining results ordered:
+      - sponsored DESC (sponsored & not expired first)
+      - featured DESC (already excluded if used as hero)
+      - created_at DESC (fallback)
+- Filter status='active'. Case-insensitive search on name & tags when q provided.
+
+- Respect CITY_TZ (for consistency) but times aren’t required here.
+
+/app/api/places/admin/upsert/route.ts (POST, x-admin-key)
+- Body accepts any place fields; upsert by (name, neighborhood) combo or by id when present.
+- Returns { ok:true, id }.
+
+/app/api/places/admin/feature/route.ts (POST, x-admin-key)
+- Body { id, featured:boolean }. If true, set featured=false for all others then true for id. Returns { ok:true }.
+
+/app/api/places/submit/route.ts (POST)
+- Public submit (rate-limited + honeypot):
+  Body: { name, type, neighborhood?, address?, website_url?, instagram?, description?, image_url?, tags?:string[] }
+- Insert into places with status='hidden' and featured=false, sponsored=false.
+- Return { ok:true }.
+- (Optional webhook: REQUESTS_WEBHOOK_URL)
+
+3) Pages & components
+/app/places/page.tsx
+- Header: “South Asian Places in Vancouver”
+- Subcopy: “Restaurants, cafés, shops & cultural spots.”
+- Filters:
+  • Type chips: All, Restaurant, Café, Dessert, Grocer, Fashion, Beauty, Dance, Temple, Gurdwara, Mosque, Gallery, Org.
+  • Neighborhood dropdown: Downtown, Gastown, Kits, Burnaby, Surrey, Richmond, Other.
+  • Search input (q).
+- Data fetch: GET /api/places/list with selected filters; render:
+  • FeaturedHeroPlace (if featured exists)
+  • Grid: 1 col on mobile, 2 cols from md up (gap-6/8)
+- Cards (16:9):
+  • Poster (next/image, object-cover), gradient overlay, top-left “type” pill, top-right “sponsored” pill if sponsored and not expired, bottom title + neighborhood • city.
+  • Small actions row: Website, Book, IG (only if URLs exist).
+  • Click → DetailsModalPlace (like events modal: 2-column on desktop, full-screen sheet on mobile).
+
+components/places/FeaturedHeroPlace.tsx
+- Full-width 16:9, rounded-2xl, copper glow.
+- Title, neighborhood • city, optional price level (render as ₹₹-₹₹₹ style using price_level).
+- Primary CTA: Website/Book (prioritize booking_url > website_url), Secondary: View details (modal), IG icon link optional.
+
+components/places/DetailsModalPlace.tsx
+- Poster on left (desktop). Right column:
+  • Title, type pill, price level
+  • Neighborhood • city, full address (with “Open in Maps”) if present
+  • Description (clean paragraphs), tag chips
+  • Links row: Website, Book, IG, Delivery apps (expandable menu if multiple in delivery_urls)
+  • Share button (Web Share API + clipboard fallback)
+- Keep focus trap, aria-modal, ESC to close, deep-link ?p=<id> like events.
+
+4) Submissions page
+/app/places/submit/page.tsx
+- Friendly form for owners to submit a place listing (fields from /places/submit API).
+- Success → /thank-you.
+
+5) Nav
+- Add “Places” to the main nav linking to /places.
+- Add a small link on /places header: “List your place” → /places/submit.
+
+6) next.config.js images
+- Ensure remotePatterns include:
+  res.cloudinary.com, **.supabase.co, i.imgur.com, images.squarespace-cdn.com, static.wixstatic.com, img.evbuc.com
+
+7) Styling
+- Use the same 16:9 aspect and copper glow as Community v2.5.
+- Card hover: subtle glow + scale-105 (respect reduced motion).
+- Touch targets >= 44px.
+
+8) SEO
+- /places: meta title/description.
+- JSON-LD (LocalBusiness) for top 5 visible items (name, url, image, addressLocality, sameAs for IG).
+- Respect NEXT_PUBLIC_INDEXABLE flag.
+
+9) README
+- How to add places (Supabase Table Editor or /places/submit form), how to feature via admin endpoint, how to mark sponsored (set sponsored=true and, optionally, sponsored_until).

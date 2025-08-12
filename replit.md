@@ -95,18 +95,23 @@ Preferred communication style: Simple, everyday language.
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 - **Featured Event Parsing**: Auto-detect "Featured: true|yes|1" from calendar descriptions or use admin API
 
-### Current State (Waitlist Mode v2.3 + Community v2.9 Request Featured Intake + Admin Approval)
-- **Dual Purpose**: Waitlist mode for Jugnu events + Community calendar for broader ecosystem
-- **Smart Navigation**: Community link always visible, Events/Gallery conditionally shown, proper routing from /community
-- **Featured Hero v2.8**: Large 16:9 hero display for featured events with copper glow styling and prominent CTAs
-- **2-Column Grid Layout**: Desktop shows 2 events per row (1 on mobile) with 16:9 aspect ratio cards for visual consistency
-- **Request Featured System v2.9**: Public form at /community/feature for organizers to request featured placement
-- **Admin Approval Workflow**: Admin endpoints to approve/reject feature requests with automatic event creation and featured assignment
-- **Enhanced Modal**: Share with Web Share API + smooth cursor-positioned toast notifications, cleaned descriptions with "Show more"
-- **Admin Tools**: ICS import cron job + manual event management via API + description cleaning + featured toggle endpoint + feature request management
+### Current State (Places Directory v1 + Community v2.9 + Waitlist Mode v2.3)
+- **Dual Purpose**: Waitlist mode for Jugnu events + Community calendar + Places directory for South Asian businesses
+- **Smart Navigation**: Community and Places always visible, Events/Gallery conditionally shown
+- **Places Directory v1**: South Asian restaurants, cafes, shops & cultural spots with featured hero system, 2-column grid, filtering
+- **Places Features**: Type filtering (restaurant, cafe, dessert, etc), neighborhood filtering, search, featured hero with copper glow
+- **Places Components**: FeaturedHeroPlace, PlaceCard, DetailsModalPlace with 16:9 aspect ratios and premium UX patterns
+- **Places Submission**: Public form at /places/submit for business owners to list their places (requires admin approval)
+- **Places API**: Full CRUD endpoints for listing, admin upsert, featuring, and public submissions with status management
+- **Featured Hero v2.8**: Large 16:9 hero display for featured places and events with copper glow styling and prominent CTAs
+- **2-Column Grid Layout**: Desktop shows 2 items per row (1 on mobile) with 16:9 aspect ratio cards for visual consistency
+- **Request Featured System v2.9**: Public forms for both events (/community/feature) and places (/places/submit)
+- **Admin Approval Workflow**: Admin endpoints to approve/reject requests with automatic creation and featured assignment
+- **Enhanced Modals**: Share with Web Share API + smooth cursor-positioned toast notifications, cleaned descriptions with "Show more"
+- **Admin Tools**: ICS import cron job + manual management via API + description cleaning + featured toggle endpoints
 - **Accurate Date/Time**: Timezone-aware formatting with all-day event detection, eliminates "TBA" displays
 - **Solid Deduplication v2.7**: Prevents duplicates using ICS UIDs + canonical keys (title+date+venue), manual dedup at query time
-- **Featured Event Management**: Parse "Featured: true" from Google Calendar descriptions, public request form, or admin API toggle
+- **Consistent Design Language**: Same copper theming, 16:9 aspect ratios, modal patterns across Events and Places
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS
