@@ -14,6 +14,7 @@ import PageHero from "@/components/explore/PageHero";
 import Toolbar from "@/components/explore/Toolbar";
 import EmptyState from "@/components/explore/EmptyState";
 import DetailsModal from "@/components/community/DetailsModal";
+import FilterDrawer from "@/components/explore/FilterDrawer";
 
 const CATEGORIES = [
   { value: 'All', label: 'All Events' },
@@ -35,11 +36,16 @@ export default function EventsExplore() {
   const eventIdFromUrl = urlParams.get('e');
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['/api/community/weekly', { 
-      range: filters.range || 'month', 
-      category: categoryFilter === 'All' ? undefined : categoryFilter.toLowerCase(),
-      q: searchQuery || undefined
-    }],
+    queryKey: ['/api/community/weekly', filters.range || 'month', categoryFilter === 'All' ? undefined : categoryFilter.toLowerCase(), searchQuery || undefined],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        range: filters.range || 'month',
+        ...(categoryFilter !== 'All' && { category: categoryFilter.toLowerCase() }),
+        ...(searchQuery && { q: searchQuery })
+      });
+      const response = await fetch(`/api/community/weekly?${params.toString()}`);
+      return response.json();
+    }
   });
 
   const events = (data as any)?.items || [];
@@ -181,19 +187,21 @@ export default function EventsExplore() {
 
         {/* Error State */}
         {error && (
-          <div className="mt-10 md:mt-14">
-            <EmptyState
-              message="Unable to load events"
-              description="There was a problem loading the events. Please try again later."
-              action={
-                <Button
-                  onClick={() => window.location.reload()}
-                  className="bg-copper-500 hover:bg-copper-600 text-black font-medium"
-                >
-                  Retry
-                </Button>
-              }
-            />
+          <div className="mt-10 md:mt-14 text-center py-16">
+            <div className="max-w-md mx-auto space-y-6">
+              <h3 className="text-xl font-semibold text-white">
+                Unable to load events
+              </h3>
+              <p className="text-muted text-base">
+                There was a problem loading the events. Please try again later.
+              </p>
+              <Button
+                onClick={() => window.location.reload()}
+                className="bg-copper-500 hover:bg-copper-600 text-black font-medium"
+              >
+                Retry
+              </Button>
+            </div>
           </div>
         )}
 
@@ -212,7 +220,6 @@ export default function EventsExplore() {
                   is_all_day: typeof featuredEvent.is_all_day === 'string' ? featuredEvent.is_all_day === 'true' : Boolean(featuredEvent.is_all_day),
                 }}
                 onViewDetails={() => handleEventClick(featuredEvent)}
-                className="mb-10"
               />
             )}
 
@@ -243,36 +250,23 @@ export default function EventsExplore() {
               </motion.div>
             ) : (
               <EmptyState
-                message={hasActiveFilters ? "No events match your filters" : "No events found"}
-                description={
-                  hasActiveFilters 
-                    ? "Try adjusting your search or filters to find events."
-                    : "Check back soon for upcoming South Asian events in Vancouver."
-                }
-                action={
-                  hasActiveFilters ? (
-                    <Button
-                      onClick={clearFilters}
-                      variant="outline"
-                      className="border-white/20 text-white hover:bg-white/10"
-                    >
-                      Clear Filters
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => window.location.href = '/events/feature'}
-                      className="bg-copper-500 hover:bg-copper-600 text-black font-medium"
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Request Featured
-                    </Button>
-                  )
-                }
+                type="events"
+                hasFilters={hasActiveFilters}
+                onAddClick={() => window.location.href = '/events/feature'}
               />
             )}
           </div>
         )}
       </div>
+
+      {/* Filter Drawer */}
+      <FilterDrawer
+        isOpen={isFilterDrawerOpen}
+        onClose={() => setIsFilterDrawerOpen(false)}
+        type="events"
+        filters={filters}
+        onFiltersChange={setFilters}
+      />
 
       {/* Event Detail Modal */}
       {selectedEvent && (

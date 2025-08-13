@@ -67,7 +67,7 @@ export function apiParamToGroup(param: string): PlaceGroup {
 // Price level helpers
 export function formatPriceLevel(level?: number): string {
   if (!level) return '';
-  return '₹'.repeat(level);
+  return '$'.repeat(level);
 }
 
 export function getPriceLevels() {

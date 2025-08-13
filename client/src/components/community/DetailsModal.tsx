@@ -209,7 +209,7 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
                 </h1>
                 {event.price_from && parseFloat(event.price_from) > 0 && (
                   <div className="text-primary text-lg font-semibold shrink-0">
-                    from ${event.price_from}
+                    from CAD ${event.price_from}
                   </div>
                 )}
               </div>
