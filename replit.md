@@ -95,45 +95,21 @@ Preferred communication style: Simple, everyday language.
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 - **Featured Event Parsing**: Auto-detect "Featured: true|yes|1" from calendar descriptions or use admin API
 
-### Current State (v3.4.3 Places Sync v1 - Google/Yelp Import + Admin Tools)
-- **Premium Explore UI v3.1**: Unified design system with robust date handling, enhanced UX polish, and graceful fallbacks
-- **Date Utilities v3.1**: Comprehensive `/lib/dates.ts` with timezone-aware formatting, all-day event detection, NaN/Invalid Date elimination
-- **Enhanced UI Polish**: Increased vertical rhythm (mt-10 md:mt-14), enhanced grid spacing (md:gap-8), subtle button glow effects
-- **Dual Purpose**: Waitlist mode for Jugnu events + Community calendar + Places directory for South Asian businesses
-- **Smart Navigation**: Community and Places always visible, Events/Gallery conditionally shown, consistent menu bar across all pages
-- **Unified Components**: Shared PageHero, Toolbar, FilterDrawer, FeaturedHero, Card, EmptyState across Events and Places
-- **Places Directory v1**: South Asian restaurants, cafes, shops & cultural spots with featured hero system, 2-column grid, filtering
-- **Places Features**: Type filtering (restaurant, cafe, dessert, etc), neighborhood filtering, search, featured hero with copper glow
-- **Places Database**: SQL schema ready for Supabase deployment with RLS policies and sample data
-- **Places Submission**: Public form at /places/submit for business owners to list their places (requires admin approval)
-- **Places API**: Full CRUD endpoints for listing, admin upsert, featuring, and public submissions with status management
-- **Featured Hero v2.8**: Large 16:9 hero display for featured places and events with copper glow styling and prominent CTAs
-- **2-Column Grid Layout**: Desktop shows 2 items per row (1 on mobile) with 16:9 aspect ratio cards for visual consistency
-- **Request Featured System v2.9**: Public forms for both events (/community/feature) and places (/places/submit)
-- **Admin Approval Workflow**: Admin endpoints to approve/reject requests with automatic creation and featured assignment
-- **Enhanced Modals**: Share with Web Share API + smooth cursor-positioned toast notifications, cleaned descriptions with "Show more"
-- **Admin Tools**: ICS import cron job + manual management via API + description cleaning + featured toggle endpoints
-- **Robust Date Handling**: Timezone-aware formatting with all-day event detection, eliminates "TBA" displays, graceful fallbacks
-- **Solid Deduplication v2.7**: Prevents duplicates using ICS UIDs + canonical keys (title+date+venue), manual dedup at query time
-- **Consistent Design Language**: Same copper theming, 16:9 aspect ratios, modal patterns across Events and Places
-- **TypeScript Excellence**: All components properly typed, boolean conversions handled, interface consistency maintained
-- **Navigation Enhancement v3.1**: Added persistent navigation menu bar to all pages including Community and Places for seamless user navigation
-- **Explore v3.3 - Events Rebrand + Clean UX**: Renamed Community to Events, removed noisy Collections carousel, improved UUID-based favorites system, cleaner navigation UX
-- **Events Rebranding**: /community redirects to /events, updated navigation, /community/feature redirects to /events/feature
-- **UUID-Based Favorites v3.3**: New /api/events/by-ids and /api/places/by-ids endpoints for reliable UUID-based favorites, improved Saved page with direct API calls
-- **Simplified UX**: Removed Collections carousel from main pages to reduce noise, cleaner toolbar and navigation experience
-- **v3.4.2 Stability Refinement**: Comprehensive API error handling with retry logic, shimmer loading animations, robust image error handling, accessibility enhancements with focus rings and ARIA labels, keyboard navigation support, production-ready error states
-- **Layout Bug Fixes**: Fixed duplicate navigation menu issue on privacy/terms pages, enhanced focus management throughout the application
-- **Admin Bulk Import v3.4.3**: Secure bulk import endpoint POST /api/places/admin/bulk-upsert with x-admin-key authentication, canonical_key deduplication, field mapping, URL validation, HTML stripping, and comprehensive error reporting
-- **Places Sync v1 (Latest)**: Automated Google Places API and Yelp Fusion API integration for Metro Vancouver South Asian businesses with intelligent filtering, category mapping, deduplication, and nightly verification system
-- **Places Sync Features**: Google Places Text Search + Place Details API, Yelp Business Search API, South Asian keyword filtering, business status tracking (OPERATIONAL/CLOSED), rating and review count sync, coordinate-based proximity deduplication
-- **Places Admin API v1**: Five secure admin endpoints - import/sync (all cities or specific), reverify (check business status), review (moderate by status), approve/feature, hide/deactivate
-- **Places Database Schema v2**: Extended with google_place_id, yelp_id, business_status, rating, rating_count, lat/lng coordinates, last_verified_at timestamp, and proper indexing for efficient lookups
-- **Development Utilities**: Dev-only page at /dev/places-sync with sync buttons, statistics dashboard, admin quick links, and real-time operation results
-- **Backfill Matcher & Duplicate Resolver v3.4.4**: Advanced ID matching system using Jaro-Winkler string similarity, distance-based scoring, and intelligent duplicate merging
-- **Smart Matching Algorithm**: Scores places using name similarity (40%), address matching (35%), and geographic distance (25%) with 0.85 threshold for acceptance
-- **Duplicate Resolution**: Automatically merges duplicates by selecting most complete record, copying missing fields, and marking losers as 'merged' status
-- **Additional Admin Endpoints**: match-ids (backfill Google/Yelp IDs), inactivate-unmatched (14-day cleanup), and enhanced statistics with matching insights
+### Current State (v4.0 Sponsorship & Spotlight - COMPLETE ✓)
+- **Sponsorship & Spotlight v4.0 - OPERATIONAL**: Complete monetization system successfully deployed replacing Places directory with comprehensive sponsorship platform
+- **Database Infrastructure**: Full Supabase schema operational - sponsor_campaigns, sponsor_creatives, sponsor_metrics_daily, sponsor_leads tables initialized and functioning
+- **Admin API System**: Secure server-side admin endpoints for campaign management, creative uploads, metrics tracking, and lead management with environment-based admin key authentication
+- **Public API System**: /api/spotlight/active endpoint with placement-based targeting, frequency capping, round-robin delivery, and 5-minute caching for optimal performance
+- **SpotlightHero Component**: Primary homepage hero takeover system with fallback to traditional hero, impression tracking, click tracking with UTM parameters
+- **SponsoredBanner Component**: Events page banner placement with frequency capping (1x per user per day), impression/click analytics, localStorage-based user session management
+- **Revenue Generation Page**: /promote public page with three monetization packages (Spotlight Banner $500+/week, Homepage Hero $1500+/week, Full Feature $3000+/campaign)
+- **Lead Capture System**: Complete application form with business information, campaign objectives, budget ranges, placement selection, and secure lead storage
+- **Navigation Transformation**: Places completely removed from all navigation (desktop/mobile), replaced with /promote link, /places routes redirect to /explore
+- **Security Architecture**: All admin operations use server-side routes with environment-based authentication, zero client-side secret exposure, protected dev console
+- **Analytics & Tracking**: Comprehensive impression/click tracking with daily aggregation, campaign performance metrics, CTR calculations, and admin dashboard ready
+- **Content Delivery System**: Smart placement targeting (home_hero, events_banner), creative management for desktop/mobile assets, logo support, and alt text accessibility
+- **Business Model Integration**: Three-tier sponsorship packages with detailed specifications, asset requirements, pricing structure, and professional application workflow
+- **Places Legacy Protection**: Dev tools remain accessible via secure admin routes, no public indexing, complete architectural separation from public-facing sponsorship system
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS

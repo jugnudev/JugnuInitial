@@ -18,6 +18,7 @@ import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import NotFound from "@/pages/not-found";
 import DevPlacesSync from "@/pages/DevPlacesSync";
+import Promote from "@/pages/Promote";
 
 function Router() {
   return (
@@ -29,8 +30,9 @@ function Router() {
         <Route path="/community" component={CommunityRedirect} />
         <Route path="/events/feature" component={CommunityFeature} />
         <Route path="/community/feature" component={CommunityRedirect} />
-        <Route path="/places" component={Places} />
-        <Route path="/places/submit" component={PlacesSubmit} />
+        <Route path="/promote" component={Promote} />
+        <Route path="/places" component={() => { window.location.href = '/explore'; return null; }} />
+        <Route path="/places/submit" component={() => { window.location.href = '/explore'; return null; }} />
         <Route path="/saved" component={Saved} />
         <Route path="/waitlist" component={Waitlist} />
         <Route path="/thank-you" component={ThankYou} />

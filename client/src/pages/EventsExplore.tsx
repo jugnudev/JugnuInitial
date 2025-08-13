@@ -15,6 +15,7 @@ import Toolbar from "@/components/explore/Toolbar";
 import EmptyState from "@/components/explore/EmptyState";
 import DetailsModal from "@/components/community/DetailsModal";
 import FilterDrawer from "@/components/explore/FilterDrawer";
+import { SponsoredBanner } from "@/components/spotlight/SponsoredBanner";
 
 const CATEGORIES = [
   { value: 'All', label: 'All Events' },
@@ -222,6 +223,9 @@ export default function EventsExplore() {
                 onViewDetails={() => handleEventClick(featuredEvent)}
               />
             )}
+
+            {/* Sponsored Banner */}
+            <SponsoredBanner />
 
             {/* Events Grid */}
             {filteredEvents.length > 0 ? (

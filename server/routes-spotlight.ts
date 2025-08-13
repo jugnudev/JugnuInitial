@@ -1,0 +1,497 @@
+import type { Express } from "express";
+import { getSupabaseAdmin } from "./supabaseAdmin";
+
+export function addSpotlightRoutes(app: Express) {
+  const supabase = getSupabaseAdmin();
+
+  // Initialize database tables if they don't exist
+  const initTables = async () => {
+    try {
+      // Create sponsor_campaigns table
+      await supabase.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.sponsor_campaigns (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            created_at timestamptz NOT NULL DEFAULT now(),
+            updated_at timestamptz NOT NULL DEFAULT now(),
+            name text NOT NULL,
+            sponsor_name text NOT NULL,
+            headline text,
+            subline text,
+            cta_text text,
+            click_url text NOT NULL,
+            placements text[] NOT NULL DEFAULT ARRAY['home_hero','events_banner'],
+            start_at timestamptz NOT NULL,
+            end_at timestamptz NOT NULL,
+            priority int NOT NULL DEFAULT 0,
+            is_active boolean NOT NULL DEFAULT true,
+            is_sponsored boolean NOT NULL DEFAULT true,
+            tags text[] DEFAULT '{}'
+          );
+        `
+      });
+
+      // Create sponsor_creatives table
+      await supabase.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.sponsor_creatives (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            created_at timestamptz NOT NULL DEFAULT now(),
+            campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
+            placement text NOT NULL,
+            image_desktop_url text,
+            image_mobile_url text,
+            logo_url text,
+            alt text
+          );
+        `
+      });
+
+      // Create sponsor_metrics_daily table
+      await supabase.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.sponsor_metrics_daily (
+            day date NOT NULL,
+            campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
+            placement text NOT NULL,
+            impressions int NOT NULL DEFAULT 0,
+            clicks int NOT NULL DEFAULT 0,
+            PRIMARY KEY (day, campaign_id, placement)
+          );
+        `
+      });
+
+      // Create sponsor_leads table
+      await supabase.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.sponsor_leads (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            created_at timestamptz NOT NULL DEFAULT now(),
+            payload jsonb NOT NULL,
+            status text NOT NULL DEFAULT 'new'
+          );
+        `
+      });
+
+      console.log('✓ Spotlight database tables initialized');
+    } catch (error) {
+      console.error('Database initialization error:', error);
+    }
+  };
+
+  // Initialize tables on startup
+  initTables();
+
+  // Admin authentication middleware
+  const requireAdminKey = (req: any, res: any, next: any) => {
+    const adminKey = req.headers['x-admin-key'];
+    const expectedKey = process.env.EXPORT_ADMIN_KEY || 'dev-key-placeholder';
+    
+    if (!adminKey || adminKey !== expectedKey) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized - invalid admin key' });
+    }
+    next();
+  };
+
+  // ======= ADMIN API ROUTES =======
+
+  // POST /api/spotlight/admin/campaign/upsert
+  app.post('/api/spotlight/admin/campaign/upsert', requireAdminKey, async (req, res) => {
+    try {
+      const {
+        id,
+        name,
+        sponsor_name,
+        headline,
+        subline,
+        cta_text,
+        click_url,
+        placements,
+        start_at,
+        end_at,
+        priority = 0,
+        is_active = true,
+        is_sponsored = true,
+        tags = [],
+        creatives = []
+      } = req.body;
+
+      let campaign;
+
+      if (id) {
+        // Update existing campaign
+        const { data, error } = await supabase
+          .from('sponsor_campaigns')
+          .update({
+            name,
+            sponsor_name,
+            headline,
+            subline,
+            cta_text,
+            click_url,
+            placements,
+            start_at,
+            end_at,
+            priority,
+            is_active,
+            is_sponsored,
+            tags,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) throw error;
+        campaign = data;
+      } else {
+        // Create new campaign
+        const { data, error } = await supabase
+          .from('sponsor_campaigns')
+          .insert({
+            name,
+            sponsor_name,
+            headline,
+            subline,
+            cta_text,
+            click_url,
+            placements,
+            start_at,
+            end_at,
+            priority,
+            is_active,
+            is_sponsored,
+            tags
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        campaign = data;
+      }
+
+      // Update creatives if provided
+      if (creatives && creatives.length > 0) {
+        // Delete existing creatives for this campaign
+        await supabase
+          .from('sponsor_creatives')
+          .delete()
+          .eq('campaign_id', campaign.id);
+
+        // Insert new creatives
+        const creativesData = creatives.map((creative: any) => ({
+          campaign_id: campaign.id,
+          placement: creative.placement,
+          image_desktop_url: creative.image_desktop_url,
+          image_mobile_url: creative.image_mobile_url,
+          logo_url: creative.logo_url,
+          alt: creative.alt
+        }));
+
+        const { error: creativesError } = await supabase
+          .from('sponsor_creatives')
+          .insert(creativesData);
+
+        if (creativesError) throw creativesError;
+      }
+
+      res.json({
+        ok: true,
+        campaign,
+        message: id ? 'Campaign updated successfully' : 'Campaign created successfully'
+      });
+
+    } catch (error) {
+      console.error('Campaign upsert error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to upsert campaign'
+      });
+    }
+  });
+
+  // POST /api/spotlight/admin/campaign/toggle
+  app.post('/api/spotlight/admin/campaign/toggle', requireAdminKey, async (req, res) => {
+    try {
+      const { id, is_active } = req.body;
+
+      const { data, error } = await supabase
+        .from('sponsor_campaigns')
+        .update({ 
+          is_active, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json({
+        ok: true,
+        campaign: data,
+        message: `Campaign ${is_active ? 'activated' : 'deactivated'}`
+      });
+
+    } catch (error) {
+      console.error('Campaign toggle error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to toggle campaign'
+      });
+    }
+  });
+
+  // GET /api/spotlight/admin/campaigns
+  app.get('/api/spotlight/admin/campaigns', requireAdminKey, async (req, res) => {
+    try {
+      const { data: campaigns, error } = await supabase
+        .from('sponsor_campaigns')
+        .select(`
+          *,
+          creatives:sponsor_creatives(*)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Get basic metrics for each campaign
+      const campaignsWithMetrics = await Promise.all(
+        campaigns.map(async (campaign) => {
+          const { data: metrics } = await supabase
+            .from('sponsor_metrics_daily')
+            .select('impressions, clicks')
+            .eq('campaign_id', campaign.id);
+
+          const totalImpressions = metrics?.reduce((sum, m) => sum + m.impressions, 0) || 0;
+          const totalClicks = metrics?.reduce((sum, m) => sum + m.clicks, 0) || 0;
+
+          return {
+            ...campaign,
+            metrics: {
+              impressions: totalImpressions,
+              clicks: totalClicks,
+              ctr: totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(2) : '0.00'
+            }
+          };
+        })
+      );
+
+      res.json({
+        ok: true,
+        campaigns: campaignsWithMetrics
+      });
+
+    } catch (error) {
+      console.error('Get campaigns error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to get campaigns'
+      });
+    }
+  });
+
+  // POST /api/spotlight/admin/metrics/track
+  app.post('/api/spotlight/admin/metrics/track', async (req, res) => {
+    try {
+      const { campaignId, placement, kind } = req.body;
+      
+      if (!['click', 'impression'].includes(kind)) {
+        return res.status(400).json({ ok: false, error: 'Invalid tracking kind' });
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+
+      // Upsert daily metrics
+      const { error } = await supabase.rpc('upsert_sponsor_metrics', {
+        p_day: today,
+        p_campaign_id: campaignId,
+        p_placement: placement,
+        p_impressions: kind === 'impression' ? 1 : 0,
+        p_clicks: kind === 'click' ? 1 : 0
+      });
+
+      if (error) {
+        // Fallback to manual upsert if RPC doesn't exist
+        const { data: existing } = await supabase
+          .from('sponsor_metrics_daily')
+          .select('*')
+          .eq('day', today)
+          .eq('campaign_id', campaignId)
+          .eq('placement', placement)
+          .single();
+
+        if (existing) {
+          const updates = kind === 'impression' 
+            ? { impressions: existing.impressions + 1 }
+            : { clicks: existing.clicks + 1 };
+
+          await supabase
+            .from('sponsor_metrics_daily')
+            .update(updates)
+            .eq('day', today)
+            .eq('campaign_id', campaignId)
+            .eq('placement', placement);
+        } else {
+          await supabase
+            .from('sponsor_metrics_daily')
+            .insert({
+              day: today,
+              campaign_id: campaignId,
+              placement: placement,
+              impressions: kind === 'impression' ? 1 : 0,
+              clicks: kind === 'click' ? 1 : 0
+            });
+        }
+      }
+
+      res.json({ ok: true });
+
+    } catch (error) {
+      console.error('Metrics tracking error:', error);
+      // Don't fail the request - analytics failures shouldn't break user experience
+      res.json({ ok: true });
+    }
+  });
+
+  // GET /api/spotlight/admin/leads
+  app.get('/api/spotlight/admin/leads', requireAdminKey, async (req, res) => {
+    try {
+      const { data: leads, error } = await supabase
+        .from('sponsor_leads')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      res.json({
+        ok: true,
+        leads
+      });
+
+    } catch (error) {
+      console.error('Get leads error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to get leads'
+      });
+    }
+  });
+
+  // ======= PUBLIC API ROUTES =======
+
+  // GET /api/spotlight/active
+  app.get('/api/spotlight/active', async (req, res) => {
+    try {
+      const { route, slots } = req.query;
+      const requestedSlots = typeof slots === 'string' ? slots.split(',') : ['home_hero'];
+      
+      const now = new Date().toISOString();
+
+      // Get active campaigns for requested placements
+      const { data: campaigns, error } = await supabase
+        .from('sponsor_campaigns')
+        .select(`
+          *,
+          creatives:sponsor_creatives(*)
+        `)
+        .eq('is_active', true)
+        .lte('start_at', now)
+        .gte('end_at', now)
+        .overlaps('placements', requestedSlots)
+        .order('priority', { ascending: false });
+
+      if (error) throw error;
+
+      // Select one creative per requested placement
+      const activeSpotlights: any = {};
+
+      for (const slot of requestedSlots) {
+        const eligibleCampaigns = campaigns.filter(campaign => 
+          campaign.placements.includes(slot) &&
+          campaign.creatives.some((c: any) => c.placement === slot)
+        );
+
+        if (eligibleCampaigns.length > 0) {
+          // Simple round-robin based on current minute for now
+          const selectedCampaign = eligibleCampaigns[Date.now() % eligibleCampaigns.length];
+          const creative = selectedCampaign.creatives.find((c: any) => c.placement === slot);
+
+          if (creative) {
+            activeSpotlights[slot] = {
+              campaignId: selectedCampaign.id,
+              sponsor_name: selectedCampaign.sponsor_name,
+              headline: selectedCampaign.headline,
+              subline: selectedCampaign.subline,
+              cta_text: selectedCampaign.cta_text,
+              click_url: selectedCampaign.click_url,
+              is_sponsored: selectedCampaign.is_sponsored,
+              tags: selectedCampaign.tags,
+              creative: {
+                image_desktop_url: creative.image_desktop_url,
+                image_mobile_url: creative.image_mobile_url,
+                logo_url: creative.logo_url,
+                alt: creative.alt
+              }
+            };
+          }
+        }
+      }
+
+      // Cache for 5 minutes
+      res.set('Cache-Control', 'public, s-maxage=300, max-age=300');
+      res.json({
+        ok: true,
+        spotlights: activeSpotlights
+      });
+
+    } catch (error) {
+      console.error('Get active spotlights error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to get active spotlights'
+      });
+    }
+  });
+
+  // POST /api/spotlight/leads (for /promote form submissions)
+  app.post('/api/spotlight/leads', async (req, res) => {
+    try {
+      const payload = req.body;
+
+      // Basic validation
+      if (!payload.business_name || !payload.contact_name || !payload.email) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Missing required fields: business_name, contact_name, email'
+        });
+      }
+
+      const { data, error } = await supabase
+        .from('sponsor_leads')
+        .insert({
+          payload: payload,
+          status: 'new'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json({
+        ok: true,
+        lead: data,
+        message: 'Thank you for your interest! We\'ll be in touch soon.'
+      });
+
+    } catch (error) {
+      console.error('Lead submission error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to submit lead'
+      });
+    }
+  });
+
+  console.log('✓ Spotlight routes added');
+}

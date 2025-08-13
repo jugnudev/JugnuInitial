@@ -100,15 +100,15 @@ export default function Navigation() {
                 Events
               </Link>
               <Link
-                href="/places"
+                href="/promote"
                 className={`transition-colors duration-200 font-medium ${
-                  location === '/places' 
+                  location === '/promote' 
                     ? 'text-accent' 
                     : 'text-text hover:text-accent'
                 }`}
-                data-testid="nav-places"
+                data-testid="nav-promote"
               >
-                Places
+                Promote
               </Link>
               <Link
                 href="/saved"
@@ -199,16 +199,16 @@ export default function Navigation() {
                 Events
               </Link>
               <Link
-                href="/places"
+                href="/promote"
                 className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
-                  location === '/places' 
+                  location === '/promote' 
                     ? 'text-accent' 
                     : 'text-text hover:text-accent'
                 }`}
-                data-testid="nav-mobile-places"
+                data-testid="nav-mobile-promote"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Places
+                Promote
               </Link>
               <Link
                 href="/saved"

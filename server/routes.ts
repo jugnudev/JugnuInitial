@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 import { addPlacesV13Routes } from './routes-places-v13.js';
+import { addSpotlightRoutes } from './routes-spotlight.js';
 import { createHash } from "crypto";
 import ical from "node-ical";
 import he from "he";
@@ -2530,6 +2531,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add Places v1.3 routes for worship reclassification and photo enrichment
   addPlacesV13Routes(app);
+
+  // Add Sponsorship & Spotlight v4.0 routes
+  addSpotlightRoutes(app);
 
   // Dev-only routes that call admin endpoints server-side (no client secrets)
   if (process.env.NODE_ENV !== 'production') {

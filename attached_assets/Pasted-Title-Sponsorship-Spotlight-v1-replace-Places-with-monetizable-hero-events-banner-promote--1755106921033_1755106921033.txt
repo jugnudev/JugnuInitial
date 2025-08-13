@@ -1,0 +1,125 @@
+Title: Sponsorship & Spotlight v1 — replace Places with monetizable hero + events banner + /promote
+
+Goals
+- Remove “Places” from nav and public index.
+- Add a sponsor-ready Spotlight system with: Homepage Hero, Events Inline Banner, optional Detail page.
+- Add /promote with packages + request form.
+- No Google/Yelp APIs required.
+
+Part A — Decommission Places (keep internal)
+1) Hide “Places” in header/footer. 301 redirect /places → /explore (or /).
+2) If any public Places routes remain, add <meta name="robots" content="noindex,nofollow">.
+3) Keep /dev/places-sync but guard: NODE_ENV !== 'production' OR require x-admin-key cookie; otherwise 404.
+4) Disable any scheduled jobs for places sync/reverify.
+
+Part B — Data model (Supabase, idempotent)
+-- Campaigns and creatives
+CREATE TABLE IF NOT EXISTS public.sponsor_campaigns (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  name text NOT NULL,
+  sponsor_name text NOT NULL,
+  headline text,
+  subline text,
+  cta_text text,
+  click_url text NOT NULL,
+  placements text[] NOT NULL DEFAULT ARRAY['home_hero','events_banner'], -- allowed: home_hero, events_banner
+  start_at timestamptz NOT NULL,
+  end_at timestamptz NOT NULL,
+  priority int NOT NULL DEFAULT 0,  -- higher wins
+  is_active boolean NOT NULL DEFAULT true,
+  is_sponsored boolean NOT NULL DEFAULT true,
+  tags text[] DEFAULT '{}'
+);
+
+CREATE TABLE IF NOT EXISTS public.sponsor_creatives (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
+  placement text NOT NULL, -- 'home_hero' | 'events_banner'
+  image_desktop_url text,  -- 1600x900
+  image_mobile_url text,   -- 1080x1350
+  logo_url text,
+  alt text
+);
+
+-- lightweight aggregated analytics (optional)
+CREATE TABLE IF NOT EXISTS public.sponsor_metrics_daily (
+  day date NOT NULL,
+  campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
+  placement text NOT NULL,
+  impressions int NOT NULL DEFAULT 0,
+  clicks int NOT NULL DEFAULT 0,
+  PRIMARY KEY (day, campaign_id, placement)
+);
+
+Part C — Admin API (x-admin-key)
+- POST /api/spotlight/admin/campaign/upsert   (create/update, with creatives)
+- POST /api/spotlight/admin/campaign/toggle   {id, is_active}
+- GET  /api/spotlight/admin/campaigns         (list with metrics)
+- POST /api/spotlight/admin/metrics/track     {campaignId, placement, kind:'click'|'impression'}
+
+Part D — Public API
+- GET /api/spotlight/active?route=/&slots=home_hero,events_banner
+  Returns at most one active creative per requested placement, chosen by:
+  • now() between start_at and end_at
+  • is_active = true
+  • highest priority first
+  • simple rotation if multiple (round-robin)
+  Cache-Control: s-maxage=300 (5 min).
+
+Part E — UI components
+1) <SpotlightHero /> on home:
+   - Renders active home_hero creative with background image (desktop/mobile), “Sponsored” pill, headline, subline, CTA.
+   - If none active, render house hero (Join Waitlist).
+   - Accessibility: alt text, aria-label on CTA.
+
+2) <SponsoredBanner /> on /events:
+   - Insert after the first row of cards on desktop (after ~6 items), earlier on mobile.
+   - Same “Sponsored” pill; smaller typography; CTA.
+   - Frequency capping: use localStorage key "spotlightSeen:{campaignId}:{placement}:{yyyy-mm-dd}" to limit to once per day per user.
+
+3) Click/impression tracking:
+   - Impression via IntersectionObserver (>=50% in view) -> POST /api/spotlight/admin/metrics/track (server will count; ignore failures).
+   - Click -> POST then redirect to click_url (add UTM if not present).
+
+Part F — /promote page (public)
+- URL: /promote
+- Sections:
+  • Hero: “Promote with Jugnu”
+  • Packages (cards):
+     - Spotlight Banner (Events page)
+     - Homepage Hero
+     - Full Feature (optional detail page + IG carousel)
+  • “What you get” bullets, audience snapshot, specs.
+  • CTA: “Request a Slot” opens /promote/apply form.
+- Asset specs to display:
+  • Desktop hero: 1600×900 (safe top 220px for title)
+  • Mobile hero: 1080×1350 (keep text center-safe)
+  • Headline ≤ 60 chars; Subline ≤ 90; CTA ≤ 18
+- Form (/promote/apply):
+  Fields: business name, contact name, email, Instagram, website, preferred dates, objective (awareness/launch/event), budget range, placement(s) interested in, creative links (optional), comments.
+  On submit: save to Supabase table public.sponsor_leads(id, created_at, payload jsonb, status text default 'new'); show thank-you.
+  Admin endpoint to list leads (x-admin-key).
+
+Part G — Optional detail page template
+- Routes:
+  • /choice (current if a “full feature” is live)
+  • /choice/[slug] for archives (noindex until we start using it)
+- Only used when a partner books the “Full Feature” package; otherwise hero links out.
+
+Part H — Explore page
+- Replace any Places rails with Events rails (This Week, Concerts, Festivals, Free Events).
+- If a Spotlight is active, add a small rail “This Week’s Spotlight” linking to click_url.
+
+Part I — Design details
+- Use copper/amber; “Sponsored” pill top-left with low-contrast border.
+- Rounded-2xl, subtle glow on hover, responsive imagery (object-cover, 16:9).
+- Respect reduced motion.
+
+QA
+- No “Places” in nav; /places 301 → /explore.
+- / and /events render Spotlight if active, otherwise house content.
+- Frequency capping works; tracking increments.
+- /promote form writes leads and shows success.

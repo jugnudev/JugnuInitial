@@ -1,6 +1,7 @@
 import { useEvents } from "@/lib/events";
 import { Link } from "wouter";
 import heroLogoImage from "@assets/Upscaled Logo copy_1754763190534.png";
+import { SpotlightHero } from "@/components/spotlight/SpotlightHero";
 
 export default function Hero() {
   const { data: events = [] } = useEvents();
@@ -20,7 +21,8 @@ export default function Hero() {
     }
   };
 
-  return (
+  // Traditional hero component for fallback
+  const traditionalHero = (
     <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Firefly dots */}
       <div className="absolute inset-0 pointer-events-none">
@@ -88,4 +90,7 @@ export default function Hero() {
       </div>
     </section>
   );
+
+  // Render SpotlightHero first, with traditional hero as fallback
+  return <SpotlightHero fallbackContent={traditionalHero} />;
 }
