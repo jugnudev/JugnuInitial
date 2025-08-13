@@ -63,16 +63,24 @@ export default function Saved() {
 
   // Fetch favorite events using v3.3 by-ids endpoint
   const { data: favoriteEvents = [], isLoading: eventsLoading } = useQuery({
-    queryKey: ['/api/events/by-ids', { ids: favoriteEventIds.join(',') }],
+    queryKey: ['/api/events/by-ids', favoriteEventIds.join(',')],
     enabled: favoriteEventIds.length > 0,
-    select: (data: any) => data || []
+    queryFn: async () => {
+      const params = new URLSearchParams({ ids: favoriteEventIds.join(',') });
+      const response = await fetch(`/api/events/by-ids?${params.toString()}`);
+      return response.json();
+    }
   });
 
   // Fetch favorite places using v3.3 by-ids endpoint
   const { data: favoritePlaces = [], isLoading: placesLoading } = useQuery({
-    queryKey: ['/api/places/by-ids', { ids: favoritePlaceIds.join(',') }],
+    queryKey: ['/api/places/by-ids', favoritePlaceIds.join(',')],
     enabled: favoritePlaceIds.length > 0,
-    select: (data: any) => data || []
+    queryFn: async () => {
+      const params = new URLSearchParams({ ids: favoritePlaceIds.join(',') });
+      const response = await fetch(`/api/places/by-ids?${params.toString()}`);
+      return response.json();
+    }
   });
 
   const handleEventClick = (event: CommunityEvent) => {
