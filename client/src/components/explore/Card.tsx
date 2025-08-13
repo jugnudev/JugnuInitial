@@ -1,6 +1,7 @@
 import { ExternalLink, MapPin, Calendar, Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
+import FavoriteButton from "@/components/FavoriteButton";
 import { formatPriceLevel } from "@/lib/taxonomy";
 import { formatDateBadge, isValidISO } from "@/lib/dates";
 
@@ -44,6 +45,7 @@ interface CardProps {
   item: CardItem;
   onClick: () => void;
   index?: number;
+  showFavorite?: boolean;
 }
 
 const getTypeColor = (type?: string) => {
@@ -109,7 +111,7 @@ const getDateBadgeInfo = (eventItem: EventItem) => {
   }
 };
 
-export default function Card({ item, onClick, index = 0 }: CardProps) {
+export default function Card({ item, onClick, index = 0, showFavorite = false }: CardProps) {
   const isSponsored = item.sponsored && (!item.sponsored_until || new Date(item.sponsored_until) > new Date());
   
   // Get date info for events
@@ -167,6 +169,18 @@ export default function Card({ item, onClick, index = 0 }: CardProps) {
         
         {/* Top badges */}
         <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
+          {/* Favorite Button */}
+          {showFavorite && (
+            <div className="absolute -top-1 -right-1">
+              <FavoriteButton
+                id={item.id}
+                type={item.type}
+                name={item.name}
+                size="md"
+                variant="ghost"
+              />
+            </div>
+          )}
           {/* Date/Type Badge */}
           {item.type === 'event' ? (
             dateInfo?.shouldShow ? (

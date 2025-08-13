@@ -8,6 +8,7 @@ import FeaturedHero from "@/components/explore/FeaturedHero";
 import Card from "@/components/explore/Card";
 import EmptyState from "@/components/explore/EmptyState";
 import DetailsModalPlace from "@/components/places/DetailsModalPlace";
+import Collections from "@/components/explore/Collections";
 import { Button } from "@/components/ui/button";
 import { PLACE_GROUPS, groupToApiParam, apiParamToGroup } from "@/lib/taxonomy";
 import { ExternalLink } from "lucide-react";
@@ -176,6 +177,11 @@ export default function PlacesExplore() {
         }
       />
 
+      {/* Collections */}
+      <div className="mt-8 mb-8">
+        <Collections type="places" basePath="/places" />
+      </div>
+
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 mt-10 md:mt-14">
         {/* Toolbar */}
@@ -232,6 +238,7 @@ export default function PlacesExplore() {
                 }}
                 onClick={() => handlePlaceClick(place)}
                 index={index}
+                showFavorite={true}
               />
             ))}
           </div>

@@ -1,0 +1,70 @@
+Title: Explore v3.2 — Collections carousel + Favorites + Live Home modules + Open Graph cards
+
+Goals
+Elevate the premium feel and discoverability:
+• Add curated “Collections” (capsule carousel) to /community and /places.
+• Add Favorites (heart) across events & places with a “Saved” view.
+• Make the Home page feel alive with featured + “This Week” + “New/Trending Places”.
+• Generate rich Open Graph (OG) share images for Events/Places.
+
+1) Collections (capsule carousel)
+- Component: components/explore/Collections.tsx
+  • Horizontal scroll of rounded “capsules” with subtle glow.
+  • Each capsule links to a pre-filtered Explore page (querystring).
+- Community collections (examples):
+  • “This Week”, “Concerts”, “Club Nights”, “Comedy”, “Festivals”, “Free/Student”
+- Places collections (examples):
+  • “Best Chai”, “Late-Night Eats”, “Vegetarian & Vegan”, “Punjabi Favourites”, “South Indian”, “Desserts”
+- Show Collections under the hero on both pages. On mobile, snap-scroll.
+
+2) Favorites (no auth; local-first)
+- Add a tiny client-side store (zustand or simple Context) to track saved ids:
+  • events: Set<string>; places: Set<string>
+  • Persist to localStorage.
+- Card/Modal: add a heart button (aria-label, large tap target). Toggle saves.
+- New page: /saved
+  • Tabs: Events | Places
+  • Load details via existing APIs by id (fallback: store minimal snapshot in localStorage).
+  • Empty state encourages exploring /community and /places.
+- Header nav: add a small “Saved” link (heart icon) on desktop; in mobile menu too.
+
+3) Home page (live, premium)
+- Replace static hero section below the logo with live modules:
+  • Featured Event hero (if any), else top “This Week” event.
+  • “Happening Soon” (Events) — horizontal 16:9 card rail (5–8 items).
+  • “Trending Places” — horizontal rail (group: Eat & Drink by default).
+  • CTA strip: “Join the Frequency” (waitlist) + “Follow @thehouseofjugnu”.
+- All rails use the same Card component in compact mode; each item opens modal/deep-link.
+- Add subtle page-wide gradient and breathing room (max-w-6xl).
+
+4) Open Graph (social share) images
+- Add route: /app/api/og/event/route.ts and /app/api/og/place/route.ts using satori + resvg (or @vercel/og if available in this runtime).
+- Design: dark backdrop, copper logo bug, large title (2-line clamp), subline (venue • city OR neighborhood • city), date badge (events) or type/price (places), and small “jugnu.co” style tag.
+- In head for Explore pages, when deep-linked with ?e=<id> or ?p=<id>, set og:image to the generated OG URL. Also set on /saved detail links.
+
+5) Filter polish
+- Make the Toolbar sticky after hero (appears once you scroll past hero). Add a faint divider shadow under it.
+- Filters Drawer: show badge with count of active filters on the “Filters” button.
+
+6) Micro UX polish
+- Add skeleton shimmer for cards while loading (16:9 blocks with soft gradient).
+- Add very light parallax on FeaturedHero image (respect prefers-reduced-motion).
+- Ensure all badge text (date/type) uses consistent small-caps style and never wraps.
+- Modal: add blurred poster backdrop behind the content column.
+
+7) Accessibility
+- All interactive elements have aria-labels, focus rings, ESC to close modals, and proper role="dialog" with aria-modal.
+- Heart (favorites) announces via aria-live “Saved to Favorites” / “Removed from Favorites”.
+
+8) API tweaks
+- /app/api/community/weekly: accept ids query (comma-separated) to fetch specific events for /saved.
+- /app/api/places/list: accept ids query similarly.
+
+9) QA
+- Collections chips link to filtered views and feel snappy on mobile.
+- Heart buttons work; /saved shows items, persists across reloads.
+- Home shows featured + two rails; cards open modals; links deep-link correctly.
+- OG share image URLs render a nice 1200x630 image for an event/place (test in Twitter/Discord preview tools).
+- Sticky toolbar works; skeletons show during fetch; no CLS.
+
+Keep colors/brand; do not remove existing logic (importer, featured toggles, request-feature forms).

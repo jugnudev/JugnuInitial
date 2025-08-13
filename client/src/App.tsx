@@ -9,6 +9,7 @@ import Community from "@/pages/community";
 import CommunityFeature from "@/pages/CommunityFeature";
 import Places from "@/pages/places";
 import PlacesSubmit from "@/pages/PlacesSubmit";
+import Saved from "@/pages/Saved";
 import Waitlist from "@/pages/waitlist";
 import ThankYou from "@/pages/thank-you";
 import Privacy from "@/pages/privacy";
@@ -24,6 +25,7 @@ function Router() {
         <Route path="/community/feature" component={CommunityFeature} />
         <Route path="/places" component={Places} />
         <Route path="/places/submit" component={PlacesSubmit} />
+        <Route path="/saved" component={Saved} />
         <Route path="/waitlist" component={Waitlist} />
         <Route path="/thank-you" component={ThankYou} />
         <Route path="/privacy" component={Privacy} />

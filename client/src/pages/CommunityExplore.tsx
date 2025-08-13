@@ -8,6 +8,7 @@ import FeaturedHero from "@/components/explore/FeaturedHero";
 import Card from "@/components/explore/Card";
 import EmptyState from "@/components/explore/EmptyState";
 import DetailsModal from "@/components/community/DetailsModal";
+import Collections from "@/components/explore/Collections";
 import { Button } from "@/components/ui/button";
 import { EVENT_CATEGORIES } from "@/lib/taxonomy";
 import { ExternalLink } from "lucide-react";
@@ -179,6 +180,11 @@ export default function CommunityExplore() {
         }
       />
 
+      {/* Collections */}
+      <div className="mt-8 mb-8">
+        <Collections type="events" basePath="/community" />
+      </div>
+
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 mt-10 md:mt-14">
         {/* Toolbar */}
@@ -241,6 +247,7 @@ export default function CommunityExplore() {
                 }}
                 onClick={() => handleEventClick(event)}
                 index={index}
+                showFavorite={true}
               />
             ))}
           </div>

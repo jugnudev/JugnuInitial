@@ -71,6 +71,26 @@ export default function Navigation() {
               >
                 Places
               </a>
+              <a
+                href="/saved"
+                className="text-text hover:text-accent transition-colors duration-200 font-medium flex items-center gap-1"
+                data-testid="nav-saved"
+              >
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M21 9.02C20.98 14.45 12.5 20.5 12 21c-.5-.5-8.98-6.55-9-12.98C3 5.52 5.52 3 8.02 3c1.8 0 3.4.88 4.38 2.34A5.01 5.01 0 0116.02 3C18.48 3 21 5.52 21 9.02z"/>
+                </svg>
+                Saved
+              </a>
+              <a
+                href="/saved"
+                className="text-text hover:text-accent transition-colors duration-200 font-medium flex items-center gap-1"
+                data-testid="nav-saved"
+              >
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M21 9.02C20.98 14.45 12.5 20.5 12 21c-.5-.5-8.98-6.55-9-12.98C3 5.52 5.52 3 8.02 3c1.8 0 3.4.88 4.38 2.34A5.01 5.01 0 0116.02 3C18.48 3 21 5.52 21 9.02z"/>
+                </svg>
+                Saved
+              </a>
               {showGallery && (
                 <button
                   onClick={() => scrollToSection('gallery')}
@@ -140,6 +160,17 @@ export default function Navigation() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Places
+              </a>
+              <a
+                href="/saved"
+                className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium flex items-center gap-1"
+                data-testid="nav-mobile-saved"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M21 9.02C20.98 14.45 12.5 20.5 12 21c-.5-.5-8.98-6.55-9-12.98C3 5.52 5.52 3 8.02 3c1.8 0 3.4.88 4.38 2.34A5.01 5.01 0 0116.02 3C18.48 3 21 5.52 21 9.02z"/>
+                </svg>
+                Saved
               </a>
               {showGallery && (
                 <button
