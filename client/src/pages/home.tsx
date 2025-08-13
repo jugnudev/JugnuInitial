@@ -2,6 +2,7 @@ import Hero from "@/components/Hero";
 import Events from "@/components/Events";
 import Gallery from "@/components/Gallery";
 import Story from "@/components/Story";
+import { HomeMidSpotlight } from "@/components/spotlight/HomeMidSpotlight";
 
 export default function Home() {
   return (
@@ -29,6 +30,7 @@ export default function Home() {
       
       <Hero />
       <Events />
+      <HomeMidSpotlight />
       <Gallery />
       <Story />
     </>

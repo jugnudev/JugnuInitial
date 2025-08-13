@@ -384,11 +384,40 @@ export function addSpotlightRoutes(app: Express) {
   app.get('/api/spotlight/active', async (req, res) => {
     try {
       const { route, slots } = req.query;
-      const requestedSlots = typeof slots === 'string' ? slots.split(',') : ['home_hero'];
+      const requestedSlots = typeof slots === 'string' ? slots.split(',') : ['events_banner'];
+      
+      // Environment flags for placements
+      const ENABLE_HOME_MID = process.env.ENABLE_HOME_MID === 'true';
+      const ENABLE_EVENTS_BANNER = process.env.ENABLE_EVENTS_BANNER !== 'false'; // true by default
+      const ENABLE_HOME_HERO = false; // Always disabled as per requirements
+      
+      // Filter requested slots based on environment flags
+      const allowedSlots = requestedSlots.filter(slot => {
+        if (slot === 'home_hero') {
+          if (!ENABLE_HOME_HERO && process.env.NODE_ENV === 'development') {
+            console.warn(`⚠️  home_hero placement requested but is disabled by default. Set ENABLE_HOME_HERO=true to enable.`);
+          }
+          return ENABLE_HOME_HERO;
+        }
+        if (slot === 'home_mid') {
+          return ENABLE_HOME_MID;
+        }
+        if (slot === 'events_banner') {
+          return ENABLE_EVENTS_BANNER;
+        }
+        return true; // Allow unknown slots for future expansion
+      });
+
+      if (allowedSlots.length === 0) {
+        return res.json({
+          ok: true,
+          spotlights: {}
+        });
+      }
       
       const now = new Date().toISOString();
 
-      // Get active campaigns for requested placements
+      // Get active campaigns for allowed placements
       const { data: campaigns, error } = await supabase
         .from('sponsor_campaigns')
         .select(`
@@ -398,15 +427,24 @@ export function addSpotlightRoutes(app: Express) {
         .eq('is_active', true)
         .lte('start_at', now)
         .gte('end_at', now)
-        .overlaps('placements', requestedSlots)
+        .overlaps('placements', allowedSlots)
         .order('priority', { ascending: false });
 
       if (error) throw error;
 
-      // Select one creative per requested placement
+      // Log warnings for campaigns with disabled placements in development
+      if (process.env.NODE_ENV === 'development') {
+        campaigns.forEach(campaign => {
+          if (campaign.placements.includes('home_hero') && !ENABLE_HOME_HERO) {
+            console.warn(`⚠️  Campaign "${campaign.name}" includes disabled placement: home_hero`);
+          }
+        });
+      }
+
+      // Select one creative per allowed placement
       const activeSpotlights: any = {};
 
-      for (const slot of requestedSlots) {
+      for (const slot of allowedSlots) {
         const eligibleCampaigns = campaigns.filter(campaign => 
           campaign.placements.includes(slot) &&
           campaign.creatives.some((c: any) => c.placement === slot)

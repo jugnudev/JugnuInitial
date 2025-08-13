@@ -218,7 +218,7 @@ export default function EventsExplore() {
                   name: featuredEvent.title,
                   venue: featuredEvent.venue || '',
                   date: featuredEvent.start_at || featuredEvent.date,
-                  is_all_day: typeof featuredEvent.is_all_day === 'string' ? featuredEvent.is_all_day === 'true' : Boolean(featuredEvent.is_all_day),
+                  is_all_day: featuredEvent.is_all_day === 'true' || featuredEvent.is_all_day === true,
                 }}
                 onViewDetails={() => handleEventClick(featuredEvent)}
               />
@@ -244,7 +244,7 @@ export default function EventsExplore() {
                       name: event.title,
                       venue: event.venue || '',
                       date: event.start_at || event.date,
-                      is_all_day: typeof event.is_all_day === 'string' ? event.is_all_day === 'true' : Boolean(event.is_all_day),
+                      is_all_day: event.is_all_day === 'true' || event.is_all_day === true,
                     }}
                     onClick={() => handleEventClick(event)}
                     index={index}

@@ -95,19 +95,20 @@ Preferred communication style: Simple, everyday language.
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 - **Featured Event Parsing**: Auto-detect "Featured: true|yes|1" from calendar descriptions or use admin API
 
-### Current State (v4.0 Sponsorship & Spotlight - COMPLETE ✓)
-- **Sponsorship & Spotlight v4.0 - OPERATIONAL**: Complete monetization system successfully deployed replacing Places directory with comprehensive sponsorship platform
+### Current State (v4.1 Sponsorship & Spotlight Refinement - COMPLETE ✓)
+- **Sponsorship & Spotlight v4.1 - OPERATIONAL**: Refined monetization system with preserved Jugnu brand experience and strategic placement optimization
 - **Database Infrastructure**: Full Supabase schema operational - sponsor_campaigns, sponsor_creatives, sponsor_metrics_daily, sponsor_leads tables initialized and functioning
 - **Admin API System**: Secure server-side admin endpoints for campaign management, creative uploads, metrics tracking, and lead management with environment-based admin key authentication
 - **Public API System**: /api/spotlight/active endpoint with placement-based targeting, frequency capping, round-robin delivery, and 5-minute caching for optimal performance
-- **SpotlightHero Component**: Primary homepage hero takeover system with fallback to traditional hero, impression tracking, click tracking with UTM parameters
+- **HomeMidSpotlight Component**: Optional below-the-fold home placement with "Partner Spotlight" heading, controlled by ENABLE_HOME_MID environment flag (default: false)
 - **SponsoredBanner Component**: Events page banner placement with frequency capping (1x per user per day), impression/click analytics, localStorage-based user session management
 - **Revenue Generation Page**: /promote public page with three monetization packages (Spotlight Banner $500+/week, Homepage Hero $1500+/week, Full Feature $3000+/campaign)
 - **Lead Capture System**: Complete application form with business information, campaign objectives, budget ranges, placement selection, and secure lead storage
 - **Navigation Transformation**: Places completely removed from all navigation (desktop/mobile), replaced with /promote link, /places routes redirect to /explore
 - **Security Architecture**: All admin operations use server-side routes with environment-based authentication, zero client-side secret exposure, protected dev console
 - **Analytics & Tracking**: Comprehensive impression/click tracking with daily aggregation, campaign performance metrics, CTR calculations, and admin dashboard ready
-- **Content Delivery System**: Smart placement targeting (home_hero, events_banner), creative management for desktop/mobile assets, logo support, and alt text accessibility
+- **Environment Controls**: ENABLE_HOME_MID=false, ENABLE_EVENTS_BANNER=true, home_hero permanently disabled to preserve Jugnu brand integrity
+- **Content Delivery System**: Smart placement targeting (home_mid, events_banner), creative management for desktop/mobile assets, logo support, and alt text accessibility
 - **Business Model Integration**: Three-tier sponsorship packages with detailed specifications, asset requirements, pricing structure, and professional application workflow
 - **Places Legacy Protection**: Dev tools remain accessible via secure admin routes, no public indexing, complete architectural separation from public-facing sponsorship system
 
