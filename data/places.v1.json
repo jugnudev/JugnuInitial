@@ -1,0 +1,69 @@
+{
+  "places": [
+    {
+      "name": "Samosa King",
+      "category": "restaurant",
+      "address": "1234 Main Street, Vancouver, BC",
+      "city": "Vancouver, BC",
+      "neighborhood": "Downtown",
+      "tags": ["indian", "vegetarian", "street-food", "samosas"],
+      "price_range": "$",
+      "website": "https://samosaking.ca",
+      "social": "samosa_king_vancouver", 
+      "description": "Authentic <b>Indian street food</b> specializing in crispy samosas &amp; chutneys. Family recipes passed down for generations.",
+      "cover_image": "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=500"
+    },
+    {
+      "name": "Bollywood Bites",
+      "category": "restaurant", 
+      "address": "567 Commercial Drive, Vancouver, BC",
+      "city": "Vancouver, BC",
+      "neighborhood": "Commercial Drive",
+      "tags": ["indian", "bollywood", "curry", "naan"],
+      "price_range": "$$",
+      "website": "https://bollywoodbites.com",
+      "social": "bollywoodbitesvancouver",
+      "description": "Modern Indian cuisine with <i>Bollywood</i> atmosphere. Live music on weekends!",
+      "cover_image": "https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=500"
+    },
+    {
+      "name": "Spice Market Grocery",
+      "category": "grocery",
+      "address": "890 Fraser Street, Vancouver, BC", 
+      "city": "Vancouver, BC",
+      "neighborhood": "Mount Pleasant",
+      "tags": ["grocery", "spices", "indian", "south-asian"],
+      "price_range": "$$",
+      "website": "",
+      "social": "",
+      "description": "Complete South Asian grocery store with fresh spices, lentils, and specialty ingredients.",
+      "cover_image": ""
+    },
+    {
+      "name": "Chai Corner Cafe",
+      "category": "cafe",
+      "address": "321 Robson Street, Vancouver, BC",
+      "city": "Vancouver, BC", 
+      "neighborhood": "Downtown",
+      "tags": "chai, cafe, indian-tea, snacks",
+      "price_range": "$",
+      "website": "https://chaicorner.vancouver",
+      "social": "chai_corner_robson",
+      "description": "Cozy cafe serving authentic <b>masala chai</b> and Indian snacks. Perfect study spot with WiFi.",
+      "cover_image": "invalid-url-should-be-filtered"
+    },
+    {
+      "name": "Bollywood Bites",
+      "category": "restaurant",
+      "address": "567 Commercial Drive, Vancouver, BC", 
+      "city": "Vancouver, BC",
+      "neighborhood": "Commercial Drive",
+      "tags": ["duplicate", "test"],
+      "price_range": "$$$",
+      "website": "https://updated-bollywoodbites.com",
+      "social": "new_bollywood_handle",
+      "description": "This is a duplicate entry to test deduplication - should update the existing record.",
+      "cover_image": "https://images.unsplash.com/photo-1574026669542-87dd8e78bdce?w=500"
+    }
+  ]
+}

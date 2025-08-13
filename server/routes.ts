@@ -1538,35 +1538,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const supabase = getSupabaseAdmin();
       
-      // Ensure canonical_key column exists and create UNIQUE index
-      try {
-        // Add canonical_key column if it doesn't exist
-        const { error: columnError } = await supabase.rpc('exec_sql', {
-          sql: `
-            DO $$
-            BEGIN
-              -- Add canonical_key column if it doesn't exist
-              IF NOT EXISTS (SELECT 1 FROM information_schema.columns 
-                            WHERE table_name = 'places' AND column_name = 'canonical_key') THEN
-                ALTER TABLE places ADD COLUMN canonical_key text;
-              END IF;
-              
-              -- Create unique index if it doesn't exist
-              IF NOT EXISTS (SELECT 1 FROM pg_class WHERE relname = 'uq_places_canonical_key') THEN
-                CREATE UNIQUE INDEX uq_places_canonical_key ON places (canonical_key);
-              END IF;
-            END
-            $$;
-          `
-        });
-        
-        if (columnError) {
-          console.warn('Schema setup warning:', columnError);
-        }
-      } catch (schemaError) {
-        console.error('Schema setup error:', schemaError);
-        // Continue execution - the column might already exist
-      }
+      // Note: canonical_key column and unique index should be created via create_places_table.sql
 
       const results = {
         upserted: 0,
@@ -1650,7 +1622,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             instagram: place.social?.trim() || null,
             image_url: validateUrl(place.cover_image),
             price_level: parsePriceRange(place.price_range),
-            canonical_key: canonicalKey,
+            // canonical_key: canonicalKey, // Column doesn't exist yet - add via create_places_table.sql
             updated_at: new Date().toISOString(),
             status: 'active'
           };
@@ -1668,15 +1640,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
             mappedPlace.tags = [];
           }
 
-          // Attempt upsert with conflict resolution
-          const { data, error } = await supabase
+          // Check for existing place by name and address
+          const { data: existingPlace } = await supabase
             .from('places')
-            .upsert(mappedPlace, {
-              onConflict: 'canonical_key',
-              ignoreDuplicates: false
-            })
             .select('id, created_at, updated_at')
+            .eq('name', mappedPlace.name)
+            .eq('address', mappedPlace.address || '')
             .single();
+
+          let data, error;
+          
+          if (existingPlace) {
+            // Update existing place
+            const updateResult = await supabase
+              .from('places')
+              .update(mappedPlace)
+              .eq('id', existingPlace.id)
+              .select('id, created_at, updated_at')
+              .single();
+            data = updateResult.data;
+            error = updateResult.error;
+          } else {
+            // Insert new place
+            const insertResult = await supabase
+              .from('places')
+              .insert(mappedPlace)
+              .select('id, created_at, updated_at')
+              .single();
+            data = insertResult.data;
+            error = insertResult.error;
+          }
 
           if (error) {
             results.errors.push(`Place ${i + 1} (${place.name}): ${error.message}`);

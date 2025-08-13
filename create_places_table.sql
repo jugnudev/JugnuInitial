@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS places (
   featured boolean NOT NULL DEFAULT false,
   sponsored boolean NOT NULL DEFAULT false,
   sponsored_until timestamptz,
-  status text NOT NULL DEFAULT 'active'
+  status text NOT NULL DEFAULT 'active',
+  canonical_key text
 );
 
 -- Create indexes for better performance
@@ -33,6 +34,7 @@ CREATE INDEX IF NOT EXISTS idx_places_featured ON places (featured);
 CREATE INDEX IF NOT EXISTS idx_places_neighborhood ON places (neighborhood);
 CREATE INDEX IF NOT EXISTS idx_places_status ON places (status);
 CREATE INDEX IF NOT EXISTS idx_places_city ON places (city);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_places_canonical_key ON places (canonical_key);
 
 -- Create RLS policy (Row Level Security)
 ALTER TABLE places ENABLE ROW LEVEL SECURITY;
