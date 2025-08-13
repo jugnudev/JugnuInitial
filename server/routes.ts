@@ -1527,12 +1527,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      const { places } = req.body;
-      
-      if (!Array.isArray(places)) {
+      // Handle both formats: {places: [...]} or directly [...]
+      let places;
+      if (Array.isArray(req.body)) {
+        places = req.body;
+      } else if (req.body.places && Array.isArray(req.body.places)) {
+        places = req.body.places;
+      } else {
         return res.status(400).json({ 
           ok: false, 
-          error: 'Request body must contain an array of places' 
+          error: 'Request body must contain an array of places or {places: [...]}' 
         });
       }
 
