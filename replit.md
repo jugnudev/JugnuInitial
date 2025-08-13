@@ -100,7 +100,7 @@ Preferred communication style: Simple, everyday language.
 - **Date Utilities v3.1**: Comprehensive `/lib/dates.ts` with timezone-aware formatting, all-day event detection, NaN/Invalid Date elimination
 - **Enhanced UI Polish**: Increased vertical rhythm (mt-10 md:mt-14), enhanced grid spacing (md:gap-8), subtle button glow effects
 - **Dual Purpose**: Waitlist mode for Jugnu events + Community calendar + Places directory for South Asian businesses
-- **Smart Navigation**: Community and Places always visible, Events/Gallery conditionally shown
+- **Smart Navigation**: Community and Places always visible, Events/Gallery conditionally shown, consistent menu bar across all pages
 - **Unified Components**: Shared PageHero, Toolbar, FilterDrawer, FeaturedHero, Card, EmptyState across Events and Places
 - **Places Directory v1**: South Asian restaurants, cafes, shops & cultural spots with featured hero system, 2-column grid, filtering
 - **Places Features**: Type filtering (restaurant, cafe, dessert, etc), neighborhood filtering, search, featured hero with copper glow
@@ -117,6 +117,7 @@ Preferred communication style: Simple, everyday language.
 - **Solid Deduplication v2.7**: Prevents duplicates using ICS UIDs + canonical keys (title+date+venue), manual dedup at query time
 - **Consistent Design Language**: Same copper theming, 16:9 aspect ratios, modal patterns across Events and Places
 - **TypeScript Excellence**: All components properly typed, boolean conversions handled, interface consistency maintained
+- **Navigation Enhancement v3.1**: Added persistent navigation menu bar to all pages including Community and Places for seamless user navigation
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS

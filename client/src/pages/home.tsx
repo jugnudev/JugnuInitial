@@ -1,4 +1,3 @@
-import Layout from "@/components/Layout";
 import Hero from "@/components/Hero";
 import Events from "@/components/Events";
 import Gallery from "@/components/Gallery";
@@ -6,7 +5,7 @@ import Story from "@/components/Story";
 
 export default function Home() {
   return (
-    <Layout>
+    <>
       {/* JSON-LD Structured Data */}
       <script
         type="application/ld+json"
@@ -32,6 +31,6 @@ export default function Home() {
       <Events />
       <Gallery />
       <Story />
-    </Layout>
+    </>
   );
 }
