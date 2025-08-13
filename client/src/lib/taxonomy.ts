@@ -72,10 +72,10 @@ export function formatPriceLevel(level?: number): string {
 
 export function getPriceLevels() {
   return [
-    { value: 1, label: '₹ (Budget)' },
-    { value: 2, label: '₹₹ (Moderate)' },
-    { value: 3, label: '₹₹₹ (Upscale)' },
-    { value: 4, label: '₹₹₹₹ (Fine Dining)' }
+    { value: 1, label: '$ (Budget)' },
+    { value: 2, label: '$$ (Moderate)' },
+    { value: 3, label: '$$$ (Upscale)' },
+    { value: 4, label: '$$$$ (Fine Dining)' }
   ];
 }
 

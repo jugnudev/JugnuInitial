@@ -1,0 +1,63 @@
+Title: Explore v3.4 — Luxe polish + /explore hub + OG share + Saved count
+
+Goals
+Make the UI feel truly premium and cohesive, and add a small Explore hub:
+• Add /explore page that teases Events + Places (hero + two glossy rails).
+• Tighten top-nav alignment and add a Saved count badge.
+• Micro visual polish (type/spacing/badges/shadows) for Events & Places.
+• Add rich Open Graph (og:image) share cards for Events/Places deep links.
+
+1) New page: /explore
+- Hero: “Find Your Frequency in Vancouver” + subcopy; copper gradient background.
+- Sections (rails, horizontal scroll, 16:9 compact cards using existing Card):
+  a) “Happening This Week” — first 10 events (range=week), CTA “See all events”.
+  b) “Trending Places” — first 10 places (order: featured, sponsored, then name), CTA “See all places”.
+- Rails are touch-scrollable with snap on mobile; arrows on desktop.
+- Each card opens the existing modal (deep link preserved).
+
+2) Navigation polish
+- Single “Saved” link with heart icon + **count badge** if >0 (pull from localStorage on mount; updates on toggle).
+- Ensure nav items vertically center across breakpoints (wrapper: `flex h-12 items-center gap-x-6`).
+- Order: Story · Events · Places · Saved · Join.
+- Add “Explore” to the far left of Events/Places? **No** (keep top-level minimal). Instead, add a “Explore” link in the Home hero CTA row and footer.
+
+3) Events & Places visual polish
+- PageHero: reduce heading tracking, slightly increase line-height; more air beneath (md:pb-12).
+- Toolbar: compact height (-4px), sticky only after hero; soft divider shadow beneath when stuck.
+- Badges: unify to micro pill (no wrapping); subtle ring; 90% opacity overlay.
+- Cards: ring-1 ring-white/5; hover `ring-amber/25` + `translate-y-0.5`; `rounded-2xl`; images always 16:9 `object-cover`.
+- FeaturedHero: slightly stronger copper glow (outer ring) and tiny parallax (respect reduced motion).
+- Details modals: blurred poster backdrop behind right column; keep Share + “Open in Maps”; address only in modal.
+
+4) Saved reliability (verify)
+- Favorites already use UUID arrays in localStorage:
+  • events = 'fav:events' (string[])
+  • places = 'fav:places' (string[])
+- Ensure /saved uses new endpoints:
+  • GET /api/events/by-ids?ids=… (no date filtering)
+  • GET /api/places/by-ids?ids=…
+- If some IDs 404, prune them silently from localStorage after render.
+- Tab badges reflect actual loaded counts; Saved count in nav updates on toggle.
+
+5) Open Graph share images
+- Add /app/api/og/event/route.ts and /app/api/og/place/route.ts using @vercel/og or satori+resvg.
+- Design: dark background, Jugnu firefly logo, big title (2 lines), subline (venue • city or neighborhood • city), date badge (events) or type/₹ (places), tiny jugnu text bottom-right. Size 1200x630.
+- In head for deep links (?e=<id> or ?p=<id>), set og:image to the corresponding OG route. Also set basic og:title/description.
+
+6) Redirect hygiene
+- /community → 307 → /events (already done; re-confirm).
+- /community/feature → 307 → /events/feature.
+
+7) Microcopy (apply)
+- Events hero subtitle: “Discover concerts, festivals, cultural performances & community gatherings in Vancouver.”
+- Places hero subtitle: “Discover authentic restaurants, cafés, shops & cultural spaces in Vancouver.”
+- Saved page subtitle: “Your curated collection of favorite events and places.”
+
+8) QA
+- Nav has one Saved link, aligned; shows a count when >0.
+- /explore shows two glossy rails; cards open modals; CTAs route to /events and /places.
+- Events/Places pages: hero → toolbar → featured → clean 2-up grid; no Collections row.
+- Saved shows the exact items you hearted, regardless of date window; deep links work.
+- Sharing an event/place in Slack/Twitter shows a rich OG card.
+
+Note: Keep brand colors & existing logic; do not remove featured/request-feature flows or Supabase schemas.
