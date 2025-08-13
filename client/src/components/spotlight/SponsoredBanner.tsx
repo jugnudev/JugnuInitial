@@ -119,8 +119,11 @@ export function SponsoredBanner() {
     }
   };
 
-  // Don't render if no spotlight, loading, error, or not visible due to frequency capping
-  if (isLoading || error || !spotlight || !isVisible) {
+  // Check if Events Banner is enabled
+  const isEventsSponsorsEnabled = import.meta.env.VITE_ENABLE_EVENTS_BANNER !== 'false';
+
+  // Don't render if no spotlight, loading, error, not visible due to frequency capping, or disabled
+  if (isLoading || error || !spotlight || !isVisible || !isEventsSponsorsEnabled) {
     return null;
   }
 

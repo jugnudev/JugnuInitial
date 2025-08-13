@@ -218,46 +218,77 @@ export default function EventsExplore() {
                   name: featuredEvent.title,
                   venue: featuredEvent.venue || '',
                   date: featuredEvent.start_at || featuredEvent.date,
-                  is_all_day: featuredEvent.is_all_day === 'true' || featuredEvent.is_all_day === true,
+                  is_all_day: Boolean(featuredEvent.is_all_day === 'true' || featuredEvent.is_all_day === true),
                 }}
                 onViewDetails={() => handleEventClick(featuredEvent)}
               />
             )}
 
-            {/* Sponsored Banner */}
-            <SponsoredBanner />
+            {/* Sponsored Banner - placement varies by event count */}
 
-            {/* Events Grid */}
+            {/* Events Grid with Dynamic Banner Placement */}
             {filteredEvents.length > 0 ? (
-              <motion.div 
-                className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.4 }}
-              >
-                {filteredEvents.map((event: any, index: number) => (
-                  <Card
-                    key={event.id}
-                    item={{
-                      ...event,
-                      type: 'event' as const,
-                      name: event.title,
-                      venue: event.venue || '',
-                      date: event.start_at || event.date,
-                      is_all_day: event.is_all_day === 'true' || event.is_all_day === true,
-                    }}
-                    onClick={() => handleEventClick(event)}
-                    index={index}
-                    showFavorite={true}
-                  />
-                ))}
-              </motion.div>
+              <>
+                {/* Banner above single card (when only 1 event) */}
+                {filteredEvents.length === 1 && <SponsoredBanner />}
+                
+                <motion.div 
+                  className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  {filteredEvents.map((event: any, index: number) => {
+                    const eventCard = (
+                      <Card
+                        key={event.id}
+                        item={{
+                          ...event,
+                          type: 'event' as const,
+                          name: event.title,
+                          venue: event.venue || '',
+                          date: event.start_at || event.date,
+                          is_all_day: Boolean(event.is_all_day === 'true' || event.is_all_day === true),
+                        }}
+                        onClick={() => handleEventClick(event)}
+                        index={index}
+                        showFavorite={true}
+                      />
+                    );
+
+                    // Return card with banner placement logic
+                    if (filteredEvents.length >= 4 && index === 1) {
+                      // Banner after first full row (4+ events)
+                      return [
+                        eventCard,
+                        <div key={`banner-after-${index}`} className="md:col-span-2">
+                          <SponsoredBanner />
+                        </div>
+                      ];
+                    } else if ((filteredEvents.length === 2 || filteredEvents.length === 3) && index === 0) {
+                      // Banner after first card (2-3 events)  
+                      return [
+                        eventCard,
+                        <div key={`banner-after-${index}`} className="md:col-span-2">
+                          <SponsoredBanner />
+                        </div>
+                      ];
+                    } else {
+                      return eventCard;
+                    }
+                  })}
+                </motion.div>
+              </>
             ) : (
-              <EmptyState
-                type="events"
-                hasFilters={hasActiveFilters}
-                onAddClick={() => window.location.href = '/events/feature'}
-              />
+              <>
+                {/* Banner inside empty state */}
+                <EmptyState
+                  type="events"
+                  hasFilters={hasActiveFilters}
+                  onAddClick={() => window.location.href = '/events/feature'}
+                />
+                <SponsoredBanner />
+              </>
             )}
           </div>
         )}
