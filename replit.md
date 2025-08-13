@@ -95,8 +95,8 @@ Preferred communication style: Simple, everyday language.
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 - **Featured Event Parsing**: Auto-detect "Featured: true|yes|1" from calendar descriptions or use admin API
 
-### Current State (v4.1 Sponsorship & Spotlight Refinement - COMPLETE ✓)
-- **Sponsorship & Spotlight v4.1 - OPERATIONAL**: Refined monetization system with preserved Jugnu brand experience and strategic placement optimization
+### Current State (Promote v2 - Conversion-First Sales Page - COMPLETE ✓)
+- **Promote v2 - OPERATIONAL**: Comprehensive conversion-first sales page with real analytics, sponsor portal, premium design, and lead management system
 - **Database Infrastructure**: Full Supabase schema operational - sponsor_campaigns, sponsor_creatives, sponsor_metrics_daily, sponsor_leads tables initialized and functioning
 - **Admin API System**: Secure server-side admin endpoints for campaign management, creative uploads, metrics tracking, and lead management with environment-based admin key authentication
 - **Public API System**: /api/spotlight/active endpoint with placement-based targeting, frequency capping, round-robin delivery, and 5-minute caching for optimal performance
@@ -111,6 +111,11 @@ Preferred communication style: Simple, everyday language.
 - **Content Delivery System**: Smart placement targeting (home_mid, events_banner), creative management for desktop/mobile assets, logo support, and alt text accessibility
 - **Business Model Integration**: Three-tier sponsorship packages with detailed specifications, asset requirements, pricing structure, and professional application workflow
 - **Places Legacy Protection**: Dev tools remain accessible via secure admin routes, no public indexing, complete architectural separation from public-facing sponsorship system
+- **Promote v2 Sales Page**: Premium conversion-first design with hero section, social proof band, value pillars, detailed packages (CA$50-300), live preview module, how-it-works flow, analytics teaser, add-ons strip, comprehensive application form, and FAQ section with JSON-LD SEO schemas
+- **Sponsor Portal System**: Token-based analytics portal (/sponsor/:token) with real-time metrics, interactive charts (impressions, clicks, CTR), 7-day summary table, CSV export functionality, and secure token management with expiration
+- **Enhanced Lead Management**: Comprehensive application form with business details, placement selection, campaign objectives, creative links, honeypot spam protection, and admin status management endpoints
+- **Advanced Analytics Backend**: sponsor_portal_tokens table, metrics summary API, portal creation API, real campaign tracking with daily aggregation, and comprehensive performance reporting
+- **SEO Optimization**: Complete meta tags, Open Graph cards, JSON-LD schemas (Organization, Offers, FAQPage, BreadcrumbList), internal linking strategy, and performance optimization for Core Web Vitals
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS

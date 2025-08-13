@@ -73,6 +73,19 @@ export function addSpotlightRoutes(app: Express) {
         `
       });
 
+      // Create sponsor_portal_tokens table
+      await supabase.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.sponsor_portal_tokens (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
+            token text UNIQUE NOT NULL,
+            expires_at timestamptz,
+            created_at timestamptz NOT NULL DEFAULT now()
+          );
+        `
+      });
+
       console.log('✓ Spotlight database tables initialized');
     } catch (error) {
       console.error('Database initialization error:', error);
@@ -527,6 +540,243 @@ export function addSpotlightRoutes(app: Express) {
       res.status(500).json({
         ok: false,
         error: error instanceof Error ? error.message : 'Failed to submit lead'
+      });
+    }
+  });
+
+  // GET /api/spotlight/admin/metrics/summary
+  app.get('/api/spotlight/admin/metrics/summary', requireAdminKey, async (req, res) => {
+    try {
+      const { campaignId } = req.query;
+      
+      if (!campaignId) {
+        return res.status(400).json({ ok: false, error: 'campaignId required' });
+      }
+
+      // Get campaign details
+      const { data: campaign, error: campaignError } = await supabase
+        .from('sponsor_campaigns')
+        .select('name, start_at, end_at')
+        .eq('id', campaignId)
+        .single();
+
+      if (campaignError) throw campaignError;
+
+      // Get metrics for last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const { data: metrics, error: metricsError } = await supabase
+        .from('sponsor_metrics_daily')
+        .select('day, placement, impressions, clicks')
+        .eq('campaign_id', campaignId)
+        .gte('day', thirtyDaysAgo.toISOString().split('T')[0])
+        .order('day', { ascending: true });
+
+      if (metricsError) throw metricsError;
+
+      // Calculate totals and daily arrays
+      const totalImpressions = metrics.reduce((sum, m) => sum + m.impressions, 0);
+      const totalClicks = metrics.reduce((sum, m) => sum + m.clicks, 0);
+      const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(2) : '0.00';
+
+      // Group by day for charts
+      const dailyData: Record<string, { date: string; impressions: number; clicks: number }> = {};
+      metrics.forEach(m => {
+        if (!dailyData[m.day]) {
+          dailyData[m.day] = { date: m.day, impressions: 0, clicks: 0 };
+        }
+        dailyData[m.day].impressions += m.impressions;
+        dailyData[m.day].clicks += m.clicks;
+      });
+
+      const chartData = Object.values(dailyData).map((d: any) => ({
+        ...d,
+        ctr: d.impressions > 0 ? (d.clicks / d.impressions * 100).toFixed(2) : '0.00'
+      }));
+
+      res.json({
+        ok: true,
+        campaign: {
+          name: campaign.name,
+          start_at: campaign.start_at,
+          end_at: campaign.end_at
+        },
+        totals: {
+          impressions: totalImpressions,
+          clicks: totalClicks,
+          ctr: parseFloat(ctr)
+        },
+        chartData,
+        last7Days: chartData.slice(-7),
+        last30Days: chartData
+      });
+
+    } catch (error) {
+      console.error('Metrics summary error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to get metrics summary'
+      });
+    }
+  });
+
+  // POST /api/spotlight/admin/portal/create
+  app.post('/api/spotlight/admin/portal/create', requireAdminKey, async (req, res) => {
+    try {
+      const { campaignId, daysValid = 30 } = req.body;
+      
+      if (!campaignId) {
+        return res.status(400).json({ ok: false, error: 'campaignId required' });
+      }
+
+      // Generate unique token
+      const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + daysValid);
+
+      const { data, error } = await supabase
+        .from('sponsor_portal_tokens')
+        .insert({
+          campaign_id: campaignId,
+          token,
+          expires_at: expiresAt.toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json({
+        ok: true,
+        token: data.token,
+        url: `/sponsor/${data.token}`,
+        expires_at: data.expires_at
+      });
+
+    } catch (error) {
+      console.error('Portal create error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to create portal token'
+      });
+    }
+  });
+
+  // GET /api/spotlight/portal/:token
+  app.get('/api/spotlight/portal/:token', async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      // Verify token and get campaign
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('sponsor_portal_tokens')
+        .select(`
+          campaign_id,
+          expires_at,
+          campaign:sponsor_campaigns(name, start_at, end_at)
+        `)
+        .eq('token', token)
+        .single();
+
+      if (tokenError || !tokenData) {
+        return res.status(404).json({ ok: false, error: 'Invalid or expired token' });
+      }
+
+      // Check if token is expired
+      if (tokenData.expires_at && new Date(tokenData.expires_at) < new Date()) {
+        return res.status(401).json({ ok: false, error: 'Token has expired' });
+      }
+
+      // Get metrics (reuse the summary logic)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const { data: metrics, error: metricsError } = await supabase
+        .from('sponsor_metrics_daily')
+        .select('day, placement, impressions, clicks')
+        .eq('campaign_id', tokenData.campaign_id)
+        .gte('day', thirtyDaysAgo.toISOString().split('T')[0])
+        .order('day', { ascending: true });
+
+      if (metricsError) throw metricsError;
+
+      // Calculate summary data
+      const totalImpressions = metrics.reduce((sum, m) => sum + m.impressions, 0);
+      const totalClicks = metrics.reduce((sum, m) => sum + m.clicks, 0);
+      const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(2) : '0.00';
+
+      // Group by day for charts
+      const dailyData: Record<string, { date: string; impressions: number; clicks: number }> = {};
+      metrics.forEach(m => {
+        if (!dailyData[m.day]) {
+          dailyData[m.day] = { date: m.day, impressions: 0, clicks: 0 };
+        }
+        dailyData[m.day].impressions += m.impressions;
+        dailyData[m.day].clicks += m.clicks;
+      });
+
+      const chartData = Object.values(dailyData).map((d: any) => ({
+        ...d,
+        ctr: d.impressions > 0 ? (d.clicks / d.impressions * 100).toFixed(2) : '0.00'
+      }));
+
+      res.json({
+        ok: true,
+        campaign: {
+          name: (tokenData.campaign as any).name,
+          start_at: (tokenData.campaign as any).start_at,
+          end_at: (tokenData.campaign as any).end_at
+        },
+        totals: {
+          impressions: totalImpressions,
+          clicks: totalClicks,
+          ctr: parseFloat(ctr)
+        },
+        chartData,
+        last7Days: chartData.slice(-7),
+        last30Days: chartData
+      });
+
+    } catch (error) {
+      console.error('Portal access error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to access portal'
+      });
+    }
+  });
+
+  // POST /api/spotlight/admin/leads/status
+  app.post('/api/spotlight/admin/leads/status', requireAdminKey, async (req, res) => {
+    try {
+      const { id, status } = req.body;
+      
+      if (!id || !status) {
+        return res.status(400).json({ ok: false, error: 'id and status required' });
+      }
+
+      const { data, error } = await supabase
+        .from('sponsor_leads')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      res.json({
+        ok: true,
+        lead: data,
+        message: `Lead status updated to ${status}`
+      });
+
+    } catch (error) {
+      console.error('Lead status update error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to update lead status'
       });
     }
   });

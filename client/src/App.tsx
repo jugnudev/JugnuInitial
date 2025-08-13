@@ -19,6 +19,7 @@ import Terms from "@/pages/terms";
 import NotFound from "@/pages/not-found";
 import DevPlacesSync from "@/pages/DevPlacesSync";
 import Promote from "@/pages/Promote";
+import SponsorPortal from "@/pages/SponsorPortal";
 
 function Router() {
   return (
@@ -32,6 +33,7 @@ function Router() {
         <Route path="/community/feature" component={CommunityRedirect} />
         <Route path="/promote" component={Promote} />
         <Route path="/promote/apply" component={Promote} />
+        <Route path="/sponsor/:token" component={SponsorPortal} />
         <Route path="/places" component={() => { window.location.href = '/events'; return null; }} />
         <Route path="/places/submit" component={() => { window.location.href = '/events'; return null; }} />
         <Route path="/saved" component={Saved} />

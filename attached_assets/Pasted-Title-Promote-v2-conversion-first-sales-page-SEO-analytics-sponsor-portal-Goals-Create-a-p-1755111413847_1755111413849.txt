@@ -1,0 +1,92 @@
+Title: Promote v2 — conversion-first sales page + SEO + analytics & sponsor portal
+
+Goals
+Create a premium, high-converting /promote that (1) looks editorial and trustworthy, (2) is fully SEO-optimized, and (3) ships real analytics sponsors can see in a self-serve portal. Keep existing spotlight placements on /events; do NOT place ads above the Jugnu hero on home.
+
+Part A — Visual redesign (premium, conversion-first)
+- New /promote layout:
+  1) Hero: “Promote with Jugnu” + subhead that sells the audience (South Asian culture fans in Metro Vancouver).
+     • Add subtle copper gradient backdrop, crisp typographic scale, single primary CTA “Request a Spotlight Slot”.
+  2) Social proof band: 3–4 stat tiles (Monthly visitors, South Asian focus, Metro reach, Age 18–35). Use realistic, conservative copy.
+  3) Value pillars: 3 cards (“Targeted audience”, “Premium placements”, “Measurable results”) with tiny iconography.
+  4) Packages (cards): Spotlight Banner (Events), Homepage Hero (below-the-fold only via home_mid), Full Feature (site + IG carousel).
+     • Pricing: From CA$50/week, From CA$150/week, From CA$300/campaign.
+     • Each card lists: What you get, Placement details, Tracking included, Turnaround.
+  5) Live preview module: upload or paste image URLs and see a simulated Events banner + Hero preview (client-only; no upload backend).
+  6) “How it works” (4 steps): Apply → We confirm dates/creative → Go live → Get your report.
+  7) Analytics teaser: mini charts with sample data (impressions, clicks, CTR) + badges “Sponsor Portal included”.
+  8) Add-ons strip: +CA$25 Story boost, +CA$25 Mid-run repost, Custom campaign, −10% multi-week.
+  9) CTA block: primary “Request a Spotlight Slot”, secondary “Email us”.
+  10) FAQ accordion (6–8 items) with schema (FAQPage).
+- Design language: generous spacing, copper/amber accents, rounded-2xl, soft shadows, tasteful micro-interactions, excellent mobile layout.
+- Keep copy clean and friendly; no exaggerated claims.
+
+Part B — Packages & copy (use placeholders we can edit)
+- Spotlight Banner (Events page): prime inline placement after first row, desktop & mobile optimized, frequency capping (1×/day/user), click tracking, UTM tagging, basic weekly report. From CA$50/week.
+- Homepage Hero (below fold): high-impact hero placement on home (home_mid only), 7-day run, headline/subline/CTA, tracking + weekly report. From CA$150/week.
+- Full Feature: optional landing page + IG carousel (4–6 slides), link-in-bio for 7 days, basic performance report. From CA$300/campaign.
+
+Part C — Analytics: real metrics + sponsor portal
+DB (Supabase, idempotent):
+  -- already have sponsor_campaigns, sponsor_creatives, sponsor_metrics_daily
+  CREATE TABLE IF NOT EXISTS public.sponsor_portal_tokens (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
+    token text UNIQUE NOT NULL,
+    expires_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now()
+  );
+
+API (server, x-admin-key where noted):
+  - POST /api/spotlight/admin/metrics/track {campaignId, placement, kind:'impression'|'click'}
+    • Increment in-memory counter and write to sponsor_metrics_daily (upsert for today).
+  - GET  /api/spotlight/admin/metrics/summary?campaignId=...   (x-admin-key)
+    • Returns totals + last 7/30 days arrays for impressions, clicks, CTR.
+  - POST /api/spotlight/admin/portal/create {campaignId, daysValid?:30} (x-admin-key)
+    • Creates a magic token and returns a shareable URL /sponsor/:token.
+  - GET  /api/spotlight/portal/:token
+    • Returns same summary payload if token valid & not expired; no PII.
+
+UI:
+  - /sponsor/:token page (public, tokenized): shows campaign name, dates, placements, and two Recharts charts (Area or Line): Impressions & Clicks, plus CTR %, today vs. week avg. Export CSV button.
+  - On /promote “Analytics you get” section, show sample mini charts using mocked data.
+
+Tracking integration:
+  - Keep current IntersectionObserver impression ping and click ping.
+  - Add UTM appender if missing (utm_source=jugnu&utm_medium=spotlight&utm_campaign=<slug>).
+
+Part D — Lead form & workflow
+- /promote/apply form additions:
+  • Business name, contact name, email, Instagram, website, desired dates, budget range, placement(s), objective (awareness/event launch), creative links, comments.
+  • Honeypot + latency check for spam; success screen.
+  • Save JSON payload to sponsor_leads (status 'new').
+- Admin endpoints (x-admin-key):
+  • GET /api/spotlight/admin/leads
+  • POST /api/spotlight/admin/leads/status {id,status}
+- Optional: when a campaign is created from a lead, automatically generate a portal token and return the link.
+
+Part E — SEO
+- Head tags: unique <title> and meta description targeting “South Asian marketing Vancouver”, “sponsor Jugnu”, “promote events Vancouver”.
+- JSON-LD:
+  • Organization schema for Jugnu (logo, sameAs to Instagram).
+  • Product/Offer for each package (price, priceCurrency: "CAD", description).
+  • FAQPage for the accordions.
+  • BreadcrumbList for Home > Promote.
+- OG/Twitter cards with hero image.
+- Internal links from Home and Events to /promote (footer + inline text link).
+- Lighthouse targets: CLS < 0.1; LCP < 2.5s on 4G.
+
+Part F — Performance & accessibility
+- Lazy-load non-critical sections; compress images; set width/height to avoid layout shift.
+- Alt text on all imagery; focus-visible rings; prefers-reduced-motion support.
+
+Part G — Admin helper
+- Add /admin/spotlight (x-admin-key cookie or header) with:
+  • List campaigns, toggle active, quick view metrics (7-day sparkline), generate portal link.
+  • Link to /promote/leads table.
+
+QA
+- /promote looks premium and responsive; CTAs visible above and below fold.
+- SEO schema validates (no errors in Rich Results test).
+- Impressions and clicks appear in sponsor_metrics_daily; /sponsor/:token shows charts.
+- Existing events_banner placement unaffected; no ads above Jugnu hero on home.
