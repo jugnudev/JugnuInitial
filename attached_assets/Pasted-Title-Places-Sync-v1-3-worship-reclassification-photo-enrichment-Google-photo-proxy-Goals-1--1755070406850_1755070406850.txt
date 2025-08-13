@@ -1,0 +1,54 @@
+Title: Places Sync v1.3 — worship reclassification + photo enrichment + Google photo proxy
+
+Goals
+1) Correctly classify worship places (Temple/Gurdwara/Mosque), never fallback to Restaurant.
+2) Populate photos from Yelp or Google so cards rarely show placeholders.
+3) Add a small admin migration to reclassify existing rows and enrich photos in bulk.
+
+DB (idempotent)
+- ALTER TABLE public.places
+  ADD COLUMN IF NOT EXISTS google_photo_ref text,
+  ADD COLUMN IF NOT EXISTS photo_source text; -- 'yelp' | 'google'
+- Ensure indices exist: idx_places_city, idx_places_google, idx_places_yelp.
+
+Classification
+- Add utility classifyPlace(name, yelpCategories[], googleTypes[]) that returns a Jugnu category using:
+  • name regex (case-insensitive): mandir|temple|iskcon|shiv|krishna|sai  -> 'Temple'
+  • gurdwara|gurudwara|sikh                                          -> 'Gurdwara'
+  • mosque|masjid|islamic centre|islamic center                       -> 'Mosque'
+  • else map Yelp/Google:
+      - yelp: indpak, indian, pakistani, srilankan, bangladeshi, afghani, halal -> 'Restaurant'
+      - yelp: desserts, coffee, tea, bubbletea, bakery                         -> 'Cafe/Dessert'
+      - yelp: grocery, internationalgrocery                                    -> 'Grocery Store'
+      - yelp: fashion, clothing, jewelry                                       -> 'Clothing Store'
+      - yelp: beautysvc, hair, skincare, makeupartists                         -> 'Beauty Salon'
+      - yelp: religiousorgs with name keywords above -> worship categories
+      - google types: bakery/cafe -> 'Cafe/Dessert'; grocery_or_supermarket -> 'Grocery Store'; place_of_worship -> use name regex
+  • If nothing matches: 'Community Organization' (NOT 'Restaurant').
+
+Importer changes
+- Use classifyPlace() during upsert; never default to Restaurant.
+- Do not overwrite a non-null category with Restaurant later.
+- Preserve image_url if already present.
+
+Photo enrichment
+- On Yelp import: if `image_url` present, store it and set photo_source='yelp'.
+- On Google (details): if photos[0].photo_reference exists and image_url is null, set google_photo_ref and photo_source='google'.
+- Add server route GET /api/images/google-photo?ref=...&w=1200 that proxies Places Photo API using our server key, caches aggressively, and returns an image (no client-side key exposure).
+
+Frontend
+- PlaceCard/PlaceModal image source priority:
+  1) image_url
+  2) `/api/images/google-photo?ref=${google_photo_ref}&w=1200`
+  3) existing placeholder
+- Update next.config.js images.remotePatterns to allow Yelp CDN: `*.yelpcdn.com` and `s3-media*.fl.yelpcdn.com`.
+
+Admin/migrations (x-admin-key)
+- POST /api/places/admin/reclassify-worship
+  • For rows where category='Restaurant' AND name matches worship regex, update to the correct worship category.
+- POST /api/places/admin/enrich-photos?limit=200&source=all
+  • For rows missing both image_url and google_photo_ref:
+     - if yelp_id present: call Yelp business details and set image_url/photos[0] if available.
+     - else if google_place_id present: call Places Details and set google_photo_ref.
+  • Return {enriched, yelpPhotos, googlePhotos, skipped, errors}.
+- Update /dev/places-sync with buttons to call both endpoints and show counts of misclassified worship, missing photos, and enriched totals.

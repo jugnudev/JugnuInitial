@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getSupabaseAdmin } from "./supabaseAdmin";
+import { addPlacesV13Routes } from './routes-places-v13.js';
 import { createHash } from "crypto";
 import ical from "node-ical";
 import he from "he";
@@ -2490,6 +2491,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.setHeader('Content-Type', 'image/svg+xml');
     res.send(svg);
   });
+
+  // Add Google Photos API proxy for v1.3 photo enrichment
+  app.get('/api/images/google-photo', async (req, res) => {
+    try {
+      const photoRef = req.query.ref as string;
+      const maxWidth = parseInt(req.query.w as string) || 1200;
+      
+      if (!photoRef) {
+        return res.status(400).json({ error: 'Photo reference required' });
+      }
+
+      const googleUrl = `https://maps.googleapis.com/maps/api/place/photo?photoreference=${photoRef}&maxwidth=${maxWidth}&key=${process.env.GOOGLE_PLACES_KEY}`;
+      
+      // Fetch the photo from Google
+      const response = await fetch(googleUrl);
+      
+      if (!response.ok) {
+        return res.status(response.status).json({ error: 'Failed to fetch photo' });
+      }
+
+      // Set appropriate caching headers (24 hours)
+      res.set({
+        'Content-Type': response.headers.get('content-type') || 'image/jpeg',
+        'Cache-Control': 'public, max-age=86400',
+        'X-Photo-Source': 'google-places'
+      });
+
+      // Stream the image data back to client
+      const buffer = await response.arrayBuffer();
+      res.send(Buffer.from(buffer));
+
+    } catch (error) {
+      console.error('Google Photos proxy error:', error);
+      res.status(500).json({ error: 'Photo proxy failed' });
+    }
+  });
+
+  // Add Places v1.3 routes for worship reclassification and photo enrichment
+  addPlacesV13Routes(app);
 
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)

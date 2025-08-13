@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Download, RefreshCw, Eye, MapPin, Building2, Clock } from 'lucide-react';
+import { Loader2, Download, RefreshCw, Eye, MapPin, Building2, Clock, Zap, Camera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface SyncResult {
@@ -68,16 +68,40 @@ interface InactivateResult {
   errors: string[];
 }
 
+interface ReclassifyResult {
+  reclassified: number;
+  skipped: number;
+  details: Array<{
+    id: string;
+    name: string;
+    from: string;
+    to: string;
+  }>;
+  errors: string[];
+}
+
+interface EnrichPhotosResult {
+  enriched: number;
+  yelpPhotos: number;
+  googlePhotos: number;
+  skipped: number;
+  errors: string[];
+}
+
 export default function DevPlacesSync() {
   const [syncLoading, setSyncLoading] = useState(false);
   const [reverifyLoading, setReverifyLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
   const [matchLoading, setMatchLoading] = useState(false);
+  const [reclassifyLoading, setReclassifyLoading] = useState(false);
+  const [enrichLoading, setEnrichLoading] = useState(false);
   const [inactivateLoading, setInactivateLoading] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [reverifyResult, setReverifyResult] = useState<ReverifyResult | null>(null);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [inactivateResult, setInactivateResult] = useState<InactivateResult | null>(null);
+  const [reclassifyResult, setReclassifyResult] = useState<ReclassifyResult | null>(null);
+  const [enrichResult, setEnrichResult] = useState<EnrichPhotosResult | null>(null);
   const [stats, setStats] = useState<PlaceStats | null>(null);
   const [matchingStats, setMatchingStats] = useState<MatchingStats | null>(null);
   const [validationStats, setValidationStats] = useState<ValidationStats | null>(null);
@@ -296,6 +320,74 @@ export default function DevPlacesSync() {
       });
     } finally {
       setInactivateLoading(false);
+    }
+  };
+
+  const handleReclassifyWorship = async () => {
+    setReclassifyLoading(true);
+    try {
+      const response = await fetch('/api/places/admin/reclassify-worship', {
+        method: 'POST',
+        headers: {
+          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || 'dev-key-placeholder',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.ok) {
+        setReclassifyResult(data.results);
+        toast({
+          title: "Worship Reclassification Completed",
+          description: `${data.results.reclassified} places reclassified`,
+        });
+      } else {
+        throw new Error(data.error || 'Reclassification failed');
+      }
+    } catch (error) {
+      console.error('Reclassify error:', error);
+      toast({
+        title: "Reclassification Failed",
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: "destructive",
+      });
+    } finally {
+      setReclassifyLoading(false);
+    }
+  };
+
+  const handleEnrichPhotos = async (source = 'all', limit = 200) => {
+    setEnrichLoading(true);
+    try {
+      const response = await fetch(`/api/places/admin/enrich-photos?limit=${limit}&source=${source}`, {
+        method: 'POST',
+        headers: {
+          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || 'dev-key-placeholder',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.ok) {
+        setEnrichResult(data.results);
+        toast({
+          title: "Photo Enrichment Completed",
+          description: `${data.results.enriched} places enriched with photos`,
+        });
+      } else {
+        throw new Error(data.error || 'Photo enrichment failed');
+      }
+    } catch (error) {
+      console.error('Photo enrichment error:', error);
+      toast({
+        title: "Photo Enrichment Failed",
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: "destructive",
+      });
+    } finally {
+      setEnrichLoading(false);
     }
   };
 
@@ -537,6 +629,127 @@ export default function DevPlacesSync() {
                   <div className="text-sm text-orange-700 space-y-1">
                     <p>• Inactivated: {inactivateResult.inactivated}</p>
                     <p>• Errors: {inactivateResult.errors.length}</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* v1.3: Worship Reclassification */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="w-5 h-5" />
+                Worship Reclassification
+              </CardTitle>
+              <CardDescription>
+                Fix misclassified worship places (v1.3)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button 
+                onClick={handleReclassifyWorship}
+                disabled={reclassifyLoading}
+                className="w-full"
+                size="lg"
+              >
+                {reclassifyLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Zap className="w-4 h-4 mr-2" />
+                )}
+                Reclassify Worship Places
+              </Button>
+
+              {reclassifyResult && (
+                <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <h4 className="font-medium text-green-900 mb-2">Reclassification Results</h4>
+                  <div className="text-sm text-green-700 space-y-1">
+                    <p>• Reclassified: {reclassifyResult.reclassified}</p>
+                    <p>• Skipped: {reclassifyResult.skipped}</p>
+                    <p>• Errors: {reclassifyResult.errors.length}</p>
+                  </div>
+                  {reclassifyResult.details && reclassifyResult.details.length > 0 && (
+                    <div className="mt-2 max-h-32 overflow-y-auto">
+                      <div className="text-xs text-green-600 space-y-1">
+                        {reclassifyResult.details.slice(0, 5).map((detail) => (
+                          <p key={detail.id}>• {detail.name}: {detail.from} → {detail.to}</p>
+                        ))}
+                        {reclassifyResult.details.length > 5 && (
+                          <p>... and {reclassifyResult.details.length - 5} more</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* v1.3: Photo Enrichment */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Camera className="w-5 h-5" />
+                Photo Enrichment
+              </CardTitle>
+              <CardDescription>
+                Add missing photos from Yelp/Google (v1.3)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  onClick={() => handleEnrichPhotos('yelp', 100)}
+                  disabled={enrichLoading}
+                  variant="outline"
+                  size="sm"
+                >
+                  {enrichLoading ? (
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  ) : (
+                    <Camera className="w-3 h-3 mr-1" />
+                  )}
+                  Yelp (100)
+                </Button>
+                <Button 
+                  onClick={() => handleEnrichPhotos('google', 100)}
+                  disabled={enrichLoading}
+                  variant="outline"
+                  size="sm"
+                >
+                  {enrichLoading ? (
+                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                  ) : (
+                    <Camera className="w-3 h-3 mr-1" />
+                  )}
+                  Google (100)
+                </Button>
+              </div>
+
+              <Button 
+                onClick={() => handleEnrichPhotos('all', 200)}
+                disabled={enrichLoading}
+                className="w-full"
+                size="lg"
+              >
+                {enrichLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4 mr-2" />
+                )}
+                Enrich All Sources (200)
+              </Button>
+
+              {enrichResult && (
+                <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <h4 className="font-medium text-green-900 mb-2">Photo Enrichment Results</h4>
+                  <div className="text-sm text-green-700 space-y-1">
+                    <p>• Total Enriched: {enrichResult.enriched}</p>
+                    <p>• Yelp Photos: {enrichResult.yelpPhotos}</p>
+                    <p>• Google Photos: {enrichResult.googlePhotos}</p>
+                    <p>• Skipped: {enrichResult.skipped}</p>
+                    <p>• Errors: {enrichResult.errors.length}</p>
                   </div>
                 </div>
               )}

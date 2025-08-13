@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from '../supabaseAdmin.js';
+import { classifyPlace } from './place-classifier.js';
 
 const supabase = getSupabaseAdmin();
 
@@ -38,11 +39,13 @@ interface YelpBusiness {
   };
   location: {
     display_address: string[];
+    country?: string;
   };
   categories: Array<{
     alias: string;
     title: string;
   }>;
+  image_url?: string;
 }
 
 // Utility functions
@@ -62,79 +65,7 @@ function createCanonicalKey(name: string, address?: string): string {
   return `${normalizedName}|${normalizedAddress}`;
 }
 
-// Enhanced category mapping for Places Sync v1.2
-function mapPlaceCategory(name: string, yelpCategories?: string[], googleTypes?: string[]): string {
-  const nameLower = name.toLowerCase();
-  
-  // Religious institutions - highest priority
-  if (nameLower.match(/mandir|temple|iskcon|shiv|krishna|sai/)) {
-    return 'Temple';
-  }
-  
-  if (nameLower.match(/gurdwara|gurudwara|sikh/)) {
-    return 'Gurdwara';
-  }
-  
-  if (nameLower.match(/mosque|masjid|islamic centre|islamic center/)) {
-    return 'Mosque';
-  }
-  
-  // Yelp category mapping
-  if (yelpCategories) {
-    const yelpCats = yelpCategories.map(cat => cat.toLowerCase());
-    
-    // Food & Beverage
-    if (yelpCats.some(cat => ['indpak', 'indian', 'pakistani', 'srilankan', 'bangladeshi', 'afghani', 'halal'].includes(cat))) {
-      return 'Restaurant';
-    }
-    
-    if (yelpCats.some(cat => ['desserts', 'coffee', 'tea', 'bubbletea', 'bakeries', 'cafes'].includes(cat))) {
-      return 'Cafe/Dessert';
-    }
-    
-    // Retail
-    if (yelpCats.some(cat => ['grocery', 'internationalgrocery', 'markets'].includes(cat))) {
-      return 'Grocery Store';
-    }
-    
-    if (yelpCats.some(cat => ['fashion', 'clothing', 'jewelry', 'accessories'].includes(cat))) {
-      return 'Clothing Store';
-    }
-    
-    // Services
-    if (yelpCats.some(cat => ['beautysvc', 'hair', 'skincare', 'makeupartists', 'cosmetics'].includes(cat))) {
-      return 'Beauty Salon';
-    }
-  }
-  
-  // Google types mapping
-  if (googleTypes) {
-    const googleTypesLower = googleTypes.map(type => type.toLowerCase());
-    
-    if (googleTypesLower.some(type => ['bakery', 'cafe'].includes(type))) {
-      return 'Cafe/Dessert';
-    }
-    
-    if (googleTypesLower.includes('grocery_or_supermarket')) {
-      return 'Grocery Store';
-    }
-    
-    if (googleTypesLower.some(type => ['restaurant', 'meal_takeaway', 'meal_delivery'].includes(type))) {
-      return 'Restaurant';
-    }
-    
-    if (googleTypesLower.some(type => ['clothing_store', 'jewelry_store', 'shoe_store'].includes(type))) {
-      return 'Clothing Store';
-    }
-    
-    if (googleTypesLower.some(type => ['beauty_salon', 'hair_care'].includes(type))) {
-      return 'Beauty Salon';
-    }
-  }
-  
-  // Default fallback - NO "Restaurant" fallback as specified
-  return 'Community Organization';
-}
+// Use the enhanced classifier from v1.3
 
 // Metro Vancouver geofencing
 function isWithinMetroVancouver(lat: number, lng: number): boolean {
@@ -368,7 +299,7 @@ export async function searchYelpBusinesses(term: string, location: string): Prom
 
 // Main import functions
 export async function importFromGoogle(cities: string[]): Promise<{imported: number, errors: string[]}> {
-  const results = { imported: 0, errors: [] };
+  const results = { imported: 0, errors: [] as string[] };
   
   const searchTerms = [
     'indian restaurant', 'pakistani restaurant', 'bangladeshi restaurant',
@@ -412,7 +343,7 @@ export async function importFromGoogle(cities: string[]): Promise<{imported: num
               .single();
             
             const cityAndCountry = extractCityAndCountry(details);
-            const category = mapPlaceCategory(details.name, undefined, details.types || []);
+            const category = classifyPlace(details.name, [], details.types || []);
             const tags = extractTags(details);
             
             // Extract photo data
@@ -475,7 +406,7 @@ export async function importFromGoogle(cities: string[]): Promise<{imported: num
 }
 
 export async function importFromYelp(cities: string[]): Promise<{imported: number, updated: number, errors: string[]}> {
-  const results = { imported: 0, updated: 0, errors: [] };
+  const results = { imported: 0, updated: 0, errors: [] as string[] };
   
   const categories = ['indian', 'pakistani', 'bangladeshi', 'sri_lankan', 'afghani', 'halal'];
   
@@ -491,13 +422,13 @@ export async function importFromYelp(cities: string[]): Promise<{imported: numbe
             // Try to find existing place by Yelp ID, Google Place ID, or name match
             const { data: existing } = await supabase
               .from('places')
-              .select('id, yelp_id, google_place_id, lat, lng')
+              .select('id, yelp_id, google_place_id, lat, lng, image_url')
               .or(`yelp_id.eq.${business.id},name.ilike.${business.name.replace(/'/g, "''")}`)
               .single();
             
             const cityInfo = parseCity(business.location.display_address.join(', '));
-            const yelpCategories = business.categories?.map((cat: any) => cat.alias) || [];
-            const category = mapPlaceCategory(business.name, yelpCategories);
+            const yelpCategories = business.categories || [];
+            const category = classifyPlace(business.name, yelpCategories);
             const tags = extractTags(business, business.categories);
             
             const existingImageUrl = existing?.image_url;
@@ -506,7 +437,7 @@ export async function importFromYelp(cities: string[]): Promise<{imported: numbe
               rating: business.rating,
               rating_count: business.review_count,
               business_status: business.is_closed ? 'CLOSED_PERMANENTLY' : 'OPERATIONAL',
-              country: business.location.country === 'CA' ? 'CA' : business.location.country,
+              country: business.location.country || 'CA',
               status: business.is_closed ? 'inactive' : 'active',
               last_verified_at: new Date().toISOString(),
               lat: business.coordinates.latitude,
@@ -582,7 +513,7 @@ export async function importFromYelp(cities: string[]): Promise<{imported: numbe
 }
 
 export async function reverifyAllPlaces(): Promise<{verified: number, deactivated: number, errors: string[]}> {
-  const results = { verified: 0, deactivated: 0, errors: [] };
+  const results = { verified: 0, deactivated: 0, errors: [] as string[] };
   
   try {
     // Get all places with Google Place IDs
