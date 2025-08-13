@@ -95,7 +95,7 @@ Preferred communication style: Simple, everyday language.
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 - **Featured Event Parsing**: Auto-detect "Featured: true|yes|1" from calendar descriptions or use admin API
 
-### Current State (Promote v2 - Conversion-First Sales Page - COMPLETE ✓)
+### Current State (Promote v2.3 - Enhanced Pricing & Analytics - COMPLETE ✓)
 - **Promote v2 - OPERATIONAL**: Comprehensive conversion-first sales page with real analytics, sponsor portal, premium design, and lead management system
 - **Database Infrastructure**: Full Supabase schema operational - sponsor_campaigns, sponsor_creatives, sponsor_metrics_daily, sponsor_leads tables initialized and functioning
 - **Admin API System**: Secure server-side admin endpoints for campaign management, creative uploads, metrics tracking, and lead management with environment-based admin key authentication
@@ -116,6 +116,10 @@ Preferred communication style: Simple, everyday language.
 - **Enhanced Lead Management**: Comprehensive application form with business details, placement selection, campaign objectives, creative links, honeypot spam protection, and admin status management endpoints
 - **Advanced Analytics Backend**: sponsor_portal_tokens table, metrics summary API, portal creation API, real campaign tracking with daily aggregation, and comprehensive performance reporting
 - **SEO Optimization**: Complete meta tags, Open Graph cards, JSON-LD schemas (Organization, Offers, FAQPage, BreadcrumbList), internal linking strategy, and performance optimization for Core Web Vitals
+- **Promote v2.3 Enhancements**: Daily/weekly pricing switches with CA$15-175 range, comprehensive add-ons system (IG Story Boost, Creative Design, etc.), auto-calculated quotes with early partner discounts, enhanced creative specifications (1600×400, 1080×600 for banners), improved tracking with viewability thresholds and frequency capping
+- **Enhanced Database Schema**: sponsor_metrics_daily table with generated CTR column, row-level security policies for data protection, upsert API for real-time metrics aggregation, and comprehensive tracking infrastructure
+- **Advanced Pricing System**: Multi-week discounts (10% for 2+ weeks, 15% for 4+ weeks), early partner 20% discount configuration, auto-calculation engine with real-time quote summaries, and persistent add-ons storage in lead records
+- **Hardened Analytics**: Viewable impressions tracking with IntersectionObserver 50% threshold, 1-per-session frequency capping via localStorage, server-side event aggregation, and enhanced sponsor portal with date filtering and CSV export
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS

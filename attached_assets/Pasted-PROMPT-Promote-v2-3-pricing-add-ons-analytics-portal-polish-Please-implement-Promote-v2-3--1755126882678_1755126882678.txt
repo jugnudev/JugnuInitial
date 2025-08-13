@@ -1,0 +1,96 @@
+PROMPT — Promote v2.3 (pricing, add-ons, analytics, portal polish)
+
+Please implement “Promote v2.3” with the following:
+
+1) Pricing & durations
+
+Add a Daily / Weekly switch on the three package cards. Default to Weekly.
+
+Launch prices (config-driven so we can tweak without code):
+
+Spotlight Banner: daily CA$15, weekly CA$75
+
+Homepage Hero (below fold): daily CA$35, weekly CA$175
+
+Full Feature: base CA$250/campaign
+
+Show a small “Early partner discount: 20% off first 3 bookings” pill on the cards (config flag).
+
+In the application form, when a user selects a package, auto-calculate the quoted total based on duration + add-ons + discounts and show a summary box before submit.
+
+2) Add-ons inside the form (with auto pricing)
+
+Checkboxes:
+
+IG Story Boost (+CA$10)
+
+Mid-Run Repost (+CA$10)
+
+IG Carousel 4–6 slides (+CA$60)
+
+Link-in-bio 7 days (+CA$15)
+
+Creative design help (+CA$40)
+
+If duration ≥ 2 weeks, auto-apply -10%; if ≥ 4 weeks, -15%. Show the discount line in the summary.
+
+Persist selected add-ons with the lead/campaign record.
+
+3) Package content tweaks
+
+Keep the live creative preview; add exact size helper text:
+
+Spotlight/Events banner: 1600×400 (desktop), 1080×600 (mobile)
+
+Homepage hero: 1600×900 (safe area top 220px)
+
+Above packages, add a three-card “Why it works” row (Targeted audience / Premium placements / Transparent analytics).
+
+Add a small “Who we partner with” row (Restaurants • Promoters • Student clubs • Cultural orgs).
+
+4) Tracking & analytics hardening
+
+Impressions: count viewable only using IntersectionObserver with 50% threshold and 1-per-session-per-creative cap (frequency capping in localStorage).
+
+Clicks: send server events with campaign_id, creative_id, placement, and utm payload.
+
+New table sponsor_metrics_daily:
+
+id uuid pk, campaign_id uuid, creative_id uuid, date date, placement text, impressions int default 0, clicks int default 0, ctr numeric generated (clicks / nullif(impressions,0))
+
+Upsert API that rolls minute-level events into daily rows.
+
+Sponsor portal: date range filter, placement filter, CTR sparkline, and Export CSV. Keep token-based access.
+
+Weekly summary job (server cron): email sponsor & admin totals + CTR + top placement (plain HTML + CSV attachment).
+
+5) Security & RLS
+
+Enable RLS on sponsor_campaigns, sponsor_creatives, sponsor_metrics_daily, sponsor_leads.
+
+Policies:
+
+Admin (service key) = full.
+
+Token holders: select where campaign_id in tokens’ allowed set (we already use signed portal tokens—reuse that claim).
+
+6) Copy & SEO
+
+Keep JSON-LD for Product/Offer and FAQ. Add Organization schema with socials and contact email.
+
+Tidy microcopy on cards; keep “from” prices and “Apply now” CTAs.
+
+7) Flags
+
+Keep home_hero disabled by default; keep events_banner enabled.
+
+Add LAUNCH_DISCOUNT_ACTIVE=true to show the 20% ribbon.
+
+Please implement, wire up the pricing config, and provide:
+
+The updated env schema (any new flags),
+
+SQL for sponsor_metrics_daily and RLS policies,
+
+Sample cURL to create a test campaign + token and view the sponsor portal.
+End prompt.

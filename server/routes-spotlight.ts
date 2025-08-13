@@ -86,6 +86,64 @@ export function addSpotlightRoutes(app: Express) {
         `
       });
 
+      // Create enhanced sponsor_metrics_daily table with CTR calculation
+      await supabase.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.sponsor_metrics_daily (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
+            creative_id uuid,
+            date date NOT NULL,
+            placement text NOT NULL,
+            impressions integer DEFAULT 0,
+            clicks integer DEFAULT 0,
+            ctr numeric GENERATED ALWAYS AS (
+              CASE 
+                WHEN impressions > 0 THEN (clicks::numeric / impressions::numeric * 100)
+                ELSE 0
+              END
+            ) STORED,
+            created_at timestamptz NOT NULL DEFAULT now(),
+            updated_at timestamptz NOT NULL DEFAULT now(),
+            UNIQUE(campaign_id, creative_id, date, placement)
+          );
+        `
+      });
+
+      // Enable RLS on all sponsor tables
+      await supabase.rpc('exec_sql', {
+        sql: `
+          -- Enable RLS
+          ALTER TABLE public.sponsor_campaigns ENABLE ROW LEVEL SECURITY;
+          ALTER TABLE public.sponsor_creatives ENABLE ROW LEVEL SECURITY;
+          ALTER TABLE public.sponsor_metrics_daily ENABLE ROW LEVEL SECURITY;
+          ALTER TABLE public.sponsor_leads ENABLE ROW LEVEL SECURITY;
+          ALTER TABLE public.sponsor_portal_tokens ENABLE ROW LEVEL SECURITY;
+
+          -- Admin (service key) policies - full access
+          CREATE POLICY sponsor_campaigns_admin ON public.sponsor_campaigns FOR ALL USING (true);
+          CREATE POLICY sponsor_creatives_admin ON public.sponsor_creatives FOR ALL USING (true);
+          CREATE POLICY sponsor_metrics_admin ON public.sponsor_metrics_daily FOR ALL USING (true);
+          CREATE POLICY sponsor_leads_admin ON public.sponsor_leads FOR ALL USING (true);
+          CREATE POLICY sponsor_tokens_admin ON public.sponsor_portal_tokens FOR ALL USING (true);
+
+          -- Token holder policies - read access to their campaign data
+          CREATE POLICY sponsor_campaigns_token ON public.sponsor_campaigns FOR SELECT 
+            USING (id IN (
+              SELECT campaign_id FROM public.sponsor_portal_tokens 
+              WHERE token = current_setting('app.portal_token', true)
+              AND (expires_at IS NULL OR expires_at > now())
+            ));
+
+          CREATE POLICY sponsor_metrics_token ON public.sponsor_metrics_daily FOR SELECT 
+            USING (campaign_id IN (
+              SELECT campaign_id FROM public.sponsor_portal_tokens 
+              WHERE token = current_setting('app.portal_token', true)
+              AND (expires_at IS NULL OR expires_at > now())
+            ));
+        `
+      });
+
       console.log('✓ Spotlight database tables initialized');
     } catch (error) {
       console.error('Database initialization error:', error);
@@ -744,6 +802,67 @@ export function addSpotlightRoutes(app: Express) {
       res.status(500).json({
         ok: false,
         error: error instanceof Error ? error.message : 'Failed to access portal'
+      });
+    }
+  });
+
+  // POST /api/spotlight/admin/metrics/track - Upsert daily metrics
+  app.post('/api/spotlight/admin/metrics/track', requireAdminKey, async (req, res) => {
+    try {
+      const { campaignId, creativeId, placement, kind, utm } = req.body;
+      
+      if (!campaignId || !placement || !kind) {
+        return res.status(400).json({ ok: false, error: 'campaignId, placement, and kind required' });
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Upsert daily metrics row
+      const incrementField = kind === 'impression' ? 'impressions' : 'clicks';
+      
+      const { data, error } = await supabase
+        .from('sponsor_metrics_daily')
+        .upsert(
+          {
+            campaign_id: campaignId,
+            creative_id: creativeId || null,
+            date: today,
+            placement: placement,
+            [incrementField]: 1
+          },
+          {
+            onConflict: 'campaign_id,creative_id,date,placement',
+            ignoreDuplicates: false
+          }
+        )
+        .select();
+
+      if (error) {
+        // If upsert fails due to conflict, try incrementing existing row
+        const { error: updateError } = await supabase.rpc('increment_metric', {
+          p_campaign_id: campaignId,
+          p_creative_id: creativeId,
+          p_date: today,
+          p_placement: placement,
+          p_field: incrementField
+        });
+
+        if (updateError) throw updateError;
+      }
+
+      res.json({
+        ok: true,
+        tracked: kind,
+        campaign_id: campaignId,
+        placement: placement,
+        utm: utm
+      });
+
+    } catch (error) {
+      console.error('Metrics tracking error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to track metric'
       });
     }
   });

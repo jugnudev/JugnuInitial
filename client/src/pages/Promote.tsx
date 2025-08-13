@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, BarChart3, Target, TrendingUp, Eye, MousePointer, Users, MapPin, Calendar, CheckCircle, Upload, ExternalLink, Mail, Plus, Minus } from 'lucide-react';
+import { ArrowRight, BarChart3, Target, TrendingUp, Eye, MousePointer, Users, MapPin, Calendar, CheckCircle, Upload, ExternalLink, Mail, Plus, Minus, Zap, Star, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +8,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { PRICING_CONFIG, calculatePricing, formatCAD, type PackageType, type AddOnType } from '@/lib/pricing';
 
 // Sample data for analytics preview
 const sampleData = [
@@ -50,9 +54,13 @@ const FAQ_ITEMS = [
 ];
 
 export default function Promote() {
-  const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
+  const [selectedPackage, setSelectedPackage] = useState<PackageType | null>(null);
   const [previewImage, setPreviewImage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pricingMode, setPricingMode] = useState<'daily' | 'weekly'>('weekly');
+  const [weekDuration, setWeekDuration] = useState(1);
+  const [selectedAddOns, setSelectedAddOns] = useState<AddOnType[]>([]);
+  
   const [formData, setFormData] = useState({
     business_name: '',
     contact_name: '',
@@ -64,7 +72,10 @@ export default function Promote() {
     placements: [] as string[],
     objective: '',
     creative_links: '',
-    comments: ''
+    comments: '',
+    duration: 'weekly' as 'daily' | 'weekly',
+    weeks: 1,
+    add_ons: [] as string[]
   });
 
   // Honeypot and latency check for spam prevention
@@ -304,7 +315,7 @@ export default function Promote() {
         </div>
       </section>
 
-      {/* Value Pillars */}
+      {/* Why It Works Section */}
       <section className="py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
@@ -315,14 +326,14 @@ export default function Promote() {
             className="text-center mb-16"
           >
             <h2 className="font-fraunces text-3xl sm:text-4xl font-bold text-white mb-4">
-              Why Partner With Us
+              Why It Works
             </h2>
             <p className="text-muted text-lg max-w-2xl mx-auto">
-              Connect with an engaged, culturally-focused audience through premium placements and transparent analytics.
+              Connect with Vancouver's most engaged cultural community through strategic, measurable placements.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-8 mb-16">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -333,7 +344,7 @@ export default function Promote() {
                 <Target className="w-12 h-12 text-copper-500 mb-6" />
                 <h3 className="font-fraunces text-xl font-bold text-white mb-4">Targeted Audience</h3>
                 <p className="text-muted">
-                  Reach South Asian culture enthusiasts, young professionals, and community leaders actively seeking events and experiences.
+                  18-35 year olds passionate about South Asian culture, events, and community experiences in Metro Vancouver.
                 </p>
               </Card>
             </motion.div>
@@ -345,10 +356,10 @@ export default function Promote() {
               transition={{ duration: 0.6, delay: 0.2 }}
             >
               <Card className="p-8 bg-white/5 border-white/10 hover:bg-white/10 transition-colors">
-                <Eye className="w-12 h-12 text-copper-500 mb-6" />
+                <Zap className="w-12 h-12 text-copper-500 mb-6" />
                 <h3 className="font-fraunces text-xl font-bold text-white mb-4">Premium Placements</h3>
                 <p className="text-muted">
-                  Strategic positioning on high-traffic pages with frequency capping to ensure quality impressions and user experience.
+                  Strategic positioning with frequency capping and viewability tracking for maximum impact and user experience.
                 </p>
               </Card>
             </motion.div>
@@ -360,14 +371,45 @@ export default function Promote() {
               transition={{ duration: 0.6, delay: 0.3 }}
             >
               <Card className="p-8 bg-white/5 border-white/10 hover:bg-white/10 transition-colors">
-                <BarChart3 className="w-12 h-12 text-copper-500 mb-6" />
-                <h3 className="font-fraunces text-xl font-bold text-white mb-4">Measurable Results</h3>
+                <Shield className="w-12 h-12 text-copper-500 mb-6" />
+                <h3 className="font-fraunces text-xl font-bold text-white mb-4">Transparent Analytics</h3>
                 <p className="text-muted">
-                  Real-time analytics dashboard with impressions, clicks, CTR tracking, and detailed performance reports.
+                  Real-time dashboard with viewable impressions, click tracking, CTR analysis, and exportable performance reports.
                 </p>
               </Card>
             </motion.div>
           </div>
+
+          {/* Who We Partner With */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="text-center"
+          >
+            <h3 className="font-fraunces text-xl font-bold text-white mb-6">
+              Who We Partner With
+            </h3>
+            <div className="flex flex-wrap justify-center gap-8 text-muted">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-copper-500 rounded-full"></div>
+                <span>Restaurants</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-copper-500 rounded-full"></div>
+                <span>Event Promoters</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-copper-500 rounded-full"></div>
+                <span>Student Clubs</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-copper-500 rounded-full"></div>
+                <span>Cultural Organizations</span>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
@@ -384,9 +426,24 @@ export default function Promote() {
             <h2 className="font-fraunces text-3xl sm:text-4xl font-bold text-white mb-4">
               Sponsorship Packages
             </h2>
-            <p className="text-muted text-lg max-w-2xl mx-auto">
+            <p className="text-muted text-lg max-w-2xl mx-auto mb-8">
               Choose the placement that best fits your campaign goals and budget.
             </p>
+
+            {/* Duration Toggle */}
+            <div className="flex items-center justify-center gap-4 mb-8">
+              <span className={`text-sm font-medium ${pricingMode === 'daily' ? 'text-white' : 'text-muted'}`}>
+                Daily
+              </span>
+              <Switch
+                checked={pricingMode === 'weekly'}
+                onCheckedChange={(checked) => setPricingMode(checked ? 'weekly' : 'daily')}
+                data-testid="pricing-mode-toggle"
+              />
+              <span className={`text-sm font-medium ${pricingMode === 'weekly' ? 'text-white' : 'text-muted'}`}>
+                Weekly
+              </span>
+            </div>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
@@ -398,15 +455,35 @@ export default function Promote() {
               transition={{ duration: 0.6, delay: 0.1 }}
             >
               <Card className="p-8 bg-white/5 border-white/10 hover:border-copper-500/30 transition-all duration-300 relative group">
+                {/* Early Partner Discount Pill */}
+                {PRICING_CONFIG.discounts.early_partner.active && (
+                  <div className="absolute -top-3 -right-3 z-20">
+                    <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 text-xs shadow-lg">
+                      <Star className="w-3 h-3 mr-1" />
+                      20% off first 3 bookings
+                    </Badge>
+                  </div>
+                )}
+
                 <div className="mb-6">
                   <Badge className="bg-copper-500/20 text-copper-400 border-copper-500/30">
                     Events Page
                   </Badge>
                 </div>
                 <h3 className="font-fraunces text-2xl font-bold text-white mb-4">Spotlight Banner</h3>
+                
+                {/* Size Specifications */}
+                <div className="text-xs text-muted mb-4 bg-black/20 p-3 rounded-lg">
+                  <div className="font-medium mb-1">Creative Specs:</div>
+                  <div>Desktop: {PRICING_CONFIG.packages.spotlight_banner.sizeSpecs.desktop}</div>
+                  <div>Mobile: {PRICING_CONFIG.packages.spotlight_banner.sizeSpecs.mobile}</div>
+                </div>
+
                 <div className="mb-6">
-                  <span className="text-3xl font-bold text-white">From CA$50</span>
-                  <span className="text-muted">/week</span>
+                  <span className="text-3xl font-bold text-white">
+                    {formatCAD(pricingMode === 'daily' ? PRICING_CONFIG.packages.spotlight_banner.daily : PRICING_CONFIG.packages.spotlight_banner.weekly)}
+                  </span>
+                  <span className="text-muted">/{pricingMode}</span>
                 </div>
                 
                 <ul className="space-y-3 mb-8 text-sm">
@@ -457,15 +534,35 @@ export default function Promote() {
               transition={{ duration: 0.6, delay: 0.2 }}
             >
               <Card className="p-8 bg-white/5 border-copper-500/30 hover:border-copper-500/50 transition-all duration-300 relative group shadow-lg shadow-copper-500/10">
+                {/* Early Partner Discount Pill */}
+                {PRICING_CONFIG.discounts.early_partner.active && (
+                  <div className="absolute -top-3 -right-3 z-20">
+                    <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 text-xs shadow-lg">
+                      <Star className="w-3 h-3 mr-1" />
+                      20% off first 3 bookings
+                    </Badge>
+                  </div>
+                )}
+
                 <div className="mb-6">
                   <Badge className="bg-copper-500 text-black">
                     Most Popular
                   </Badge>
                 </div>
                 <h3 className="font-fraunces text-2xl font-bold text-white mb-4">Homepage Hero</h3>
+                
+                {/* Size Specifications */}
+                <div className="text-xs text-muted mb-4 bg-black/20 p-3 rounded-lg">
+                  <div className="font-medium mb-1">Creative Specs:</div>
+                  <div>Desktop: {PRICING_CONFIG.packages.homepage_hero.sizeSpecs.desktop}</div>
+                  <div>Mobile: {PRICING_CONFIG.packages.homepage_hero.sizeSpecs.mobile}</div>
+                </div>
+
                 <div className="mb-6">
-                  <span className="text-3xl font-bold text-white">From CA$150</span>
-                  <span className="text-muted">/week</span>
+                  <span className="text-3xl font-bold text-white">
+                    {formatCAD(pricingMode === 'daily' ? PRICING_CONFIG.packages.homepage_hero.daily : PRICING_CONFIG.packages.homepage_hero.weekly)}
+                  </span>
+                  <span className="text-muted">/{pricingMode}</span>
                 </div>
                 
                 <ul className="space-y-3 mb-8 text-sm">
@@ -516,6 +613,16 @@ export default function Promote() {
               transition={{ duration: 0.6, delay: 0.3 }}
             >
               <Card className="p-8 bg-white/5 border-white/10 hover:border-copper-500/30 transition-all duration-300 relative group">
+                {/* Early Partner Discount Pill */}
+                {PRICING_CONFIG.discounts.early_partner.active && (
+                  <div className="absolute -top-3 -right-3 z-20">
+                    <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 text-xs shadow-lg">
+                      <Star className="w-3 h-3 mr-1" />
+                      20% off first 3 bookings
+                    </Badge>
+                  </div>
+                )}
+
                 <div className="mb-6">
                   <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
                     Premium
@@ -523,7 +630,9 @@ export default function Promote() {
                 </div>
                 <h3 className="font-fraunces text-2xl font-bold text-white mb-4">Full Feature</h3>
                 <div className="mb-6">
-                  <span className="text-3xl font-bold text-white">From CA$300</span>
+                  <span className="text-3xl font-bold text-white">
+                    {formatCAD(PRICING_CONFIG.packages.full_feature.base)}
+                  </span>
                   <span className="text-muted">/campaign</span>
                 </div>
                 
