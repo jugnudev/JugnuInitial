@@ -77,13 +77,13 @@ export default function Hero() {
               </Link>
             )}
             
-            {/* Secondary CTA - Explore Vancouver */}
+            {/* Secondary CTA - Explore Events */}
             <Link
-              href="/explore"
+              href="/events"
               className="inline-flex items-center justify-center px-8 py-4 bg-white/10 text-white border border-white/20 font-medium tracking-wide rounded-2xl hover:bg-white/20 hover:border-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200 backdrop-blur-sm"
-              data-testid="button-explore-vancouver"
+              data-testid="button-explore-events"
             >
-              Explore Vancouver
+              Explore Events
             </Link>
           </div>
         </div>

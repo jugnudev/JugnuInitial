@@ -209,7 +209,7 @@ export function SponsoredBanner() {
       </div>
 
       {/* Reduced motion fallback */}
-      <style jsx>{`
+      <style>{`
         @media (prefers-reduced-motion: reduce) {
           .group:hover {
             transform: none !important;

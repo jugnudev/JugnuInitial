@@ -78,20 +78,9 @@ export default function Navigation() {
                 Story
               </a>
               <Link
-                href="/explore"
-                className={`transition-colors duration-200 font-medium ${
-                  location.startsWith('/explore') 
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-explore"
-              >
-                Explore
-              </Link>
-              <Link
                 href="/events"
                 className={`transition-colors duration-200 font-medium ${
-                  location === '/events' 
+                  location === '/events' || location.startsWith('/explore')
                     ? 'text-accent' 
                     : 'text-text hover:text-accent'
                 }`}
@@ -175,21 +164,9 @@ export default function Navigation() {
                 Story
               </a>
               <Link
-                href="/explore"
-                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
-                  location.startsWith('/explore') 
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-mobile-explore"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Explore
-              </Link>
-              <Link
                 href="/events"
                 className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
-                  location === '/events' 
+                  location === '/events' || location.startsWith('/explore')
                     ? 'text-accent' 
                     : 'text-text hover:text-accent'
                 }`}

@@ -25,15 +25,15 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/" component={Home} />
-        <Route path="/explore" component={Explore} />
+        <Route path="/explore" component={() => { window.location.href = '/events'; return null; }} />
         <Route path="/events" component={EventsExplore} />
         <Route path="/community" component={CommunityRedirect} />
         <Route path="/events/feature" component={CommunityFeature} />
         <Route path="/community/feature" component={CommunityRedirect} />
         <Route path="/promote" component={Promote} />
         <Route path="/promote/apply" component={Promote} />
-        <Route path="/places" component={() => { window.location.href = '/explore'; return null; }} />
-        <Route path="/places/submit" component={() => { window.location.href = '/explore'; return null; }} />
+        <Route path="/places" component={() => { window.location.href = '/events'; return null; }} />
+        <Route path="/places/submit" component={() => { window.location.href = '/events'; return null; }} />
         <Route path="/saved" component={Saved} />
         <Route path="/waitlist" component={Waitlist} />
         <Route path="/thank-you" component={ThankYou} />
