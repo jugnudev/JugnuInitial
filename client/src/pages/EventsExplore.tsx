@@ -42,8 +42,8 @@ export default function EventsExplore() {
     }],
   });
 
-  const events = data?.items || [];
-  const featuredEvent = data?.featured || null;
+  const events = (data as any)?.items || [];
+  const featuredEvent = (data as any)?.featured || null;
 
   // Filtered events based on search and category
   const filteredEvents = useMemo(() => {
@@ -153,13 +153,11 @@ export default function EventsExplore() {
         <Toolbar
           searchValue={searchQuery}
           onSearchChange={setSearchQuery}
-          segmentOptions={CATEGORIES}
+          segmentOptions={CATEGORIES.map(c => c.value)}
           segmentValue={categoryFilter}
           onSegmentChange={setCategoryFilter}
-          filters={filters}
-          onFiltersChange={setFilters}
-          isFiltersOpen={isFilterDrawerOpen}
-          onFiltersOpenChange={setIsFilterDrawerOpen}
+          onFiltersClick={() => setIsFilterDrawerOpen(true)}
+          activeFiltersCount={hasActiveFilters ? 1 : 0}
         />
 
         {/* Loading State */}
@@ -185,7 +183,7 @@ export default function EventsExplore() {
         {error && (
           <div className="mt-10 md:mt-14">
             <EmptyState
-              title="Unable to load events"
+              message="Unable to load events"
               description="There was a problem loading the events. Please try again later."
               action={
                 <Button
@@ -213,7 +211,7 @@ export default function EventsExplore() {
                   date: featuredEvent.start_at || featuredEvent.date,
                   is_all_day: typeof featuredEvent.is_all_day === 'string' ? featuredEvent.is_all_day === 'true' : Boolean(featuredEvent.is_all_day),
                 }}
-                onClick={() => handleEventClick(featuredEvent)}
+                onViewDetails={() => handleEventClick(featuredEvent)}
                 className="mb-10"
               />
             )}
@@ -245,7 +243,7 @@ export default function EventsExplore() {
               </motion.div>
             ) : (
               <EmptyState
-                title={hasActiveFilters ? "No events match your filters" : "No events found"}
+                message={hasActiveFilters ? "No events match your filters" : "No events found"}
                 description={
                   hasActiveFilters 
                     ? "Try adjusting your search or filters to find events."

@@ -65,12 +65,14 @@ export default function Saved() {
   const { data: favoriteEvents = [], isLoading: eventsLoading } = useQuery({
     queryKey: ['/api/events/by-ids', { ids: favoriteEventIds.join(',') }],
     enabled: favoriteEventIds.length > 0,
+    select: (data: any) => data || []
   });
 
   // Fetch favorite places using v3.3 by-ids endpoint
   const { data: favoritePlaces = [], isLoading: placesLoading } = useQuery({
     queryKey: ['/api/places/by-ids', { ids: favoritePlaceIds.join(',') }],
     enabled: favoritePlaceIds.length > 0,
+    select: (data: any) => data || []
   });
 
   const handleEventClick = (event: CommunityEvent) => {
@@ -167,7 +169,7 @@ export default function Saved() {
 
             {!eventsLoading && favoriteEvents.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {favoriteEvents.map((event, index) => (
+                {(favoriteEvents as any[]).map((event: any, index: number) => (
                   <Card
                     key={event.id}
                     item={{
@@ -196,7 +198,7 @@ export default function Saved() {
                   Discover amazing South Asian events and save your favorites
                 </p>
                 <Button
-                  onClick={() => window.location.href = '/community'}
+                  onClick={() => window.location.href = '/events'}
                   className="bg-copper-500 hover:bg-copper-600 text-black font-medium"
                 >
                   <ExternalLink className="w-4 h-4 mr-2" />
@@ -227,7 +229,7 @@ export default function Saved() {
 
             {!placesLoading && favoritePlaces.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {favoritePlaces.map((place, index) => (
+                {(favoritePlaces as any[]).map((place: any, index: number) => (
                   <Card
                     key={place.id}
                     item={{
