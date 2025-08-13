@@ -1,0 +1,56 @@
+Title: Places Sync v1.2 — strict BC geofencing, real city/country parsing, proper category mapping, and photos
+
+Scope
+Upgrade the Yelp/Google importer and UI image handling so that only Metro Vancouver (BC, Canada) places appear, categories are correct, and cards show photos.
+
+DB updates
+- ALTER TABLE public.places
+  ADD COLUMN IF NOT EXISTS country text,
+  ADD COLUMN IF NOT EXISTS google_photo_ref text,
+  ADD COLUMN IF NOT EXISTS photo_source text;  -- 'yelp' | 'google' | null
+- Create indices if missing: idx_places_city, idx_places_country.
+
+Importer changes
+1) **Geofencing & validation**
+   - Define a Metro Vancouver bounding box: lat 49.0–49.45, lng -123.45 to -122.4.
+   - For Yelp: only accept results where `location.country = 'CA'` AND (`location.state` in ['BC','British Columbia']) AND the coordinates fall inside the bounding box.
+   - For Google: use `region=CA` and a location bias per city; after fetching, **drop** any result whose coordinates are outside the bounding box OR whose country != 'CA' from address_components.
+   - Populate `city`, `country`, `lat`, `lng` from source fields; do not fall back to defaults.
+
+2) **Category mapping (no “restaurant” fallback)**
+   - If name or categories contain: `mandir|temple|iskcon|shiv|krishna|sai` → category='Temple'
+   - `gurdwara|gurudwara|sikh` → 'Gurdwara'
+   - `mosque|masjid|islamic centre|islamic center` → 'Mosque'
+   - Else map Yelp category aliases and Google types:
+     • yelp: 'indpak','indian','pakistani','srilankan','bangladeshi','afghani','halal','desserts','coffee','tea','bubbletea' → 'Restaurant' or 'Cafe/Dessert' as appropriate
+     • yelp: 'grocery','internationalgrocery' → 'Grocery Store'
+     • yelp: 'fashion','clothing','jewelry' → 'Clothing Store'
+     • yelp: 'beautysvc','hair','skincare','makeupartists' → 'Beauty Salon'
+     • yelp: 'religiousorgs' → map via name keywords above
+     • google types: bakery/cafe → 'Cafe/Dessert'; grocery_or_supermarket → 'Grocery Store'; place_of_worship → use name keywords
+   - If no rule matches, set category='Community Organization' (NOT 'Restaurant').
+
+3) **Photos**
+   - Yelp: if `image_url` present, set `image_url` and `photo_source='yelp'`.
+   - Google: when Details has a `photos[0].photo_reference`, set `google_photo_ref` and `photo_source='google'` IF `image_url` is null.
+   - Add a server route: GET `/api/images/google-photo?ref=...&w=1200`
+     • Proxies the Places Photo API with our server key (no key in client)
+     • Sets long Cache-Control, handles width param, returns 302 redirect or streams bytes.
+   - Frontend: PlaceCard/Modal: if `image_url`, use it; else if `google_photo_ref`, use the proxy URL; else show placeholder.
+   - Add minimal attribution note in the modal footer when photo_source='google' or 'yelp'.
+
+4) **City label formatting**
+   - Ensure card subtitle uses: `${neighborhood ? neighborhood + ' • ' : ''}${city}, BC`
+   - Do not hardcode “Vancouver, BC”.
+
+5) **Status rules**
+   - When importing: if business_status indicates closed or yelp.is_closed=true → status='inactive'.
+   - Public list API must only return `status='active'` AND (`business_status` is null OR `business_status='OPERATIONAL'`).
+
+6) **Re‐sync behavior**
+   - On upsert, never overwrite a non-null `image_url` with null.
+   - Update rating/rating_count and last_verified_at every run.
+
+Dev utilities
+- Update /dev/places-sync to show counters: outside-bounds, country≠CA, missing city, and wrong-category guesses (regex for mandir/gurdwara/mosque where category ≠ expected).
+- Add a one-click “Deactivate out-of-bounds/non-CA” that flips status='inactive' for those rows.

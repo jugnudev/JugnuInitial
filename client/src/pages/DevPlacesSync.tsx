@@ -47,6 +47,14 @@ interface MatchingStats {
   potentialDuplicates: number;
 }
 
+interface ValidationStats {
+  total: number;
+  outsideBounds: number;
+  nonCanada: number;
+  missingCity: number;
+  wrongCategory: number;
+}
+
 interface MatchResult {
   matched: number;
   enriched: number;
@@ -72,6 +80,9 @@ export default function DevPlacesSync() {
   const [inactivateResult, setInactivateResult] = useState<InactivateResult | null>(null);
   const [stats, setStats] = useState<PlaceStats | null>(null);
   const [matchingStats, setMatchingStats] = useState<MatchingStats | null>(null);
+  const [validationStats, setValidationStats] = useState<ValidationStats | null>(null);
+  const [migrationLoading, setMigrationLoading] = useState(false);
+  const [cleanupLoading, setCleanupLoading] = useState(false);
   const { toast } = useToast();
 
   // Check if we're in development

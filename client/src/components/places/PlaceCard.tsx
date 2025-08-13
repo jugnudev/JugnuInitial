@@ -17,6 +17,16 @@ interface Place {
   image_url?: string;
   sponsored: boolean;
   sponsored_until?: string;
+  featured?: boolean;
+  lat?: number;
+  lng?: number;
+  rating?: number;
+  rating_count?: number;
+  // Places Sync v1.2 additions
+  country?: string;
+  google_photo_ref?: string;
+  photo_source?: string;
+  business_status?: string;
 }
 
 interface PlaceCardProps {
@@ -64,8 +74,29 @@ export default function PlaceCard({ place, onClick }: PlaceCardProps) {
             alt={place.name}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
           />
-        ) : (
+        ) : place.google_photo_ref ? (
+          <img
+            src={`/api/images/google-photo?ref=${place.google_photo_ref}&w=800`}
+            alt={place.name}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+            onError={(e) => {
+              // Fallback to placeholder if Google photo fails to load
+              const target = e.currentTarget as HTMLImageElement;
+              target.style.display = 'none';
+              const fallback = target.parentElement?.querySelector('.google-photo-fallback') as HTMLElement;
+              if (fallback) {
+                fallback.classList.remove('hidden');
+              }
+            }}
+          />
+        ) : null}
+        {!place.image_url && !place.google_photo_ref && (
           <div className="w-full h-full bg-gradient-to-br from-[#c05a0e]/30 via-[#d4691a]/20 to-[#b8540d]/25 flex items-center justify-center">
+            <Star className="w-12 h-12 text-[#c05a0e]/80" />
+          </div>
+        )}
+        {place.google_photo_ref && !place.image_url && (
+          <div className="google-photo-fallback hidden w-full h-full bg-gradient-to-br from-[#c05a0e]/30 via-[#d4691a]/20 to-[#b8540d]/25 flex items-center justify-center">
             <Star className="w-12 h-12 text-[#c05a0e]/80" />
           </div>
         )}

@@ -62,35 +62,133 @@ function createCanonicalKey(name: string, address?: string): string {
   return `${normalizedName}|${normalizedAddress}`;
 }
 
-function mapGoogleTypeToCategory(types: string[], name: string): string {
-  const typeSet = new Set(types.map(t => t.toLowerCase()));
+// Enhanced category mapping for Places Sync v1.2
+function mapPlaceCategory(name: string, yelpCategories?: string[], googleTypes?: string[]): string {
   const nameLower = name.toLowerCase();
   
-  // Check for specific religious places first
-  if (typeSet.has('place_of_worship')) {
-    if (nameLower.includes('gurdwara') || nameLower.includes('gurudwara')) return 'gurdwara';
-    if (nameLower.includes('temple') || nameLower.includes('mandir')) return 'temple';
-    if (nameLower.includes('mosque') || nameLower.includes('masjid')) return 'mosque';
-    return 'temple'; // Default for religious places
+  // Religious institutions - highest priority
+  if (nameLower.match(/mandir|temple|iskcon|shiv|krishna|sai/)) {
+    return 'Temple';
   }
   
-  // Map other types
-  if (typeSet.has('restaurant')) {
-    if (nameLower.includes('cafe') || nameLower.includes('coffee') || 
-        nameLower.includes('dessert') || nameLower.includes('sweet') ||
-        nameLower.includes('mithai') || nameLower.includes('bakery')) {
-      return 'cafe/dessert';
+  if (nameLower.match(/gurdwara|gurudwara|sikh/)) {
+    return 'Gurdwara';
+  }
+  
+  if (nameLower.match(/mosque|masjid|islamic centre|islamic center/)) {
+    return 'Mosque';
+  }
+  
+  // Yelp category mapping
+  if (yelpCategories) {
+    const yelpCats = yelpCategories.map(cat => cat.toLowerCase());
+    
+    // Food & Beverage
+    if (yelpCats.some(cat => ['indpak', 'indian', 'pakistani', 'srilankan', 'bangladeshi', 'afghani', 'halal'].includes(cat))) {
+      return 'Restaurant';
     }
-    return 'restaurant';
+    
+    if (yelpCats.some(cat => ['desserts', 'coffee', 'tea', 'bubbletea', 'bakeries', 'cafes'].includes(cat))) {
+      return 'Cafe/Dessert';
+    }
+    
+    // Retail
+    if (yelpCats.some(cat => ['grocery', 'internationalgrocery', 'markets'].includes(cat))) {
+      return 'Grocery Store';
+    }
+    
+    if (yelpCats.some(cat => ['fashion', 'clothing', 'jewelry', 'accessories'].includes(cat))) {
+      return 'Clothing Store';
+    }
+    
+    // Services
+    if (yelpCats.some(cat => ['beautysvc', 'hair', 'skincare', 'makeupartists', 'cosmetics'].includes(cat))) {
+      return 'Beauty Salon';
+    }
   }
   
-  if (typeSet.has('cafe') || typeSet.has('bakery')) return 'cafe/dessert';
-  if (typeSet.has('grocery_or_supermarket')) return 'grocery store';
-  if (typeSet.has('clothing_store') || typeSet.has('jewelry_store')) return 'clothing store';
-  if (typeSet.has('beauty_salon') || typeSet.has('hair_care')) return 'beauty salon';
+  // Google types mapping
+  if (googleTypes) {
+    const googleTypesLower = googleTypes.map(type => type.toLowerCase());
+    
+    if (googleTypesLower.some(type => ['bakery', 'cafe'].includes(type))) {
+      return 'Cafe/Dessert';
+    }
+    
+    if (googleTypesLower.includes('grocery_or_supermarket')) {
+      return 'Grocery Store';
+    }
+    
+    if (googleTypesLower.some(type => ['restaurant', 'meal_takeaway', 'meal_delivery'].includes(type))) {
+      return 'Restaurant';
+    }
+    
+    if (googleTypesLower.some(type => ['clothing_store', 'jewelry_store', 'shoe_store'].includes(type))) {
+      return 'Clothing Store';
+    }
+    
+    if (googleTypesLower.some(type => ['beauty_salon', 'hair_care'].includes(type))) {
+      return 'Beauty Salon';
+    }
+  }
   
-  // Default
-  return 'restaurant';
+  // Default fallback - NO "Restaurant" fallback as specified
+  return 'Community Organization';
+}
+
+// Metro Vancouver geofencing
+function isWithinMetroVancouver(lat: number, lng: number): boolean {
+  const bounds = { north: 49.45, south: 49.0, east: -122.4, west: -123.45 };
+  return lat >= bounds.south && lat <= bounds.north && lng >= bounds.west && lng <= bounds.east;
+}
+
+function isValidGoogleResult(googlePlace: any): boolean {
+  const location = googlePlace.geometry?.location;
+  if (!location || !isWithinMetroVancouver(location.lat, location.lng)) {
+    return false;
+  }
+  
+  if (googlePlace.address_components) {
+    const countryComponent = googlePlace.address_components.find((comp: any) => 
+      comp.types.includes('country')
+    );
+    if (countryComponent?.short_name !== 'CA') {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+function isValidYelpResult(yelpBusiness: any): boolean {
+  if (yelpBusiness.location?.country !== 'CA') return false;
+  
+  const state = yelpBusiness.location?.state;
+  if (!state || !['BC', 'British Columbia'].includes(state)) return false;
+  
+  const coords = yelpBusiness.coordinates;
+  if (!coords || !isWithinMetroVancouver(coords.latitude, coords.longitude)) return false;
+  
+  return true;
+}
+
+function extractCityAndCountry(googlePlace: any): { city: string; country: string } {
+  let city = 'Vancouver';
+  let country = 'CA';
+  
+  if (googlePlace.address_components) {
+    const cityComponent = googlePlace.address_components.find((comp: any) => 
+      comp.types.includes('locality') || comp.types.includes('administrative_area_level_2')
+    );
+    const countryComponent = googlePlace.address_components.find((comp: any) => 
+      comp.types.includes('country')
+    );
+    
+    if (cityComponent) city = cityComponent.long_name;
+    if (countryComponent) country = countryComponent.short_name;
+  }
+  
+  return { city, country };
 }
 
 function extractTags(place: GooglePlace | YelpBusiness, categories?: Array<{alias: string, title: string}>): string[] {
@@ -161,15 +259,35 @@ function calculateDistance(lat1: number, lng1: number, lat2: number, lng2: numbe
   return R * c; // in metres
 }
 
-// Google Places API functions
+// Google Places API functions with strict geofencing
 export async function searchGooglePlaces(query: string, city: string): Promise<GooglePlace[]> {
   const API_KEY = process.env.GOOGLE_PLACES_KEY;
   if (!API_KEY) {
     throw new Error('GOOGLE_PLACES_KEY not found in environment');
   }
 
+  // City-specific location bias coordinates
+  const cityCoords: Record<string, string> = {
+    'Vancouver': '49.2827,-123.1207',
+    'Burnaby': '49.2488,-122.9805', 
+    'Richmond': '49.1666,-123.1336',
+    'Surrey': '49.1913,-122.8490',
+    'North Vancouver': '49.3181,-123.0680',
+    'West Vancouver': '49.3289,-123.1645',
+    'Coquitlam': '49.2838,-122.7932'
+  };
+
+  const locationbias = cityCoords[city] || cityCoords['Vancouver'];
   const searchQuery = `${query} in ${city}`;
-  const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchQuery)}&key=${API_KEY}`;
+
+  const params = new URLSearchParams({
+    query: searchQuery,
+    key: API_KEY,
+    region: 'CA',
+    locationbias: `circle:5000@${locationbias}` // 5km radius bias
+  });
+
+  const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?${params}`;
   
   try {
     const response = await fetch(url);
@@ -179,7 +297,11 @@ export async function searchGooglePlaces(query: string, city: string): Promise<G
       throw new Error(`Google Places API error: ${data.error_message}`);
     }
     
-    return data.results || [];
+    // Filter results to only Metro Vancouver using geofencing
+    const results = data.results || [];
+    const filteredResults = results.filter((place: any) => isValidGoogleResult(place));
+    
+    return filteredResults;
   } catch (error) {
     console.error(`Error searching Google Places for "${query}" in ${city}:`, error);
     return [];
@@ -233,7 +355,11 @@ export async function searchYelpBusinesses(term: string, location: string): Prom
       throw new Error(`Yelp API error: ${data.error.description}`);
     }
     
-    return data.businesses || [];
+    // Filter results to only Metro Vancouver
+    const businesses = data.businesses || [];
+    const filteredBusinesses = businesses.filter((business: any) => isValidYelpResult(business));
+    
+    return filteredBusinesses;
   } catch (error) {
     console.error(`Error searching Yelp for "${term}" in ${location}:`, error);
     return [];
@@ -285,16 +411,23 @@ export async function importFromGoogle(cities: string[]): Promise<{imported: num
               .or(`google_place_id.eq.${details.place_id},name.ilike.${details.name.replace(/'/g, "''")}`)
               .single();
             
-            const cityInfo = parseCity(details.formatted_address);
-            const category = mapGoogleTypeToCategory(types, details.name);
+            const cityAndCountry = extractCityAndCountry(details);
+            const category = mapPlaceCategory(details.name, undefined, details.types || []);
             const tags = extractTags(details);
+            
+            // Extract photo data
+            let photoData: any = {};
+            if (details.photos && details.photos.length > 0) {
+              photoData.google_photo_ref = details.photos[0].photo_reference;
+              photoData.photo_source = 'google';
+            }
             
             const placeData: any = {
               name: details.name,
               type: category,
               address: details.formatted_address,
-              city: cityInfo.city,
-              neighborhood: cityInfo.neighborhood,
+              city: cityAndCountry.city,
+              country: cityAndCountry.country,
               lat: details.geometry.location.lat,
               lng: details.geometry.location.lng,
               website_url: normalizeUrl(details.website),
@@ -304,7 +437,8 @@ export async function importFromGoogle(cities: string[]): Promise<{imported: num
               business_status: details.business_status || 'OPERATIONAL',
               last_verified_at: new Date().toISOString(),
               tags: tags,
-              status: 'active'
+              status: details.business_status === 'CLOSED' ? 'inactive' : 'active',
+              ...photoData
             };
             
             if (existing) {
@@ -323,7 +457,7 @@ export async function importFromGoogle(cities: string[]): Promise<{imported: num
             
           } catch (placeError) {
             console.error(`Error processing place ${place.place_id}:`, placeError);
-            results.errors.push(`Failed to process ${place.name}: ${placeError instanceof Error ? placeError.message : String(placeError)}`);
+            results.errors.push(`Failed to process ${place.name}: ${placeError instanceof Error ? placeError.message : 'Unknown error'}`);
           }
         }
         
@@ -332,7 +466,7 @@ export async function importFromGoogle(cities: string[]): Promise<{imported: num
         
       } catch (termError) {
         console.error(`Error searching for "${term}" in ${city}:`, termError);
-        results.errors.push(`Failed search "${term}" in ${city}: ${termError instanceof Error ? termError.message : String(termError)}`);
+        results.errors.push(`Failed search "${term}" in ${city}: ${termError instanceof Error ? termError.message : 'Unknown error'}`);
       }
     }
   }
@@ -362,17 +496,28 @@ export async function importFromYelp(cities: string[]): Promise<{imported: numbe
               .single();
             
             const cityInfo = parseCity(business.location.display_address.join(', '));
+            const yelpCategories = business.categories?.map((cat: any) => cat.alias) || [];
+            const category = mapPlaceCategory(business.name, yelpCategories);
             const tags = extractTags(business, business.categories);
             
+            const existingImageUrl = existing?.image_url;
             const yelpData: any = {
               yelp_id: business.id,
               rating: business.rating,
               rating_count: business.review_count,
               business_status: business.is_closed ? 'CLOSED_PERMANENTLY' : 'OPERATIONAL',
+              country: business.location.country === 'CA' ? 'CA' : business.location.country,
+              status: business.is_closed ? 'inactive' : 'active',
               last_verified_at: new Date().toISOString(),
               lat: business.coordinates.latitude,
               lng: business.coordinates.longitude,
             };
+            
+            // Add photo data if available and no existing image  
+            if (business.image_url && !existingImageUrl) {
+              yelpData.image_url = business.image_url;
+              yelpData.photo_source = 'yelp';
+            }
             
             if (existing) {
               // Check if we can merge with Google data by location proximity
@@ -402,13 +547,12 @@ export async function importFromYelp(cities: string[]): Promise<{imported: numbe
               // Create new place from Yelp data
               const newPlace: any = {
                 name: business.name,
-                type: 'restaurant', // Default type from Yelp
+                type: category, // Use proper category mapping
                 address: business.location.display_address.join(', '),
                 city: cityInfo.city,
                 neighborhood: cityInfo.neighborhood,
                 website_url: normalizeUrl(business.url),
                 tags: tags,
-                status: 'active',
                 ...yelpData
               };
               
@@ -420,7 +564,7 @@ export async function importFromYelp(cities: string[]): Promise<{imported: numbe
             
           } catch (businessError) {
             console.error(`Error processing Yelp business ${business.id}:`, businessError);
-            results.errors.push(`Failed to process ${business.name}: ${businessError instanceof Error ? businessError.message : String(businessError)}`);
+            results.errors.push(`Failed to process ${business.name}: ${businessError instanceof Error ? businessError.message : 'Unknown error'}`);
           }
         }
         
@@ -429,7 +573,7 @@ export async function importFromYelp(cities: string[]): Promise<{imported: numbe
         
       } catch (categoryError) {
         console.error(`Error searching Yelp category "${category}" in ${city}:`, categoryError);
-        results.errors.push(`Failed Yelp search "${category}" in ${city}: ${categoryError instanceof Error ? categoryError.message : String(categoryError)}`);
+        results.errors.push(`Failed Yelp search "${category}" in ${city}: ${categoryError instanceof Error ? categoryError.message : 'Unknown error'}`);
       }
     }
   }
@@ -497,13 +641,13 @@ export async function reverifyAllPlaces(): Promise<{verified: number, deactivate
         
       } catch (placeError) {
         console.error(`Error reverifying place ${place.id}:`, placeError);
-        results.errors.push(`Failed to reverify ${place.name}: ${placeError instanceof Error ? placeError.message : String(placeError)}`);
+        results.errors.push(`Failed to reverify ${place.name}: ${placeError instanceof Error ? placeError.message : 'Unknown error'}`);
       }
     }
     
   } catch (error) {
     console.error('Error in reverifyAllPlaces:', error);
-    results.errors.push(`Reverification failed: ${error instanceof Error ? error.message : String(error)}`);
+    results.errors.push(`Reverification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
   
   return results;

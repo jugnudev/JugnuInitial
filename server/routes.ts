@@ -2193,9 +2193,175 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({ ok: true, id: result.id });
+
     } catch (error) {
-      console.error('Places upsert error:', error);
+      console.error('Admin upsert error:', error);
       res.status(500).json({ ok: false, error: 'Failed to upsert place' });
+    }
+  });
+
+  // Google Photos Proxy for Places v1.2
+  app.get('/api/images/google-photo', async (req, res) => {
+    try {
+      const { ref, w = '1200' } = req.query;
+      
+      if (!ref || typeof ref !== 'string') {
+        return res.status(400).json({ error: 'Missing photo reference' });
+      }
+
+      const apiKey = process.env.GOOGLE_PLACES_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: 'Google Places API key not configured' });
+      }
+
+      const photoUrl = `https://maps.googleapis.com/maps/api/place/photo?photoreference=${ref}&maxwidth=${w}&key=${apiKey}`;
+      
+      // Set cache headers for long-term caching
+      res.set({
+        'Cache-Control': 'public, max-age=2592000', // 30 days
+        'Expires': new Date(Date.now() + 2592000000).toUTCString()
+      });
+
+      // Redirect to Google's photo URL
+      res.redirect(302, photoUrl);
+
+    } catch (error) {
+      console.error('Google photo proxy error:', error);
+      res.status(500).json({ error: 'Failed to proxy photo' });
+    }
+  });
+
+  // Database migration for Places v1.2
+  app.post('/api/admin/migrate-places-v12', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ 
+          ok: false, 
+          error: 'Unauthorized - invalid or missing admin key' 
+        });
+      }
+
+      console.log('Starting Places v1.2 database migration...');
+
+      // Check if columns exist and add them if needed
+      const alterQueries = [
+        `ALTER TABLE public.places ADD COLUMN IF NOT EXISTS country text;`,
+        `ALTER TABLE public.places ADD COLUMN IF NOT EXISTS google_photo_ref text;`,
+        `ALTER TABLE public.places ADD COLUMN IF NOT EXISTS photo_source text;`
+      ];
+
+      for (const query of alterQueries) {
+        const { error } = await getSupabaseAdmin().rpc('sql', { sql: query });
+        if (error) {
+          console.warn(`Column addition warning: ${error.message}`);
+        }
+      }
+
+      // Create indices
+      const indexQueries = [
+        'CREATE INDEX IF NOT EXISTS idx_places_city ON public.places(city);',
+        'CREATE INDEX IF NOT EXISTS idx_places_country ON public.places(country);', 
+        'CREATE INDEX IF NOT EXISTS idx_places_coordinates ON public.places(lat, lng);',
+        'CREATE INDEX IF NOT EXISTS idx_places_business_status ON public.places(business_status);'
+      ];
+
+      for (const query of indexQueries) {
+        const { error } = await getSupabaseAdmin().rpc('sql', { sql: query });
+        if (error) {
+          console.warn(`Index creation warning: ${error.message}`);
+        }
+      }
+
+      console.log('Places v1.2 migration completed successfully!');
+
+      res.json({
+        ok: true,
+        message: 'Places v1.2 migration completed successfully'
+      });
+    } catch (error) {
+      console.error('Migration error:', error);
+      res.status(500).json({ 
+        ok: false, 
+        error: error instanceof Error ? error.message : 'Migration failed' 
+      });
+    }
+  });
+
+  // Validation statistics for Places v1.2  
+  app.get('/api/admin/places-validation', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ 
+          ok: false, 
+          error: 'Unauthorized - invalid or missing admin key' 
+        });
+      }
+
+      const supabase = getSupabaseAdmin();
+
+      // Get all places for validation  
+      const { data: places, error } = await supabase
+        .from('places')
+        .select('*');
+
+      if (error) {
+        throw new Error(`Failed to fetch places: ${error.message}`);
+      }
+
+      const stats = {
+        total: places?.length || 0,
+        outsideBounds: 0,
+        nonCanada: 0,
+        missingCity: 0,
+        wrongCategory: 0
+      };
+
+      if (places) {
+        // Metro Vancouver bounds: lat 49.0-49.45, lng -123.45 to -122.4
+        for (const place of places) {
+          // Check if outside Metro Vancouver bounds
+          if (place.lat && place.lng) {
+            const lat = parseFloat(place.lat);
+            const lng = parseFloat(place.lng);
+            if (lat < 49.0 || lat > 49.45 || lng < -123.45 || lng > -122.4) {
+              stats.outsideBounds++;
+            }
+          }
+          
+          // Check if not in Canada
+          if (place.country && place.country !== 'CA') {
+            stats.nonCanada++;
+          }
+          
+          // Check if missing city info
+          if (!place.city || place.city.trim() === '') {
+            stats.missingCity++;
+          }
+          
+          // Check for problematic category mapping (e.g., everything mapped to "restaurant")
+          if (place.type === 'restaurant' && place.name) {
+            const name = place.name.toLowerCase();
+            const isReligious = ['temple', 'gurdwara', 'mosque', 'mandir', 'masjid'].some(word => name.includes(word));
+            if (isReligious) {
+              stats.wrongCategory++;
+            }
+          }
+        }
+      }
+
+      res.json({
+        ok: true,
+        stats
+      });
+
+    } catch (error) {
+      console.error('Validation stats error:', error);
+      res.status(500).json({ 
+        ok: false, 
+        error: error instanceof Error ? error.message : 'Failed to get validation stats' 
+      });
     }
   });
 
