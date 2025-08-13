@@ -31,6 +31,7 @@ function Router() {
         <Route path="/events/feature" component={CommunityFeature} />
         <Route path="/community/feature" component={CommunityRedirect} />
         <Route path="/promote" component={Promote} />
+        <Route path="/promote/apply" component={Promote} />
         <Route path="/places" component={() => { window.location.href = '/explore'; return null; }} />
         <Route path="/places/submit" component={() => { window.location.href = '/explore'; return null; }} />
         <Route path="/saved" component={Saved} />
