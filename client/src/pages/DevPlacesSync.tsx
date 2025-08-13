@@ -126,10 +126,9 @@ export default function DevPlacesSync() {
   const handleSyncAll = async () => {
     setSyncLoading(true);
     try {
-      const response = await fetch('/api/places/admin/import/sync?city=all', {
+      const response = await fetch('/api/dev/places/sync?city=all', {
         method: 'POST',
         headers: {
-          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || 'dev-key-placeholder',
           'Content-Type': 'application/json'
         }
       });
@@ -160,10 +159,9 @@ export default function DevPlacesSync() {
   const handleReverify = async () => {
     setReverifyLoading(true);
     try {
-      const response = await fetch('/api/places/admin/reverify', {
+      const response = await fetch('/api/dev/places/reverify', {
         method: 'POST',
         headers: {
-          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || 'dev-key-placeholder',
           'Content-Type': 'application/json'
         }
       });
@@ -226,11 +224,7 @@ export default function DevPlacesSync() {
       }
 
       // Get matching stats
-      const matchingResponse = await fetch('/api/places/admin/stats', {
-        headers: {
-          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || 'dev-key-placeholder'
-        }
-      });
+      const matchingResponse = await fetch('/api/dev/places/stats');
       
       if (matchingResponse.ok) {
         const matchingData = await matchingResponse.json();
@@ -254,10 +248,9 @@ export default function DevPlacesSync() {
   const handleMatchIds = async () => {
     setMatchLoading(true);
     try {
-      const response = await fetch('/api/places/admin/match-ids?limit=200', {
+      const response = await fetch('/api/dev/places/match-ids?limit=200', {
         method: 'POST',
         headers: {
-          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || 'dev-key-placeholder',
           'Content-Type': 'application/json'
         }
       });
@@ -290,10 +283,9 @@ export default function DevPlacesSync() {
   const handleInactivateUnmatched = async () => {
     setInactivateLoading(true);
     try {
-      const response = await fetch('/api/places/admin/inactivate-unmatched', {
+      const response = await fetch('/api/dev/places/inactivate-unmatched', {
         method: 'POST',
         headers: {
-          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || 'dev-key-placeholder',
           'Content-Type': 'application/json'
         }
       });
@@ -326,10 +318,9 @@ export default function DevPlacesSync() {
   const handleReclassifyWorship = async () => {
     setReclassifyLoading(true);
     try {
-      const response = await fetch('/api/places/admin/reclassify-worship', {
+      const response = await fetch('/api/dev/places/reclassify-worship', {
         method: 'POST',
         headers: {
-          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || 'dev-key-placeholder',
           'Content-Type': 'application/json'
         }
       });
@@ -360,10 +351,9 @@ export default function DevPlacesSync() {
   const handleEnrichPhotos = async (source = 'all', limit = 200) => {
     setEnrichLoading(true);
     try {
-      const response = await fetch(`/api/places/admin/enrich-photos?limit=${limit}&source=${source}`, {
+      const response = await fetch(`/api/dev/places/enrich-photos?limit=${limit}&source=${source}`, {
         method: 'POST',
         headers: {
-          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || 'dev-key-placeholder',
           'Content-Type': 'application/json'
         }
       });

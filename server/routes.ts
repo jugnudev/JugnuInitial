@@ -2531,6 +2531,157 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add Places v1.3 routes for worship reclassification and photo enrichment
   addPlacesV13Routes(app);
 
+  // Dev-only routes that call admin endpoints server-side (no client secrets)
+  if (process.env.NODE_ENV !== 'production') {
+    const adminKey = process.env.EXPORT_ADMIN_KEY || 'dev-key-placeholder';
+
+    // Dev route for worship reclassification
+    app.post('/api/dev/places/reclassify-worship', async (req, res) => {
+      try {
+        // Call the admin endpoint internally
+        const response = await fetch(`http://localhost:5000/api/places/admin/reclassify-worship`, {
+          method: 'POST',
+          headers: {
+            'x-admin-key': adminKey,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+        res.json(data);
+      } catch (error) {
+        console.error('Dev reclassify error:', error);
+        res.status(500).json({ ok: false, error: 'Internal dev route error' });
+      }
+    });
+
+    // Dev route for photo enrichment
+    app.post('/api/dev/places/enrich-photos', async (req, res) => {
+      try {
+        const { limit = 200, source = 'all' } = req.query;
+        
+        // Call the admin endpoint internally
+        const response = await fetch(`http://localhost:5000/api/places/admin/enrich-photos?limit=${limit}&source=${source}`, {
+          method: 'POST',
+          headers: {
+            'x-admin-key': adminKey,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+        res.json(data);
+      } catch (error) {
+        console.error('Dev enrich photos error:', error);
+        res.status(500).json({ ok: false, error: 'Internal dev route error' });
+      }
+    });
+
+    // Dev route for reverify
+    app.post('/api/dev/places/reverify', async (req, res) => {
+      try {
+        // Call the admin endpoint internally
+        const response = await fetch(`http://localhost:5000/api/places/admin/reverify`, {
+          method: 'POST',
+          headers: {
+            'x-admin-key': adminKey,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+        res.json(data);
+      } catch (error) {
+        console.error('Dev reverify error:', error);
+        res.status(500).json({ ok: false, error: 'Internal dev route error' });
+      }
+    });
+
+    // Dev route for sync operations
+    app.post('/api/dev/places/sync', async (req, res) => {
+      try {
+        const { city = 'all' } = req.query;
+        
+        // Call the admin endpoint internally
+        const response = await fetch(`http://localhost:5000/api/places/admin/import/sync?city=${city}`, {
+          method: 'POST',
+          headers: {
+            'x-admin-key': adminKey,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+        res.json(data);
+      } catch (error) {
+        console.error('Dev sync error:', error);
+        res.status(500).json({ ok: false, error: 'Internal dev route error' });
+      }
+    });
+
+    // Dev route for match IDs
+    app.post('/api/dev/places/match-ids', async (req, res) => {
+      try {
+        const { limit = 200 } = req.query;
+        
+        // Call the admin endpoint internally
+        const response = await fetch(`http://localhost:5000/api/places/admin/match-ids?limit=${limit}`, {
+          method: 'POST',
+          headers: {
+            'x-admin-key': adminKey,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+        res.json(data);
+      } catch (error) {
+        console.error('Dev match IDs error:', error);
+        res.status(500).json({ ok: false, error: 'Internal dev route error' });
+      }
+    });
+
+    // Dev route for inactivate unmatched
+    app.post('/api/dev/places/inactivate-unmatched', async (req, res) => {
+      try {
+        // Call the admin endpoint internally
+        const response = await fetch(`http://localhost:5000/api/places/admin/inactivate-unmatched`, {
+          method: 'POST',
+          headers: {
+            'x-admin-key': adminKey,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+        res.json(data);
+      } catch (error) {
+        console.error('Dev inactivate error:', error);
+        res.status(500).json({ ok: false, error: 'Internal dev route error' });
+      }
+    });
+
+    // Dev route for stats
+    app.get('/api/dev/places/stats', async (req, res) => {
+      try {
+        // Call the admin endpoint internally
+        const response = await fetch(`http://localhost:5000/api/places/admin/stats`, {
+          headers: {
+            'x-admin-key': adminKey
+          }
+        });
+
+        const data = await response.json();
+        res.json(data);
+      } catch (error) {
+        console.error('Dev stats error:', error);
+        res.status(500).json({ ok: false, error: 'Internal dev route error' });
+      }
+    });
+
+    console.log('✓ Dev routes enabled for places admin operations');
+  }
+
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
 
