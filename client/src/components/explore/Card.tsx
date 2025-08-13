@@ -191,7 +191,7 @@ export default function Card({ item, onClick, index = 0, showFavorite = false }:
             ) : (
               <Badge 
                 variant="secondary" 
-                className="bg-white/10 backdrop-blur-sm border border-white/20 text-white text-xs px-2 py-1 font-medium"
+                className="bg-white/10 backdrop-blur-sm border border-white/20 text-white text-xs px-2 py-1 font-medium rounded-full ring-1 ring-white/10 opacity-90 whitespace-nowrap"
               >
                 TBA
               </Badge>
@@ -199,7 +199,7 @@ export default function Card({ item, onClick, index = 0, showFavorite = false }:
           ) : (
             <Badge 
               variant="secondary" 
-              className={`${getTypeColor(item.place_type)} text-white border-0 text-sm px-3 py-1 capitalize font-medium shadow-lg`}
+              className={`${getTypeColor(item.place_type)} text-white border-0 text-xs px-2 py-1 capitalize font-medium rounded-full ring-1 ring-white/10 opacity-90 whitespace-nowrap`}
             >
               {item.place_type}
             </Badge>
@@ -208,7 +208,7 @@ export default function Card({ item, onClick, index = 0, showFavorite = false }:
           {isSponsored && (
             <Badge 
               variant="secondary" 
-              className="bg-yellow-500/90 text-black border-0 text-sm px-3 py-1 font-medium shadow-lg"
+              className="bg-yellow-500/90 text-black border-0 text-xs px-2 py-1 font-medium rounded-full ring-1 ring-white/10 opacity-90 whitespace-nowrap"
             >
               Sponsored
             </Badge>

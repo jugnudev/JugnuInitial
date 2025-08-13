@@ -26,7 +26,7 @@ export default function PageHero({ title, subtitle, pill, actions }: PageHeroPro
       </div>
 
       {/* Content */}
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20">
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16 md:py-20 md:pb-12">
         <div className="text-center">
           {pill && (
             <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-6">
@@ -34,7 +34,7 @@ export default function PageHero({ title, subtitle, pill, actions }: PageHeroPro
             </div>
           )}
           
-          <h1 className="font-fraunces text-5xl md:text-6xl font-bold text-white leading-tight mb-6">
+          <h1 className="font-fraunces text-5xl md:text-6xl font-bold text-white tracking-tight leading-[1.1] mb-6">
             {title}
           </h1>
           

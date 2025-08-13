@@ -151,7 +151,7 @@ export default function EventsExplore() {
       {/* Page Hero */}
       <PageHero
         title="Events"
-        subtitle="South Asian cultural events in Vancouver"
+        subtitle="Discover concerts, festivals, cultural performances & community gatherings in Vancouver."
       />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-12">

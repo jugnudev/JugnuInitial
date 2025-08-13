@@ -138,7 +138,7 @@ export default function PlacesExplore() {
       <div className="min-h-screen bg-bg">
         <PageHero
           title="South Asian Places"
-          subtitle="Discover authentic restaurants, cafes, shops and cultural spaces in Vancouver"
+          subtitle="Discover authentic restaurants, cafés, shops & cultural spaces in Vancouver."
         />
         <div className="container mx-auto px-4 py-16 text-center">
           <div className="max-w-md mx-auto space-y-4">
@@ -165,7 +165,7 @@ export default function PlacesExplore() {
       {/* Page Hero */}
       <PageHero
         title="South Asian Places"
-        subtitle="Discover authentic restaurants, cafes, shops and cultural spaces in Vancouver"
+        subtitle="Discover authentic restaurants, cafés, shops & cultural spaces in Vancouver."
         actions={
           <Button
             onClick={() => window.open("/places/submit", "_blank")}

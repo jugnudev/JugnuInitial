@@ -1772,6 +1772,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Open Graph image generation endpoints
+  app.get('/api/og/event', async (req, res) => {
+    const { GET } = await import('./api/og/event');
+    return GET(req, res);
+  });
+
+  app.get('/api/og/place', async (req, res) => {
+    const { GET } = await import('./api/og/place');
+    return GET(req, res);
+  });
+
+  // Simple OG image placeholder generator
+  app.get('/api/og/generate', (req, res) => {
+    const { type, title, subtitle } = req.query;
+    
+    // For now, return a placeholder SVG image
+    const svg = `
+      <svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+        <rect width="1200" height="630" fill="#0a0a0a"/>
+        <text x="60" y="200" font-family="Arial, sans-serif" font-size="72" font-weight="bold" fill="#ffffff">${title || 'Jugnu Event'}</text>
+        <text x="60" y="280" font-family="Arial, sans-serif" font-size="36" fill="#d4691a">${subtitle || 'Vancouver Events'}</text>
+        <text x="60" y="580" font-family="Arial, sans-serif" font-size="24" fill="#666666">Jugnu • Find Your Frequency</text>
+      </svg>
+    `;
+    
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.send(svg);
+  });
+
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
 

@@ -24,7 +24,7 @@ export default function Toolbar({
   className = ""
 }: ToolbarProps) {
   return (
-    <div className={`bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-4 ${className}`}>
+    <div className={`bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-4 sticky top-0 z-40 shadow-sm ${className}`}>
       {/* Desktop Layout */}
       <div className="hidden md:flex items-center gap-6">
         {/* Search */}
