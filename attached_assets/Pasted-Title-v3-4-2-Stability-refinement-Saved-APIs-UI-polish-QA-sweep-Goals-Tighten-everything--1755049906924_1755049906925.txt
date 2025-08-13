@@ -1,0 +1,62 @@
+Title: v3.4.2 — Stability & refinement (Saved, APIs, UI polish, QA sweep)
+
+Goals
+Tighten everything already shipped so it’s reliable and premium.
+
+1) Saved (Favorites) reliability
+- Ensure nav’s Saved count badge subscribes to the same store as cards (no hydration mismatch).
+- On toggle heart:
+  • Update localStorage immediately.
+  • Emit store event so the nav badge updates instantly.
+- /saved page:
+  • Use /api/events/by-ids and /api/places/by-ids only (no date windows).
+  • If some IDs aren’t found, show a quiet inline note “Some saved items were removed” and prune those IDs from storage after render.
+
+2) Events naming/redirects sanity
+- Confirm /community and /community/feature return 307 to /events and /events/feature.
+- Update any leftover references (Request Featured links, deep links, meta titles).
+
+3) API error handling & skeletons
+- All Explore pages (Events, Places, Explore rails):
+  • While loading: show skeleton 16:9 blocks (3–6) with soft shimmer.
+  • On error: show a compact inline error with a “Try again” button that re-fetches.
+  • No console errors; no unhandled promise rejections.
+
+4) Date/time formatting guards
+- Cards & modals must use the shared formatter:
+  formatDateBadge(start_at, timezone, is_all_day)
+  formatTimeRange(start_at, end_at, timezone, is_all_day)
+- If data is missing or invalid → show “TBA” (no ‘Invalid Date’ tooltips).
+- Add tests for all-day vs timed events (unit-level if present; else simple util tests).
+
+5) Image robustness
+- Cards/hero must render with a safe placeholder if image_url fails to load (onError → swap to branded gradient).
+- next.config.js remotePatterns include: **.supabase.co, res.cloudinary.com, i.imgur.com, img.evbuc.com; keep.
+- Ensure object-cover, aspect-[16/9], rounded-2xl everywhere.
+
+6) Accessibility polish
+- Nav items and toolbar controls have visible focus rings.
+- Favorite heart has aria-pressed and aria-live announcements (“Saved/Removed”).
+- Modals: role="dialog", aria-modal="true", ESC closes, focus trap verified.
+
+7) OG share images
+- Verify /api/og/event and /api/og/place return 1200x630 PNGs for a sample id.
+- When opening a deep link (?e=… or ?p=…), head tags include og:image pointing to the right OG route.
+
+8) Performance
+- priority on the Featured hero image only; all others lazy by default.
+- Avoid layout shift: set width/height on Image components or use fill + fixed aspect wrapper.
+- Lighthouse: check CLS < 0.1 on Explore pages.
+
+9) Visual details
+- Toolbar compact height (as implemented) + sticky after hero with faint divider shadow (drop-shadow-sm).
+- Badge text never wraps; unify micro pill size.
+- Card hover: ring-amber/25 and translate-y-0.5; respect reduced motion.
+
+10) QA checklist (run & confirm)
+- Nav: one Saved link with live count; Explore link visible.
+- Home: Explore CTA visible; button routes to /explore.
+- Explore page: two rails load; arrows on desktop; touch-scroll on mobile.
+- Events/Places: hero → toolbar → featured → clean 2-up grid; skeletons while loading; graceful error message on network fail.
+- Saved page: heart an event/place → count increments → appears on /saved; deleting in DB gracefully prunes localStorage next visit.
+- Deep links open modals and set OG share images.

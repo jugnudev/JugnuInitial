@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { ChevronLeft, ChevronRight, ExternalLink, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ExternalLink, ArrowRight, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import Card from "@/components/explore/Card";
 import DetailsModal from "@/components/community/DetailsModal";
 import DetailsModalPlace from "@/components/places/DetailsModalPlace";
+import { formatDateBadge, formatTimeRange } from "@/lib/dates";
 
 interface CommunityEvent {
   id: string;
@@ -13,10 +14,10 @@ interface CommunityEvent {
   description?: string;
   venue?: string;
   date: string;
-  start_at?: string;
+  start_at: string;
   end_at?: string;
   is_all_day?: boolean | string;
-  timezone?: string;
+  timezone: string;
   city: string;
   category?: string;
   buyUrl?: string;
@@ -56,22 +57,28 @@ export default function Explore() {
   const placesScrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch events for "Happening This Week" rail
-  const { data: eventsData, isLoading: eventsLoading } = useQuery({
+  const { data: eventsData, isLoading: eventsLoading, error: eventsError, refetch: refetchEvents } = useQuery({
     queryKey: ['/api/community/weekly', 'week'],
     queryFn: async () => {
       const params = new URLSearchParams({ range: 'week' });
       const response = await fetch(`/api/community/weekly?${params.toString()}`);
+      if (!response.ok) throw new Error(`Failed to fetch events: ${response.status}`);
       return response.json();
-    }
+    },
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Fetch places for "Trending Places" rail  
-  const { data: placesData, isLoading: placesLoading } = useQuery({
+  const { data: placesData, isLoading: placesLoading, error: placesError, refetch: refetchPlaces } = useQuery({
     queryKey: ['/api/places/list'],
     queryFn: async () => {
       const response = await fetch('/api/places/list');
+      if (!response.ok) throw new Error(`Failed to fetch places: ${response.status}`);
       return response.json();
-    }
+    },
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const events = (eventsData as any)?.items?.slice(0, 10) || [];
@@ -207,9 +214,25 @@ export default function Explore() {
               {[...Array(4)].map((_, i) => (
                 <div
                   key={i}
-                  className="min-w-80 aspect-[16/9] bg-white/5 rounded-2xl animate-pulse"
-                />
+                  className="min-w-80 aspect-[16/9] bg-white/5 rounded-2xl animate-pulse relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
+                </div>
               ))}
+            </div>
+          ) : eventsError ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
+              <p className="text-white text-lg mb-2">Unable to load events</p>
+              <p className="text-muted text-sm mb-4">Please check your connection and try again</p>
+              <Button
+                onClick={() => refetchEvents()}
+                variant="outline"
+                className="border-white/20 bg-white/5 hover:bg-white/10 text-white"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Try again
+              </Button>
             </div>
           ) : (
             <div 
@@ -298,9 +321,25 @@ export default function Explore() {
               {[...Array(4)].map((_, i) => (
                 <div
                   key={i}
-                  className="min-w-80 aspect-[16/9] bg-white/5 rounded-2xl animate-pulse"
-                />
+                  className="min-w-80 aspect-[16/9] bg-white/5 rounded-2xl animate-pulse relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
+                </div>
               ))}
+            </div>
+          ) : placesError ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
+              <p className="text-white text-lg mb-2">Unable to load places</p>
+              <p className="text-muted text-sm mb-4">Please check your connection and try again</p>
+              <Button
+                onClick={() => refetchPlaces()}
+                variant="outline"
+                className="border-white/20 bg-white/5 hover:bg-white/10 text-white"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Try again
+              </Button>
             </div>
           ) : (
             <div 
@@ -356,15 +395,15 @@ export default function Explore() {
         />
       )}
 
-      <style jsx>{`
-        .scrollbar-hide {
+      <style>
+        {`.scrollbar-hide {
           scrollbar-width: none;
           -ms-overflow-style: none;
         }
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
-        }
-      `}</style>
+        }`}
+      </style>
     </div>
   );
 }

@@ -1,9 +1,10 @@
-import { ExternalLink, MapPin, Calendar, Star } from "lucide-react";
+import { ExternalLink, MapPin, Calendar, Star, ImageIcon } from "lucide-react";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import FavoriteButton from "@/components/FavoriteButton";
 import { formatPriceLevel } from "@/lib/taxonomy";
-import { formatDateBadge, isValidISO } from "@/lib/dates";
+import { formatDateBadge, formatTimeRange, isValidISO } from "@/lib/dates";
 
 interface BaseItem {
   id: string;
@@ -112,6 +113,8 @@ const getDateBadgeInfo = (eventItem: EventItem) => {
 };
 
 export default function Card({ item, onClick, index = 0, showFavorite = false }: CardProps) {
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
   const isSponsored = item.sponsored && (!item.sponsored_until || new Date(item.sponsored_until) > new Date());
   
   // Get date info for events
@@ -142,8 +145,17 @@ export default function Card({ item, onClick, index = 0, showFavorite = false }:
         delay: index * 0.1,
         ease: "easeOut" 
       }}
-      className="group relative bg-white/5 border border-white/10 rounded-2xl overflow-hidden cursor-pointer ring-1 ring-white/5 hover:ring-amber-500/25 hover:shadow-[0_0_0_1px_theme(colors.amber.500/25)] transition-all duration-300"
+      className="group relative bg-white/5 border border-white/10 rounded-2xl overflow-hidden cursor-pointer ring-1 ring-white/5 hover:ring-amber-500/25 hover:shadow-[0_0_0_1px_theme(colors.amber.500/25)] transition-all duration-300 focus-ring"
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      tabIndex={0}
+      role="button"
+      aria-label={`${item.type === 'event' ? 'Event' : 'Place'}: ${item.name}`}
       data-testid={`card-${item.type}-${item.id}`}
       whileHover={{ 
         y: -2,
@@ -152,15 +164,32 @@ export default function Card({ item, onClick, index = 0, showFavorite = false }:
     >
       {/* 16:9 Image Container */}
       <div className="relative w-full aspect-[16/9] overflow-hidden">
-        {item.image_url ? (
-          <img
-            src={item.image_url}
-            alt={item.name}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-          />
+        {item.image_url && !imageError ? (
+          <>
+            {imageLoading && (
+              <div className="absolute inset-0 bg-white/5 animate-pulse flex items-center justify-center">
+                <div className="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full animate-spin"></div>
+              </div>
+            )}
+            <img
+              src={item.image_url}
+              alt={item.name}
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              onLoad={() => setImageLoading(false)}
+              onError={() => {
+                setImageError(true);
+                setImageLoading(false);
+              }}
+              style={{ display: imageLoading ? 'none' : 'block' }}
+            />
+          </>
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-[#c05a0e]/30 via-[#d4691a]/20 to-[#b8540d]/25 flex items-center justify-center">
-            <Star className="w-12 h-12 text-[#c05a0e]/80" />
+            {imageError ? (
+              <ImageIcon className="w-12 h-12 text-[#c05a0e]/60" />
+            ) : (
+              <Star className="w-12 h-12 text-[#c05a0e]/80" />
+            )}
           </div>
         )}
         

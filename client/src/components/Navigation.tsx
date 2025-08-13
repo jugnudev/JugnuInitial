@@ -152,9 +152,10 @@ export default function Navigation() {
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="text-text hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 focus:ring-offset-bg p-2"
+              className="text-text hover:text-accent focus-ring p-2 transition-colors duration-200"
               data-testid="nav-mobile-toggle"
               aria-label="Toggle mobile menu"
+              aria-expanded={isMobileMenuOpen}
             >
               <i className={`fas ${isMobileMenuOpen ? 'fa-times' : 'fa-bars'} text-lg`}></i>
             </button>
