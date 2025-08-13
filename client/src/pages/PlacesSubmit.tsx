@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Store, MapPin, Globe, Instagram, Image, Tag, CheckCircle, Plus } from "lucide-react";
-import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -116,71 +115,68 @@ export default function PlacesSubmit() {
 
   if (isSubmitted) {
     return (
-      <Layout>
-        <div className="min-h-screen bg-bg text-text py-12">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
-            <div className="text-center space-y-6">
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
-              <h1 className="font-fraunces text-3xl font-bold text-primary">
-                Place Submitted!
-              </h1>
-              <p className="text-lg text-muted">
-                Thank you for submitting your place. We'll review it and add it to our directory within 2-3 business days.
+      <div className="min-h-screen bg-bg text-text py-12">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
+          <div className="text-center space-y-6">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
+            <h1 className="font-fraunces text-3xl font-bold text-primary">
+              Place Submitted!
+            </h1>
+            <p className="text-lg text-muted">
+              Thank you for submitting your place. We'll review it and add it to our directory within 2-3 business days.
+            </p>
+            <div className="space-y-3">
+              <Button 
+                onClick={() => navigate("/places")}
+                className="bg-primary hover:bg-primary-700 text-black font-medium focus-ring"
+              >
+                Browse Places
+              </Button>
+              <p className="text-sm text-muted/80">
+                Questions? Email us at hello@jugnu.events
               </p>
-              <div className="space-y-3">
-                <Button 
-                  onClick={() => navigate("/places")}
-                  className="bg-primary hover:bg-primary-700 text-black font-medium"
-                >
-                  Browse Places
-                </Button>
-                <p className="text-sm text-muted/80">
-                  Questions? Email us at hello@jugnu.events
-                </p>
-              </div>
             </div>
           </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="min-h-screen bg-bg text-text py-12">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="font-fraunces text-4xl font-bold text-primary mb-4">
-              List Your Place
-            </h1>
-            <p className="text-lg text-muted mb-6">
-              Add your South Asian business or cultural spot to our directory
-            </p>
-            
-            {/* Guidelines */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-left space-y-4">
-              <h2 className="font-semibold text-white">Submission Guidelines</h2>
-              <ul className="space-y-2 text-sm text-muted">
-                <li>• Must be a South Asian business or cultural location in Vancouver area</li>
-                <li>• Provide accurate and up-to-date information</li>
-                <li>• Include high-quality photos when possible</li>
-                <li>• All submissions are reviewed before being published</li>
-                <li>• Free to list, premium featured placement available</li>
-              </ul>
-            </div>
+    <div className="min-h-screen bg-bg text-text py-12">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="font-fraunces text-4xl font-bold text-primary mb-4">
+            List Your Place
+          </h1>
+          <p className="text-lg text-muted mb-6">
+            Add your South Asian business or cultural spot to our directory
+          </p>
+          
+          {/* Guidelines */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-left space-y-4">
+            <h2 className="font-semibold text-white">Submission Guidelines</h2>
+            <ul className="space-y-2 text-sm text-muted">
+              <li>• Must be a South Asian business or cultural location in Vancouver area</li>
+              <li>• Provide accurate and up-to-date information</li>
+              <li>• Include high-quality photos when possible</li>
+              <li>• All submissions are reviewed before being published</li>
+              <li>• Free to list, premium featured placement available</li>
+            </ul>
           </div>
+        </div>
 
-          {/* Form */}
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Honeypot field */}
-            <input
-              type="text"
-              {...form.register("honeypot")}
-              style={{ display: "none" }}
-              tabIndex={-1}
-              autoComplete="off"
-            />
+        {/* Form */}
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Honeypot field */}
+          <input
+            type="text"
+            {...form.register("honeypot")}
+            style={{ display: "none" }}
+            tabIndex={-1}
+            autoComplete="off"
+          />
 
             {/* Basic Information */}
             <div className="space-y-4">
@@ -344,23 +340,22 @@ export default function PlacesSubmit() {
               </div>
             </div>
 
-            {/* Submit Button */}
-            <div className="pt-4">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-primary hover:bg-primary-700 text-black font-semibold py-3 text-lg min-h-12"
-                data-testid="button-submit"
-              >
-                {isSubmitting ? "Submitting..." : "Submit Place"}
-              </Button>
-              <p className="text-sm text-muted/80 text-center mt-3">
-                We'll review your submission and add it to our directory within 2-3 business days
-              </p>
-            </div>
-          </form>
-        </div>
+          {/* Submit Button */}
+          <div className="pt-4">
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-primary hover:bg-primary-700 text-black font-semibold py-3 text-lg min-h-12 focus-ring"
+              data-testid="button-submit"
+            >
+              {isSubmitting ? "Submitting..." : "Submit Place"}
+            </Button>
+            <p className="text-sm text-muted/80 text-center mt-3">
+              We'll review your submission and add it to our directory within 2-3 business days
+            </p>
+          </div>
+        </form>
       </div>
-    </Layout>
+    </div>
   );
 }

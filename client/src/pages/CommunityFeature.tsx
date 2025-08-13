@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Calendar, Image, MapPin, Mail, User, Link as LinkIcon, MessageSquare, CheckCircle } from "lucide-react";
-import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -87,71 +86,68 @@ export default function CommunityFeature() {
 
   if (isSubmitted) {
     return (
-      <Layout>
-        <div className="min-h-screen bg-bg text-text py-12">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
-            <div className="text-center space-y-6">
-              <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
-              <h1 className="font-fraunces text-3xl font-bold text-primary">
-                Request Submitted!
-              </h1>
-              <p className="text-lg text-muted">
-                Thank you for your featured placement request. We'll review it and get back to you within 2-3 business days.
+      <div className="min-h-screen bg-bg text-text py-12">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
+          <div className="text-center space-y-6">
+            <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
+            <h1 className="font-fraunces text-3xl font-bold text-primary">
+              Request Submitted!
+            </h1>
+            <p className="text-lg text-muted">
+              Thank you for your featured placement request. We'll review it and get back to you within 2-3 business days.
+            </p>
+            <div className="space-y-3">
+              <Button 
+                onClick={() => navigate("/events")}
+                className="bg-primary hover:bg-primary-700 text-black font-medium focus-ring"
+              >
+                Back to Events
+              </Button>
+              <p className="text-sm text-muted/80">
+                Questions? Email us at hello@jugnu.events
               </p>
-              <div className="space-y-3">
-                <Button 
-                  onClick={() => navigate("/community")}
-                  className="bg-primary hover:bg-primary-700 text-black font-medium"
-                >
-                  Back to Community
-                </Button>
-                <p className="text-sm text-muted/80">
-                  Questions? Email us at hello@jugnu.events
-                </p>
-              </div>
             </div>
           </div>
         </div>
-      </Layout>
+      </div>
     );
   }
 
   return (
-    <Layout>
-      <div className="min-h-screen bg-bg text-text py-12">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="font-fraunces text-4xl font-bold text-primary mb-4">
-              Request Featured Placement
-            </h1>
-            <p className="text-lg text-muted mb-6">
-              Get your South Asian event featured prominently on our community calendar
-            </p>
-            
-            {/* Guidelines */}
-            <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-left space-y-4">
-              <h2 className="font-semibold text-white">Guidelines for Featured Events</h2>
-              <ul className="space-y-2 text-sm text-muted">
-                <li>• Events must be South Asian cultural events in Vancouver</li>
-                <li>• High-quality poster/image required (16:9 aspect ratio preferred)</li>
-                <li>• Event details should be finalized (date, venue, tickets)</li>
-                <li>• You must have rights to use the imagery and event information</li>
-                <li>• Featured placement is subject to approval and availability</li>
-              </ul>
-            </div>
+    <div className="min-h-screen bg-bg text-text py-12">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-2xl">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="font-fraunces text-4xl font-bold text-primary mb-4">
+            Request Featured Placement
+          </h1>
+          <p className="text-lg text-muted mb-6">
+            Get your South Asian event featured prominently on our events calendar
+          </p>
+          
+          {/* Guidelines */}
+          <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-left space-y-4">
+            <h2 className="font-semibold text-white">Guidelines for Featured Events</h2>
+            <ul className="space-y-2 text-sm text-muted">
+              <li>• Events must be South Asian cultural events in Vancouver</li>
+              <li>• High-quality poster/image required (16:9 aspect ratio preferred)</li>
+              <li>• Event details should be finalized (date, venue, tickets)</li>
+              <li>• You must have rights to use the imagery and event information</li>
+              <li>• Featured placement is subject to approval and availability</li>
+            </ul>
           </div>
+        </div>
 
-          {/* Form */}
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Honeypot field */}
-            <input
-              type="text"
-              {...form.register("honeypot")}
-              style={{ display: "none" }}
-              tabIndex={-1}
-              autoComplete="off"
-            />
+        {/* Form */}
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Honeypot field */}
+          <input
+            type="text"
+            {...form.register("honeypot")}
+            style={{ display: "none" }}
+            tabIndex={-1}
+            autoComplete="off"
+          />
 
             {/* Contact Information */}
             <div className="space-y-4">
@@ -334,23 +330,22 @@ export default function CommunityFeature() {
               )}
             </div>
 
-            {/* Submit Button */}
-            <div className="pt-4">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-primary hover:bg-primary-700 text-black font-semibold py-3 text-lg min-h-12"
-                data-testid="button-submit"
-              >
-                {isSubmitting ? "Submitting..." : "Submit Request"}
-              </Button>
-              <p className="text-sm text-muted/80 text-center mt-3">
-                We'll review your request and contact you within 2-3 business days
-              </p>
-            </div>
-          </form>
-        </div>
+          {/* Submit Button */}
+          <div className="pt-4">
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-primary hover:bg-primary-700 text-black font-semibold py-3 text-lg min-h-12 focus-ring"
+              data-testid="button-submit"
+            >
+              {isSubmitting ? "Submitting..." : "Submit Request"}
+            </Button>
+            <p className="text-sm text-muted/80 text-center mt-3">
+              We'll review your request and contact you within 2-3 business days
+            </p>
+          </div>
+        </form>
       </div>
-    </Layout>
+    </div>
   );
 }
