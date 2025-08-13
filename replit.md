@@ -95,7 +95,7 @@ Preferred communication style: Simple, everyday language.
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 - **Featured Event Parsing**: Auto-detect "Featured: true|yes|1" from calendar descriptions or use admin API
 
-### Current State (Explore v3.2 + Collections + Favorites + Premium UI + Places Directory v1 + Community v2.9 + Waitlist Mode v2.3)
+### Current State (Explore v3.3 + Events Rebrand + UUID Favorites + Premium UI + Places Directory v1 + Community v2.9 + Waitlist Mode v2.3)
 - **Premium Explore UI v3.1**: Unified design system with robust date handling, enhanced UX polish, and graceful fallbacks
 - **Date Utilities v3.1**: Comprehensive `/lib/dates.ts` with timezone-aware formatting, all-day event detection, NaN/Invalid Date elimination
 - **Enhanced UI Polish**: Increased vertical rhythm (mt-10 md:mt-14), enhanced grid spacing (md:gap-8), subtle button glow effects
@@ -118,9 +118,10 @@ Preferred communication style: Simple, everyday language.
 - **Consistent Design Language**: Same copper theming, 16:9 aspect ratios, modal patterns across Events and Places
 - **TypeScript Excellence**: All components properly typed, boolean conversions handled, interface consistency maintained
 - **Navigation Enhancement v3.1**: Added persistent navigation menu bar to all pages including Community and Places for seamless user navigation
-- **Explore v3.2 - Collections & Favorites**: Horizontal Collections carousel with filtering chips, client-side Favorites system with heart buttons, Saved page with localStorage persistence, enhanced navigation with Saved link
-- **Collections System**: Capsule carousel for events (This Week, Concerts, Club Nights, Comedy, Festivals, Free Events) and places (Best Chai, Late-Night Eats, Vegetarian & Vegan, Punjabi Favourites, South Indian, Desserts)
-- **Favorites System**: Zustand-powered local favorites with heart buttons, /saved page with tabs, screen reader announcements, localStorage persistence across sessions
+- **Explore v3.3 - Events Rebrand + Clean UX**: Renamed Community to Events, removed noisy Collections carousel, improved UUID-based favorites system, cleaner navigation UX
+- **Events Rebranding**: /community redirects to /events, updated navigation, /community/feature redirects to /events/feature
+- **UUID-Based Favorites v3.3**: New /api/events/by-ids and /api/places/by-ids endpoints for reliable UUID-based favorites, improved Saved page with direct API calls
+- **Simplified UX**: Removed Collections carousel from main pages to reduce noise, cleaner toolbar and navigation experience
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS

@@ -990,6 +990,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Community Events - Weekly Feed Endpoint
+  // Events by-ids endpoint for v3.3 UUID-based favorites
+  app.get("/api/events/by-ids", async (req, res) => {
+    try {
+      const { ids } = req.query;
+      
+      if (!ids || typeof ids !== 'string') {
+        return res.status(400).json({ error: 'Missing ids parameter' });
+      }
+      
+      const idArray = ids.split(',').filter(id => id.trim());
+      
+      if (idArray.length === 0) {
+        return res.json([]);
+      }
+      
+      const supabase = getSupabaseAdmin();
+      const { data, error } = await supabase
+        .from('community_events')
+        .select('*')
+        .in('id', idArray)
+        .order('start_at', { ascending: true, nullsFirst: false });
+      
+      if (error) {
+        console.error('Error fetching events by IDs:', error);
+        return res.status(500).json({ error: 'Failed to fetch events' });
+      }
+      
+      res.json(data || []);
+    } catch (error) {
+      console.error('Error in events by-ids endpoint:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   app.get("/api/community/weekly", async (req, res) => {
     try {
       const supabase = getSupabaseAdmin();
@@ -1478,6 +1512,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Places directory API endpoints
+  // Places by-ids endpoint for v3.3 UUID-based favorites  
+  app.get("/api/places/by-ids", async (req, res) => {
+    try {
+      const { ids } = req.query;
+      
+      if (!ids || typeof ids !== 'string') {
+        return res.status(400).json({ error: 'Missing ids parameter' });
+      }
+      
+      const idArray = ids.split(',').filter(id => id.trim());
+      
+      if (idArray.length === 0) {
+        return res.json([]);
+      }
+      
+      const supabase = getSupabaseAdmin();
+      const { data, error } = await supabase
+        .from('places')
+        .select('*')
+        .in('id', idArray)
+        .order('name', { ascending: true });
+      
+      if (error) {
+        console.error('Error fetching places by IDs:', error);
+        return res.status(500).json({ error: 'Failed to fetch places' });
+      }
+      
+      res.json(data || []);
+    } catch (error) {
+      console.error('Error in places by-ids endpoint:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   app.get("/api/places/list", async (req, res) => {
     try {
       const { type, group, neighborhood, q, featured_first = '1', limit = '50', offset = '0' } = req.query;

@@ -5,7 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Layout from "@/components/Layout";
 import Home from "@/pages/home";
-import Community from "@/pages/community";
+import EventsExplore from "@/pages/EventsExplore";
+import CommunityRedirect from "@/pages/CommunityRedirect";
 import CommunityFeature from "@/pages/CommunityFeature";
 import Places from "@/pages/places";
 import PlacesSubmit from "@/pages/PlacesSubmit";
@@ -21,8 +22,10 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/" component={Home} />
-        <Route path="/community" component={Community} />
-        <Route path="/community/feature" component={CommunityFeature} />
+        <Route path="/events" component={EventsExplore} />
+        <Route path="/community" component={CommunityRedirect} />
+        <Route path="/events/feature" component={CommunityFeature} />
+        <Route path="/community/feature" component={CommunityRedirect} />
         <Route path="/places" component={Places} />
         <Route path="/places/submit" component={PlacesSubmit} />
         <Route path="/saved" component={Saved} />

@@ -1,0 +1,69 @@
+Title: Explore v3.3 — Rename to Events, remove noisy Collections, fix Saved, clean nav & polish
+
+Goals
+Make the UI feel premium and sane:
+• Rename “Community” to “Events” (with redirects).
+• Remove Collections chips from Events & Places.
+• Fix Favorites/Saved so saved items always load (regardless of date window).
+• Remove duplicate “Saved” in nav and align nav items vertically.
+• Keep 2-up 16:9 cards, featured hero, segmented control + filter drawer.
+
+1) IA & Routing
+- Rename /community → /events
+  • Keep /community route but redirect (307) to /events.
+  • Update all internal links (nav, hero CTAs, footer, modals, “Request Featured”).
+  • “Request Featured” lives at /events/feature (keep old /community/feature route as redirect).
+
+2) Navigation
+- Single “Saved” item (heart icon + label), aligned with other items.
+- Desktop order: Story · Events · Places · Saved · Join
+- Mobile menu: same order.
+- Ensure vertical centering of all nav items (flex h-12 items-center gap-x-6 on the row).
+
+3) Remove Collections chips (for now)
+- In /events and /places:
+  • Remove the colored “Collections” chip row below the hero.
+  • Keep PageHero → Toolbar (Search + Segmented control + Filters) → FeaturedHero → 2-up grid.
+  • Keep generous spacing (hero bottom padding md:pb-12, toolbar mt-8, grid gap md:gap-8).
+
+4) Favorites/Saved — make it reliable
+- Store keys as plain UUIDs from DB:
+  • events: 'fav:events' (string[] of event ids)
+  • places: 'fav:places' (string[] of place ids)
+- FavoriteButton toggles by UUID only (no canonical or composite keys).
+- APIs:
+  • /app/api/events/by-ids/route.ts (GET ?ids=uuid,uuid,…)
+    - Return matching events regardless of date/status; order by start_at ASC NULLS LAST.
+  • /app/api/places/by-ids/route.ts (GET ?ids=uuid,uuid,…)
+    - Return matching places; order by name ASC.
+- Saved page (/saved):
+  • Tabs: Events | Places (keep)
+  • When loading, call the new by-ids endpoints with the stored arrays.
+  • If zero results, show premium empty state with CTAs to /events and /places.
+  • If some IDs no longer exist, silently drop them from localStorage on next save.
+  • Count badge next to the tab reflects actual loaded count.
+- Cards/Modals continue to show the heart toggle and announce via aria-live.
+
+5) Events API cleanups
+- Update /app/api/events/weekly (formerly community/weekly):
+  • Accept q, category, range=week|month (default month).
+  • If ids param is present, short-circuit to return only those IDs (no date window).
+  • Keep DISTINCT ON (canonical_key) de-dup and { featured, items } structure for normal queries.
+
+6) Visual polish
+- Toolbar becomes sticky only after hero (as implemented), but reduce vertical height by 4px for tighter feel.
+- Badges: use a single micro size for date/type pills; ensure they never wrap.
+- Sponsor/Featured pills top-right: subtle copper ring, 90% opacity overlay.
+- Grid cards: ring-1 ring-white/5; hover: ring-amber/25 and translate-y-0.5 (respect reduced motion).
+- Ensure all nav items are vertically centered and evenly spaced on desktop.
+
+7) QA
+- Nav shows exactly one “Saved”, aligned.
+- /community redirects to /events.
+- Events & Places have NO Collections row; just hero → toolbar → featured → grid.
+- Saving an event/place updates the heart; /saved shows the same item(s) even if the event isn’t in the current 30-day window.
+- Deep links (?e=<id>, ?p=<id>) still open modals.
+- Nothing shows “Invalid Date”; badges render correctly.
+
+README
+- Update docs to reflect “Events” naming and the new by-ids endpoints.

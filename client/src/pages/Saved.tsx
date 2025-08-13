@@ -61,28 +61,16 @@ export default function Saved() {
   const favoriteEventIds = getFavoriteEvents();
   const favoritePlaceIds = getFavoritePlaces();
 
-  // Fetch favorite events
+  // Fetch favorite events using v3.3 by-ids endpoint
   const { data: favoriteEvents = [], isLoading: eventsLoading } = useQuery({
-    queryKey: ['/api/community/weekly', favoriteEventIds.join(',')],
+    queryKey: ['/api/events/by-ids', { ids: favoriteEventIds.join(',') }],
     enabled: favoriteEventIds.length > 0,
-    select: (data: any) => {
-      if (!data?.items) return [];
-      return data.items.filter((event: CommunityEvent) => 
-        favoriteEventIds.includes(event.id)
-      );
-    }
   });
 
-  // Fetch favorite places  
+  // Fetch favorite places using v3.3 by-ids endpoint
   const { data: favoritePlaces = [], isLoading: placesLoading } = useQuery({
-    queryKey: ['/api/places/list', favoritePlaceIds.join(',')],
+    queryKey: ['/api/places/by-ids', { ids: favoritePlaceIds.join(',') }],
     enabled: favoritePlaceIds.length > 0,
-    select: (data: any) => {
-      if (!data?.items) return [];
-      return data.items.filter((place: Place) => 
-        favoritePlaceIds.includes(place.id)
-      );
-    }
   });
 
   const handleEventClick = (event: CommunityEvent) => {

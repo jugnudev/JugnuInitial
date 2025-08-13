@@ -40,7 +40,7 @@ export default function Navigation() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-8">
+            <div className="ml-10 flex h-12 items-center gap-x-6">
               {showEvents && (
                 <button
                   onClick={() => scrollToSection('events')}
@@ -58,11 +58,11 @@ export default function Navigation() {
                 Story
               </a>
               <a
-                href="/community"
+                href="/events"
                 className="text-text hover:text-accent transition-colors duration-200 font-medium"
-                data-testid="nav-community"
+                data-testid="nav-events"
               >
-                Community
+                Events
               </a>
               <a
                 href="/places"
@@ -146,12 +146,12 @@ export default function Navigation() {
                 Story
               </a>
               <a
-                href="/community"
+                href="/events"
                 className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"
-                data-testid="nav-mobile-community"
+                data-testid="nav-mobile-events"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                Community
+                Events
               </a>
               <a
                 href="/places"
