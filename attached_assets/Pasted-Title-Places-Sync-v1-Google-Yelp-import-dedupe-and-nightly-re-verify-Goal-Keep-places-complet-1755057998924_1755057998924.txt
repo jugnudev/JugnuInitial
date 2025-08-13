@@ -1,0 +1,81 @@
+Title: Places Sync v1 — Google/Yelp import, dedupe, and nightly re-verify
+
+Goal
+Keep /places complete & accurate for Metro Vancouver via automated imports and rechecks. Do not change UI; build backend + light admin.
+
+Secrets (assume added in Replit):
+- GOOGLE_PLACES_KEY
+- YELP_API_KEY
+- EXPORT_ADMIN_KEY (already used)
+
+DB changes (Supabase)
+- ALTER TABLE public.places ADD COLUMN IF NOT EXISTS google_place_id text;
+- ALTER TABLE public.places ADD COLUMN IF NOT EXISTS yelp_id text;
+- ALTER TABLE public.places ADD COLUMN IF NOT EXISTS business_status text;          -- OPERATIONAL | CLOSED_TEMPORARILY | CLOSED_PERMANENTLY | UNKNOWN
+- ALTER TABLE public.places ADD COLUMN IF NOT EXISTS rating numeric;
+- ALTER TABLE public.places ADD COLUMN IF NOT EXISTS rating_count integer;
+- ALTER TABLE public.places ADD COLUMN IF NOT EXISTS lat double precision;
+- ALTER TABLE public.places ADD COLUMN IF NOT EXISTS lng double precision;
+- ALTER TABLE public.places ADD COLUMN IF NOT EXISTS last_verified_at timestamptz;
+- CREATE INDEX IF NOT EXISTS idx_places_google ON public.places (google_place_id);
+- CREATE INDEX IF NOT EXISTS idx_places_yelp ON public.places (yelp_id);
+
+Import scope
+- Cities: Vancouver, Surrey, Burnaby, Richmond, New Westminster, Delta, North/West Vancouver, Coquitlam.
+- Types → Jugnu categories:
+  • Google types: restaurant,cafe,bakery -> category = "Restaurant" / "Cafe/Dessert" (decide by keyword)
+  • grocery_or_supermarket -> "Grocery Store"
+  • clothing_store, jewelry_store -> "Clothing Store"
+  • beauty_salon -> "Beauty Salon"
+  • place_of_worship: terms= gurdwara|temple|mandir|mosque|masjid|iskcon -> "Gurdwara"/"Temple"/"Mosque"
+- South Asian filters (keyword OR cuisine match): indian, pakistani, bangladeshi, nepali, sri lankan, afghan, punjabi, gujarati, tamil, kerala, kashmiri, desi, biryani, dosa, chaat, mithai, halal, bollywood.
+
+APIs
+- Google Places:
+  • Use Text Search + Nearby within city bounds (or a big polygon) with keywords above.
+  • Fetch fields: place_id, name, business_status, formatted_address, geometry, rating, user_ratings_total, opening_hours, website, types, photos (ignore photo download now).
+  • For each match, call Place Details to get website if missing and better address.
+- Yelp Fusion (supplemental):
+  • Search with categories: indian, pakistani, bangladeshi, sri_lankan, afghani, halal, desserts; location per city.
+  • Capture id, url, rating, review_count, is_closed, coordinates, display_address.
+- Normalization: choose the “primary” source by presence of google_place_id; map Yelp into same row via yelp_id when likely same place (name + distance < 80m).
+
+Dedup + upsert
+- Canonical key = lower(name)|lower(address). Also dedupe if either google_place_id or yelp_id matches existing row.
+- Upsert into public.places:
+  • Set business_status from Google (or CLOSED when Yelp.is_closed=true).
+  • Map website/social:
+      - website_url from Google website or Yelp url
+      - instagram_url only when we can parse an IG link from website/about (optional, skip if not trivial)
+  • Derive city & neighborhood from address (split city, keep “Surrey” etc.).
+  • tags: lowercase array from cuisines/keywords (e.g., ["indian","halal","punjabi"])
+  • Do NOT overwrite existing non-null image_url.
+  • Update rating + rating_count.
+  • Set last_verified_at=now().
+
+Admin endpoints (x-admin-key required)
+- POST /api/places/admin/import/sync?city=all|Vancouver -> runs Google+Yelp import for target
+- POST /api/places/admin/reverify -> checks all rows; if business_status not OPERATIONAL, mark status='inactive' so UI hides it; OPERATIONAL -> status='active'
+- GET  /api/places/admin/review?status=pending|inactive|active -> returns simple JSON for moderation
+- POST /api/places/admin/approve {id, featured?:boolean}
+- POST /api/places/admin/hide {id}
+
+Public behavior
+- /places API must filter: status='active' AND (business_status is NULL OR business_status='OPERATIONAL').
+- Keep existing fields used by UI unchanged.
+
+Dev utilities
+- A tiny /dev/places-sync page (dev-only) with buttons:
+  • “Sync All Cities”
+  • “Re-verify”
+  • Counters: total, by city, inactive count, without image_url, without website_url.
+
+Cron
+- Add daily cron (or Replit scheduled task) to GET /api/places/admin/reverify with x-admin-key.
+- Optional: weekly sync of all cities.
+
+Notes
+- Validate and normalize URLs (http/https).
+- Guard against API quota; use pagination with backoff.
+- Log and skip records lacking enough address info.
+- No third-party images saved; keep image_url as-is or placeholder.

@@ -17,6 +17,7 @@ import ThankYou from "@/pages/thank-you";
 import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import NotFound from "@/pages/not-found";
+import DevPlacesSync from "@/pages/DevPlacesSync";
 
 function Router() {
   return (
@@ -35,6 +36,7 @@ function Router() {
         <Route path="/thank-you" component={ThankYou} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms" component={Terms} />
+        <Route path="/dev/places-sync" component={DevPlacesSync} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

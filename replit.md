@@ -95,7 +95,7 @@ Preferred communication style: Simple, everyday language.
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 - **Featured Event Parsing**: Auto-detect "Featured: true|yes|1" from calendar descriptions or use admin API
 
-### Current State (v3.4.2 Stability Refinement + Production Ready + Admin Bulk Import)
+### Current State (v3.4.3 Places Sync v1 - Google/Yelp Import + Admin Tools)
 - **Premium Explore UI v3.1**: Unified design system with robust date handling, enhanced UX polish, and graceful fallbacks
 - **Date Utilities v3.1**: Comprehensive `/lib/dates.ts` with timezone-aware formatting, all-day event detection, NaN/Invalid Date elimination
 - **Enhanced UI Polish**: Increased vertical rhythm (mt-10 md:mt-14), enhanced grid spacing (md:gap-8), subtle button glow effects
@@ -125,6 +125,11 @@ Preferred communication style: Simple, everyday language.
 - **v3.4.2 Stability Refinement**: Comprehensive API error handling with retry logic, shimmer loading animations, robust image error handling, accessibility enhancements with focus rings and ARIA labels, keyboard navigation support, production-ready error states
 - **Layout Bug Fixes**: Fixed duplicate navigation menu issue on privacy/terms pages, enhanced focus management throughout the application
 - **Admin Bulk Import v3.4.3**: Secure bulk import endpoint POST /api/places/admin/bulk-upsert with x-admin-key authentication, canonical_key deduplication, field mapping, URL validation, HTML stripping, and comprehensive error reporting
+- **Places Sync v1 (Latest)**: Automated Google Places API and Yelp Fusion API integration for Metro Vancouver South Asian businesses with intelligent filtering, category mapping, deduplication, and nightly verification system
+- **Places Sync Features**: Google Places Text Search + Place Details API, Yelp Business Search API, South Asian keyword filtering, business status tracking (OPERATIONAL/CLOSED), rating and review count sync, coordinate-based proximity deduplication
+- **Places Admin API v1**: Five secure admin endpoints - import/sync (all cities or specific), reverify (check business status), review (moderate by status), approve/feature, hide/deactivate
+- **Places Database Schema v2**: Extended with google_place_id, yelp_id, business_status, rating, rating_count, lat/lng coordinates, last_verified_at timestamp, and proper indexing for efficient lookups
+- **Development Utilities**: Dev-only page at /dev/places-sync with sync buttons, statistics dashboard, admin quick links, and real-time operation results
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS

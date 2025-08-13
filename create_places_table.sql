@@ -36,6 +36,10 @@ CREATE INDEX IF NOT EXISTS idx_places_status ON places (status);
 CREATE INDEX IF NOT EXISTS idx_places_city ON places (city);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_places_canonical_key ON places (canonical_key);
 
+-- Places Sync v1 indexes
+CREATE INDEX IF NOT EXISTS idx_places_google ON places (google_place_id);
+CREATE INDEX IF NOT EXISTS idx_places_yelp ON places (yelp_id);
+
 -- Create RLS policy (Row Level Security)
 ALTER TABLE places ENABLE ROW LEVEL SECURITY;
 

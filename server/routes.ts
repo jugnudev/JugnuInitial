@@ -29,6 +29,7 @@ function createCanonicalKey(title: string, startAt: Date, venue: string | null, 
 }
 
 import { insertCommunityEventSchema, updateCommunityEventSchema } from "@shared/schema";
+import { importFromGoogle, importFromYelp, reverifyAllPlaces } from "./lib/places-sync.js";
 
 // Helper function for group filtering (duplicated from client taxonomy)
 function getTypesForGroup(group: string): string[] {
@@ -1745,6 +1746,237 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error in places by-ids endpoint:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Places Sync v1 Admin Endpoints
+  
+  // Import places from Google Places and Yelp
+  app.post('/api/places/admin/import/sync', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ 
+          ok: false, 
+          error: 'Unauthorized - invalid or missing admin key' 
+        });
+      }
+
+      const { city = 'all' } = req.query;
+      
+      // Define Metro Vancouver cities
+      const allCities = [
+        'Vancouver', 'Surrey', 'Burnaby', 'Richmond', 'New Westminster', 
+        'Delta', 'North Vancouver', 'West Vancouver', 'Coquitlam'
+      ];
+      
+      const targetCities = city === 'all' 
+        ? allCities 
+        : [city as string];
+
+      console.log(`Starting sync for cities: ${targetCities.join(', ')}`);
+
+      // Run Google and Yelp imports in parallel
+      const [googleResults, yelpResults] = await Promise.all([
+        importFromGoogle(targetCities),
+        importFromYelp(targetCities)
+      ]);
+
+      const totalImported = googleResults.imported + yelpResults.imported;
+      const totalUpdated = yelpResults.updated;
+      const allErrors = [...googleResults.errors, ...yelpResults.errors];
+
+      res.json({
+        ok: true,
+        results: {
+          google: googleResults,
+          yelp: yelpResults,
+          summary: {
+            imported: totalImported,
+            updated: totalUpdated,
+            errors: allErrors.length,
+            cities: targetCities
+          }
+        },
+        message: `Sync completed: ${totalImported} imported, ${totalUpdated} updated, ${allErrors.length} errors`
+      });
+
+    } catch (error) {
+      console.error('Sync error:', error);
+      res.status(500).json({ 
+        ok: false, 
+        error: 'Internal server error during sync' 
+      });
+    }
+  });
+
+  // Re-verify all places against Google Places API
+  app.post('/api/places/admin/reverify', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ 
+          ok: false, 
+          error: 'Unauthorized - invalid or missing admin key' 
+        });
+      }
+
+      console.log('Starting place reverification...');
+      const results = await reverifyAllPlaces();
+
+      res.json({
+        ok: true,
+        results,
+        message: `Reverification completed: ${results.verified} verified, ${results.deactivated} deactivated, ${results.errors.length} errors`
+      });
+
+    } catch (error) {
+      console.error('Reverify error:', error);
+      res.status(500).json({ 
+        ok: false, 
+        error: 'Internal server error during reverification' 
+      });
+    }
+  });
+
+  // Get places for admin review
+  app.get('/api/places/admin/review', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ 
+          ok: false, 
+          error: 'Unauthorized - invalid or missing admin key' 
+        });
+      }
+
+      const { status = 'pending' } = req.query;
+      
+      const { data: places, error } = await supabase
+        .from('places')
+        .select('id, name, type, address, city, status, business_status, rating, rating_count, website_url, image_url, last_verified_at')
+        .eq('status', status)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        return res.status(500).json({ ok: false, error: error.message });
+      }
+
+      res.json({
+        ok: true,
+        places: places || [],
+        total: places?.length || 0,
+        status
+      });
+
+    } catch (error) {
+      console.error('Admin review error:', error);
+      res.status(500).json({ 
+        ok: false, 
+        error: 'Internal server error during admin review' 
+      });
+    }
+  });
+
+  // Approve a place
+  app.post('/api/places/admin/approve', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ 
+          ok: false, 
+          error: 'Unauthorized - invalid or missing admin key' 
+        });
+      }
+
+      const { id, featured = false } = req.body;
+      
+      if (!id) {
+        return res.status(400).json({ 
+          ok: false, 
+          error: 'Place ID is required' 
+        });
+      }
+
+      const supabase = getSupabaseAdmin();
+      const { data, error } = await supabase
+        .from('places')
+        .update({ 
+          status: 'active',
+          featured: Boolean(featured),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        return res.status(500).json({ ok: false, error: error.message });
+      }
+
+      res.json({
+        ok: true,
+        place: data,
+        message: `Place approved${featured ? ' and featured' : ''}`
+      });
+
+    } catch (error) {
+      console.error('Admin approve error:', error);
+      res.status(500).json({ 
+        ok: false, 
+        error: 'Internal server error during place approval' 
+      });
+    }
+  });
+
+  // Hide a place
+  app.post('/api/places/admin/hide', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ 
+          ok: false, 
+          error: 'Unauthorized - invalid or missing admin key' 
+        });
+      }
+
+      const { id } = req.body;
+      
+      if (!id) {
+        return res.status(400).json({ 
+          ok: false, 
+          error: 'Place ID is required' 
+        });
+      }
+
+      const supabase = getSupabaseAdmin();
+      const { data, error } = await supabase
+        .from('places')
+        .update({ 
+          status: 'inactive',
+          featured: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        return res.status(500).json({ ok: false, error: error.message });
+      }
+
+      res.json({
+        ok: true,
+        place: data,
+        message: 'Place hidden'
+      });
+
+    } catch (error) {
+      console.error('Admin hide error:', error);
+      res.status(500).json({ 
+        ok: false, 
+        error: 'Internal server error during place hiding' 
+      });
     }
   });
 
