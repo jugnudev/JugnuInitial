@@ -130,6 +130,10 @@ Preferred communication style: Simple, everyday language.
 - **Places Admin API v1**: Five secure admin endpoints - import/sync (all cities or specific), reverify (check business status), review (moderate by status), approve/feature, hide/deactivate
 - **Places Database Schema v2**: Extended with google_place_id, yelp_id, business_status, rating, rating_count, lat/lng coordinates, last_verified_at timestamp, and proper indexing for efficient lookups
 - **Development Utilities**: Dev-only page at /dev/places-sync with sync buttons, statistics dashboard, admin quick links, and real-time operation results
+- **Backfill Matcher & Duplicate Resolver v3.4.4**: Advanced ID matching system using Jaro-Winkler string similarity, distance-based scoring, and intelligent duplicate merging
+- **Smart Matching Algorithm**: Scores places using name similarity (40%), address matching (35%), and geographic distance (25%) with 0.85 threshold for acceptance
+- **Duplicate Resolution**: Automatically merges duplicates by selecting most complete record, copying missing fields, and marking losers as 'merged' status
+- **Additional Admin Endpoints**: match-ids (backfill Google/Yelp IDs), inactivate-unmatched (14-day cleanup), and enhanced statistics with matching insights
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS

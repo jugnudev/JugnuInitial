@@ -37,13 +37,41 @@ interface PlaceStats {
   withoutWebsite: number;
 }
 
+interface MatchingStats {
+  total: number;
+  active: number;
+  inactive: number;
+  merged: number;
+  withoutGoogleId: number;
+  withoutYelpId: number;
+  potentialDuplicates: number;
+}
+
+interface MatchResult {
+  matched: number;
+  enriched: number;
+  merged: number;
+  skipped: number;
+  errors: string[];
+}
+
+interface InactivateResult {
+  inactivated: number;
+  errors: string[];
+}
+
 export default function DevPlacesSync() {
   const [syncLoading, setSyncLoading] = useState(false);
   const [reverifyLoading, setReverifyLoading] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [matchLoading, setMatchLoading] = useState(false);
+  const [inactivateLoading, setInactivateLoading] = useState(false);
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [reverifyResult, setReverifyResult] = useState<ReverifyResult | null>(null);
+  const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
+  const [inactivateResult, setInactivateResult] = useState<InactivateResult | null>(null);
   const [stats, setStats] = useState<PlaceStats | null>(null);
+  const [matchingStats, setMatchingStats] = useState<MatchingStats | null>(null);
   const { toast } = useToast();
 
   // Check if we're in development
@@ -161,6 +189,21 @@ export default function DevPlacesSync() {
           withoutWebsite
         });
       }
+
+      // Get matching stats
+      const matchingResponse = await fetch('/api/places/admin/stats', {
+        headers: {
+          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || 'dev-key-placeholder'
+        }
+      });
+      
+      if (matchingResponse.ok) {
+        const matchingData = await matchingResponse.json();
+        if (matchingData.ok) {
+          setMatchingStats(matchingData.stats);
+        }
+      }
+
     } catch (error) {
       console.error('Stats error:', error);
       toast({
@@ -170,6 +213,78 @@ export default function DevPlacesSync() {
       });
     } finally {
       setStatsLoading(false);
+    }
+  };
+
+  const handleMatchIds = async () => {
+    setMatchLoading(true);
+    try {
+      const response = await fetch('/api/places/admin/match-ids?limit=200', {
+        method: 'POST',
+        headers: {
+          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || 'dev-key-placeholder',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.ok) {
+        setMatchResult(data.results);
+        toast({
+          title: "ID Matching Completed",
+          description: data.message,
+        });
+        // Refresh stats after matching
+        loadStats();
+      } else {
+        throw new Error(data.error || 'ID matching failed');
+      }
+    } catch (error) {
+      console.error('Match IDs error:', error);
+      toast({
+        title: "ID Matching Failed",
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: "destructive",
+      });
+    } finally {
+      setMatchLoading(false);
+    }
+  };
+
+  const handleInactivateUnmatched = async () => {
+    setInactivateLoading(true);
+    try {
+      const response = await fetch('/api/places/admin/inactivate-unmatched', {
+        method: 'POST',
+        headers: {
+          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || 'dev-key-placeholder',
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.ok) {
+        setInactivateResult(data.results);
+        toast({
+          title: "Inactivation Completed",
+          description: data.message,
+        });
+        // Refresh stats after inactivation
+        loadStats();
+      } else {
+        throw new Error(data.error || 'Inactivation failed');
+      }
+    } catch (error) {
+      console.error('Inactivate error:', error);
+      toast({
+        title: "Inactivation Failed",
+        description: error instanceof Error ? error.message : 'Unknown error',
+        variant: "destructive",
+      });
+    } finally {
+      setInactivateLoading(false);
     }
   };
 
@@ -190,7 +305,7 @@ export default function DevPlacesSync() {
           </Badge>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Sync Operations */}
           <Card>
             <CardHeader>
@@ -328,8 +443,97 @@ export default function DevPlacesSync() {
             </CardContent>
           </Card>
 
+          {/* ID Matching & Cleanup */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <RefreshCw className="w-5 h-5" />
+                ID Matching & Cleanup
+              </CardTitle>
+              <CardDescription>
+                Backfill Google/Yelp IDs and resolve duplicates
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button 
+                onClick={handleMatchIds}
+                disabled={matchLoading}
+                className="w-full"
+                size="lg"
+              >
+                {matchLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                )}
+                Match IDs (200)
+              </Button>
+
+              <Button 
+                onClick={handleInactivateUnmatched}
+                disabled={inactivateLoading}
+                variant="outline"
+                className="w-full"
+                size="lg"
+              >
+                {inactivateLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Clock className="w-4 h-4 mr-2" />
+                )}
+                Inactivate Unmatched (14d+)
+              </Button>
+
+              {matchingStats && (
+                <div className="mt-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Without Google ID:</span>
+                      <Badge variant="secondary">{matchingStats.withoutGoogleId}</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Without Yelp ID:</span>
+                      <Badge variant="secondary">{matchingStats.withoutYelpId}</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Potential Dupes:</span>
+                      <Badge variant="destructive">{matchingStats.potentialDuplicates}</Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Merged:</span>
+                      <Badge variant="outline">{matchingStats.merged}</Badge>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {matchResult && (
+                <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <h4 className="font-medium text-green-900 mb-2">Last Match Results</h4>
+                  <div className="text-sm text-green-700 space-y-1">
+                    <p>• Matched: {matchResult.matched}</p>
+                    <p>• Enriched: {matchResult.enriched}</p>
+                    <p>• Merged: {matchResult.merged}</p>
+                    <p>• Skipped: {matchResult.skipped}</p>
+                    <p>• Errors: {matchResult.errors.length}</p>
+                  </div>
+                </div>
+              )}
+
+              {inactivateResult && (
+                <div className="mt-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                  <h4 className="font-medium text-orange-900 mb-2">Last Inactivation Results</h4>
+                  <div className="text-sm text-orange-700 space-y-1">
+                    <p>• Inactivated: {inactivateResult.inactivated}</p>
+                    <p>• Errors: {inactivateResult.errors.length}</p>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Admin Links */}
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-3">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="w-5 h-5" />

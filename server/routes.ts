@@ -30,6 +30,7 @@ function createCanonicalKey(title: string, startAt: Date, venue: string | null, 
 
 import { insertCommunityEventSchema, updateCommunityEventSchema } from "@shared/schema";
 import { importFromGoogle, importFromYelp, reverifyAllPlaces } from "./lib/places-sync.js";
+import { matchAndEnrichPlaces, inactivateUnmatchedPlaces, getPlaceMatchingStats } from "./lib/place-matcher.js";
 
 // Helper function for group filtering (duplicated from client taxonomy)
 function getTypesForGroup(group: string): string[] {
@@ -1852,6 +1853,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { status = 'pending' } = req.query;
       
+      const supabase = getSupabaseAdmin();
       const { data: places, error } = await supabase
         .from('places')
         .select('id, name, type, address, city, status, business_status, rating, rating_count, website_url, image_url, last_verified_at')
@@ -1976,6 +1978,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ 
         ok: false, 
         error: 'Internal server error during place hiding' 
+      });
+    }
+  });
+
+  // Match IDs and resolve duplicates
+  app.post('/api/places/admin/match-ids', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ 
+          ok: false, 
+          error: 'Unauthorized - invalid or missing admin key' 
+        });
+      }
+
+      const { limit = '200' } = req.query;
+      const limitNum = Math.min(parseInt(limit as string, 10) || 200, 500); // Cap at 500
+
+      console.log(`Starting ID matching and duplicate resolution for up to ${limitNum} places...`);
+      const results = await matchAndEnrichPlaces(limitNum);
+
+      res.json({
+        ok: true,
+        results,
+        message: `ID matching completed: ${results.matched} matched, ${results.enriched} enriched, ${results.merged} merged, ${results.skipped} skipped, ${results.errors.length} errors`
+      });
+
+    } catch (error) {
+      console.error('Match IDs error:', error);
+      res.status(500).json({ 
+        ok: false, 
+        error: 'Internal server error during ID matching' 
+      });
+    }
+  });
+
+  // Inactivate unmatched places
+  app.post('/api/places/admin/inactivate-unmatched', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ 
+          ok: false, 
+          error: 'Unauthorized - invalid or missing admin key' 
+        });
+      }
+
+      console.log('Starting inactivation of unmatched places older than 14 days...');
+      const results = await inactivateUnmatchedPlaces();
+
+      res.json({
+        ok: true,
+        results,
+        message: `Inactivation completed: ${results.inactivated} places inactivated, ${results.errors.length} errors`
+      });
+
+    } catch (error) {
+      console.error('Inactivate unmatched error:', error);
+      res.status(500).json({ 
+        ok: false, 
+        error: 'Internal server error during inactivation' 
+      });
+    }
+  });
+
+  // Get place matching statistics
+  app.get('/api/places/admin/stats', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ 
+          ok: false, 
+          error: 'Unauthorized - invalid or missing admin key' 
+        });
+      }
+
+      const stats = await getPlaceMatchingStats();
+
+      res.json({
+        ok: true,
+        stats
+      });
+
+    } catch (error) {
+      console.error('Get stats error:', error);
+      res.status(500).json({ 
+        ok: false, 
+        error: 'Internal server error getting stats' 
       });
     }
   });
