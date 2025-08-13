@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useLocation, Link } from "wouter";
 import { useEvents, useGallery } from "@/lib/events";
 import { useFavorites } from "@/stores/favorites";
 import { Badge } from "@/components/ui/badge";
 import logoImage from "@assets/Upscaled Logo copy_1754763190534.png";
 
 export default function Navigation() {
+  const [location] = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [savedCount, setSavedCount] = useState(0);
   const { data: events = [] } = useEvents();
@@ -75,23 +77,46 @@ export default function Navigation() {
               >
                 Story
               </a>
-              <a
+              <Link
+                href="/explore"
+                className={`transition-colors duration-200 font-medium ${
+                  location.startsWith('/explore') 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
+                data-testid="nav-explore"
+              >
+                Explore
+              </Link>
+              <Link
                 href="/events"
-                className="text-text hover:text-accent transition-colors duration-200 font-medium"
+                className={`transition-colors duration-200 font-medium ${
+                  location === '/events' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
                 data-testid="nav-events"
               >
                 Events
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/places"
-                className="text-text hover:text-accent transition-colors duration-200 font-medium"
+                className={`transition-colors duration-200 font-medium ${
+                  location === '/places' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
                 data-testid="nav-places"
               >
                 Places
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/saved"
-                className="text-text hover:text-accent transition-colors duration-200 font-medium flex items-center gap-2"
+                className={`transition-colors duration-200 font-medium flex items-center gap-2 ${
+                  location === '/saved' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
                 data-testid="nav-saved"
               >
                 <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
@@ -107,14 +132,18 @@ export default function Navigation() {
                     {savedCount}
                   </Badge>
                 )}
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/waitlist"
-                className="text-text hover:text-accent transition-colors duration-200 font-medium"
+                className={`transition-colors duration-200 font-medium ${
+                  location === '/waitlist' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
                 data-testid="nav-waitlist"
               >
                 Join
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -144,25 +173,49 @@ export default function Navigation() {
               >
                 Story
               </a>
-              <a
+              <Link
+                href="/explore"
+                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
+                  location.startsWith('/explore') 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
+                data-testid="nav-mobile-explore"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Explore
+              </Link>
+              <Link
                 href="/events"
-                className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"
+                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
+                  location === '/events' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
                 data-testid="nav-mobile-events"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Events
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/places"
-                className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"
+                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
+                  location === '/places' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
                 data-testid="nav-mobile-places"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Places
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/saved"
-                className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium flex items-center gap-2"
+                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium flex items-center gap-2 ${
+                  location === '/saved' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
                 data-testid="nav-mobile-saved"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
@@ -179,15 +232,19 @@ export default function Navigation() {
                     {savedCount}
                   </Badge>
                 )}
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/waitlist"
-                className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"
+                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
+                  location === '/waitlist' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
                 data-testid="nav-mobile-waitlist"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Join
-              </a>
+              </Link>
             </div>
           </div>
         )}

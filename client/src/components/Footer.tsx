@@ -39,6 +39,13 @@ export default function Footer() {
           <div className="flex items-center space-x-6 text-sm text-muted">
             <span>&copy; 2025 Jugnu</span>
             <Link 
+              href="/explore" 
+              className="hover:text-accent transition-colors duration-200"
+              data-testid="link-explore"
+            >
+              Explore
+            </Link>
+            <Link 
               href="/privacy" 
               className="hover:text-accent transition-colors duration-200"
               data-testid="link-privacy"

@@ -1,4 +1,5 @@
 import { useEvents } from "@/lib/events";
+import { Link } from "wouter";
 import heroLogoImage from "@assets/Upscaled Logo copy_1754763190534.png";
 
 export default function Hero() {
@@ -52,10 +53,10 @@ export default function Hero() {
             Curated South Asian & global culture—nights, pop-ups, and experiences in Vancouver.
           </p>
 
-          {/* Single CTA */}
-          <div className="flex justify-center">
-            {/* Tickets available - show Get Tickets */}
-            {hasTicketsAvailable && (
+          {/* Dual CTA */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            {/* Primary CTA - Tickets available show Get Tickets, otherwise Join Waitlist */}
+            {hasTicketsAvailable ? (
               <a
                 href="#events"
                 onClick={(e) => { e.preventDefault(); scrollToSection('events'); }}
@@ -64,18 +65,24 @@ export default function Hero() {
               >
                 Get Tickets
               </a>
-            )}
-            
-            {/* Waitlist mode OR no events - always show Join Waitlist */}
-            {(isWaitlistMode || hasNoEvents) && (
-              <a
+            ) : (
+              <Link
                 href="/waitlist"
                 className="inline-flex items-center justify-center px-8 py-4 text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200 shadow-lg hover:shadow-xl btn-glow bg-[#c05a0e]"
                 data-testid="button-join-waitlist"
               >
                 Join Waitlist
-              </a>
+              </Link>
             )}
+            
+            {/* Secondary CTA - Explore Vancouver */}
+            <Link
+              href="/explore"
+              className="inline-flex items-center justify-center px-8 py-4 bg-white/10 text-white border border-white/20 font-medium tracking-wide rounded-2xl hover:bg-white/20 hover:border-white/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200 backdrop-blur-sm"
+              data-testid="button-explore-vancouver"
+            >
+              Explore Vancouver
+            </Link>
           </div>
         </div>
       </div>
