@@ -30,12 +30,16 @@
 ### sponsor_portal_tokens Table
 ```sql
 CREATE TABLE IF NOT EXISTS public.sponsor_portal_tokens (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  token text UNIQUE NOT NULL,
+  token uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
-  expires_at timestamptz
+  created_at timestamptz DEFAULT now() NOT NULL,
+  expires_at timestamptz NOT NULL,
+  last_seen_at timestamptz,
+  disabled boolean DEFAULT false
 );
+
+CREATE INDEX IF NOT EXISTS idx_spt_campaign ON public.sponsor_portal_tokens (campaign_id);
+ALTER TABLE public.sponsor_portal_tokens ENABLE ROW LEVEL SECURITY;
 ```
 
 ## API Endpoint Testing
@@ -127,8 +131,24 @@ All endpoints set proper headers:
 
 ### Portal Token Errors
 - 400: Missing campaign_id
-- 404: Campaign not found
+- 404: Campaign not found or inactive
 - 500: Database or token creation failure
+
+### Development Error Details
+In development mode (NODE_ENV !== 'production'), error responses include additional debug information:
+```json
+{
+  "ok": false,
+  "error": "Failed to create portal token",
+  "detail": "Could not find the table 'public.sponsor_portal_tokens' in the schema cache",
+  "code": "PGRST205"
+}
+```
+
+### Campaign Validation
+- Checks campaign exists in database
+- Validates campaign.is_active = true
+- Uses SUPABASE_SERVICE_ROLE for secure admin operations
 
 ### Authentication Errors
 - 401: Invalid or missing x-admin-key header
