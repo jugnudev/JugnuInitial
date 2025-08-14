@@ -275,36 +275,167 @@ export function addAdminRoutes(app: Express) {
     }
   });
 
-  // POST /api/admin/campaigns (create/update) - Forward to spotlight admin endpoint
-  app.post('/api/admin/campaigns', requireAdminSession, async (req: Request, res: Response) => {
+
+
+  // Helper function to normalize request body (camelCase ↔ snake_case)
+  function normalizeBody(body: any) {
+    const normalized: any = {};
+    for (const [key, value] of Object.entries(body)) {
+      // Convert camelCase to snake_case and vice versa
+      if (key === 'sponsorName') normalized.sponsor_name = value;
+      else if (key === 'sponsor_name') normalized.sponsor_name = value;
+      else if (key === 'startAt') normalized.start_at = value;
+      else if (key === 'start_at') normalized.start_at = value;
+      else if (key === 'endAt') normalized.end_at = value;
+      else if (key === 'end_at') normalized.end_at = value;
+      else if (key === 'isActive') normalized.is_active = value;
+      else if (key === 'is_active') normalized.is_active = value;
+      else if (key === 'campaignId') normalized.campaign_id = value;
+      else if (key === 'campaign_id') normalized.campaign_id = value;
+      else if (key === 'expiresInHours') normalized.expires_in_hours = value;
+      else if (key === 'expires_in_hours') normalized.expires_in_hours = value;
+      else normalized[key] = value;
+    }
+    return normalized;
+  }
+
+  // Admin API alias routes that forward to spotlight handlers with admin key authentication
+  
+  // POST /api/admin/campaigns → POST /api/spotlight/admin/campaign/upsert (alias with admin key)
+  app.post('/api/admin/campaigns', requireAdminKey, async (req, res) => {
     try {
-      // Forward to the spotlight admin endpoint with audit logging
-      const response = await fetch(`${req.protocol}://${req.get('host')}/api/spotlight/admin/campaign/upsert`, {
+      const normalizedBody = normalizeBody(req.body);
+      
+      const response = await fetch('http://localhost:5000/api/spotlight/admin/campaign/upsert', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-admin-key': process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025'
         },
-        body: JSON.stringify(req.body)
+        body: JSON.stringify(normalizedBody)
       });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return res.status(response.status).json({
+          ok: false,
+          error: data.error || 'Campaign operation failed',
+          detail: data.detail || data.message,
+          code: response.status
+        });
+      }
+      
+      res.json(data);
+    } catch (error: any) {
+      console.error('Admin campaigns alias error:', error);
+      res.status(500).json({
+        ok: false,
+        error: 'Internal server error',
+        detail: error?.message || 'Unknown error',
+        code: 500
+      });
+    }
+  });
 
-      const result = await response.json();
-
-      if (result.ok) {
-        // Log the action for audit trail
-        await auditLog(req.body.id ? 'campaign_updated' : 'campaign_created', {
-          campaignId: result.campaign?.id,
-          name: req.body.name,
-          ip: req.ip,
-          userAgent: req.get('User-Agent')
-        }, req.session?.userId);
+  // POST /api/admin/portal-tokens → Create portal token directly (no existing spotlight route)
+  app.post('/api/admin/portal-tokens', requireAdminKey, async (req, res) => {
+    try {
+      const { campaign_id, expires_in_hours = 168 } = normalizeBody(req.body); // default 7 days
+      
+      if (!campaign_id) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Campaign ID is required',
+          detail: 'campaign_id field is missing',
+          code: 400
+        });
       }
 
-      // Forward the response
-      res.status(response.status).json(result);
-    } catch (error) {
-      console.error('Admin campaign proxy error:', error);
-      res.status(500).json({ ok: false, error: 'Failed to save campaign' });
+      // Create portal token directly
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + expires_in_hours * 60 * 60 * 1000);
+
+      const { data: tokenData, error } = await supabase
+        .from('sponsor_portal_tokens')
+        .insert({
+          campaign_id,
+          token,
+          expires_at: expiresAt.toISOString(),
+          disabled: false
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Portal token creation error:', error);
+        return res.status(500).json({
+          ok: false,
+          error: 'Failed to create portal token',
+          detail: error.message,
+          code: 500
+        });
+      }
+
+      await auditLog('portal_token_created', {
+        tokenId: token,
+        campaignId: campaign_id,
+        expiresAt: expiresAt.toISOString(),
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
+      }, 'admin-api');
+
+      res.json({
+        ok: true,
+        token: tokenData.token,
+        expires_at: tokenData.expires_at,
+        portal_url: `${req.protocol}://${req.get('host')}/sponsor/${tokenData.token}`
+      });
+    } catch (error: any) {
+      console.error('Admin portal-tokens error:', error);
+      res.status(500).json({
+        ok: false,
+        error: 'Internal server error',
+        detail: error?.message || 'Unknown error',
+        code: 500
+      });
+    }
+  });
+
+  // POST /api/admin/send-onboarding → POST /api/spotlight/admin/send-onboarding
+  app.post('/api/admin/send-onboarding', requireAdminKey, async (req, res) => {
+    try {
+      const normalizedBody = normalizeBody(req.body);
+      
+      const response = await fetch('http://localhost:5000/api/spotlight/admin/send-onboarding', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025'
+        },
+        body: JSON.stringify(normalizedBody)
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return res.status(response.status).json({
+          ok: false,
+          error: data.error || 'Send onboarding operation failed',
+          detail: data.detail || data.message,
+          code: response.status
+        });
+      }
+      
+      res.json(data);
+    } catch (error: any) {
+      console.error('Admin send-onboarding alias error:', error);
+      res.status(500).json({
+        ok: false,
+        error: 'Internal server error',
+        detail: error?.message || 'Unknown error',
+        code: 500
+      });
     }
   });
 

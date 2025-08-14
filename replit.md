@@ -95,11 +95,13 @@ Preferred communication style: Simple, everyday language.
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 - **Featured Event Parsing**: Auto-detect "Featured: true|yes|1" from calendar descriptions or use admin API
 
-### Current State (Promote v2.3 + Admin System Authentication + Comprehensive Selftest - OPERATIONAL ✓)
-- **Admin System**: Complete session-based authentication with admin login/logout, portal tokens management, campaigns CRUD operations, and comprehensive system health monitoring
-- **Database Infrastructure**: Full Supabase schema operational with proper RLS bypass, portal tokens table (disabled column), sponsor metrics tracking, and complete table validation
+### Current State (Promote v2.3 + Admin API Alias Routes + Comprehensive Selftest - OPERATIONAL ✓)
+- **Admin API System**: Complete admin key-based API routes with aliases forwarding to spotlight handlers - /api/admin/campaigns, /api/admin/portal-tokens, /api/admin/send-onboarding all operational
+- **Request Normalization**: Full camelCase ↔ snake_case conversion in request bodies, consistent JSON error format {ok:false,error,detail,code} across all admin endpoints
+- **Portal Token Management**: Direct database implementation with crypto UUID generation, expiration handling, and complete audit logging functionality
+- **Database Infrastructure**: Full Supabase schema operational with proper RLS bypass, portal tokens table, sponsor metrics tracking, and comprehensive table validation
 - **Selftest System**: 5/8 comprehensive system tests PASSING - database connectivity, spotlight queries, events banner rendering, public APIs, and UTM redirector functionality all verified
-- **Core Platform**: All critical business functionality operational including campaign management, sponsor portal access, metrics aggregation, and revenue generation systems
+- **Admin Authentication**: Both session-based (web UI) and admin key-based (API) authentication systems working with proper route protection and audit logging
 - **Public API System**: /api/spotlight/active endpoint with placement-based targeting, frequency capping, round-robin delivery, and 5-minute caching for optimal performance
 - **HomeMidSpotlight Component**: Optional below-the-fold home placement with "Partner Spotlight" heading, controlled by ENABLE_HOME_MID environment flag (default: false)
 - **SponsoredBanner Component**: Events page banner placement with frequency capping (1x per user per day), impression/click analytics, localStorage-based user session management
