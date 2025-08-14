@@ -182,7 +182,6 @@ export default function SponsorPortal() {
           </motion.div>
         </div>
       </section>
-
       {/* Key Metrics */}
       <section className="py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -245,7 +244,6 @@ export default function SponsorPortal() {
           </motion.div>
         </div>
       </section>
-
       {/* Charts */}
       <section className="py-12 bg-white/5">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -333,7 +331,6 @@ export default function SponsorPortal() {
           </motion.div>
         </div>
       </section>
-
       {/* 7-Day Summary */}
       {last7Days && last7Days.length > 0 && (
         <section className="py-12">
@@ -383,15 +380,13 @@ export default function SponsorPortal() {
           </div>
         </section>
       )}
-
       {/* Footer */}
       <section className="py-12 border-t border-white/10">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="text-muted mb-4">
             Questions about your campaign? Contact us at{' '}
-            <a href="mailto:hello@jugnu.events" className="text-copper-400 hover:text-copper-300">
-              hello@jugnu.events
-            </a>
+            <a href="mailto:hello@jugnu.events" className="text-copper-400 hover:text-copper-300">relations@thehouseofjugnu.com
+</a>
           </p>
           <Button
             onClick={() => window.location.href = '/promote'}
