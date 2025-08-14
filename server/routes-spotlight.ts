@@ -451,6 +451,99 @@ export function addSpotlightRoutes(app: Express) {
 
   // ======= PUBLIC API ROUTES =======
 
+  // GET /api/health - Health check endpoint
+  app.get('/api/health', (req, res) => {
+    res.set('Content-Type', 'application/json');
+    res.json({ ok: true });
+  });
+
+  // GET /api/spotlight/public/active - Alternative public endpoint with different response format
+  app.get('/api/spotlight/public/active', async (req, res) => {
+    try {
+      const { placement = 'events_banner' } = req.query;
+      
+      // Environment flags for placements
+      const ENABLE_HOME_MID = process.env.ENABLE_HOME_MID === 'true';
+      const ENABLE_EVENTS_BANNER = process.env.ENABLE_EVENTS_BANNER !== 'false'; // true by default
+      const ENABLE_HOME_HERO = false; // Always disabled as per requirements
+      
+      // Check if placement is enabled
+      let isPlacementEnabled = true;
+      if (placement === 'home_hero') {
+        isPlacementEnabled = ENABLE_HOME_HERO;
+      } else if (placement === 'home_mid') {
+        isPlacementEnabled = ENABLE_HOME_MID;
+      } else if (placement === 'events_banner') {
+        isPlacementEnabled = ENABLE_EVENTS_BANNER;
+      }
+
+      if (!isPlacementEnabled) {
+        res.set('Content-Type', 'application/json');
+        return res.json({
+          ok: true,
+          placement: placement,
+          creatives: []
+        });
+      }
+      
+      const now = new Date().toISOString();
+
+      // Get active campaigns for the placement
+      const { data: campaigns, error } = await supabase
+        .from('sponsor_campaigns')
+        .select(`
+          *,
+          creatives:sponsor_creatives(*)
+        `)
+        .eq('is_active', true)
+        .lte('start_at', now)
+        .gte('end_at', now)
+        .contains('placements', [placement])
+        .order('priority', { ascending: false });
+
+      if (error) throw error;
+
+      // Transform campaigns into creatives array format
+      const creatives = campaigns
+        .filter(campaign => campaign.creatives.some((c: any) => c.placement === placement))
+        .map(campaign => {
+          const creative = campaign.creatives.find((c: any) => c.placement === placement);
+          return {
+            campaignId: campaign.id,
+            sponsor_name: campaign.sponsor_name,
+            headline: campaign.headline,
+            subline: campaign.subline,
+            cta_text: campaign.cta_text,
+            click_url: campaign.click_url,
+            is_sponsored: campaign.is_sponsored,
+            tags: campaign.tags,
+            creative: {
+              image_desktop_url: creative.image_desktop_url,
+              image_mobile_url: creative.image_mobile_url,
+              logo_url: creative.logo_url,
+              alt: creative.alt
+            }
+          };
+        });
+
+      // Cache for 5 minutes
+      res.set('Cache-Control', 'public, s-maxage=300, max-age=300');
+      res.set('Content-Type', 'application/json');
+      res.json({
+        ok: true,
+        placement: placement,
+        creatives: creatives
+      });
+
+    } catch (error) {
+      console.error('Get public active spotlights error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to get active spotlights'
+      });
+    }
+  });
+
   // GET /api/spotlight/active
   app.get('/api/spotlight/active', async (req, res) => {
     try {
