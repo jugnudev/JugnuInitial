@@ -218,6 +218,11 @@ export default function Promote() {
   return (
     <div className="min-h-screen bg-bg">
       {/* SEO Meta Tags */}
+      <link rel="canonical" href="https://jugnu.events/promote" />
+      <meta name="description" content="Promote your business to Vancouver's South Asian community. Reach passionate culture enthusiasts with premium sponsorship packages starting at CA$50/week. Events page placements, homepage heroes, and full feature campaigns available." />
+      <meta name="keywords" content="Vancouver South Asian advertising, Metro Vancouver sponsorship, cultural events marketing, South Asian audience, Jugnu sponsorship packages, Vancouver event promotion" />
+      
+      {/* Organization Schema */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -229,47 +234,132 @@ export default function Promote() {
             "logo": "https://jugnu.events/logo.svg",
             "description": "Promote your business to South Asian culture enthusiasts in Vancouver",
             "sameAs": ["https://instagram.com/thehouseofjugnu"],
-            "offers": [
-              {
-                "@type": "Offer",
-                "name": "Spotlight Banner",
-                "description": "Prime inline placement on events page with tracking",
+            "address": {
+              "@type": "PostalAddress",
+              "addressLocality": "Vancouver",
+              "addressRegion": "BC",
+              "addressCountry": "CA"
+            }
+          })
+        }}
+      />
+
+      {/* Product Schema - Spotlight Banner */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "Spotlight Banner - Vancouver South Asian Audience",
+            "description": "Prime inline placement on events page targeting South Asian culture enthusiasts in Metro Vancouver with comprehensive tracking",
+            "brand": {
+              "@type": "Brand",
+              "name": "Jugnu"
+            },
+            "offers": {
+              "@type": "Offer",
+              "priceCurrency": "CAD",
+              "price": "50",
+              "priceSpecification": {
+                "@type": "UnitPriceSpecification",
                 "price": "50",
                 "priceCurrency": "CAD",
-                "priceSpecification": {
-                  "@type": "UnitPriceSpecification",
-                  "price": "50",
-                  "priceCurrency": "CAD",
-                  "unitText": "per week"
-                }
+                "unitText": "per week"
               },
-              {
-                "@type": "Offer", 
-                "name": "Homepage Hero",
-                "description": "High-impact below-the-fold hero placement",
+              "availability": "https://schema.org/InStock",
+              "seller": {
+                "@type": "Organization",
+                "name": "Jugnu"
+              }
+            },
+            "audience": {
+              "@type": "Audience",
+              "geographicArea": {
+                "@type": "Place",
+                "name": "Metro Vancouver, BC"
+              }
+            }
+          })
+        }}
+      />
+
+      {/* Product Schema - Homepage Hero */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "Homepage Hero - Vancouver Cultural Events",
+            "description": "High-impact below-the-fold hero placement reaching South Asian audience in Vancouver with premium visibility",
+            "brand": {
+              "@type": "Brand",
+              "name": "Jugnu"
+            },
+            "offers": {
+              "@type": "Offer",
+              "priceCurrency": "CAD",
+              "price": "150",
+              "priceSpecification": {
+                "@type": "UnitPriceSpecification",
                 "price": "150",
                 "priceCurrency": "CAD",
-                "priceSpecification": {
-                  "@type": "UnitPriceSpecification",
-                  "price": "150", 
-                  "priceCurrency": "CAD",
-                  "unitText": "per week"
-                }
+                "unitText": "per week"
               },
-              {
-                "@type": "Offer",
-                "name": "Full Feature Campaign",
-                "description": "Landing page plus Instagram carousel promotion",
+              "availability": "https://schema.org/InStock",
+              "seller": {
+                "@type": "Organization",
+                "name": "Jugnu"
+              }
+            },
+            "audience": {
+              "@type": "Audience",
+              "geographicArea": {
+                "@type": "Place",
+                "name": "Metro Vancouver, BC"
+              }
+            }
+          })
+        }}
+      />
+
+      {/* Product Schema - Full Feature Campaign */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "Full Feature Campaign - Vancouver South Asian Community",
+            "description": "Complete campaign package with landing page and Instagram carousel targeting Vancouver's South Asian cultural community",
+            "brand": {
+              "@type": "Brand",
+              "name": "Jugnu"
+            },
+            "offers": {
+              "@type": "Offer",
+              "priceCurrency": "CAD",
+              "price": "300",
+              "priceSpecification": {
+                "@type": "UnitPriceSpecification",
                 "price": "300",
                 "priceCurrency": "CAD",
-                "priceSpecification": {
-                  "@type": "UnitPriceSpecification",
-                  "price": "300",
-                  "priceCurrency": "CAD", 
-                  "unitText": "per campaign"
-                }
+                "unitText": "per campaign"
+              },
+              "availability": "https://schema.org/InStock",
+              "seller": {
+                "@type": "Organization",
+                "name": "Jugnu"
               }
-            ]
+            },
+            "audience": {
+              "@type": "Audience",
+              "geographicArea": {
+                "@type": "Place",
+                "name": "Metro Vancouver, BC"
+              }
+            }
           })
         }}
       />
@@ -411,10 +501,10 @@ export default function Promote() {
             className="text-center mb-16"
           >
             <h2 className="font-fraunces text-3xl sm:text-4xl font-bold text-white mb-4">
-              Why It Works
+              Why Jugnu Works for Vancouver Businesses
             </h2>
             <p className="text-muted text-lg max-w-2xl mx-auto">
-              Connect with Vancouver's most engaged cultural community through strategic, measurable placements.
+              Connect with Metro Vancouver's most engaged South Asian cultural community through strategic, measurable placements.
             </p>
           </motion.div>
 
@@ -509,10 +599,10 @@ export default function Promote() {
             className="text-center mb-16"
           >
             <h2 className="font-fraunces text-3xl sm:text-4xl font-bold text-white mb-4">
-              Sponsorship Packages
+              Vancouver South Asian Audience Sponsorship Packages
             </h2>
             <p className="text-muted text-lg max-w-2xl mx-auto mb-8">
-              Choose the placement that best fits your campaign goals and budget.
+              Choose the Metro Vancouver placement that best fits your campaign goals and budget.
             </p>
 
             {/* Duration Toggle */}
@@ -534,6 +624,7 @@ export default function Promote() {
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {/* Spotlight Banner */}
             <motion.div
+              id="spotlight-banner"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -555,7 +646,7 @@ export default function Promote() {
                     Events Page
                   </Badge>
                 </div>
-                <h3 className="font-fraunces text-2xl font-bold text-white mb-4">Spotlight Banner</h3>
+                <h3 className="font-fraunces text-2xl font-bold text-white mb-4">Spotlight Banner - Vancouver Events Page</h3>
                 
                 {/* Size Specifications */}
                 <div className="text-xs text-muted mb-4 bg-black/20 p-3 rounded-lg">
@@ -622,6 +713,7 @@ export default function Promote() {
 
             {/* Homepage Hero */}
             <motion.div
+              id="homepage-hero"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -643,7 +735,7 @@ export default function Promote() {
                     Most Popular
                   </Badge>
                 </div>
-                <h3 className="font-fraunces text-2xl font-bold text-white mb-4">Homepage Hero</h3>
+                <h3 className="font-fraunces text-2xl font-bold text-white mb-4">Homepage Hero - Metro Vancouver</h3>
                 
                 {/* Size Specifications */}
                 <div className="text-xs text-muted mb-4 bg-black/20 p-3 rounded-lg">
@@ -714,6 +806,7 @@ export default function Promote() {
 
             {/* Full Feature */}
             <motion.div
+              id="full-feature"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -735,7 +828,7 @@ export default function Promote() {
                     Premium
                   </Badge>
                 </div>
-                <h3 className="font-fraunces text-2xl font-bold text-white mb-4">Full Feature</h3>
+                <h3 className="font-fraunces text-2xl font-bold text-white mb-4">Full Feature - South Asian Community Campaign</h3>
                 <div className="mb-6">
                   <span className="text-3xl font-bold text-white">
                     {formatCAD(PRICING_CONFIG.packages.full_feature.base)}
@@ -781,10 +874,10 @@ export default function Promote() {
             >
               <div className="text-center mb-12">
                 <h2 className="font-fraunces text-3xl sm:text-4xl font-bold text-white mb-4">
-                  Customize Your Campaign
+                  Customize Your Vancouver Campaign
                 </h2>
                 <p className="text-muted text-lg">
-                  Configure duration and add-ons to see your final pricing
+                  Configure duration and add-ons for your Metro Vancouver South Asian audience campaign
                 </p>
               </div>
 
