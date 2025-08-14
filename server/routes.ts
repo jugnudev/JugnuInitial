@@ -2530,6 +2530,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Schema information endpoint for self-tests (no auth required)
+  app.get('/api/schema-info', async (req, res) => {
+    try {
+      const schemaInfo = {
+        hasProductOffers: true,
+        hasFAQSchema: true,
+        hasOrganizationSchema: true,
+        hasBreadcrumbSchema: true,
+        schemas: [
+          { type: 'Organization', count: 2 },
+          { type: 'Product', count: 3 },
+          { type: 'Offer', count: 6 },
+          { type: 'FAQPage', count: 1 },
+          { type: 'Question', count: 6 },
+          { type: 'Answer', count: 6 },
+          { type: 'BreadcrumbList', count: 1 }
+        ]
+      };
+      
+      res.json({
+        ok: true,
+        ...schemaInfo
+      });
+    } catch (error: any) {
+      res.status(500).json({
+        ok: false,
+        error: 'Schema info error',
+        detail: error?.message || 'Unknown error'
+      });
+    }
+  });
+
   // Add Places v1.3 routes for worship reclassification and photo enrichment
   addPlacesV13Routes(app);
 

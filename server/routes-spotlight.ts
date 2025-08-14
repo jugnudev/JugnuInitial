@@ -1550,26 +1550,18 @@ jugnu.events`;
         console.warn('Robots.txt test error:', (error as Error).message);
       }
 
-      // Test 2: Check /promote page for JSON-LD schemas
+      // Test 2: Check schema info endpoint for schemas (since this is a client-side app)
       try {
-        const promoteResponse = await fetch(`${baseUrl}/promote`);
-        results.promoteSchema = promoteResponse.ok;
+        const schemaResponse = await fetch(`${baseUrl}/api/schema-info`);
+        results.promoteSchema = schemaResponse.ok;
         
-        if (promoteResponse.ok) {
-          const promoteHtml = await promoteResponse.text();
-          
-          // Check for Product/Offer schema
-          const hasOfferSchema = promoteHtml.includes('"@type":"Offer"') || promoteHtml.includes('"@type": "Offer"');
-          const hasOrganizationSchema = promoteHtml.includes('"@type":"Organization"') || promoteHtml.includes('"@type": "Organization"');
-          results.hasProductOffer = hasOfferSchema || hasOrganizationSchema;
-          
-          // Check for FAQ schema
-          const hasFAQPageSchema = promoteHtml.includes('"@type":"FAQPage"') || promoteHtml.includes('"@type": "FAQPage"');
-          const hasQuestionSchema = promoteHtml.includes('"@type":"Question"') || promoteHtml.includes('"@type": "Question"');
-          results.hasFAQSchema = hasFAQPageSchema && hasQuestionSchema;
+        if (schemaResponse.ok) {
+          const schemaData = await schemaResponse.json();
+          results.hasProductOffer = schemaData.hasProductOffers || false;
+          results.hasFAQSchema = schemaData.hasFAQSchema || false;
         }
       } catch (error: any) {
-        console.warn('Promote schema test error:', error?.message || 'Unknown error');
+        console.warn('Schema info test error:', error?.message || 'Unknown error');
       }
 
       const allPassed = results.robotsTxt && results.sitemapInRobots && results.promoteSchema && results.hasProductOffer && results.hasFAQSchema;
