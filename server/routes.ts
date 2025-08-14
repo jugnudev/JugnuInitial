@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 import { addPlacesV13Routes } from './routes-places-v13.js';
 import { addSpotlightRoutes } from './routes-spotlight.js';
+import { addAdminRoutes } from './routes-admin.js';
 import { createHash } from "crypto";
 import ical from "node-ical";
 import he from "he";
@@ -2534,6 +2535,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add Sponsorship & Spotlight v4.0 routes
   addSpotlightRoutes(app);
+  
+  // Add admin routes for sponsorship console
+  addAdminRoutes(app);
 
   // Dev-only routes that call admin endpoints server-side (no client secrets)
   if (process.env.NODE_ENV !== 'production') {
