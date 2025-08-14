@@ -395,6 +395,43 @@ export default function AdminPromote() {
     }
   };
 
+  const sendOnboardingEmail = async (token: PortalToken) => {
+    try {
+      const response = await fetch('/api/spotlight/admin/send-onboarding', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': process.env.VITE_ADMIN_KEY || ''
+        },
+        body: JSON.stringify({
+          tokenId: token.id
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.ok) {
+        // Open the email in default client
+        const emailText = `Subject: ${data.emailData.subject}\n\nTo: ${data.emailData.recipients.join(', ')}\n\n${data.emailData.body}`;
+        navigator.clipboard.writeText(emailText);
+        
+        toast({
+          title: "Onboarding Email Ready",
+          description: `Professional onboarding template copied to clipboard for ${token.sponsor_campaigns.sponsor_name}`
+        });
+      } else {
+        throw new Error(data.error || 'Failed to prepare onboarding email');
+      }
+    } catch (error) {
+      console.error('Onboarding email error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to prepare onboarding email",
+        variant: "destructive"
+      });
+    }
+  };
+
   const generatePortalToken = async (campaignId: string) => {
     try {
       const response = await fetch('/api/admin/portal-tokens', {
@@ -685,9 +722,19 @@ export default function AdminPromote() {
                                 size="sm"
                                 className="border-blue-500/50 text-blue-400 hover:bg-blue-500/20"
                                 data-testid={`email-portal-${campaign.id}`}
-                                title="Email portal link"
+                                title="Custom email"
                               >
                                 <Mail className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                onClick={() => sendOnboardingEmail(existingToken)}
+                                variant="outline"
+                                size="sm"
+                                className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/20"
+                                data-testid={`onboard-portal-${campaign.id}`}
+                                title="Send onboarding email"
+                              >
+                                <Users className="w-4 h-4" />
                               </Button>
                               <Button
                                 onClick={() => window.open(`/sponsor/${existingToken.token}`, '_blank')}

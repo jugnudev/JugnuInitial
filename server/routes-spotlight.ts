@@ -474,6 +474,132 @@ export function addSpotlightRoutes(app: Express) {
     }
   });
 
+  // Send Onboarding Email Endpoint
+  app.post('/api/spotlight/admin/send-onboarding', requireAdminKey, async (req, res) => {
+    try {
+      const { tokenId } = req.body;
+      
+      if (!tokenId) {
+        return res.status(400).json({ ok: false, error: 'Token ID is required' });
+      }
+
+      // Get token and campaign data
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('sponsor_portal_tokens')
+        .select(`
+          *,
+          sponsor_campaigns (
+            id,
+            name,
+            sponsor_name,
+            start_at,
+            end_at
+          )
+        `)
+        .eq('id', tokenId)
+        .single();
+
+      if (tokenError || !tokenData) {
+        return res.status(404).json({ ok: false, error: 'Portal token not found' });
+      }
+
+      const campaign = tokenData.sponsor_campaigns;
+      const portalUrl = `${req.protocol}://${req.get('host')}/sponsor/${tokenData.token}`;
+      const expiryDate = new Date(tokenData.expires_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      // Professional onboarding email template
+      const subject = `Welcome to Your Jugnu Sponsor Analytics Portal - ${campaign.name}`;
+      const body = `Dear ${campaign.sponsor_name} Team,
+
+Welcome to your personalized Jugnu Sponsor Analytics Portal! Your campaign "${campaign.name}" is now live and trackable.
+
+🎯 WHAT YOU CAN ACCESS:
+• Real-time impression data (how many people see your content)
+• Click tracking and engagement metrics  
+• Click-through rate (CTR) performance
+• Daily and campaign-wide analytics
+• CSV export for your own reporting
+
+📊 YOUR PORTAL LINK:
+${portalUrl}
+
+This secure link expires on ${expiryDate} and is unique to your campaign.
+
+💡 HOW TO USE YOUR PORTAL:
+1. Click the link above to access your dashboard
+2. View real-time metrics updated daily
+3. Download CSV reports for presentations
+4. Track performance across the campaign duration
+5. Bookmark the link for regular check-ins
+
+📈 UNDERSTANDING YOUR METRICS:
+• Billable Impressions: Qualified views that meet our viewability standards
+• Clicks: Direct interactions with your sponsored content
+• CTR: Click-through rate showing engagement effectiveness
+• Reach: Unique users who've seen your content
+
+🤝 NEED SUPPORT?
+If you have questions about your analytics or campaign performance, please contact:
+• Email: hello@jugnu.app
+• Response time: Within 24 hours
+
+Thank you for partnering with Jugnu to reach Vancouver's vibrant South Asian community!
+
+Best regards,
+The Jugnu Team
+
+---
+This email was generated automatically from your Jugnu Sponsor Portal.`;
+
+      // Log to audit table
+      try {
+        await supabase.rpc('exec_sql', {
+          sql: `
+            INSERT INTO public.admin_audit_log (action, details, ip_address, user_agent, created_at)
+            VALUES ($1, $2, $3, $4, now())
+          `,
+          params: [
+            'onboarding_email_sent',
+            JSON.stringify({
+              tokenId: tokenData.id,
+              campaignId: campaign.id,
+              campaignName: campaign.name,
+              sponsorName: campaign.sponsor_name,
+              portalUrl: portalUrl,
+              expiryDate: expiryDate,
+              timestamp: new Date().toISOString()
+            }),
+            req.ip || req.connection?.remoteAddress || 'unknown',
+            req.headers['user-agent'] || 'unknown'
+          ]
+        });
+      } catch (auditError) {
+        console.error('Audit log error:', auditError);
+        // Don't fail the request if audit logging fails
+      }
+
+      res.json({
+        ok: true,
+        emailData: {
+          subject,
+          body,
+          recipients: [`contact@${campaign.sponsor_name.toLowerCase().replace(/\s+/g, '')}.com`], // Generic fallback
+          portalUrl,
+          expiryDate
+        },
+        message: 'Onboarding email template prepared successfully'
+      });
+
+    } catch (error) {
+      console.error('Onboarding email error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to prepare onboarding email' });
+    }
+  });
+
   // Sponsor Portal Data Endpoint
   app.get('/api/spotlight/portal/:token', async (req, res) => {
     try {

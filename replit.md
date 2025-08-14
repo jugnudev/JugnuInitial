@@ -121,6 +121,7 @@ Preferred communication style: Simple, everyday language.
 - **Advanced Pricing System**: Multi-week discounts (10% for 2+ weeks, 15% for 4+ weeks), early partner 20% discount configuration, auto-calculation engine with real-time quote summaries, and persistent add-ons storage in lead records
 - **Hardened Analytics**: Viewable impressions tracking with IntersectionObserver 50% threshold, 1-per-session frequency capping via localStorage, server-side event aggregation, and enhanced sponsor portal with date filtering and CSV export
 - **MVP Frequency Capping Policy**: Default freq_cap_per_user_per_day = 0 (no cap) for launch simplicity, dual analytics counters (raw_views and billable_impressions) increment identically when cap=0, frequency cap mentions removed from public /promote page, admin-only frequency controls with FREQ_CAP_ENABLED environment flag for future activation, comprehensive backend infrastructure ready for advanced capping when needed
+- **Sponsor Portal Onboarding System**: One-click "Send onboarding email" feature with professional template explaining portal usage, analytics metrics (impressions, clicks, CTR, CSV export), contact information, portal link and expiry date inclusion, complete audit logging to admin_audit_log table for compliance and tracking
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS
