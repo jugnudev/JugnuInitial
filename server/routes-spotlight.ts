@@ -166,7 +166,9 @@ export function addSpotlightRoutes(app: Express) {
     const adminKey = req.headers['x-admin-key'];
     const expectedKey = process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025';
     
+    // Debug logging for admin key mismatch
     if (!adminKey || adminKey !== expectedKey) {
+      console.warn(`Admin key mismatch: received "${adminKey?.substring(0, 8)}...", expected "${expectedKey?.substring(0, 8)}..."`);
       return res.status(401).json({ ok: false, error: 'Unauthorized - invalid admin key' });
     }
     next();
@@ -770,21 +772,25 @@ Need help or want to extend your run? Reply to this email or book the next slot 
           
           const { data: benchmarkData, error: benchmarkError } = await supabase
             .from('sponsor_metrics_daily')
-            .select(`
-              campaign_id,
-              SUM(billable_impressions) as total_impressions,
-              SUM(clicks) as total_clicks
-            `)
+            .select('campaign_id, billable_impressions, clicks')
             .eq('placement', campaignPlacements)
             .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
-            .neq('campaign_id', campaign.id) // Exclude current campaign
-            .group('campaign_id')
-            .having('SUM(billable_impressions)', 'gt', 100); // Only campaigns with significant impressions
+            .neq('campaign_id', campaign.id); // Exclude current campaign
 
           if (!benchmarkError && benchmarkData && benchmarkData.length > 0) {
-            // Calculate CTR for each campaign
-            const ctrs = benchmarkData
-              .map((row: any) => ((row.total_clicks || 0) / (row.total_impressions || 1)) * 100)
+            // Group by campaign and calculate totals
+            const campaignTotals = benchmarkData.reduce((acc: any, row: any) => {
+              const id = row.campaign_id;
+              if (!acc[id]) acc[id] = { impressions: 0, clicks: 0 };
+              acc[id].impressions += row.billable_impressions || 0;
+              acc[id].clicks += row.clicks || 0;
+              return acc;
+            }, {});
+            
+            // Calculate CTR for each campaign with significant impressions
+            const ctrs = Object.values(campaignTotals)
+              .filter((totals: any) => totals.impressions > 100)
+              .map((totals: any) => (totals.clicks / totals.impressions) * 100)
               .filter((ctr: number) => ctr > 0)
               .sort((a: number, b: number) => a - b);
 
@@ -959,9 +965,22 @@ Need help or want to extend your run? Reply to this email or book the next slot 
     }
   });
 
-  // Self-test endpoint for system validation
-  app.get('/api/admin/selftest', requireAdminKey, async (req, res) => {
-    const results = {
+  // Self-test endpoint for system validation (admin key required)
+  app.get('/api/spotlight/admin/selftest', requireAdminKey, async (req, res) => {
+    const results: {
+      timestamp: string;
+      overall: string;
+      tests: {
+        database?: any;
+        spotlights?: any;
+        tracking?: any;
+        portalTokens?: any;
+        eventsbanner?: any;
+        publicAPIs?: any;
+        utmRedirector?: any;
+        robotsSchema?: any;
+      };
+    } = {
       timestamp: new Date().toISOString(),
       overall: 'PASS',
       tests: {}
@@ -1300,7 +1319,7 @@ Need help or want to extend your run? Reply to this email or book the next slot 
             endpoint,
             status: 'ERROR',
             isJson: false,
-            error: error.message
+            error: (error as Error).message
           });
         }
       }
@@ -1415,7 +1434,7 @@ Need help or want to extend your run? Reply to this email or book the next slot 
           results.sitemapInRobots = robotsText.toLowerCase().includes('sitemap:');
         }
       } catch (error) {
-        console.warn('Robots.txt test error:', error.message);
+        console.warn('Robots.txt test error:', (error as Error).message);
       }
 
       // Test 2: Check /promote page for JSON-LD schemas

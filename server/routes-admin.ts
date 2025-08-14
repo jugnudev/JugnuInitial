@@ -146,20 +146,21 @@ export function addAdminRoutes(app: Express) {
 
   // All admin routes now use session authentication
 
-  // GET /api/admin/selftest - session-based selftest endpoint
+  // Selftest endpoint - forward to spotlight admin route
   app.get('/api/admin/selftest', requireAdminSession, async (req: Request, res: Response) => {
     try {
-      // Forward to spotlight admin selftest with admin key header
+      // Make internal request to the admin selftest with proper admin key
+      const adminKey = process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025';
       const response = await fetch(`http://localhost:5000/api/spotlight/admin/selftest`, {
         headers: {
-          'x-admin-key': process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025'
+          'x-admin-key': adminKey
         }
       });
       
       const data = await response.json();
       res.status(response.status).json(data);
     } catch (error) {
-      console.error('Admin selftest forward error:', error);
+      console.error('Admin selftest error:', error);
       res.status(500).json({ ok: false, error: 'Failed to run selftest' });
     }
   });
@@ -202,7 +203,12 @@ export function addAdminRoutes(app: Express) {
 
   // POST /api/admin/logout
   app.post('/api/admin/logout', (req: Request, res: Response) => {
-    req.session = undefined;
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) console.error('Session destroy error:', err);
+      });
+    }
+    res.clearCookie('connect.sid');
     res.json({ ok: true });
   });
 
