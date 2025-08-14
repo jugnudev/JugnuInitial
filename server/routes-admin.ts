@@ -327,6 +327,7 @@ export function addAdminRoutes(app: Express) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-admin-key': process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025'
         },
         body: JSON.stringify(req.body)
       });

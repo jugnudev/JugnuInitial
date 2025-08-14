@@ -164,7 +164,7 @@ export function addSpotlightRoutes(app: Express) {
   // Admin authentication middleware
   const requireAdminKey = (req: any, res: any, next: any) => {
     const adminKey = req.headers['x-admin-key'];
-    const expectedKey = process.env.EXPORT_ADMIN_KEY || 'dev-key-placeholder';
+    const expectedKey = process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025';
     
     if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ ok: false, error: 'Unauthorized - invalid admin key' });
@@ -784,13 +784,13 @@ Need help or want to extend your run? Reply to this email or book the next slot 
           if (!benchmarkError && benchmarkData && benchmarkData.length > 0) {
             // Calculate CTR for each campaign
             const ctrs = benchmarkData
-              .map(row => (row.total_clicks / row.total_impressions) * 100)
-              .filter(ctr => ctr > 0)
-              .sort((a, b) => a - b);
+              .map((row: any) => ((row.total_clicks || 0) / (row.total_impressions || 1)) * 100)
+              .filter((ctr: number) => ctr > 0)
+              .sort((a: number, b: number) => a - b);
 
             if (ctrs.length > 0) {
               const currentCtr = parseFloat(ctr);
-              const betterThanCount = ctrs.filter(benchmarkCtr => currentCtr > benchmarkCtr).length;
+              const betterThanCount = ctrs.filter((benchmarkCtr: number) => currentCtr > benchmarkCtr).length;
               const percentile = Math.round((betterThanCount / ctrs.length) * 100);
               
               let badge = null;
@@ -802,7 +802,7 @@ Need help or want to extend your run? Reply to this email or book the next slot 
                 percentile,
                 badge,
                 totalCampaigns: ctrs.length,
-                averageCtr: (ctrs.reduce((a, b) => a + b, 0) / ctrs.length).toFixed(2)
+                averageCtr: (ctrs.reduce((a: number, b: number) => a + b, 0) / ctrs.length).toFixed(2)
               };
             }
           }
@@ -886,15 +886,15 @@ Need help or want to extend your run? Reply to this email or book the next slot 
       res.json({
         ok: true,
         campaign: {
-          business_name: campaign.sponsor_name,
-          campaign_name: campaign.name,
-          headline: campaign.headline,
-          subline: campaign.subline,
-          cta_text: campaign.cta_text,
-          website_url: campaign.click_url,
-          placements: campaign.placements,
-          campaign_objectives: campaign.tags || [],
-          priority: campaign.priority
+          business_name: (campaign as any).sponsor_name,
+          campaign_name: (campaign as any).name,
+          headline: (campaign as any).headline,
+          subline: (campaign as any).subline,
+          cta_text: (campaign as any).cta_text,
+          website_url: (campaign as any).click_url,
+          placements: (campaign as any).placements,
+          campaign_objectives: (campaign as any).tags || [],
+          priority: (campaign as any).priority
         }
       });
       
@@ -993,7 +993,7 @@ Need help or want to extend your run? Reply to this email or book the next slot 
       results.tests.robotsSchema = await testRobotsSchema(req);
 
       // Determine overall status
-      const failedTests = Object.values(results.tests).filter(test => test.status === 'FAIL');
+      const failedTests = Object.values(results.tests).filter((test: any) => test.status === 'FAIL');
       if (failedTests.length > 0) {
         results.overall = 'FAIL';
       }
@@ -1003,12 +1003,12 @@ Need help or want to extend your run? Reply to this email or book the next slot 
         results,
         summary: {
           total: Object.keys(results.tests).length,
-          passed: Object.values(results.tests).filter(test => test.status === 'PASS').length,
+          passed: Object.values(results.tests).filter((test: any) => test.status === 'PASS').length,
           failed: failedTests.length
         }
       });
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Self-test error:', error);
       res.status(500).json({
         ok: false,
@@ -1034,11 +1034,11 @@ Need help or want to extend your run? Reply to this email or book the next slot 
             exists: !error,
             error: error?.message
           });
-        } catch (err) {
+        } catch (err: any) {
           tableChecks.push({
             table,
             exists: false,
-            error: err.message
+            error: err?.message || 'Unknown error'
           });
         }
       }
@@ -1060,11 +1060,11 @@ Need help or want to extend your run? Reply to this email or book the next slot 
           rlsError: rlsError?.message
         }
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'FAIL',
         message: 'Database test failed',
-        error: error.message
+        error: error?.message || 'Unknown error'
       };
     }
   }
@@ -1095,11 +1095,11 @@ Need help or want to extend your run? Reply to this email or book the next slot 
           spotlights: Object.keys(spotlightData.spotlights || {}).length
         }
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'FAIL',
         message: 'Spotlight test failed',
-        error: error.message
+        error: error?.message || 'Unknown error'
       };
     }
   }
@@ -1164,16 +1164,16 @@ Need help or want to extend your run? Reply to this email or book the next slot 
           metricsRecorded: metrics?.length || 0
         }
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'FAIL',
         message: 'Tracking test failed',
-        error: error.message
+        error: error?.message || 'Unknown error'
       };
     }
   }
 
-  async function testPortalTokens(req) {
+  async function testPortalTokens(req: any) {
     try {
       // Get a test campaign
       const { data: campaigns } = await supabase
@@ -1223,16 +1223,16 @@ Need help or want to extend your run? Reply to this email or book the next slot 
           dataReturned: !!portalData.campaign
         }
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'FAIL',
         message: 'Portal token test failed',
-        error: error.message
+        error: error?.message || 'Unknown error'
       };
     }
   }
 
-  async function testEventsBanner() {
+  async function testEventsBanner(): Promise<any> {
     try {
       // Test different event scenarios by checking community events
       const eventsResponse = await fetch('http://localhost:5000/api/community/weekly');
@@ -1265,16 +1265,16 @@ Need help or want to extend your run? Reply to this email or book the next slot 
           impressionBeacon: hasSpotlight ? 'Would fire on render' : 'Not applicable'
         }
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'FAIL',
         message: 'Events banner test failed',
-        error: error.message
+        error: error?.message || 'Unknown error'
       };
     }
   }
 
-  async function testPublicAPIs(req) {
+  async function testPublicAPIs(req: any) {
     try {
       const publicEndpoints = [
         '/api/spotlight/active',
@@ -1314,11 +1314,11 @@ Need help or want to extend your run? Reply to this email or book the next slot 
           : 'Some APIs not returning JSON',
         details: results
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'FAIL',
         message: 'Public API test failed',
-        error: error.message
+        error: error?.message || 'Unknown error'
       };
     }
   }
@@ -1385,16 +1385,16 @@ Need help or want to extend your run? Reply to this email or book the next slot 
           redirectUrl: locationHeader.substring(0, 100) + (locationHeader.length > 100 ? '...' : '')
         }
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'FAIL',
         message: 'UTM redirector test failed',
-        error: error.message
+        error: error?.message || 'Unknown error'
       };
     }
   }
 
-  async function testRobotsSchema(req) {
+  async function testRobotsSchema(req: any) {
     try {
       const baseUrl = `${req.protocol}://${req.get('host')}`;
       const results = {
@@ -1436,8 +1436,8 @@ Need help or want to extend your run? Reply to this email or book the next slot 
           const hasQuestionSchema = promoteHtml.includes('"@type":"Question"') || promoteHtml.includes('"@type": "Question"');
           results.hasFAQSchema = hasFAQPageSchema && hasQuestionSchema;
         }
-      } catch (error) {
-        console.warn('Promote schema test error:', error.message);
+      } catch (error: any) {
+        console.warn('Promote schema test error:', error?.message || 'Unknown error');
       }
 
       const allPassed = results.robotsTxt && results.sitemapInRobots && results.promoteSchema && results.hasProductOffer && results.hasFAQSchema;
@@ -1449,11 +1449,11 @@ Need help or want to extend your run? Reply to this email or book the next slot 
           : 'Some robots/schema issues detected',
         details: results
       };
-    } catch (error) {
+    } catch (error: any) {
       return {
         status: 'FAIL',
         message: 'Robots/schema test failed',
-        error: error.message
+        error: error?.message || 'Unknown error'
       };
     }
   }

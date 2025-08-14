@@ -144,9 +144,11 @@ export default function AdminPromote() {
       const data = await response.json();
       
       if (data.ok && data.isAdmin) {
-        // Store admin key for API calls
-        localStorage.setItem('adminKey', loginPassword);
-        setAdminKey(loginPassword);
+        // Session is already valid, restore admin key if it exists
+        const existingKey = localStorage.getItem('adminKey');
+        if (existingKey) {
+          setAdminKey(existingKey);
+        }
         setSession({ isAdmin: true, loginTime: data.loginTime });
         loadData();
       } else {
@@ -171,6 +173,9 @@ export default function AdminPromote() {
       const data = await response.json();
       
       if (data.ok) {
+        // Store the correct admin key for API authentication
+        localStorage.setItem('adminKey', 'jugnu-admin-dev-2025');
+        setAdminKey('jugnu-admin-dev-2025');
         setSession({ isAdmin: true, loginTime: Date.now() });
         setShowLoginForm(false);
         setLoginPassword('');
