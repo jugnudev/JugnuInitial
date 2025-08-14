@@ -167,6 +167,7 @@ export function addAdminRoutes(app: Express) {
   // GET /api/admin/campaigns
   app.get('/api/admin/campaigns', requireAdminSession, async (req: AdminRequest, res) => {
     try {
+      // Use service role to bypass RLS
       const { data: campaigns, error } = await supabase
         .from('sponsor_campaigns')
         .select(`
@@ -184,7 +185,6 @@ export function addAdminRoutes(app: Express) {
           is_active,
           is_sponsored,
           tags,
-          freq_cap_per_user_per_day,
           created_at,
           updated_at,
           sponsor_creatives (
@@ -197,7 +197,15 @@ export function addAdminRoutes(app: Express) {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Admin campaigns list error:', error);
+        // Map database errors to friendly messages
+        let errorMessage = 'Failed to load campaigns';
+        if (error.message?.includes('freq_cap_per_user_per_day')) {
+          errorMessage = 'Database schema needs migration. Please contact support.';
+        }
+        return res.status(500).json({ ok: false, error: errorMessage });
+      }
 
       res.json({ ok: true, campaigns });
     } catch (error) {
@@ -206,142 +214,34 @@ export function addAdminRoutes(app: Express) {
     }
   });
 
-  // POST /api/admin/campaigns (create/update)
+  // POST /api/admin/campaigns (create/update) - Forward to spotlight admin endpoint
   app.post('/api/admin/campaigns', requireAdminSession, async (req: AdminRequest, res) => {
     try {
-      const {
-        id,
-        name,
-        sponsor_name,
-        headline,
-        subline,
-        cta_text,
-        click_url,
-        placements,
-        start_at,
-        end_at,
-        priority,
-        is_active,
-        is_sponsored,
-        tags,
-        freq_cap_per_user_per_day,
-        creatives
-      } = req.body;
-
-      // Server-side validation
-      if (!name || !sponsor_name || !headline || !placements || !Array.isArray(placements)) {
-        return res.status(400).json({ ok: false, error: 'Missing required fields' });
-      }
-
-      // Auto-add UTM parameters if not present
-      let finalClickUrl = click_url;
-      if (finalClickUrl && !finalClickUrl.includes('utm_source')) {
-        const separator = finalClickUrl.includes('?') ? '&' : '?';
-        finalClickUrl += `${separator}utm_source=jugnu&utm_medium=sponsorship&utm_campaign=${encodeURIComponent(name)}`;
-      }
-
-      let campaign;
-      
-      if (id) {
-        // Update existing campaign
-        const { data, error } = await supabase
-          .from('sponsor_campaigns')
-          .update({
-            name,
-            sponsor_name,
-            headline,
-            subline,
-            cta_text,
-            click_url: finalClickUrl,
-            placements,
-            start_at,
-            end_at,
-            priority: priority || 1,
-            is_active: is_active !== false,
-            is_sponsored: is_sponsored !== false,
-            tags: tags || [],
-            freq_cap_per_user_per_day: freq_cap_per_user_per_day || 1,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        campaign = data;
-
-        await auditLog('campaign_updated', {
-          campaignId: id,
-          name,
-          ip: req.ip,
-          userAgent: req.get('User-Agent')
-        }, req.session?.userId);
-      } else {
-        // Create new campaign
-        const { data, error } = await supabase
-          .from('sponsor_campaigns')
-          .insert({
-            name,
-            sponsor_name,
-            headline,
-            subline,
-            cta_text,
-            click_url: finalClickUrl,
-            placements,
-            start_at,
-            end_at,
-            priority: priority || 1,
-            is_active: is_active !== false,
-            is_sponsored: is_sponsored !== false,
-            tags: tags || [],
-            freq_cap_per_user_per_day: freq_cap_per_user_per_day || 1
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        campaign = data;
-
-        await auditLog('campaign_created', {
-          campaignId: campaign.id,
-          name,
-          ip: req.ip,
-          userAgent: req.get('User-Agent')
-        }, req.session?.userId);
-      }
-
-      // Handle creatives if provided
-      if (creatives && Array.isArray(creatives) && creatives.length > 0) {
-        // Delete existing creatives
-        await supabase
-          .from('sponsor_creatives')
-          .delete()
-          .eq('campaign_id', campaign.id);
-
-        // Insert new creatives
-        const creativesData = creatives.map((creative: any) => ({
-          campaign_id: campaign.id,
-          placement: creative.placement,
-          image_desktop_url: creative.image_desktop_url,
-          image_mobile_url: creative.image_mobile_url,
-          logo_url: creative.logo_url,
-          alt: creative.alt || `${sponsor_name} ${headline}`
-        }));
-
-        const { error: creativesError } = await supabase
-          .from('sponsor_creatives')
-          .insert(creativesData);
-
-        if (creativesError) throw creativesError;
-      }
-
-      res.json({
-        ok: true,
-        campaign,
-        message: id ? 'Campaign updated successfully' : 'Campaign created successfully'
+      // Forward to the spotlight admin endpoint with audit logging
+      const response = await fetch(`${req.protocol}://${req.get('host')}/api/spotlight/admin/campaign/upsert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(req.body)
       });
+
+      const result = await response.json();
+
+      if (result.ok) {
+        // Log the action for audit trail
+        await auditLog(req.body.id ? 'campaign_updated' : 'campaign_created', {
+          campaignId: result.campaign?.id,
+          name: req.body.name,
+          ip: req.ip,
+          userAgent: req.get('User-Agent')
+        }, req.session?.userId);
+      }
+
+      // Forward the response
+      res.status(response.status).json(result);
     } catch (error) {
-      console.error('Admin campaign save error:', error);
+      console.error('Admin campaign proxy error:', error);
       res.status(500).json({ ok: false, error: 'Failed to save campaign' });
     }
   });
@@ -486,6 +386,7 @@ export function addAdminRoutes(app: Express) {
   // GET /api/admin/portal-tokens
   app.get('/api/admin/portal-tokens', requireAdminSession, async (req: AdminRequest, res) => {
     try {
+      // Use service role to bypass RLS
       const { data: tokens, error } = await supabase
         .from('sponsor_portal_tokens')
         .select(`
@@ -502,7 +403,15 @@ export function addAdminRoutes(app: Express) {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Admin portal tokens list error:', error);
+        // Map database errors to friendly messages
+        let errorMessage = 'Failed to load portal tokens';
+        if (error.message?.includes('column') && error.message?.includes('does not exist')) {
+          errorMessage = 'Database schema needs migration. Please contact support.';
+        }
+        return res.status(500).json({ ok: false, error: errorMessage });
+      }
 
       res.json({ ok: true, tokens });
     } catch (error) {

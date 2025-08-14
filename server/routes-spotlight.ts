@@ -146,6 +146,11 @@ export function addSpotlightRoutes(app: Express) {
             campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
             token text UNIQUE NOT NULL,
             expires_at timestamptz,
+            last_accessed_at timestamptz
+          );
+            campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
+            token text UNIQUE NOT NULL,
+            expires_at timestamptz,
             is_active boolean NOT NULL DEFAULT true
           );
           
@@ -204,6 +209,214 @@ export function addSpotlightRoutes(app: Express) {
     } catch (error) {
       console.error('Spotlight active error:', error);
       res.status(500).json({ ok: false, error: 'Failed to load spotlights' });
+    }
+  });
+
+  // Validation helpers
+  const validatePlacement = (placement: string): string | null => {
+    const validPlacements = ['events_banner', 'home_mid', 'home_hero'];
+    if (!validPlacements.includes(placement)) {
+      return `Invalid placement "${placement}". Must be one of: ${validPlacements.join(', ')}`;
+    }
+    return null;
+  };
+
+  const parseDate = (dateStr: string): string => {
+    // Handle both date-only (YYYY-MM-DD) and ISO datetime inputs
+    if (!dateStr) throw new Error('Date is required');
+    
+    // If it's a date-only string (YYYY-MM-DD), convert to Vancouver timezone
+    if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Default start_at to 00:00:00 and end_at to 23:59:59 in local timezone
+      return dateStr; // Return as date-only for now, will be handled in SQL
+    }
+    
+    // If it's already an ISO datetime, return as-is
+    return dateStr;
+  };
+
+  const mapSupabaseError = (error: any): string => {
+    if (error.code === '23505') {
+      return 'Campaign name already exists. Please choose a different name.';
+    }
+    if (error.code === '23514') {
+      return 'Invalid data format. Please check your inputs.';
+    }
+    if (error.message?.includes('start_at')) {
+      return 'Start date must be before end date.';
+    }
+    if (error.message?.includes('placements')) {
+      return 'Invalid placement selection. Please choose valid placements.';
+    }
+    return error.message || 'Unknown database error occurred.';
+  };
+
+  // Admin campaign upsert endpoint
+  app.post('/api/spotlight/admin/campaign/upsert', async (req, res) => {
+    try {
+      const {
+        id,
+        name,
+        sponsor_name,
+        headline,
+        subline,
+        cta_text,
+        click_url,
+        placements,
+        start_at,
+        end_at,
+        priority,
+        is_active,
+        is_sponsored,
+        tags,
+        freq_cap_per_user_per_day,
+        creatives
+      } = req.body;
+
+      // Validation
+      if (!name?.trim()) {
+        return res.status(400).json({ ok: false, error: 'Campaign name is required' });
+      }
+      if (!sponsor_name?.trim()) {
+        return res.status(400).json({ ok: false, error: 'Sponsor name is required' });
+      }
+      if (!headline?.trim()) {
+        return res.status(400).json({ ok: false, error: 'Headline is required' });
+      }
+      if (!click_url?.trim()) {
+        return res.status(400).json({ ok: false, error: 'Click URL is required' });
+      }
+      if (!Array.isArray(placements) || placements.length === 0) {
+        return res.status(400).json({ ok: false, error: 'At least one placement is required' });
+      }
+
+      // Validate placements
+      for (const placement of placements) {
+        const placementError = validatePlacement(placement);
+        if (placementError) {
+          return res.status(400).json({ ok: false, error: placementError });
+        }
+      }
+
+      // Type coercion and defaults
+      const coercedPriority = parseInt(priority) || 1;
+      const coercedIsActive = is_active !== false; // Default to true
+      const coercedIsSponsored = is_sponsored !== false; // Default to true  
+      const coercedFreqCap = parseInt(freq_cap_per_user_per_day) || 1;
+      const coercedTags = Array.isArray(tags) ? tags : [];
+
+      // Date handling
+      let finalStartAt: string;
+      let finalEndAt: string;
+
+      try {
+        if (start_at?.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          finalStartAt = `${start_at}T00:00:00-08:00`; // Vancouver timezone start of day
+        } else {
+          finalStartAt = parseDate(start_at);
+        }
+
+        if (end_at?.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          finalEndAt = `${end_at}T23:59:59-08:00`; // Vancouver timezone end of day
+        } else {
+          finalEndAt = parseDate(end_at);
+        }
+      } catch (dateError) {
+        return res.status(400).json({ ok: false, error: dateError.message });
+      }
+
+      // Auto-add UTM parameters if not present
+      let finalClickUrl = click_url;
+      if (finalClickUrl && !finalClickUrl.includes('utm_source')) {
+        const separator = finalClickUrl.includes('?') ? '&' : '?';
+        finalClickUrl += `${separator}utm_source=jugnu&utm_medium=sponsorship&utm_campaign=${encodeURIComponent(name)}`;
+      }
+
+      const campaignData = {
+        name: name.trim(),
+        sponsor_name: sponsor_name.trim(),
+        headline: headline.trim(),
+        subline: subline?.trim() || null,
+        cta_text: cta_text?.trim() || null,
+        click_url: finalClickUrl,
+        placements,
+        start_at: finalStartAt,
+        end_at: finalEndAt,
+        priority: coercedPriority,
+        is_active: coercedIsActive,
+        is_sponsored: coercedIsSponsored,
+        tags: coercedTags,
+        freq_cap_per_user_per_day: coercedFreqCap,
+        updated_at: new Date().toISOString()
+      };
+
+      let campaign;
+      
+      if (id) {
+        // Update existing campaign
+        const { data, error } = await supabase
+          .from('sponsor_campaigns')
+          .update(campaignData)
+          .eq('id', id)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Campaign update error:', error);
+          return res.status(400).json({ ok: false, error: mapSupabaseError(error) });
+        }
+        campaign = data;
+      } else {
+        // Create new campaign
+        const { data, error } = await supabase
+          .from('sponsor_campaigns')
+          .insert(campaignData)
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Campaign create error:', error);
+          return res.status(400).json({ ok: false, error: mapSupabaseError(error) });
+        }
+        campaign = data;
+      }
+
+      // Handle creatives if provided
+      if (creatives && Array.isArray(creatives) && creatives.length > 0) {
+        // Delete existing creatives
+        await supabase
+          .from('sponsor_creatives')
+          .delete()
+          .eq('campaign_id', campaign.id);
+
+        // Insert new creatives
+        const creativesData = creatives.map((creative: any) => ({
+          campaign_id: campaign.id,
+          placement: creative.placement,
+          image_desktop_url: creative.image_desktop_url,
+          image_mobile_url: creative.image_mobile_url,
+          logo_url: creative.logo_url,
+          alt: creative.alt || `${sponsor_name} ${headline}`
+        }));
+
+        const { error: creativesError } = await supabase
+          .from('sponsor_creatives')
+          .insert(creativesData);
+
+        if (creativesError) {
+          console.error('Creatives error:', creativesError);
+          return res.status(400).json({ ok: false, error: mapSupabaseError(creativesError) });
+        }
+      }
+
+      res.json({
+        ok: true,
+        campaign,
+        message: id ? 'Campaign updated successfully' : 'Campaign created successfully'
+      });
+    } catch (error) {
+      console.error('Campaign upsert error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to save campaign' });
     }
   });
 
