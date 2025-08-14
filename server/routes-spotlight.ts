@@ -616,49 +616,26 @@ export function addSpotlightRoutes(app: Express) {
         day: 'numeric'
       });
 
-      // Professional onboarding email template
-      const subject = `Welcome to Your Jugnu Sponsor Analytics Portal - ${campaign.name}`;
-      const body = `Dear ${campaign.sponsor_name} Team,
+      // Polished onboarding email template
+      const subject = `Your Jugnu Campaign Analytics`;
+      
+      const startDate = new Date(campaign.start_at);
+      const endDate = new Date(campaign.end_at);
+      const dateRange = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+      
+      const body = `Hi ${campaign.sponsor_name},
 
-Welcome to your personalized Jugnu Sponsor Analytics Portal! Your campaign "${campaign.name}" is now live and trackable.
+Your sponsor portal is ready for ${campaign.name} (${dateRange}).
 
-🎯 WHAT YOU CAN ACCESS:
-• Real-time impression data (how many people see your content)
-• Click tracking and engagement metrics  
-• Click-through rate (CTR) performance
-• Daily and campaign-wide analytics
-• CSV export for your own reporting
+Portal: ${portalUrl} (expires ${expiryDate})
 
-📊 YOUR PORTAL LINK:
-${portalUrl}
+Inside you'll see real-time Impressions, Clicks, CTR, 7-day trends, and CSV export.
 
-This secure link expires on ${expiryDate} and is unique to your campaign.
+Tip: Compare performance to site benchmarks shown in the header.
 
-💡 HOW TO USE YOUR PORTAL:
-1. Click the link above to access your dashboard
-2. View real-time metrics updated daily
-3. Download CSV reports for presentations
-4. Track performance across the campaign duration
-5. Bookmark the link for regular check-ins
+Need help or want to extend your run? Reply to this email or book the next slot from the portal.
 
-📈 UNDERSTANDING YOUR METRICS:
-• Billable Impressions: Qualified views that meet our viewability standards
-• Clicks: Direct interactions with your sponsored content
-• CTR: Click-through rate showing engagement effectiveness
-• Reach: Unique users who've seen your content
-
-🤝 NEED SUPPORT?
-If you have questions about your analytics or campaign performance, please contact:
-• Email: hello@jugnu.app
-• Response time: Within 24 hours
-
-Thank you for partnering with Jugnu to reach Vancouver's vibrant South Asian community!
-
-Best regards,
-The Jugnu Team
-
----
-This email was generated automatically from your Jugnu Sponsor Portal.`;
+— Team Jugnu`;
 
       // Log to audit table
       try {

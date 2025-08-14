@@ -8,7 +8,11 @@ const supabase = createClient(
 );
 
 interface AdminRequest extends Request {
-  session?: any;
+  session?: {
+    isAdmin?: boolean;
+    loginTime?: number;
+    userId?: string;
+  };
 }
 
 // Admin session middleware
