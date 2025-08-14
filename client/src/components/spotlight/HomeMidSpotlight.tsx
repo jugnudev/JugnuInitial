@@ -73,26 +73,11 @@ export function HomeMidSpotlight() {
   const handleClick = () => {
     if (!spotlight) return;
 
-    // Track click
-    fetch('/api/spotlight/admin/metrics/track', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        campaignId: spotlight.campaignId,
-        placement: 'home_mid',
-        kind: 'click'
-      })
-    }).catch(console.error);
-
-    // Add UTM parameters if not present
-    const url = new URL(spotlight.click_url);
-    if (!url.searchParams.has('utm_source')) {
-      url.searchParams.set('utm_source', 'jugnu');
-      url.searchParams.set('utm_medium', 'spotlight');
-      url.searchParams.set('utm_campaign', spotlight.campaignId);
-    }
-
-    window.open(url.toString(), '_blank');
+    // Build redirector URL with encoded target and utm_content
+    const redirectUrl = `/r/${spotlight.campaignId}?to=${encodeURIComponent(spotlight.click_url)}&utm_content=home_mid`;
+    
+    // Open in new tab with proper attributes
+    window.open(redirectUrl, '_blank', 'noopener,noreferrer');
   };
 
   // Don't render anything if no spotlight data

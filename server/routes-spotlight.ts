@@ -168,6 +168,66 @@ export function addSpotlightRoutes(app: Express) {
     }
   });
 
+  // Click redirector - logs click and redirects with UTM parameters
+  app.get('/r/:campaignId', async (req, res) => {
+    try {
+      const { campaignId } = req.params;
+      const { to } = req.query;
+      
+      if (!to || typeof to !== 'string') {
+        return res.status(400).json({ ok: false, error: 'Missing target URL' });
+      }
+      
+      const targetUrl = decodeURIComponent(to);
+      
+      // Log the click
+      try {
+        await supabase
+          .from('sponsor_metrics_daily')
+          .upsert({
+            campaign_id: campaignId,
+            date: new Date().toISOString().split('T')[0],
+            raw_views: 0,
+            billable_impressions: 0,
+            clicks: 1
+          }, {
+            onConflict: 'campaign_id,date',
+            ignoreDuplicates: false
+          });
+      } catch (error) {
+        console.error('Click tracking error:', error);
+        // Continue with redirect even if logging fails
+      }
+      
+      // Parse target URL and merge UTM parameters
+      const url = new URL(targetUrl);
+      
+      // Add UTM parameters if not present
+      if (!url.searchParams.has('utm_source')) {
+        url.searchParams.set('utm_source', 'jugnu');
+      }
+      if (!url.searchParams.has('utm_medium')) {
+        url.searchParams.set('utm_medium', 'spotlight');
+      }
+      if (!url.searchParams.has('utm_campaign')) {
+        url.searchParams.set('utm_campaign', campaignId);
+      }
+      
+      // Add utm_content from query params if provided
+      const utmContent = req.query.utm_content;
+      if (utmContent && typeof utmContent === 'string' && !url.searchParams.has('utm_content')) {
+        url.searchParams.set('utm_content', utmContent);
+      }
+      
+      // 302 redirect to final URL
+      res.redirect(302, url.toString());
+      
+    } catch (error) {
+      console.error('Redirector error:', error);
+      res.status(500).json({ ok: false, error: 'Redirect failed' });
+    }
+  });
+
   // Public active spotlights endpoint
   app.get('/api/spotlight/active', async (req, res) => {
     try {

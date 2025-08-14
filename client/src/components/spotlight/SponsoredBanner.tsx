@@ -116,36 +116,14 @@ export function SponsoredBanner() {
     }
   }, [spotlight, isVisible, hasTrackedImpression]);
 
-  const handleClick = async () => {
+  const handleClick = () => {
     if (!spotlight) return;
 
-    try {
-      // Track click
-      await fetch('/api/spotlight/admin/metrics/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          campaignId: spotlight.campaignId,
-          placement: 'events_banner',
-          type: 'click'
-        })
-      });
-
-      // Add UTM parameters if not present
-      const url = new URL(spotlight.click_url);
-      if (!url.searchParams.has('utm_source')) {
-        url.searchParams.set('utm_source', 'jugnu');
-        url.searchParams.set('utm_medium', 'spotlight');
-        url.searchParams.set('utm_campaign', spotlight.campaignId);
-      }
-
-      // Open in new tab
-      window.open(url.toString(), '_blank', 'noopener,noreferrer');
-    } catch (error) {
-      console.error('Click tracking error:', error);
-      // Still open the link even if tracking fails
-      window.open(spotlight.click_url, '_blank', 'noopener,noreferrer');
-    }
+    // Build redirector URL with encoded target and utm_content
+    const redirectUrl = `/r/${spotlight.campaignId}?to=${encodeURIComponent(spotlight.click_url)}&utm_content=events_banner`;
+    
+    // Open in new tab with proper attributes
+    window.open(redirectUrl, '_blank', 'noopener,noreferrer');
   };
 
   // Check if Events Banner is enabled via client-side environment variable
