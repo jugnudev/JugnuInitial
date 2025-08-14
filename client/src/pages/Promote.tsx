@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { PRICING_CONFIG, calculatePricing, formatCAD, type PackageType, type AddOnType } from '@/lib/pricing';
+import { PRICING_CONFIG, calculatePricing, formatCAD, type PackageType, type AddOnType, type DurationType } from '@/lib/pricing';
 
 // Sample data for analytics preview
 const sampleData = [
@@ -57,9 +57,17 @@ export default function Promote() {
   const [selectedPackage, setSelectedPackage] = useState<PackageType | null>(null);
   const [previewImage, setPreviewImage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [pricingMode, setPricingMode] = useState<'daily' | 'weekly'>('weekly');
+  const [durationType, setDurationType] = useState<DurationType>('weekly');
   const [weekDuration, setWeekDuration] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnType[]>([]);
+  
+  // Calculate current pricing
+  const currentPricing = selectedPackage ? calculatePricing(
+    selectedPackage,
+    durationType,
+    weekDuration,
+    selectedAddOns
+  ) : null;
   
   const [formData, setFormData] = useState({
     business_name: '',
@@ -73,9 +81,10 @@ export default function Promote() {
     objective: '',
     creative_links: '',
     comments: '',
-    duration: 'weekly' as 'daily' | 'weekly',
-    weeks: 1,
-    add_ons: [] as string[]
+    // New pricing fields
+    duration_type: 'weekly' as DurationType,
+    week_duration: 1,
+    selected_add_ons: [] as AddOnType[]
   });
 
   // Honeypot and latency check for spam prevention
@@ -104,7 +113,14 @@ export default function Promote() {
       const response = await fetch('/api/spotlight/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          selected_package: selectedPackage,
+          duration_type: durationType,
+          week_duration: weekDuration,
+          selected_add_ons: selectedAddOns,
+          pricing_breakdown: currentPricing
+        })
       });
 
       const result = await response.json();
@@ -127,8 +143,15 @@ export default function Promote() {
           placements: [],
           objective: '',
           creative_links: '',
-          comments: ''
+          comments: '',
+          duration_type: 'weekly' as DurationType,
+          week_duration: 1,
+          selected_add_ons: [] as AddOnType[]
         });
+        setSelectedPackage(null);
+        setDurationType('weekly');
+        setWeekDuration(1);
+        setSelectedAddOns([]);
       } else {
         throw new Error(result.error || 'Failed to submit application');
       }
@@ -432,15 +455,15 @@ export default function Promote() {
 
             {/* Duration Toggle */}
             <div className="flex items-center justify-center gap-4 mb-8">
-              <span className={`text-sm font-medium ${pricingMode === 'daily' ? 'text-white' : 'text-muted'}`}>
+              <span className={`text-sm font-medium ${durationType === 'daily' ? 'text-white' : 'text-muted'}`}>
                 Daily
               </span>
               <Switch
-                checked={pricingMode === 'weekly'}
-                onCheckedChange={(checked) => setPricingMode(checked ? 'weekly' : 'daily')}
+                checked={durationType === 'weekly'}
+                onCheckedChange={(checked) => setDurationType(checked ? 'weekly' : 'daily')}
                 data-testid="pricing-mode-toggle"
               />
-              <span className={`text-sm font-medium ${pricingMode === 'weekly' ? 'text-white' : 'text-muted'}`}>
+              <span className={`text-sm font-medium ${durationType === 'weekly' ? 'text-white' : 'text-muted'}`}>
                 Weekly
               </span>
             </div>
@@ -456,7 +479,7 @@ export default function Promote() {
             >
               <Card className="p-8 bg-white/5 border-white/10 hover:border-copper-500/30 transition-all duration-300 relative group">
                 {/* Early Partner Discount Pill */}
-                {PRICING_CONFIG.discounts.early_partner.active && (
+                {PRICING_CONFIG.discounts.earlyPartner.enabled && (
                   <div className="absolute -top-3 -right-3 z-20">
                     <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 text-xs shadow-lg">
                       <Star className="w-3 h-3 mr-1" />
@@ -481,9 +504,9 @@ export default function Promote() {
 
                 <div className="mb-6">
                   <span className="text-3xl font-bold text-white">
-                    {formatCAD(pricingMode === 'daily' ? PRICING_CONFIG.packages.spotlight_banner.daily : PRICING_CONFIG.packages.spotlight_banner.weekly)}
+                    {formatCAD(durationType === 'daily' ? PRICING_CONFIG.packages.spotlight_banner.daily : PRICING_CONFIG.packages.spotlight_banner.weekly)}
                   </span>
-                  <span className="text-muted">/{pricingMode}</span>
+                  <span className="text-muted">/{durationType}</span>
                 </div>
                 
                 <ul className="space-y-3 mb-8 text-sm">
@@ -516,7 +539,7 @@ export default function Promote() {
                 <Button
                   onClick={() => {
                     setSelectedPackage('spotlight_banner');
-                    scrollToSection('apply');
+                    scrollToSection('calculator');
                   }}
                   className="w-full bg-white/10 hover:bg-copper-500 hover:text-black text-white border border-white/20 transition-all duration-200"
                   data-testid="select-spotlight-banner"
@@ -535,7 +558,7 @@ export default function Promote() {
             >
               <Card className="p-8 bg-white/5 border-copper-500/30 hover:border-copper-500/50 transition-all duration-300 relative group shadow-lg shadow-copper-500/10">
                 {/* Early Partner Discount Pill */}
-                {PRICING_CONFIG.discounts.early_partner.active && (
+                {PRICING_CONFIG.discounts.earlyPartner.enabled && (
                   <div className="absolute -top-3 -right-3 z-20">
                     <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 text-xs shadow-lg">
                       <Star className="w-3 h-3 mr-1" />
@@ -560,9 +583,9 @@ export default function Promote() {
 
                 <div className="mb-6">
                   <span className="text-3xl font-bold text-white">
-                    {formatCAD(pricingMode === 'daily' ? PRICING_CONFIG.packages.homepage_hero.daily : PRICING_CONFIG.packages.homepage_hero.weekly)}
+                    {formatCAD(durationType === 'daily' ? PRICING_CONFIG.packages.homepage_hero.daily : PRICING_CONFIG.packages.homepage_hero.weekly)}
                   </span>
-                  <span className="text-muted">/{pricingMode}</span>
+                  <span className="text-muted">/{durationType}</span>
                 </div>
                 
                 <ul className="space-y-3 mb-8 text-sm">
@@ -599,7 +622,7 @@ export default function Promote() {
                 <Button
                   onClick={() => {
                     setSelectedPackage('homepage_hero');
-                    scrollToSection('apply');
+                    scrollToSection('calculator');
                   }}
                   className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold transition-all duration-200"
                   data-testid="select-homepage-hero"
@@ -618,7 +641,7 @@ export default function Promote() {
             >
               <Card className="p-8 bg-white/5 border-white/10 hover:border-copper-500/30 transition-all duration-300 relative group">
                 {/* Early Partner Discount Pill */}
-                {PRICING_CONFIG.discounts.early_partner.active && (
+                {PRICING_CONFIG.discounts.earlyPartner.enabled && (
                   <div className="absolute -top-3 -right-3 z-20">
                     <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 text-xs shadow-lg">
                       <Star className="w-3 h-3 mr-1" />
@@ -674,7 +697,7 @@ export default function Promote() {
                 <Button
                   onClick={() => {
                     setSelectedPackage('full_feature');
-                    scrollToSection('apply');
+                    scrollToSection('calculator');
                   }}
                   className="w-full bg-white/10 hover:bg-copper-500 hover:text-black text-white border border-white/20 transition-all duration-200"
                   data-testid="select-full-feature"
@@ -686,6 +709,226 @@ export default function Promote() {
           </div>
         </div>
       </section>
+
+      {/* Pricing Calculator Section */}
+      {selectedPackage && (
+        <section id="calculator" className="py-20 bg-white/5">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="max-w-4xl mx-auto"
+            >
+              <div className="text-center mb-12">
+                <h2 className="font-fraunces text-3xl sm:text-4xl font-bold text-white mb-4">
+                  Customize Your Campaign
+                </h2>
+                <p className="text-muted text-lg">
+                  Configure duration and add-ons to see your final pricing
+                </p>
+              </div>
+
+              <Card className="p-8 bg-white/5 border-white/10">
+                <div className="grid lg:grid-cols-2 gap-8">
+                  {/* Configuration Panel */}
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="font-fraunces text-xl font-bold text-white mb-4">
+                        Selected Package
+                      </h3>
+                      <div className="p-4 bg-copper-500/10 border border-copper-500/20 rounded-lg">
+                        <div className="font-semibold text-copper-400">
+                          {PRICING_CONFIG.packages[selectedPackage].name}
+                        </div>
+                        <div className="text-sm text-muted mt-1">
+                          {PRICING_CONFIG.packages[selectedPackage].description}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Duration Controls */}
+                    <div>
+                      <h4 className="font-semibold text-white mb-3">Campaign Duration</h4>
+                      
+                      {/* Duration Type Toggle */}
+                      <div className="flex items-center gap-4 mb-4">
+                        <span className={`text-sm font-medium ${durationType === 'daily' ? 'text-white' : 'text-muted'}`}>
+                          Daily
+                        </span>
+                        <Switch
+                          checked={durationType === 'weekly'}
+                          onCheckedChange={(checked) => setDurationType(checked ? 'weekly' : 'daily')}
+                          data-testid="duration-type-toggle"
+                        />
+                        <span className={`text-sm font-medium ${durationType === 'weekly' ? 'text-white' : 'text-muted'}`}>
+                          Weekly
+                        </span>
+                      </div>
+
+                      {/* Week Duration Selector */}
+                      {durationType === 'weekly' && (
+                        <div className="space-y-3">
+                          <label className="text-sm font-medium text-muted">Number of weeks</label>
+                          <div className="flex items-center gap-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setWeekDuration(Math.max(1, weekDuration - 1))}
+                              disabled={weekDuration <= 1}
+                              data-testid="decrease-weeks"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </Button>
+                            <span className="text-white font-semibold min-w-[2rem] text-center">
+                              {weekDuration}
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setWeekDuration(weekDuration + 1)}
+                              data-testid="increase-weeks"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          {weekDuration >= 2 && (
+                            <div className="text-sm text-green-400 flex items-center gap-2">
+                              <Star className="w-4 h-4" />
+                              Multi-week discount applies: {Math.round(PRICING_CONFIG.discounts.multiWeek.rate * 100)}% off
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Add-ons Selection */}
+                    <div>
+                      <h4 className="font-semibold text-white mb-3">Add-ons</h4>
+                      <div className="space-y-3">
+                        {(Object.keys(PRICING_CONFIG.addOns) as AddOnType[]).map((addOnKey) => {
+                          const addOn = PRICING_CONFIG.addOns[addOnKey];
+                          const isSelected = selectedAddOns.includes(addOnKey);
+                          
+                          return (
+                            <div
+                              key={addOnKey}
+                              className="flex items-center space-x-3 p-3 bg-white/5 border border-white/10 rounded-lg cursor-pointer hover:border-copper-500/30 transition-colors"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setSelectedAddOns(selectedAddOns.filter(id => id !== addOnKey));
+                                } else {
+                                  setSelectedAddOns([...selectedAddOns, addOnKey]);
+                                }
+                              }}
+                              data-testid={`addon-${addOnKey}`}
+                            >
+                              <Checkbox
+                                checked={isSelected}
+                                onChange={() => {}} // Handled by parent click
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium text-white">{addOn.name}</div>
+                                <div className="text-sm text-muted">{addOn.description}</div>
+                              </div>
+                              <div className="text-sm font-semibold text-copper-400">
+                                +{formatCAD(addOn.price)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Pricing Summary Panel */}
+                  <div className="space-y-6">
+                    <h3 className="font-fraunces text-xl font-bold text-white">
+                      Pricing Summary
+                    </h3>
+                    
+                    {currentPricing && (
+                      <Card className="p-6 bg-copper-500/10 border-copper-500/20">
+                        <div className="space-y-4">
+                          {/* Base Package */}
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted">
+                              {currentPricing.breakdown.package}
+                            </span>
+                            <span className="text-white font-medium">
+                              {formatCAD(currentPricing.basePrice)}
+                            </span>
+                          </div>
+
+                          {/* Add-ons */}
+                          {currentPricing.breakdown.addOns.map((addOn, index) => (
+                            <div key={index} className="flex justify-between items-center">
+                              <span className="text-muted text-sm">+ {addOn.name}</span>
+                              <span className="text-white font-medium">
+                                {formatCAD(addOn.price)}
+                              </span>
+                            </div>
+                          ))}
+
+                          {/* Subtotal */}
+                          <Separator className="bg-white/10" />
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted">Subtotal</span>
+                            <span className="text-white font-medium">
+                              {formatCAD(currentPricing.subtotal)}
+                            </span>
+                          </div>
+
+                          {/* Discounts */}
+                          {currentPricing.breakdown.discounts.map((discount, index) => (
+                            <div key={index} className="flex justify-between items-center">
+                              <span className="text-green-400 text-sm flex items-center gap-1">
+                                <Star className="w-3 h-3" />
+                                {discount.name}
+                              </span>
+                              <span className="text-green-400 font-medium">
+                                -{formatCAD(discount.amount)}
+                              </span>
+                            </div>
+                          ))}
+
+                          {/* Total */}
+                          <Separator className="bg-white/10" />
+                          <div className="flex justify-between items-center text-lg">
+                            <span className="font-semibold text-white">Total</span>
+                            <span className="font-bold text-copper-400">
+                              {formatCAD(currentPricing.total)}
+                            </span>
+                          </div>
+
+                          {/* Savings */}
+                          {currentPricing.savings > 0 && (
+                            <div className="text-center p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                              <div className="text-green-400 font-medium">
+                                You save {formatCAD(currentPricing.savings)}!
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    )}
+
+                    <Button
+                      onClick={() => scrollToSection('apply')}
+                      className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold"
+                      data-testid="proceed-to-application"
+                    >
+                      Continue to Application
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* Live Preview Module */}
       <section className="py-20">

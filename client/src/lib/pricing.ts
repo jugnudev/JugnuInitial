@@ -1,168 +1,166 @@
-// Pricing configuration for Promote v2.3
+// Pricing configuration and calculation logic
+
+export type PackageType = 'spotlight_banner' | 'homepage_hero' | 'full_feature';
+export type AddOnType = 'ig_story' | 'mid_run_repost';
+export type DurationType = 'daily' | 'weekly';
+
+// Base pricing in CAD
 export const PRICING_CONFIG = {
-  // Launch prices in CAD
   packages: {
     spotlight_banner: {
       name: 'Spotlight Banner',
+      description: 'Featured banner placement on Events page',
       daily: 15,
       weekly: 75,
-      description: 'Prime inline placement on events page',
+      base: 75,
       features: [
-        'Prime inline placement after first row',
-        'Desktop & mobile optimized (1600×400, 1080×600)',
-        'Frequency capping (1×/day/user)',
-        'Click tracking & UTM tagging',
-        'Daily performance report',
-        '2-3 day turnaround'
+        '1,500+ weekly impressions',
+        'Events page banner placement',
+        'Click-through tracking',
+        'Real-time analytics portal'
       ],
       sizeSpecs: {
         desktop: '1600×400px',
-        mobile: '1080×600px'
+        mobile: '400×300px'
       }
     },
     homepage_hero: {
       name: 'Homepage Hero',
+      description: 'Premium hero placement on homepage',
       daily: 35,
       weekly: 175,
-      description: 'High-impact below-the-fold hero placement',
+      base: 175,
       features: [
-        'High-impact below-the-fold placement',
-        'Custom creative (1600×900, safe area top 220px)',
-        '7-day campaign duration',
-        'Custom headline/subline/CTA',
-        'Full impression & click tracking',
-        'Weekly performance report'
+        '3,000+ weekly impressions',
+        'Homepage hero banner',
+        'Priority visibility',
+        'Enhanced analytics',
+        'Logo co-branding'
       ],
       sizeSpecs: {
-        desktop: '1600×900px (safe area top 220px)',
-        mobile: 'Responsive design'
+        desktop: '1080×600px',
+        mobile: '600×400px'
       }
     },
     full_feature: {
       name: 'Full Feature',
-      base: 250,
-      description: 'Complete multi-platform campaign',
+      description: 'Complete campaign with multiple placements',
+      daily: 75,
+      weekly: 300,
+      base: 300,
       features: [
-        'Optional dedicated landing page',
-        'Instagram carousel (4-6 slides)',
-        'Link-in-bio for 7 days',
-        'Cross-platform performance report',
+        '5,000+ weekly impressions',
+        'All placement options',
+        'Multi-placement strategy',
+        'Dedicated campaign manager',
         'Custom creative development',
-        '5-7 day turnaround'
-      ]
+        'Performance optimization'
+      ],
+      sizeSpecs: {
+        desktop: 'Multiple formats',
+        mobile: 'Multiple formats'
+      }
     }
   },
-
-  // Add-ons pricing
   addOns: {
-    ig_story_boost: {
+    ig_story: {
       name: 'IG Story Boost',
-      price: 10,
-      description: 'Instagram story amplification'
+      description: 'Instagram story feature on @jugnu.events',
+      price: 10
     },
     mid_run_repost: {
-      name: 'Mid-Run Repost',
-      price: 10,
-      description: 'Additional social boost'
-    },
-    ig_carousel: {
-      name: 'IG Carousel 4–6 slides',
-      price: 60,
-      description: 'Professional carousel content'
-    },
-    link_in_bio: {
-      name: 'Link-in-bio 7 days',
-      price: 15,
-      description: 'Featured link placement'
-    },
-    creative_design: {
-      name: 'Creative design help',
-      price: 40,
-      description: 'Professional design assistance'
+      name: 'Mid-run Repost',
+      description: 'Additional social media push during campaign',
+      price: 10
     }
   },
-
-  // Discounts
   discounts: {
-    early_partner: {
-      active: true, // LAUNCH_DISCOUNT_ACTIVE flag
-      percentage: 20,
-      description: 'Early partner discount: 20% off first 3 bookings',
-      maxBookings: 3
-    },
     multiWeek: {
-      twoWeeks: 10,
-      fourWeeks: 15
+      threshold: 2,
+      rate: 0.10, // 10% discount for 2+ weeks
+      label: 'Multi-week discount'
+    },
+    earlyPartner: {
+      rate: 0.20, // 20% early partner discount
+      label: 'Early partner discount',
+      enabled: true
     }
   }
-} as const;
-
-export type PackageType = keyof typeof PRICING_CONFIG.packages;
-export type AddOnType = keyof typeof PRICING_CONFIG.addOns;
+};
 
 export interface PricingCalculation {
-  packagePrice: number;
+  basePrice: number;
+  weeklyPrice: number;
   addOnsTotal: number;
   subtotal: number;
-  discountAmount: number;
+  multiWeekDiscount: number;
+  earlyPartnerDiscount: number;
   total: number;
-  discountDetails: string[];
+  savings: number;
+  breakdown: {
+    package: string;
+    duration: string;
+    addOns: { name: string; price: number }[];
+    discounts: { name: string; amount: number }[];
+  };
 }
 
 export function calculatePricing(
   packageType: PackageType,
-  duration: 'daily' | 'weekly',
-  weeks: number = 1,
-  selectedAddOns: AddOnType[] = [],
-  isEarlyPartner: boolean = false
+  durationType: DurationType,
+  weekDuration: number,
+  addOns: AddOnType[]
 ): PricingCalculation {
-  const pkg = PRICING_CONFIG.packages[packageType] as any;
+  const pkg = PRICING_CONFIG.packages[packageType];
   
-  // Calculate base package price
-  let packagePrice = 0;
-  if (packageType === 'full_feature') {
-    packagePrice = (pkg as any).base;
-  } else {
-    const basePrice = duration === 'daily' ? (pkg as any).daily : (pkg as any).weekly;
-    packagePrice = duration === 'daily' ? basePrice * 7 * weeks : basePrice * weeks;
-  }
-
-  // Calculate add-ons total
-  const addOnsTotal = selectedAddOns.reduce((sum, addOn) => {
+  // Calculate base price
+  const basePrice = durationType === 'daily' 
+    ? pkg.daily * 7 * weekDuration // Convert daily to weekly
+    : pkg.weekly * weekDuration;
+  
+  // Calculate add-ons
+  const addOnsTotal = addOns.reduce((sum, addOn) => {
     return sum + PRICING_CONFIG.addOns[addOn].price;
   }, 0);
-
-  const subtotal = packagePrice + addOnsTotal;
-  let discountAmount = 0;
-  const discountDetails: string[] = [];
-
-  // Apply multi-week discount
-  if (weeks >= 4) {
-    const multiWeekDiscount = subtotal * (PRICING_CONFIG.discounts.multiWeek.fourWeeks / 100);
-    discountAmount += multiWeekDiscount;
-    discountDetails.push(`4+ weeks: -${PRICING_CONFIG.discounts.multiWeek.fourWeeks}%`);
-  } else if (weeks >= 2) {
-    const multiWeekDiscount = subtotal * (PRICING_CONFIG.discounts.multiWeek.twoWeeks / 100);
-    discountAmount += multiWeekDiscount;
-    discountDetails.push(`2+ weeks: -${PRICING_CONFIG.discounts.multiWeek.twoWeeks}%`);
+  
+  const subtotal = basePrice + addOnsTotal;
+  
+  // Calculate discounts
+  let multiWeekDiscount = 0;
+  if (weekDuration >= PRICING_CONFIG.discounts.multiWeek.threshold) {
+    multiWeekDiscount = subtotal * PRICING_CONFIG.discounts.multiWeek.rate;
   }
-
-  // Apply early partner discount
-  if (isEarlyPartner && PRICING_CONFIG.discounts.early_partner.active) {
-    const earlyPartnerDiscount = (subtotal - discountAmount) * (PRICING_CONFIG.discounts.early_partner.percentage / 100);
-    discountAmount += earlyPartnerDiscount;
-    discountDetails.push(`Early partner: -${PRICING_CONFIG.discounts.early_partner.percentage}%`);
+  
+  let earlyPartnerDiscount = 0;
+  if (PRICING_CONFIG.discounts.earlyPartner.enabled) {
+    earlyPartnerDiscount = (subtotal - multiWeekDiscount) * PRICING_CONFIG.discounts.earlyPartner.rate;
   }
-
-  const total = Math.max(0, subtotal - discountAmount);
-
+  
+  const totalDiscounts = multiWeekDiscount + earlyPartnerDiscount;
+  const total = subtotal - totalDiscounts;
+  const savings = totalDiscounts;
+  
   return {
-    packagePrice,
+    basePrice,
+    weeklyPrice: pkg.weekly,
     addOnsTotal,
     subtotal,
-    discountAmount,
+    multiWeekDiscount,
+    earlyPartnerDiscount,
     total,
-    discountDetails
+    savings,
+    breakdown: {
+      package: `${pkg.name} (${weekDuration} week${weekDuration > 1 ? 's' : ''})`,
+      duration: durationType === 'daily' ? `${weekDuration * 7} days` : `${weekDuration} week${weekDuration > 1 ? 's' : ''}`,
+      addOns: addOns.map(addOn => ({
+        name: PRICING_CONFIG.addOns[addOn].name,
+        price: PRICING_CONFIG.addOns[addOn].price
+      })),
+      discounts: [
+        ...(multiWeekDiscount > 0 ? [{ name: PRICING_CONFIG.discounts.multiWeek.label, amount: multiWeekDiscount }] : []),
+        ...(earlyPartnerDiscount > 0 ? [{ name: PRICING_CONFIG.discounts.earlyPartner.label, amount: earlyPartnerDiscount }] : [])
+      ]
+    }
   };
 }
 
@@ -173,4 +171,11 @@ export function formatCAD(amount: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(amount);
+}
+
+export function getPricingText(packageType: PackageType, durationType: DurationType): string {
+  const pkg = PRICING_CONFIG.packages[packageType];
+  const price = durationType === 'daily' ? pkg.daily : pkg.weekly;
+  const period = durationType === 'daily' ? 'day' : 'week';
+  return `${formatCAD(price)}/${period}`;
 }
