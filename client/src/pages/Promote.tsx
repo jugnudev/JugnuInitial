@@ -525,6 +525,64 @@ export default function Promote() {
         }}
       />
 
+      {/* Organization + Offers Schema */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "Jugnu",
+            "description": "Vancouver's premier South Asian cultural events platform",
+            "url": "https://jugnu.ca",
+            "makesOffer": [
+              {
+                "@type": "Offer",
+                "name": "Spotlight Banner",
+                "description": "Premium banner placement on events page",
+                "price": "50",
+                "priceCurrency": "CAD",
+                "priceSpecification": {
+                  "@type": "PriceSpecification",
+                  "price": "50",
+                  "priceCurrency": "CAD",
+                  "unitText": "per week"
+                },
+                "availability": "https://schema.org/InStock"
+              },
+              {
+                "@type": "Offer", 
+                "name": "Homepage Hero",
+                "description": "Large hero placement on homepage",
+                "price": "175",
+                "priceCurrency": "CAD",
+                "priceSpecification": {
+                  "@type": "PriceSpecification",
+                  "price": "175", 
+                  "priceCurrency": "CAD",
+                  "unitText": "per week"
+                },
+                "availability": "https://schema.org/InStock"
+              },
+              {
+                "@type": "Offer",
+                "name": "Full Feature",
+                "description": "Complete sponsorship package with multiple placements",
+                "price": "300",
+                "priceCurrency": "CAD", 
+                "priceSpecification": {
+                  "@type": "PriceSpecification",
+                  "price": "300",
+                  "priceCurrency": "CAD",
+                  "unitText": "per week"
+                },
+                "availability": "https://schema.org/InStock"
+              }
+            ]
+          })
+        }}
+      />
+
       {/* FAQ Schema */}
       <script
         type="application/ld+json"

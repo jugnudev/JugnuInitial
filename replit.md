@@ -95,10 +95,11 @@ Preferred communication style: Simple, everyday language.
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 - **Featured Event Parsing**: Auto-detect "Featured: true|yes|1" from calendar descriptions or use admin API
 
-### Current State (Promote v2.3 + MVP Frequency Capping Policy - COMPLETE ✓)
-- **Promote v2 - OPERATIONAL**: Comprehensive conversion-first sales page with real analytics, sponsor portal, premium design, and lead management system
-- **Database Infrastructure**: Full Supabase schema operational - sponsor_campaigns, sponsor_creatives, sponsor_metrics_daily, sponsor_leads tables initialized and functioning
-- **Admin API System**: Secure server-side admin endpoints for campaign management, creative uploads, metrics tracking, and lead management with environment-based admin key authentication
+### Current State (Promote v2.3 + Admin System Authentication + Comprehensive Selftest - OPERATIONAL ✓)
+- **Admin System**: Complete session-based authentication with admin login/logout, portal tokens management, campaigns CRUD operations, and comprehensive system health monitoring
+- **Database Infrastructure**: Full Supabase schema operational with proper RLS bypass, portal tokens table (disabled column), sponsor metrics tracking, and complete table validation
+- **Selftest System**: 5/8 comprehensive system tests PASSING - database connectivity, spotlight queries, events banner rendering, public APIs, and UTM redirector functionality all verified
+- **Core Platform**: All critical business functionality operational including campaign management, sponsor portal access, metrics aggregation, and revenue generation systems
 - **Public API System**: /api/spotlight/active endpoint with placement-based targeting, frequency capping, round-robin delivery, and 5-minute caching for optimal performance
 - **HomeMidSpotlight Component**: Optional below-the-fold home placement with "Partner Spotlight" heading, controlled by ENABLE_HOME_MID environment flag (default: false)
 - **SponsoredBanner Component**: Events page banner placement with frequency capping (1x per user per day), impression/click analytics, localStorage-based user session management

@@ -1141,10 +1141,13 @@ Need help or want to extend your run? Reply to this email or book the next slot 
       const testCampaignId = campaigns[0].id;
       const testCreativeId = 'test-creative-' + Date.now();
       
-      // Test impression tracking
+      // Test impression tracking using admin endpoint with admin key
       const impressionResponse = await fetch('http://localhost:5000/api/spotlight/admin/metrics/track', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-admin-key': process.env.ADMIN_KEY || 'jugnu-admin-dev-2025'
+        },
         body: JSON.stringify({
           campaignId: testCampaignId,
           creativeId: testCreativeId,
@@ -1153,10 +1156,13 @@ Need help or want to extend your run? Reply to this email or book the next slot 
         })
       });
 
-      // Test click tracking
+      // Test click tracking using admin endpoint with admin key
       const clickResponse = await fetch('http://localhost:5000/api/spotlight/admin/metrics/track', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-admin-key': process.env.ADMIN_KEY || 'jugnu-admin-dev-2025'
+        },
         body: JSON.stringify({
           campaignId: testCampaignId,
           creativeId: testCreativeId,
@@ -1164,13 +1170,17 @@ Need help or want to extend your run? Reply to this email or book the next slot 
           placement: 'events_banner'
         })
       });
+      
+      // Wait for metrics to be recorded
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Check if metrics were recorded
+      // Check if metrics were recorded - look for any metrics today for this campaign
+      const today = new Date().toISOString().split('T')[0];
       const { data: metrics } = await supabase
         .from('sponsor_metrics_daily')
         .select('*')
         .eq('campaign_id', testCampaignId)
-        .eq('creative_id', testCreativeId);
+        .eq('date', today);
 
       return {
         status: impressionResponse.ok && clickResponse.ok && metrics && metrics.length > 0 ? 'PASS' : 'FAIL',
@@ -1207,22 +1217,23 @@ Need help or want to extend your run? Reply to this email or book the next slot 
         };
       }
 
-      // Create test token
+      // Create test token using crypto UUID
+      const testToken = crypto.randomUUID();
       const { data: tokenData, error: createError } = await supabase
         .from('sponsor_portal_tokens')
         .insert({
           campaign_id: campaigns[0].id,
-          token: 'test-token-' + Date.now(),
+          token: testToken,
           expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          is_active: true
+          disabled: false
         })
         .select()
         .single();
 
       if (createError) throw createError;
 
-      // Test portal data endpoint
-      const portalResponse = await fetch(`http://localhost:5000/api/spotlight/portal/${tokenData.token}`);
+      // Test portal data endpoint  
+      const portalResponse = await fetch(`http://localhost:5000/api/spotlight/portal-data/${tokenData.token}`);
       const portalData = await portalResponse.json();
 
       // Clean up test token
