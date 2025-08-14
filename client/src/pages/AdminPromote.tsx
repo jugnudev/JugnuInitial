@@ -1131,7 +1131,7 @@ export default function AdminPromote() {
                 </div>
               </div>
 
-              {process.env.NODE_ENV === 'development' && (
+              {import.meta.env.DEV && (
                 <div>
                   <Label htmlFor="freq_cap" className="text-white">Frequency Cap (per day) - MVP: 0 = No Cap</Label>
                   <Input
