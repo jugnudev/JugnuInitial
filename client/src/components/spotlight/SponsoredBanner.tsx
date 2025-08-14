@@ -27,7 +27,7 @@ export function SponsoredBanner() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['/api/spotlight/active', 'events_banner'],
     queryFn: async () => {
-      const response = await fetch('/api/spotlight/active?route=/events&slots=events_banner');
+      const response = await fetch('/api/spotlight/active?placement=events_banner');
       if (!response.ok) throw new Error('Failed to fetch spotlight');
       return response.json();
     },
@@ -119,7 +119,7 @@ export function SponsoredBanner() {
     }
   };
 
-  // Check if Events Banner is enabled
+  // Check if Events Banner is enabled via client-side environment variable
   const isEventsSponsorsEnabled = import.meta.env.VITE_ENABLE_EVENTS_BANNER !== 'false';
 
   // Don't render if no spotlight, loading, error, not visible due to frequency capping, or disabled

@@ -457,86 +457,53 @@ export function addSpotlightRoutes(app: Express) {
     res.json({ ok: true });
   });
 
-  // GET /api/spotlight/public/active - Alternative public endpoint with different response format
+  // GET /api/spotlight/public/active - Alias that forwards to /api/spotlight/active
   app.get('/api/spotlight/public/active', async (req, res) => {
     try {
+      // Forward request to main /api/spotlight/active endpoint with proper parameters
       const { placement = 'events_banner' } = req.query;
       
-      // Environment flags for placements
-      const ENABLE_HOME_MID = process.env.ENABLE_HOME_MID === 'true';
-      const ENABLE_EVENTS_BANNER = process.env.ENABLE_EVENTS_BANNER !== 'false'; // true by default
-      const ENABLE_HOME_HERO = false; // Always disabled as per requirements
+      // Create internal request to main endpoint
+      const forwardedReq = {
+        ...req,
+        query: {
+          ...req.query,
+          slots: placement, // Convert placement to slots parameter
+          route: '/events' // Default route for compatibility
+        }
+      };
       
-      // Check if placement is enabled
-      let isPlacementEnabled = true;
-      if (placement === 'home_hero') {
-        isPlacementEnabled = ENABLE_HOME_HERO;
-      } else if (placement === 'home_mid') {
-        isPlacementEnabled = ENABLE_HOME_MID;
-      } else if (placement === 'events_banner') {
-        isPlacementEnabled = ENABLE_EVENTS_BANNER;
-      }
-
-      if (!isPlacementEnabled) {
-        res.set('Content-Type', 'application/json');
-        return res.json({
-          ok: true,
-          placement: placement,
-          creatives: []
-        });
-      }
+      // Call the main spotlight active handler
+      const mockRes = {
+        set: (key: string, value: string) => res.set(key, value),
+        json: (data: any) => {
+          // Transform the response format from spotlights object to creatives array
+          const placementKey = placement as string;
+          if (data.ok && data.spotlights && data.spotlights[placementKey]) {
+            const creative = data.spotlights[placementKey];
+            res.set('Content-Type', 'application/json');
+            return res.json({
+              ok: true,
+              placement: placementKey,
+              creatives: [creative]
+            });
+          } else {
+            res.set('Content-Type', 'application/json');
+            return res.json({
+              ok: true,
+              placement: placementKey,
+              creatives: []
+            });
+          }
+        },
+        status: (code: number) => ({ json: (data: any) => res.status(code).json(data) })
+      };
       
-      const now = new Date().toISOString();
-
-      // Get active campaigns for the placement
-      const { data: campaigns, error } = await supabase
-        .from('sponsor_campaigns')
-        .select(`
-          *,
-          creatives:sponsor_creatives(*)
-        `)
-        .eq('is_active', true)
-        .lte('start_at', now)
-        .gte('end_at', now)
-        .contains('placements', [placement])
-        .order('priority', { ascending: false });
-
-      if (error) throw error;
-
-      // Transform campaigns into creatives array format
-      const creatives = campaigns
-        .filter(campaign => campaign.creatives.some((c: any) => c.placement === placement))
-        .map(campaign => {
-          const creative = campaign.creatives.find((c: any) => c.placement === placement);
-          return {
-            campaignId: campaign.id,
-            sponsor_name: campaign.sponsor_name,
-            headline: campaign.headline,
-            subline: campaign.subline,
-            cta_text: campaign.cta_text,
-            click_url: campaign.click_url,
-            is_sponsored: campaign.is_sponsored,
-            tags: campaign.tags,
-            creative: {
-              image_desktop_url: creative.image_desktop_url,
-              image_mobile_url: creative.image_mobile_url,
-              logo_url: creative.logo_url,
-              alt: creative.alt
-            }
-          };
-        });
-
-      // Cache for 5 minutes
-      res.set('Cache-Control', 'public, s-maxage=300, max-age=300');
-      res.set('Content-Type', 'application/json');
-      res.json({
-        ok: true,
-        placement: placement,
-        creatives: creatives
-      });
-
+      // Forward to main handler
+      await spotlightActiveHandler(forwardedReq, mockRes);
+      
     } catch (error) {
-      console.error('Get public active spotlights error:', error);
+      console.error('Public spotlight alias error:', error);
       res.status(500).json({
         ok: false,
         error: error instanceof Error ? error.message : 'Failed to get active spotlights'
@@ -544,11 +511,19 @@ export function addSpotlightRoutes(app: Express) {
     }
   });
 
-  // GET /api/spotlight/active
-  app.get('/api/spotlight/active', async (req, res) => {
+  // Main spotlight active handler (extracted for reuse)
+  const spotlightActiveHandler = async (req: any, res: any) => {
     try {
-      const { route, slots } = req.query;
-      const requestedSlots = typeof slots === 'string' ? slots.split(',') : ['events_banner'];
+      const { route, slots, placement } = req.query;
+      // Support both 'slots' (original) and 'placement' (new) parameters
+      let requestedSlots: string[];
+      if (placement) {
+        requestedSlots = [placement as string];
+      } else if (slots) {
+        requestedSlots = typeof slots === 'string' ? slots.split(',') : ['events_banner'];
+      } else {
+        requestedSlots = ['events_banner'];
+      }
       
       // Environment flags for placements
       const ENABLE_HOME_MID = process.env.ENABLE_HOME_MID === 'true';
@@ -654,7 +629,10 @@ export function addSpotlightRoutes(app: Express) {
         error: error instanceof Error ? error.message : 'Failed to get active spotlights'
       });
     }
-  });
+  };
+
+  // GET /api/spotlight/active
+  app.get('/api/spotlight/active', spotlightActiveHandler);
 
   // POST /api/spotlight/leads (for /promote form submissions)
   app.post('/api/spotlight/leads', async (req, res) => {

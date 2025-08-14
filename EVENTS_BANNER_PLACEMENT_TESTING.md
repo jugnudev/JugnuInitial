@@ -2,107 +2,196 @@
 
 ## Implementation Summary
 
-✅ **Dynamic Banner Placement Based on Event Count**
-- **0 events**: Banner shows inside empty state
-- **1 event**: Banner above single card (below filters)
-- **2-3 events**: Banner after first card
-- **4+ events**: Banner after first full row (after index 1)
+✅ **Client-Side Updates**
+- SponsoredBanner now fetches from `/api/spotlight/active?placement=events_banner`
+- Uses `VITE_ENABLE_EVENTS_BANNER` environment variable for client-side gating
+- Maintains existing frequency capping and impression tracking
+- Removed references to `/api/spotlight/public/active`
 
-✅ **Environment Gating**
-- Controlled by `VITE_ENABLE_EVENTS_BANNER` environment variable
-- Default enabled unless explicitly set to 'false'
+✅ **Server-Side Updates**  
+- Main endpoint `/api/spotlight/active` now supports both `slots` and `placement` parameters
+- Public alias `/api/spotlight/public/active` forwards to main endpoint with format transformation
+- Environment gating via `ENABLE_EVENTS_BANNER` (server-side, default: true)
+- Both endpoints return proper `Content-Type: application/json` headers
 
-✅ **Sponsored Pill**
-- "Sponsored" badge visible on top-left of banner
-- Only shows when `is_sponsored` is true in campaign data
+✅ **Dynamic Banner Positioning**
+- 0 events: Banner shown in empty state
+- 1 event: Banner positioned above first event card  
+- 2-3 events: Banner positioned after first event card
+- 4+ events: Banner positioned after first row (2 cards)
 
-✅ **Preserved Analytics**
-- Impression tracking with ≥50% viewport visibility
-- Click tracking with UTM parameters
-- Frequency capping (1x per user per day per campaign)
+## Environment Configuration
 
-## Testing Scenarios
-
-### 1. Zero Events State
+### Client-Side (Required for Banner Display)
 ```bash
-# Access /events with no active events
-# Banner should appear below the empty state message
+VITE_ENABLE_EVENTS_BANNER=true  # Default: true (enabled unless 'false')
 ```
 
-### 2. Single Event State  
+### Server-Side (Controls API Response)
 ```bash
-# When only 1 event is available
-# Banner should appear above the single event card
+ENABLE_EVENTS_BANNER=true      # Default: true (enabled unless 'false')
 ```
 
-### 3. Multiple Events (2-3)
+**Note**: Both flags must be enabled for banner to appear. Client flag controls rendering, server flag controls API data availability.
+
+## API Endpoint Testing
+
+### 1. Main Endpoint (Used by Frontend)
 ```bash
-# When 2-3 events are available
-# Banner should appear after the first event card
-```
+curl -X GET "http://localhost:5000/api/spotlight/active?placement=events_banner"
 
-### 4. Many Events (4+)
-```bash
-# When 4+ events are available
-# Banner should appear after the first full row (after 2nd card)
-```
-
-### 5. Environment Gating
-```bash
-# Set VITE_ENABLE_EVENTS_BANNER=false
-# Banner should not appear anywhere
-```
-
-## Mobile vs Desktop Testing
-
-- **Mobile**: Single column layout, banner spans full width
-- **Desktop**: Two-column layout, banner spans both columns with `md:col-span-2`
-
-## Verification Points
-
-- [ ] Banner appears in correct position for each event count
-- [ ] "Sponsored" pill is visible on banner
-- [ ] Impression tracking fires when banner is 50% visible
-- [ ] Click tracking works with UTM parameters
-- [ ] Frequency capping prevents multiple daily impressions
-- [ ] Environment flag properly gates banner display
-- [ ] Banner adapts to mobile/desktop layouts properly
-
-## API Testing
-
-```bash
-# Test active campaign API
-curl http://localhost:5000/api/spotlight/active?route=/events&slots=events_banner
-
-# Expected response with active campaign:
+# Expected Response:
 {
   "ok": true,
   "spotlights": {
     "events_banner": {
-      "campaignId": "test-campaign-id",
+      "campaignId": "uuid",
       "sponsor_name": "Test Sponsor",
       "headline": "Test Headline",
+      "subline": "Test Subline", 
+      "cta_text": "Learn More",
       "click_url": "https://example.com",
       "is_sponsored": true,
+      "tags": [],
       "creative": {
         "image_desktop_url": "...",
-        "image_mobile_url": "..."
+        "image_mobile_url": "...",
+        "logo_url": "...",
+        "alt": "..."
       }
     }
   }
 }
 ```
 
-## Metrics Tracking
-
+### 2. Public Alias Endpoint
 ```bash
-# Impression should auto-fire when banner is visible
-# Click should fire when banner is clicked
-# Check sponsor_metrics_daily table for tracking data
+curl -X GET "http://localhost:5000/api/spotlight/public/active?placement=events_banner"
 
-SELECT * FROM sponsor_metrics_daily 
-WHERE placement = 'events_banner' 
-ORDER BY date DESC LIMIT 5;
+# Expected Response (Different Format):
+{
+  "ok": true,
+  "placement": "events_banner",
+  "creatives": [
+    {
+      "campaignId": "uuid",
+      "sponsor_name": "Test Sponsor",
+      // ... same fields as above
+    }
+  ]
+}
 ```
 
-The dynamic placement system ensures sponsors get visibility regardless of event count, maximizing monetization opportunities while maintaining user experience.
+## Banner Positioning Logic
+
+The banner position is determined by event count in `EventsExplore.tsx`:
+
+```typescript
+const bannerPosition = useMemo(() => {
+  if (filteredEvents.length === 0) return 'empty-state';
+  if (filteredEvents.length === 1) return 'above-first';
+  if (filteredEvents.length <= 3) return 'after-first';
+  return 'after-first-row'; // 4+ events
+}, [filteredEvents.length]);
+```
+
+### Visual Layout Examples
+
+**0 Events (Empty State)**
+```
+[Banner]
+"No events found for your criteria"
+```
+
+**1 Event**
+```
+[Banner]
+[Event Card 1]
+```
+
+**2-3 Events**
+```
+[Event Card 1]
+[Banner]
+[Event Card 2]
+[Event Card 3] (if exists)
+```
+
+**4+ Events**
+```
+[Event Card 1] [Event Card 2]
+[Banner]
+[Event Card 3] [Event Card 4]
+[Event Card 5] [Event Card 6]
+...
+```
+
+## Frequency Capping & Analytics
+
+### User Session Management
+- 1 impression per campaign per user per day
+- localStorage key: `spotlightSeen:{campaignId}:events_banner:{YYYY-MM-DD}`
+- Clearing localStorage re-enables banner display
+
+### Impression Tracking
+- Uses IntersectionObserver with 50% viewport threshold
+- Tracks when banner is 50%+ visible for meaningful engagement
+- Automatically sends impression analytics to `/api/spotlight/admin/metrics/track`
+
+### Click Tracking
+- Tracks clicks on banner CTA button
+- Opens click_url in new tab with security attributes
+- Records click analytics for campaign performance measurement
+
+## QA Test Scenarios
+
+### 1. Event Count Testing
+```bash
+# Test with different event counts
+# Verify banner position changes correctly:
+# - 0 events: Empty state
+# - 1 event: Above first card  
+# - 2-3 events: After first card
+# - 4+ events: After first row
+```
+
+### 2. Environment Flag Testing  
+```bash
+# Test client-side gating
+VITE_ENABLE_EVENTS_BANNER=false  # Banner should not render
+
+# Test server-side gating
+ENABLE_EVENTS_BANNER=false       # API should return empty spotlights
+```
+
+### 3. Frequency Capping Testing
+```bash
+# 1. Load page with banner - should show
+# 2. Refresh page - should not show (same day)
+# 3. Clear localStorage - should show again
+# 4. Wait until next day - should show again
+```
+
+### 4. Network & API Testing
+```bash
+# Verify JSON responses
+curl -X GET "http://localhost:5000/api/spotlight/active?placement=events_banner"
+curl -X GET "http://localhost:5000/api/spotlight/public/active?placement=events_banner"
+
+# Check response headers
+curl -I "http://localhost:5000/api/spotlight/active?placement=events_banner"
+# Should include: Content-Type: application/json
+# Should include: Cache-Control: public, s-maxage=300, max-age=300
+```
+
+## Development Routing
+
+The Vite dev server is configured to proxy `/api/*` requests to the Express server on port 5000, ensuring proper API routing during development. In production, Express serves both the frontend and API on the same port, eliminating routing conflicts.
+
+## Integration Notes
+
+- Banner integrates seamlessly with existing event filtering and search
+- Respects user preferences for dark/light themes
+- Maintains accessibility standards with proper alt text and ARIA labels
+- Uses copper glow styling consistent with Jugnu brand identity
+- Mobile-responsive design adapts to different screen sizes
