@@ -146,13 +146,15 @@ export function addSpotlightRoutes(app: Express) {
             campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
             token text UNIQUE NOT NULL,
             expires_at timestamptz,
-            last_accessed_at timestamptz
+            last_accessed_at timestamptz,
+            is_active boolean NOT NULL DEFAULT true,
+            email_subscription text,
+            weekly_emails_enabled boolean DEFAULT false
           );
-            campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
-            token text UNIQUE NOT NULL,
-            expires_at timestamptz,
-            is_active boolean NOT NULL DEFAULT true
-          );
+          
+          -- Add missing columns to sponsor_portal_tokens if they don't exist
+          ALTER TABLE public.sponsor_portal_tokens ADD COLUMN IF NOT EXISTS email_subscription text;
+          ALTER TABLE public.sponsor_portal_tokens ADD COLUMN IF NOT EXISTS weekly_emails_enabled boolean DEFAULT false;
           
           -- Add missing columns to sponsor_metrics_daily
           ALTER TABLE public.sponsor_metrics_daily ADD COLUMN IF NOT EXISTS billable_impressions integer DEFAULT 0;
@@ -737,6 +739,56 @@ This email was generated automatically from your Jugnu Sponsor Portal.`;
         ? (totals.clicks / totals.billable_impressions * 100).toFixed(2)
         : '0.00';
 
+      // Calculate CTR benchmark for the same placement over last 30 days
+      let ctrBenchmark = null;
+      if (totals.billable_impressions > 0) {
+        const campaignPlacements = metrics.length > 0 ? metrics[0].placement : null;
+        
+        if (campaignPlacements) {
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          
+          const { data: benchmarkData, error: benchmarkError } = await supabase
+            .from('sponsor_metrics_daily')
+            .select(`
+              campaign_id,
+              SUM(billable_impressions) as total_impressions,
+              SUM(clicks) as total_clicks
+            `)
+            .eq('placement', campaignPlacements)
+            .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+            .neq('campaign_id', campaign.id) // Exclude current campaign
+            .group('campaign_id')
+            .having('SUM(billable_impressions)', 'gt', 100); // Only campaigns with significant impressions
+
+          if (!benchmarkError && benchmarkData && benchmarkData.length > 0) {
+            // Calculate CTR for each campaign
+            const ctrs = benchmarkData
+              .map(row => (row.total_clicks / row.total_impressions) * 100)
+              .filter(ctr => ctr > 0)
+              .sort((a, b) => a - b);
+
+            if (ctrs.length > 0) {
+              const currentCtr = parseFloat(ctr);
+              const betterThanCount = ctrs.filter(benchmarkCtr => currentCtr > benchmarkCtr).length;
+              const percentile = Math.round((betterThanCount / ctrs.length) * 100);
+              
+              let badge = null;
+              if (percentile >= 75) badge = `Top 25% for ${campaignPlacements.replace('_', ' ')} last 30 days`;
+              else if (percentile >= 50) badge = `Top 50% for ${campaignPlacements.replace('_', ' ')} last 30 days`;
+              else if (percentile >= 25) badge = `Above average for ${campaignPlacements.replace('_', ' ')}`;
+              
+              ctrBenchmark = {
+                percentile,
+                badge,
+                totalCampaigns: ctrs.length,
+                averageCtr: (ctrs.reduce((a, b) => a + b, 0) / ctrs.length).toFixed(2)
+              };
+            }
+          }
+        }
+      }
+
       // Prepare chart data
       const chartData = metrics.map(row => ({
         date: row.date,
@@ -766,6 +818,7 @@ This email was generated automatically from your Jugnu Sponsor Portal.`;
           ...totals,
           ctr: parseFloat(ctr)
         },
+        ctrBenchmark,
         chartData,
         last7Days,
         last30Days: chartData // Return all data as 30-day view for now
@@ -774,6 +827,115 @@ This email was generated automatically from your Jugnu Sponsor Portal.`;
     } catch (error) {
       console.error('Portal data error:', error);
       res.status(500).json({ ok: false, error: 'Failed to load portal data' });
+    }
+  });
+
+  // Get campaign details for renewal form prefill
+  app.get('/api/spotlight/portal/:token/campaign-details', async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      // Validate token
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('sponsor_portal_tokens')
+        .select(`
+          sponsor_campaigns (
+            id,
+            name,
+            sponsor_name,
+            headline,
+            subline,
+            cta_text,
+            click_url,
+            placements,
+            priority,
+            tags
+          )
+        `)
+        .eq('token', token)
+        .eq('is_active', true)
+        .single();
+
+      if (tokenError || !tokenData?.sponsor_campaigns) {
+        return res.status(404).json({ ok: false, error: 'Campaign not found' });
+      }
+
+      const campaign = tokenData.sponsor_campaigns;
+      
+      // Return campaign details for prefilling
+      res.json({
+        ok: true,
+        campaign: {
+          business_name: campaign.sponsor_name,
+          campaign_name: campaign.name,
+          headline: campaign.headline,
+          subline: campaign.subline,
+          cta_text: campaign.cta_text,
+          website_url: campaign.click_url,
+          placements: campaign.placements,
+          campaign_objectives: campaign.tags || [],
+          priority: campaign.priority
+        }
+      });
+      
+    } catch (error) {
+      console.error('Campaign details error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to load campaign details' });
+    }
+  });
+
+  // Weekly summary email endpoint (env-gated)
+  app.post('/api/spotlight/portal/:token/weekly-summary', async (req, res) => {
+    try {
+      if (process.env.ENABLE_WEEKLY_SUMMARIES !== 'true') {
+        return res.status(404).json({ ok: false, error: 'Feature not enabled' });
+      }
+
+      const { token } = req.params;
+      const { email, subscribe } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ ok: false, error: 'Email is required' });
+      }
+      
+      // Validate token and get campaign
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('sponsor_portal_tokens')
+        .select(`
+          id,
+          sponsor_campaigns (
+            id,
+            name,
+            sponsor_name,
+            start_at,
+            end_at
+          )
+        `)
+        .eq('token', token)
+        .eq('is_active', true)
+        .single();
+
+      if (tokenError || !tokenData) {
+        return res.status(404).json({ ok: false, error: 'Invalid portal link' });
+      }
+
+      // Update token with email subscription preference
+      await supabase
+        .from('sponsor_portal_tokens')
+        .update({ 
+          email_subscription: subscribe ? email : null,
+          weekly_emails_enabled: subscribe
+        })
+        .eq('id', tokenData.id);
+      
+      res.json({ 
+        ok: true, 
+        message: subscribe ? 'Subscribed to weekly summaries' : 'Unsubscribed from weekly summaries'
+      });
+      
+    } catch (error) {
+      console.error('Weekly summary subscription error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to update subscription' });
     }
   });
 

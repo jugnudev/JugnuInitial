@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRoute } from 'wouter';
 import { motion } from 'framer-motion';
-import { BarChart3, TrendingUp, Eye, MousePointer, Calendar, Download, AlertCircle } from 'lucide-react';
+import { BarChart3, TrendingUp, Eye, MousePointer, Calendar, Download, AlertCircle, Award, ExternalLink, Rocket } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,12 @@ interface PortalData {
     clicks: number;
     ctr: number;
   };
+  ctrBenchmark?: {
+    percentile: number;
+    badge: string;
+    totalCampaigns: number;
+    averageCtr: string;
+  } | null;
   chartData?: Array<{
     date: string;
     billable_impressions: number;
@@ -40,6 +46,8 @@ export default function SponsorPortal() {
   const [data, setData] = useState<PortalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [emailSubscription, setEmailSubscription] = useState('');
+  const [subscribing, setSubscribing] = useState(false);
 
   const token = params?.token;
 
@@ -95,6 +103,63 @@ export default function SponsorPortal() {
     link.download = `${data.campaign?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'campaign'}_analytics.csv`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleNextCampaign = async () => {
+    if (!token) return;
+    
+    try {
+      const response = await fetch(`/api/spotlight/portal/${token}/campaign-details`);
+      const result = await response.json();
+      
+      if (result.ok && result.campaign) {
+        // Build URL with prefilled data
+        const params = new URLSearchParams();
+        Object.entries(result.campaign).forEach(([key, value]) => {
+          if (value && typeof value === 'string') {
+            params.set(key, value);
+          } else if (Array.isArray(value)) {
+            params.set(key, value.join(','));
+          }
+        });
+        
+        // Open promote page with prefilled form
+        window.open(`/promote?${params.toString()}`, '_blank');
+      }
+    } catch (error) {
+      console.error('Failed to load campaign details:', error);
+      // Fallback to regular promote page
+      window.open('/promote', '_blank');
+    }
+  };
+
+  const handleWeeklySummary = async (subscribe: boolean) => {
+    if (!token || !emailSubscription.trim()) return;
+    
+    setSubscribing(true);
+    try {
+      const response = await fetch(`/api/spotlight/portal/${token}/weekly-summary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: emailSubscription.trim(),
+          subscribe
+        })
+      });
+      
+      const result = await response.json();
+      if (result.ok) {
+        alert(result.message);
+        if (!subscribe) setEmailSubscription('');
+      } else {
+        alert('Failed to update subscription');
+      }
+    } catch (error) {
+      console.error('Weekly summary subscription error:', error);
+      alert('Failed to update subscription');
+    } finally {
+      setSubscribing(false);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -224,7 +289,8 @@ export default function SponsorPortal() {
             
             <div className="grid md:grid-cols-4 gap-6 mb-12">
               {/* Billable Impressions */}
-              <Card className="p-6 bg-white/5 border-white/10" title="Billable impressions are views that count toward your campaign billing, respecting frequency capping rules.">
+              <Card className="p-6 bg-white/5 border-white/10" title="Billable impressions are views that count toward your campaign billing, respecting frequency capping rules."
+                data-testid="billable-impressions-card">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
                     <Eye className="w-6 h-6 text-blue-400" />
@@ -240,7 +306,8 @@ export default function SponsorPortal() {
               </Card>
 
               {/* Raw Views */}
-              <Card className="p-6 bg-white/5 border-white/10" title="Raw views include all impressions, including those beyond frequency caps.">
+              <Card className="p-6 bg-white/5 border-white/10" title="Raw views include all impressions, including those beyond frequency caps."
+                data-testid="raw-views-card">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
                     <BarChart3 className="w-6 h-6 text-purple-400" />
@@ -256,7 +323,8 @@ export default function SponsorPortal() {
               </Card>
 
               {/* Reach (Unique Users) */}
-              <Card className="p-6 bg-white/5 border-white/10" title="Estimated number of unique users who viewed your campaign.">
+              <Card className="p-6 bg-white/5 border-white/10" title="Estimated number of unique users who viewed your campaign."
+                data-testid="unique-users-card">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
                     <Calendar className="w-6 h-6 text-orange-400" />
@@ -272,7 +340,7 @@ export default function SponsorPortal() {
               </Card>
 
               {/* Total Clicks & CTR */}
-              <Card className="p-6 bg-white/5 border-white/10">
+              <Card className="p-6 bg-white/5 border-white/10" data-testid="clicks-ctr-card">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
                     <MousePointer className="w-6 h-6 text-green-400" />
@@ -285,6 +353,21 @@ export default function SponsorPortal() {
                   {totals?.clicks.toLocaleString() || '0'}
                 </div>
                 <p className="text-muted text-sm">Total Clicks</p>
+                
+                {/* CTR Benchmark Badge */}
+                {data?.ctrBenchmark?.badge && (
+                  <div className="mt-3 pt-3 border-t border-white/10">
+                    <div className="flex items-center gap-2">
+                      <Award className="w-4 h-4 text-copper-400" />
+                      <Badge className="bg-copper-500/20 text-copper-400 border-copper-500/30 text-xs">
+                        {data.ctrBenchmark.badge}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted mt-1">
+                      Avg: {data.ctrBenchmark.averageCtr}% ({data.ctrBenchmark.totalCampaigns} campaigns)
+                    </p>
+                  </div>
+                )}
               </Card>
             </div>
           </motion.div>
@@ -426,21 +509,121 @@ export default function SponsorPortal() {
           </div>
         </section>
       )}
-      {/* Footer */}
-      <section className="py-12 border-t border-white/10">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-muted mb-4">
-            Questions about your campaign? Contact us at{' '}
-            <a href="mailto:hello@jugnu.events" className="text-copper-400 hover:text-copper-300">relations@thehouseofjugnu.com
-</a>
-          </p>
-          <Button
-            onClick={() => window.location.href = '/promote'}
-            variant="outline"
-            className="border-white/20 text-white hover:bg-white/10"
+      {/* Renewal and Support Section */}
+      <section className="py-16 border-t border-white/10 bg-gradient-to-br from-copper-900/20 to-orange-900/20">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
           >
-            Plan Your Next Campaign
-          </Button>
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Plan Next Campaign */}
+              <div className="text-center lg:text-left">
+                <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
+                  <div className="w-12 h-12 bg-copper-500/20 rounded-xl flex items-center justify-center">
+                    <Rocket className="w-6 h-6 text-copper-400" />
+                  </div>
+                  <h3 className="font-fraunces text-2xl font-bold text-white">
+                    Ready for Your Next Campaign?
+                  </h3>
+                </div>
+                <p className="text-muted text-lg mb-6 leading-relaxed">
+                  Launch another successful campaign with your proven settings. 
+                  We'll prefill your application with your current campaign details 
+                  to save you time.
+                </p>
+                <Button
+                  onClick={handleNextCampaign}
+                  className="bg-copper-500 hover:bg-copper-600 text-white font-medium px-8 py-3 rounded-xl transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-copper-500/25"
+                  data-testid="plan-next-campaign"
+                >
+                  <Rocket className="w-5 h-5 mr-2" />
+                  Plan Your Next Campaign
+                  <ExternalLink className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+
+              {/* Weekly Summary Subscription */}
+              <div className="text-center lg:text-left">
+                <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <h3 className="font-fraunces text-2xl font-bold text-white">
+                    Weekly Performance Updates
+                  </h3>
+                </div>
+                <p className="text-muted text-lg mb-6 leading-relaxed">
+                  Get campaign progress delivered to your inbox. Weekly summaries 
+                  include impressions, clicks, CTR trends, and performance insights.
+                </p>
+                
+                {/* Email subscription form - only show if feature is enabled */}
+                <div className="space-y-4">
+                  <div className="flex gap-3">
+                    <input
+                      type="email"
+                      placeholder="Enter your email for weekly updates"
+                      value={emailSubscription}
+                      onChange={(e) => setEmailSubscription(e.target.value)}
+                      className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
+                      data-testid="email-subscription-input"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={() => handleWeeklySummary(true)}
+                      disabled={!emailSubscription.trim() || subscribing}
+                      variant="outline"
+                      className="flex-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                      data-testid="subscribe-weekly"
+                    >
+                      {subscribing ? 'Subscribing...' : 'Subscribe'}
+                    </Button>
+                    <Button
+                      onClick={() => handleWeeklySummary(false)}
+                      disabled={!emailSubscription.trim() || subscribing}
+                      variant="outline"
+                      className="flex-1 border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      data-testid="unsubscribe-weekly"
+                    >
+                      Unsubscribe
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted">
+                    Weekly emails sent only while your campaign is active. 
+                    Unsubscribe anytime using your portal link.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Support Contact */}
+            <div className="mt-16 pt-8 border-t border-white/10 text-center">
+              <p className="text-muted text-lg mb-4">
+                Questions about your campaign performance or need help optimizing results?
+              </p>
+              <div className="flex items-center justify-center gap-4 flex-wrap">
+                <a 
+                  href="mailto:hello@jugnu.app" 
+                  className="text-copper-400 hover:text-copper-300 transition-colors font-medium"
+                >
+                  hello@jugnu.app
+                </a>
+                <span className="text-white/30">•</span>
+                <span className="text-muted">24-hour response time</span>
+                <span className="text-white/30">•</span>
+                <a 
+                  href="/promote" 
+                  target="_blank"
+                  className="text-copper-400 hover:text-copper-300 transition-colors font-medium"
+                >
+                  View all packages
+                </a>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
     </div>

@@ -90,6 +90,54 @@ export default function Promote() {
   // Honeypot and latency check for spam prevention
   const [honeypot, setHoneypot] = useState('');
   const [formStartTime] = useState(Date.now());
+  const [isPrefilled, setIsPrefilled] = useState(false);
+
+  // Handle URL parameters for prefilled forms
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const prefillData: any = {};
+    let hasParams = false;
+
+    // Extract parameters that match form fields
+    const paramFields = [
+      'business_name', 'campaign_name', 'headline', 'subline', 'cta_text',
+      'website_url', 'placements', 'campaign_objectives', 'priority'
+    ];
+
+    paramFields.forEach(field => {
+      const value = urlParams.get(field);
+      if (value) {
+        hasParams = true;
+        if (field === 'placements' || field === 'campaign_objectives') {
+          prefillData[field] = value.split(',').filter(Boolean);
+        } else if (field === 'website_url') {
+          prefillData['website'] = value;
+        } else if (field === 'campaign_name') {
+          // Use campaign name for reference but don't populate any specific field
+          prefillData['comments'] = `Previous campaign: ${value}`;
+        } else {
+          prefillData[field] = value;
+        }
+      }
+    });
+
+    if (hasParams) {
+      setFormData(prev => ({
+        ...prev,
+        business_name: prefillData.business_name || prev.business_name,
+        website: prefillData.website || prev.website,
+        placements: prefillData.placements || prev.placements,
+        comments: prefillData.comments || prev.comments
+      }));
+      setIsPrefilled(true);
+      
+      // Show success message
+      toast({
+        title: "Form prefilled",
+        description: "Your previous campaign settings have been loaded to save you time.",
+      });
+    }
+  }, []);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -269,6 +317,20 @@ export default function Promote() {
           })
         }}
       />
+
+      {/* Prefilled Form Banner */}
+      {isPrefilled && (
+        <div className="bg-copper-500/20 border-b border-copper-500/30">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center justify-center gap-3 text-copper-400">
+              <CheckCircle className="w-5 h-5" />
+              <span className="font-medium">
+                Form prefilled with your previous campaign settings
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
