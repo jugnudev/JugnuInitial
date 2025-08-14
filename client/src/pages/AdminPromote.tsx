@@ -22,7 +22,8 @@ import {
   Link as LinkIcon,
   Mail,
   Download,
-  TestTube
+  TestTube,
+  CheckCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -95,7 +96,10 @@ export default function AdminPromote() {
   const [showCampaignForm, setShowCampaignForm] = useState(false);
   const [showTokenForm, setShowTokenForm] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
+  const [showSelfTestResults, setShowSelfTestResults] = useState(false);
   const [selectedToken, setSelectedToken] = useState<PortalToken | null>(null);
+  const [selfTestResults, setSelfTestResults] = useState<any>(null);
+  const [runningTest, setRunningTest] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [activeTab, setActiveTab] = useState('campaigns');
 
@@ -502,6 +506,40 @@ export default function AdminPromote() {
     window.open(url, '_blank');
   };
 
+  const runSelfTest = async () => {
+    setRunningTest(true);
+    try {
+      const response = await fetch('/api/admin/selftest', {
+        headers: {
+          'x-admin-key': process.env.VITE_ADMIN_KEY || ''
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.ok) {
+        setSelfTestResults(data);
+        setShowSelfTestResults(true);
+        toast({
+          title: data.results.overall === 'PASS' ? "Self-test Passed" : "Self-test Issues Found",
+          description: `${data.summary.passed}/${data.summary.total} tests passed`,
+          variant: data.results.overall === 'PASS' ? "default" : "destructive"
+        });
+      } else {
+        throw new Error(data.error || 'Self-test failed');
+      }
+    } catch (error) {
+      console.error('Self-test error:', error);
+      toast({
+        title: "Self-test Error",
+        description: error instanceof Error ? error.message : "Failed to run self-test",
+        variant: "destructive"
+      });
+    } finally {
+      setRunningTest(false);
+    }
+  };
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -586,6 +624,17 @@ export default function AdminPromote() {
               >
                 <TestTube className="w-4 h-4 mr-2" />
                 Test Preview
+              </Button>
+              <Button
+                onClick={runSelfTest}
+                variant="outline"
+                size="sm"
+                className="border-green-500/50 text-green-400 hover:bg-green-500/20"
+                disabled={runningTest}
+                data-testid="run-selftest-button"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                {runningTest ? 'Running...' : 'Run Self-test'}
               </Button>
               <Button
                 onClick={logout}
@@ -1333,6 +1382,117 @@ export default function AdminPromote() {
             >
               <Mail className="w-4 h-4 mr-2" />
               Prepare Email
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Self-test Results Modal */}
+      <Dialog open={showSelfTestResults} onOpenChange={setShowSelfTestResults}>
+        <DialogContent className="bg-bg border-white/20 text-white max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-fraunces text-xl flex items-center gap-2">
+              <TestTube className="w-5 h-5" />
+              System Self-test Results
+            </DialogTitle>
+            <DialogDescription className="text-muted">
+              {selfTestResults && (
+                <>
+                  Completed at {new Date(selfTestResults.results.timestamp).toLocaleString()} • 
+                  {selfTestResults.summary.passed}/{selfTestResults.summary.total} tests passed
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selfTestResults && (
+            <div className="space-y-6">
+              {/* Overall Status */}
+              <div className="flex items-center gap-3 p-4 bg-white/5 border border-white/10 rounded-lg">
+                <div className={`w-3 h-3 rounded-full ${
+                  selfTestResults.results.overall === 'PASS' ? 'bg-green-500' : 'bg-red-500'
+                }`} />
+                <div className="flex-1">
+                  <h3 className="font-medium text-white">
+                    Overall Status: {selfTestResults.results.overall}
+                  </h3>
+                  <p className="text-sm text-muted">
+                    {selfTestResults.summary.passed} passed, {selfTestResults.summary.failed} failed
+                  </p>
+                </div>
+                <Badge 
+                  variant={selfTestResults.results.overall === 'PASS' ? 'default' : 'destructive'}
+                  className={selfTestResults.results.overall === 'PASS' ? 'bg-green-500' : 'bg-red-500'}
+                >
+                  {selfTestResults.results.overall}
+                </Badge>
+              </div>
+
+              {/* Individual Test Results */}
+              <div className="space-y-4">
+                {Object.entries(selfTestResults.results.tests).map(([testName, result]: [string, any]) => (
+                  <Card key={testName} className="p-4 bg-white/5 border-white/10">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full ${
+                          result.status === 'PASS' ? 'bg-green-500' : 
+                          result.status === 'SKIP' ? 'bg-yellow-500' : 'bg-red-500'
+                        }`} />
+                        <h4 className="font-medium text-white capitalize">
+                          {testName.replace(/([A-Z])/g, ' $1').trim()}
+                        </h4>
+                      </div>
+                      <Badge 
+                        variant={result.status === 'PASS' ? 'default' : result.status === 'SKIP' ? 'secondary' : 'destructive'}
+                        className={
+                          result.status === 'PASS' ? 'bg-green-500' : 
+                          result.status === 'SKIP' ? 'bg-yellow-500' : 'bg-red-500'
+                        }
+                      >
+                        {result.status}
+                      </Badge>
+                    </div>
+                    
+                    <p className="text-sm text-muted mb-3">{result.message}</p>
+                    
+                    {result.details && (
+                      <details className="text-xs">
+                        <summary className="cursor-pointer text-copper-400 hover:text-copper-300 mb-2">
+                          View Details
+                        </summary>
+                        <div className="bg-black/20 p-3 rounded border border-white/10">
+                          <pre className="whitespace-pre-wrap font-mono text-xs text-white/80">
+                            {JSON.stringify(result.details, null, 2)}
+                          </pre>
+                        </div>
+                      </details>
+                    )}
+                    
+                    {result.error && (
+                      <div className="mt-2 text-xs text-red-400 bg-red-500/10 p-2 rounded border border-red-500/20">
+                        Error: {result.error}
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              onClick={() => setShowSelfTestResults(false)}
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              Close
+            </Button>
+            <Button
+              onClick={runSelfTest}
+              className="bg-copper-500 hover:bg-copper-600 text-black"
+              disabled={runningTest}
+            >
+              {runningTest ? 'Running...' : 'Run Again'}
             </Button>
           </DialogFooter>
         </DialogContent>

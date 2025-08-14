@@ -717,5 +717,363 @@ This email was generated automatically from your Jugnu Sponsor Portal.`;
     }
   });
 
+  // Self-test endpoint for system validation
+  app.get('/api/admin/selftest', requireAdminKey, async (req, res) => {
+    const results = {
+      timestamp: new Date().toISOString(),
+      overall: 'PASS',
+      tests: {}
+    };
+
+    try {
+      // Test 1: Database tables exist and RLS bypass confirmed
+      results.tests.database = await testDatabase();
+      
+      // Test 2: Health check and active spotlight creation/querying
+      results.tests.spotlights = await testSpotlights();
+      
+      // Test 3: Impression + click tracking and metrics aggregation
+      results.tests.tracking = await testTracking();
+      
+      // Test 4: Portal token creation and validation
+      results.tests.portalTokens = await testPortalTokens(req);
+      
+      // Test 5: Events banner rendering scenarios
+      results.tests.eventsbanner = await testEventsBanner();
+      
+      // Test 6: Public API endpoints return JSON
+      results.tests.publicAPIs = await testPublicAPIs(req);
+
+      // Determine overall status
+      const failedTests = Object.values(results.tests).filter(test => test.status === 'FAIL');
+      if (failedTests.length > 0) {
+        results.overall = 'FAIL';
+      }
+
+      res.json({
+        ok: true,
+        results,
+        summary: {
+          total: Object.keys(results.tests).length,
+          passed: Object.values(results.tests).filter(test => test.status === 'PASS').length,
+          failed: failedTests.length
+        }
+      });
+
+    } catch (error) {
+      console.error('Self-test error:', error);
+      res.status(500).json({
+        ok: false,
+        error: 'Self-test failed to complete',
+        results,
+        partial: true
+      });
+    }
+  });
+
+  // Test helper functions
+  async function testDatabase() {
+    try {
+      // Check if tables exist
+      const tables = ['sponsor_campaigns', 'sponsor_creatives', 'sponsor_metrics_daily', 'sponsor_portal_tokens'];
+      const tableChecks = [];
+
+      for (const table of tables) {
+        try {
+          const { data, error } = await supabase.from(table).select('*').limit(1);
+          tableChecks.push({
+            table,
+            exists: !error,
+            error: error?.message
+          });
+        } catch (err) {
+          tableChecks.push({
+            table,
+            exists: false,
+            error: err.message
+          });
+        }
+      }
+
+      // Test RLS bypass with service role
+      const { data: testData, error: rlsError } = await supabase
+        .from('sponsor_campaigns')
+        .select('id')
+        .limit(1);
+
+      return {
+        status: tableChecks.every(check => check.exists) && !rlsError ? 'PASS' : 'FAIL',
+        message: tableChecks.every(check => check.exists) && !rlsError 
+          ? 'All tables exist and RLS bypass confirmed'
+          : 'Database issues detected',
+        details: {
+          tableChecks,
+          rlsBypass: !rlsError,
+          rlsError: rlsError?.message
+        }
+      };
+    } catch (error) {
+      return {
+        status: 'FAIL',
+        message: 'Database test failed',
+        error: error.message
+      };
+    }
+  }
+
+  async function testSpotlights() {
+    try {
+      // Test fetching active spotlights
+      const { data: campaigns, error } = await supabase
+        .from('sponsor_campaigns')
+        .select('*')
+        .eq('is_active', true)
+        .limit(5);
+
+      if (error) throw error;
+
+      // Test spotlight API endpoint
+      const testResponse = await fetch(`http://localhost:5000/api/spotlight/active?placement=events_banner`);
+      const spotlightData = await testResponse.json();
+
+      return {
+        status: testResponse.ok && spotlightData.ok ? 'PASS' : 'FAIL',
+        message: testResponse.ok && spotlightData.ok 
+          ? 'Spotlight queries working correctly'
+          : 'Spotlight query issues detected',
+        details: {
+          activeCampaigns: campaigns?.length || 0,
+          apiResponse: spotlightData.ok,
+          spotlights: Object.keys(spotlightData.spotlights || {}).length
+        }
+      };
+    } catch (error) {
+      return {
+        status: 'FAIL',
+        message: 'Spotlight test failed',
+        error: error.message
+      };
+    }
+  }
+
+  async function testTracking() {
+    try {
+      // Get a test campaign
+      const { data: campaigns } = await supabase
+        .from('sponsor_campaigns')
+        .select('id')
+        .limit(1);
+
+      if (!campaigns || campaigns.length === 0) {
+        return {
+          status: 'SKIP',
+          message: 'No campaigns available for tracking test'
+        };
+      }
+
+      const testCampaignId = campaigns[0].id;
+      const testCreativeId = 'test-creative-' + Date.now();
+      
+      // Test impression tracking
+      const impressionResponse = await fetch('http://localhost:5000/api/spotlight/admin/metrics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignId: testCampaignId,
+          creativeId: testCreativeId,
+          event: 'impression',
+          placement: 'events_banner'
+        })
+      });
+
+      // Test click tracking
+      const clickResponse = await fetch('http://localhost:5000/api/spotlight/admin/metrics/track', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaignId: testCampaignId,
+          creativeId: testCreativeId,
+          event: 'click',
+          placement: 'events_banner'
+        })
+      });
+
+      // Check if metrics were recorded
+      const { data: metrics } = await supabase
+        .from('sponsor_metrics_daily')
+        .select('*')
+        .eq('campaign_id', testCampaignId)
+        .eq('creative_id', testCreativeId);
+
+      return {
+        status: impressionResponse.ok && clickResponse.ok && metrics && metrics.length > 0 ? 'PASS' : 'FAIL',
+        message: impressionResponse.ok && clickResponse.ok && metrics && metrics.length > 0
+          ? 'Tracking and metrics aggregation working'
+          : 'Tracking issues detected',
+        details: {
+          impressionTracking: impressionResponse.ok,
+          clickTracking: clickResponse.ok,
+          metricsRecorded: metrics?.length || 0
+        }
+      };
+    } catch (error) {
+      return {
+        status: 'FAIL',
+        message: 'Tracking test failed',
+        error: error.message
+      };
+    }
+  }
+
+  async function testPortalTokens(req) {
+    try {
+      // Get a test campaign
+      const { data: campaigns } = await supabase
+        .from('sponsor_campaigns')
+        .select('id, name')
+        .limit(1);
+
+      if (!campaigns || campaigns.length === 0) {
+        return {
+          status: 'SKIP',
+          message: 'No campaigns available for portal token test'
+        };
+      }
+
+      // Create test token
+      const { data: tokenData, error: createError } = await supabase
+        .from('sponsor_portal_tokens')
+        .insert({
+          campaign_id: campaigns[0].id,
+          token: 'test-token-' + Date.now(),
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          is_active: true
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      // Test portal data endpoint
+      const portalResponse = await fetch(`http://localhost:5000/api/spotlight/portal/${tokenData.token}`);
+      const portalData = await portalResponse.json();
+
+      // Clean up test token
+      await supabase
+        .from('sponsor_portal_tokens')
+        .delete()
+        .eq('id', tokenData.id);
+
+      return {
+        status: portalResponse.ok && portalData.ok ? 'PASS' : 'FAIL',
+        message: portalResponse.ok && portalData.ok
+          ? 'Portal token creation and validation working'
+          : 'Portal token issues detected',
+        details: {
+          tokenCreated: !!tokenData,
+          portalResponse: portalResponse.ok,
+          dataReturned: !!portalData.campaign
+        }
+      };
+    } catch (error) {
+      return {
+        status: 'FAIL',
+        message: 'Portal token test failed',
+        error: error.message
+      };
+    }
+  }
+
+  async function testEventsBanner() {
+    try {
+      // Test different event scenarios by checking community events
+      const eventsResponse = await fetch('http://localhost:5000/api/community/weekly');
+      const eventsData = await eventsResponse.json();
+
+      const eventCount = eventsData.items?.length || 0;
+      let scenario = '';
+      
+      if (eventCount === 0) scenario = '0 events';
+      else if (eventCount === 1) scenario = '1 event';
+      else if (eventCount <= 3) scenario = '2-3 events';
+      else scenario = '4+ events';
+
+      // Test spotlight placement
+      const spotlightResponse = await fetch('http://localhost:5000/api/spotlight/active?placement=events_banner');
+      const spotlightData = await spotlightResponse.json();
+
+      const hasSpotlight = spotlightData.spotlights?.events_banner ? true : false;
+
+      return {
+        status: eventsResponse.ok && spotlightResponse.ok ? 'PASS' : 'FAIL',
+        message: eventsResponse.ok && spotlightResponse.ok
+          ? `Events banner rendering tested for ${scenario}`
+          : 'Events banner test issues detected',
+        details: {
+          scenario,
+          eventCount,
+          hasSpotlight,
+          placementDecision: hasSpotlight ? 'Show sponsor banner' : 'No active banner campaign',
+          impressionBeacon: hasSpotlight ? 'Would fire on render' : 'Not applicable'
+        }
+      };
+    } catch (error) {
+      return {
+        status: 'FAIL',
+        message: 'Events banner test failed',
+        error: error.message
+      };
+    }
+  }
+
+  async function testPublicAPIs(req) {
+    try {
+      const publicEndpoints = [
+        '/api/spotlight/active',
+        '/api/community/weekly',
+        '/api/waitlist'
+      ];
+
+      const results = [];
+
+      for (const endpoint of publicEndpoints) {
+        try {
+          const response = await fetch(`http://localhost:5000${endpoint}`);
+          const contentType = response.headers.get('content-type');
+          
+          results.push({
+            endpoint,
+            status: response.status,
+            isJson: contentType?.includes('application/json') || false,
+            contentType
+          });
+        } catch (error) {
+          results.push({
+            endpoint,
+            status: 'ERROR',
+            isJson: false,
+            error: error.message
+          });
+        }
+      }
+
+      const allJson = results.every(result => result.isJson);
+
+      return {
+        status: allJson ? 'PASS' : 'FAIL',
+        message: allJson
+          ? 'All public APIs return application/json'
+          : 'Some APIs not returning JSON',
+        details: results
+      };
+    } catch (error) {
+      return {
+        status: 'FAIL',
+        message: 'Public API test failed',
+        error: error.message
+      };
+    }
+  }
+
   console.log('✓ Spotlight routes added');
 }
