@@ -507,6 +507,15 @@ export default function Promote() {
                     {formatCAD(durationType === 'daily' ? PRICING_CONFIG.packages.spotlight_banner.daily : PRICING_CONFIG.packages.spotlight_banner.weekly)}
                   </span>
                   <span className="text-muted">/{durationType}</span>
+                  
+                  {/* Weekly Savings Badge */}
+                  {durationType === 'weekly' && (
+                    <div className="mt-2">
+                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                        You save {Math.round(((PRICING_CONFIG.packages.spotlight_banner.daily * 7 - PRICING_CONFIG.packages.spotlight_banner.weekly) / (PRICING_CONFIG.packages.spotlight_banner.daily * 7)) * 100)}% vs daily
+                      </Badge>
+                    </div>
+                  )}
                 </div>
                 
                 <ul className="space-y-3 mb-8 text-sm">
@@ -586,6 +595,15 @@ export default function Promote() {
                     {formatCAD(durationType === 'daily' ? PRICING_CONFIG.packages.homepage_hero.daily : PRICING_CONFIG.packages.homepage_hero.weekly)}
                   </span>
                   <span className="text-muted">/{durationType}</span>
+                  
+                  {/* Weekly Savings Badge */}
+                  {durationType === 'weekly' && (
+                    <div className="mt-2">
+                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                        You save {Math.round(((PRICING_CONFIG.packages.homepage_hero.daily * 7 - PRICING_CONFIG.packages.homepage_hero.weekly) / (PRICING_CONFIG.packages.homepage_hero.daily * 7)) * 100)}% vs daily
+                      </Badge>
+                    </div>
+                  )}
                 </div>
                 
                 <ul className="space-y-3 mb-8 text-sm">
@@ -664,34 +682,12 @@ export default function Promote() {
                 </div>
                 
                 <ul className="space-y-3 mb-8 text-sm">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Optional dedicated landing page</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Instagram carousel (4-6 slides)</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Link-in-bio for 7 days</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Cross-platform performance report</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Premium placement priority</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Custom creative development</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">5-7 day turnaround</span>
-                  </li>
+                  {PRICING_CONFIG.packages.full_feature.features.map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
+                      <span className="text-muted">{feature}</span>
+                    </li>
+                  ))}
                 </ul>
 
                 <Button
@@ -907,6 +903,15 @@ export default function Promote() {
                             <div className="text-center p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                               <div className="text-green-400 font-medium">
                                 You save {formatCAD(currentPricing.savings)}!
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Weekly Savings vs Daily */}
+                          {durationType === 'weekly' && currentPricing.weeklySavingsPercent > 0 && (
+                            <div className="text-center p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                              <div className="text-blue-400 font-medium">
+                                Weekly saves {currentPricing.weeklySavingsPercent}% vs daily pricing
                               </div>
                             </div>
                           )}

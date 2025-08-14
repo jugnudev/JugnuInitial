@@ -10,7 +10,7 @@ export const PRICING_CONFIG = {
     spotlight_banner: {
       name: 'Spotlight Banner',
       description: 'Featured banner placement on Events page',
-      daily: 12,
+      daily: 10,
       weekly: 60,
       base: 60,
       features: [
@@ -27,7 +27,7 @@ export const PRICING_CONFIG = {
     homepage_hero: {
       name: 'Homepage Hero',
       description: 'Premium hero placement on homepage',
-      daily: 28,
+      daily: 25,
       weekly: 140,
       base: 140,
       features: [
@@ -44,17 +44,17 @@ export const PRICING_CONFIG = {
     },
     full_feature: {
       name: 'Full Feature',
-      description: 'Complete campaign with multiple placements',
-      daily: 60,
+      description: 'Complete 7-day campaign bundle',
+      daily: 240, // Not applicable - this is a weekly bundle
       weekly: 240,
       base: 240,
       features: [
-        '5,000+ weekly impressions',
-        'All placement options',
-        'Multi-placement strategy',
-        'Dedicated campaign manager',
-        'Custom creative development',
-        'Performance optimization'
+        'Site placement (Events page banner)',
+        'Instagram story feature @jugnu.events',
+        '1 mid-campaign social repost',
+        'Link-in-bio placement (7 days)',
+        '5,000+ total impressions',
+        'Dedicated campaign manager'
       ],
       sizeSpecs: {
         desktop: 'Multiple formats',
@@ -97,6 +97,7 @@ export interface PricingCalculation {
   earlyPartnerDiscount: number;
   total: number;
   savings: number;
+  weeklySavingsPercent: number; // Savings percentage vs daily×7
   breakdown: {
     package: string;
     duration: string;
@@ -118,6 +119,12 @@ export function calculatePricing(
     ? pkg.daily * 7 * weekDuration // Convert daily to weekly
     : pkg.weekly * weekDuration;
   
+  // Calculate weekly savings percentage vs daily
+  const dailyEquivalent = pkg.daily * 7;
+  const weeklySavingsPercent = dailyEquivalent > 0 
+    ? Math.round(((dailyEquivalent - pkg.weekly) / dailyEquivalent) * 100)
+    : 0;
+  
   // Calculate add-ons
   const addOnsTotal = addOns.reduce((sum, addOn) => {
     return sum + PRICING_CONFIG.addOns[addOn].price;
@@ -125,7 +132,7 @@ export function calculatePricing(
   
   const subtotal = basePrice + addOnsTotal;
   
-  // Calculate discounts
+  // Calculate discounts with 30% cap
   let multiWeekDiscount = 0;
   if (weekDuration >= PRICING_CONFIG.discounts.multiWeek.threshold) {
     multiWeekDiscount = subtotal * PRICING_CONFIG.discounts.multiWeek.rate;
@@ -136,7 +143,18 @@ export function calculatePricing(
     earlyPartnerDiscount = (subtotal - multiWeekDiscount) * PRICING_CONFIG.discounts.earlyPartner.rate;
   }
   
-  const totalDiscounts = multiWeekDiscount + earlyPartnerDiscount;
+  // Cap total discounts at 30%
+  const totalDiscountsUncapped = multiWeekDiscount + earlyPartnerDiscount;
+  const maxDiscount = subtotal * 0.30; // 30% cap
+  const totalDiscounts = Math.min(totalDiscountsUncapped, maxDiscount);
+  
+  // If we hit the cap, proportionally reduce discounts
+  if (totalDiscountsUncapped > maxDiscount) {
+    const ratio = maxDiscount / totalDiscountsUncapped;
+    multiWeekDiscount = multiWeekDiscount * ratio;
+    earlyPartnerDiscount = earlyPartnerDiscount * ratio;
+  }
+  
   const total = subtotal - totalDiscounts;
   const savings = totalDiscounts;
   
@@ -149,6 +167,7 @@ export function calculatePricing(
     earlyPartnerDiscount,
     total,
     savings,
+    weeklySavingsPercent,
     breakdown: {
       package: `${pkg.name} (${weekDuration} week${weekDuration > 1 ? 's' : ''})`,
       duration: durationType === 'daily' ? `${weekDuration * 7} days` : `${weekDuration} week${weekDuration > 1 ? 's' : ''}`,
