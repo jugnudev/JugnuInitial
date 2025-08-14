@@ -128,6 +128,7 @@ Preferred communication style: Simple, everyday language.
 - **Sponsor Portal Onboarding System**: One-click "Send onboarding email" feature with professional template explaining portal usage, analytics metrics (impressions, clicks, CTR, CSV export), contact information, portal link and expiry date inclusion, complete audit logging to admin_audit_log table for compliance and tracking
 - **Comprehensive Self-test System**: /api/admin/selftest endpoint validating database health, spotlight functionality, metrics tracking, portal tokens, events banner rendering (0, 1, 2-3, 4+ events scenarios), robots.txt and JSON-LD schemas, API endpoints with detailed pass/fail results display and badge system in admin console "Run self-test" button
 - **Client-Side Environment Safety**: All `process.env` references removed from client code and replaced with Vite-compatible `import.meta.env.DEV` for development mode detection, preventing "process is not defined" browser errors
+- **Mobile-First Admin Console**: Complete responsive redesign for /admin/promote with mobile-first breakpoints (≤640px mobile, 641-1024px tablet, ≥1025px desktop), sticky header with overflow actions, touch-friendly 44px+ buttons, MoreMenu dropdown pattern for action overflow, responsive text sizing, optimized modal heights (max-h-[80vh]), and comprehensive mobile UX patterns including 2-icon main actions + kebab menu for additional functions
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS

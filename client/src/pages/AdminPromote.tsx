@@ -23,7 +23,8 @@ import {
   Mail,
   Download,
   TestTube,
-  CheckCircle
+  CheckCircle,
+  MoreHorizontal
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -37,6 +38,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
 import { ENDPOINTS, adminFetch } from '@/lib/endpoints';
 
@@ -602,47 +604,94 @@ export default function AdminPromote() {
   return (
     <div className="min-h-screen bg-bg">
       {/* Header */}
-      <header className="border-b border-white/10 bg-white/5">
+      <header className="border-b border-white/10 bg-white/5 sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Shield className="w-8 h-8 text-copper-500" />
+            <div className="flex items-center gap-2 sm:gap-4">
+              <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-copper-500" />
               <div>
-                <h1 className="font-fraunces text-2xl font-bold text-white">
+                <h1 className="font-fraunces text-lg sm:text-2xl font-bold text-white">
                   Sponsorship Console
                 </h1>
-                <p className="text-muted text-sm">
+                <p className="text-muted text-xs sm:text-sm">
                   Campaign & portal management
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            
+            {/* Mobile header actions - 2 icons + More */}
+            <div className="flex items-center gap-2 sm:hidden">
+              <Button
+                onClick={runSelfTest}
+                variant="outline"
+                size="sm"
+                className="border-green-500/50 text-green-400 hover:bg-green-500/20 h-11 w-11 p-0"
+                disabled={runningTest}
+                data-testid="run-selftest-button-mobile"
+                title="Run Self-test"
+              >
+                <CheckCircle className="w-4 h-4" />
+              </Button>
               <Button
                 onClick={openTestPreview}
                 variant="outline"
                 size="sm"
-                className="border-white/20 text-white hover:bg-white/10"
+                className="border-white/20 text-white hover:bg-white/10 h-11 w-11 p-0"
+                data-testid="test-preview-button-mobile"
+                title="Test Preview"
+              >
+                <TestTube className="w-4 h-4" />
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-white/20 text-white hover:bg-white/10 h-11 w-11 p-0"
+                    data-testid="more-menu-button"
+                  >
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-bg border-white/10">
+                  <DropdownMenuItem onClick={logout} className="text-white hover:bg-white/10">
+                    <Shield className="w-4 h-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            {/* Desktop header actions */}
+            <div className="hidden sm:flex items-center gap-2 md:gap-4 overflow-x-auto">
+              <Button
+                onClick={openTestPreview}
+                variant="outline"
+                size="sm"
+                className="border-white/20 text-white hover:bg-white/10 h-11 whitespace-nowrap"
                 data-testid="test-preview-button"
               >
                 <TestTube className="w-4 h-4 mr-2" />
-                Test Preview
+                <span className="hidden md:inline">Test Preview</span>
+                <span className="md:hidden">Test</span>
               </Button>
               <Button
                 onClick={runSelfTest}
                 variant="outline"
                 size="sm"
-                className="border-green-500/50 text-green-400 hover:bg-green-500/20"
+                className="border-green-500/50 text-green-400 hover:bg-green-500/20 h-11 whitespace-nowrap"
                 disabled={runningTest}
                 data-testid="run-selftest-button"
               >
                 <CheckCircle className="w-4 h-4 mr-2" />
-                {runningTest ? 'Running...' : 'Run Self-test'}
+                <span className="hidden md:inline">{runningTest ? 'Running...' : 'Run Self-test'}</span>
+                <span className="md:hidden">{runningTest ? '...' : 'Test'}</span>
               </Button>
               <Button
                 onClick={logout}
                 variant="outline"
                 size="sm"
-                className="border-white/20 text-white hover:bg-white/10"
+                className="border-white/20 text-white hover:bg-white/10 h-11"
                 data-testid="admin-logout-button"
               >
                 Logout
@@ -652,20 +701,20 @@ export default function AdminPromote() {
         </div>
       </header>
 
-      <div className="container mx-auto px-4 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="grid w-full grid-cols-3 bg-white/5">
-            <TabsTrigger value="campaigns" className="data-[state=active]:bg-copper-500 data-[state=active]:text-black text-xs sm:text-sm">
+      <div className="container mx-auto px-4 py-4 sm:py-8">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 sm:space-y-8">
+          <TabsList className="grid w-full grid-cols-3 bg-white/5 h-12">
+            <TabsTrigger value="campaigns" className="data-[state=active]:bg-copper-500 data-[state=active]:text-black text-xs sm:text-sm h-10">
               <Target className="w-4 h-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Campaigns</span>
               <span className="sm:hidden">Camps</span>
             </TabsTrigger>
-            <TabsTrigger value="tokens" className="data-[state=active]:bg-copper-500 data-[state=active]:text-black text-xs sm:text-sm">
+            <TabsTrigger value="tokens" className="data-[state=active]:bg-copper-500 data-[state=active]:text-black text-xs sm:text-sm h-10">
               <LinkIcon className="w-4 h-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Portal Tokens</span>
               <span className="sm:hidden">Portals</span>
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-copper-500 data-[state=active]:text-black text-xs sm:text-sm">
+            <TabsTrigger value="analytics" className="data-[state=active]:bg-copper-500 data-[state=active]:text-black text-xs sm:text-sm h-10">
               <BarChart3 className="w-4 h-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Analytics</span>
               <span className="sm:hidden">Stats</span>
@@ -673,9 +722,9 @@ export default function AdminPromote() {
           </TabsList>
 
           {/* Campaigns Tab */}
-          <TabsContent value="campaigns" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="font-fraunces text-xl font-bold text-white">
+          <TabsContent value="campaigns" className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <h2 className="font-fraunces text-lg sm:text-xl font-bold text-white">
                 Campaign Management
               </h2>
               <Button
@@ -684,7 +733,7 @@ export default function AdminPromote() {
                   setEditingCampaign(null);
                   setShowCampaignForm(true);
                 }}
-                className="bg-copper-500 hover:bg-copper-600 text-black"
+                className="bg-copper-500 hover:bg-copper-600 text-black h-11 w-full sm:w-auto"
                 data-testid="create-campaign-button"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -692,180 +741,289 @@ export default function AdminPromote() {
               </Button>
             </div>
 
-            <div className="grid gap-6">
-              {campaigns.map((campaign) => (
-                <Card key={campaign.id} className="p-4 sm:p-6 bg-white/5 border-white/10">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 space-y-3 sm:space-y-0">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                        <h3 className="font-medium text-white text-base sm:text-lg truncate">
-                          {campaign.name}
-                        </h3>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <Badge variant={campaign.is_active ? "default" : "secondary"} className="text-xs">
-                            {campaign.is_active ? "Active" : "Paused"}
-                          </Badge>
-                          <Badge variant="outline" className="text-muted border-white/20 text-xs">
-                            {campaign.placements.join(', ')}
-                          </Badge>
-                        </div>
-                      </div>
-                      <p className="text-muted mb-2">
-                        <span className="font-medium">{campaign.sponsor_name}</span> • {campaign.headline}
-                      </p>
-                      <div className="flex items-center gap-4 text-sm text-muted">
-                        <span>
-                          <Calendar className="w-4 h-4 inline mr-1" />
-                          {formatDate(campaign.start_at)} - {formatDate(campaign.end_at)}
-                        </span>
-                        <span>
-                          <Users className="w-4 h-4 inline mr-1" />
-                          {campaign.freq_cap_per_user_per_day === 0 ? 'No cap' : `${campaign.freq_cap_per_user_per_day}×/day cap`}
-                        </span>
-                        {(() => {
-                          const existingToken = portalTokens.find(t => t.campaign_id === campaign.id);
-                          if (existingToken) {
-                            return (
-                              <span className="text-green-400">
-                                <LinkIcon className="w-4 h-4 inline mr-1" />
+            <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-1">
+              {campaigns.map((campaign) => {
+                const existingToken = portalTokens.find(t => t.campaign_id === campaign.id);
+                
+                return (
+                  <Card key={campaign.id} className="p-4 sm:p-6 bg-white/5 border-white/10">
+                    <div className="flex flex-col space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                            <h3 className="font-medium text-white text-sm sm:text-base truncate">
+                              {campaign.name}
+                            </h3>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant={campaign.is_active ? "default" : "secondary"} className="text-xs h-6">
+                                {campaign.is_active ? "Active" : "Paused"}
+                              </Badge>
+                              <Badge variant="outline" className="text-muted border-white/20 text-xs h-6">
+                                {campaign.placements.join(', ')}
+                              </Badge>
+                            </div>
+                          </div>
+                          <p className="text-muted mb-2 text-sm">
+                            <span className="font-medium">{campaign.sponsor_name}</span> • {campaign.headline}
+                          </p>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted">
+                            <span className="flex items-center">
+                              <Calendar className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                              {formatDate(campaign.start_at)} - {formatDate(campaign.end_at)}
+                            </span>
+                            <span className="flex items-center">
+                              <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                              {campaign.freq_cap_per_user_per_day === 0 ? 'No cap' : `${campaign.freq_cap_per_user_per_day}×/day`}
+                            </span>
+                            {existingToken && (
+                              <span className="text-green-400 flex items-center">
+                                <LinkIcon className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                                 Portal active
                               </span>
-                            );
-                          }
-                          return null;
-                        })()}
-                        <span>Priority: {campaign.priority}</span>
+                            )}
+                            <span>Priority: {campaign.priority}</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Switch
-                        checked={campaign.is_active}
-                        onCheckedChange={(checked) => toggleCampaign(campaign.id, checked)}
-                        data-testid={`toggle-campaign-${campaign.id}`}
-                      />
-                      
-                      {/* Portal Actions */}
-                      <Button
-                        onClick={() => generatePortalToken(campaign.id)}
-                        variant="outline"
-                        size="sm"
-                        className="border-copper-500/50 text-copper-400 hover:bg-copper-500/20"
-                        data-testid={`generate-portal-${campaign.id}`}
-                        title="Generate portal link"
-                      >
-                        <LinkIcon className="w-4 h-4" />
-                      </Button>
-                      
-                      {/* Show existing portal info if available */}
-                      {(() => {
-                        const existingToken = portalTokens.find(t => t.campaign_id === campaign.id);
-                        if (existingToken) {
-                          return (
+
+                      {/* Actions Row */}
+                      <div className="flex items-center justify-between gap-2">
+                        <Switch
+                          checked={campaign.is_active}
+                          onCheckedChange={(checked) => toggleCampaign(campaign.id, checked)}
+                          data-testid={`toggle-campaign-${campaign.id}`}
+                          className="h-6"
+                        />
+                        
+                        {/* Mobile Actions - 2 main buttons + More menu */}
+                        <div className="flex items-center gap-2 sm:hidden">
+                          <Button
+                            onClick={() => openEditCampaign(campaign)}
+                            variant="outline"
+                            size="sm"
+                            className="border-white/20 text-white hover:bg-white/10 h-11 w-11 p-0"
+                            data-testid={`edit-campaign-${campaign.id}`}
+                            title="Edit campaign"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </Button>
+                          
+                          {existingToken ? (
+                            <Button
+                              onClick={() => copyPortalUrl(existingToken.token)}
+                              variant="outline"
+                              size="sm"
+                              className="border-green-500/50 text-green-400 hover:bg-green-500/20 h-11 w-11 p-0"
+                              data-testid={`copy-portal-${campaign.id}`}
+                              title="Copy portal URL"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={() => generatePortalToken(campaign.id)}
+                              variant="outline"
+                              size="sm"
+                              className="border-copper-500/50 text-copper-400 hover:bg-copper-500/20 h-11 w-11 p-0"
+                              data-testid={`generate-portal-${campaign.id}`}
+                              title="Generate portal link"
+                            >
+                              <LinkIcon className="w-4 h-4" />
+                            </Button>
+                          )}
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-white/20 text-white hover:bg-white/10 h-11 w-11 p-0"
+                                data-testid={`more-actions-${campaign.id}`}
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-bg border-white/10">
+                              {existingToken && (
+                                <>
+                                  <DropdownMenuItem 
+                                    onClick={() => openEmailForm(existingToken)}
+                                    className="text-white hover:bg-white/10"
+                                  >
+                                    <Mail className="w-4 h-4 mr-2" />
+                                    Custom email
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => sendOnboardingEmail(existingToken)}
+                                    className="text-white hover:bg-white/10"
+                                  >
+                                    <Users className="w-4 h-4 mr-2" />
+                                    Send onboarding
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => window.open(`/sponsor/${existingToken.token}`, '_blank')}
+                                    className="text-white hover:bg-white/10"
+                                  >
+                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                    Open portal
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem 
+                                    onClick={() => revokeToken(existingToken.id)}
+                                    className="text-orange-400 hover:bg-orange-500/20"
+                                  >
+                                    <Shield className="w-4 h-4 mr-2" />
+                                    Revoke access
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                              <DropdownMenuItem 
+                                onClick={() => duplicateCampaign(campaign.id)}
+                                className="text-white hover:bg-white/10"
+                              >
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                                Duplicate
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => deleteCampaign(campaign.id)}
+                                className="text-red-400 hover:bg-red-500/20"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        {/* Desktop Actions - All buttons visible */}
+                        <div className="hidden sm:flex items-center gap-2 flex-wrap">
+                          {/* Portal Actions */}
+                          {!existingToken && (
+                            <Button
+                              onClick={() => generatePortalToken(campaign.id)}
+                              variant="outline"
+                              size="sm"
+                              className="border-copper-500/50 text-copper-400 hover:bg-copper-500/20 h-11"
+                              data-testid={`generate-portal-${campaign.id}`}
+                              title="Generate portal link"
+                            >
+                              <LinkIcon className="w-4 h-4 mr-2" />
+                              Portal
+                            </Button>
+                          )}
+                          
+                          {existingToken && (
                             <>
                               <Button
                                 onClick={() => copyPortalUrl(existingToken.token)}
                                 variant="outline"
                                 size="sm"
-                                className="border-green-500/50 text-green-400 hover:bg-green-500/20"
+                                className="border-green-500/50 text-green-400 hover:bg-green-500/20 h-11"
                                 data-testid={`copy-portal-${campaign.id}`}
                                 title="Copy portal URL"
                               >
-                                <Copy className="w-4 h-4" />
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copy
                               </Button>
                               <Button
                                 onClick={() => openEmailForm(existingToken)}
                                 variant="outline"
                                 size="sm"
-                                className="border-blue-500/50 text-blue-400 hover:bg-blue-500/20"
+                                className="border-blue-500/50 text-blue-400 hover:bg-blue-500/20 h-11"
                                 data-testid={`email-portal-${campaign.id}`}
                                 title="Custom email"
                               >
-                                <Mail className="w-4 h-4" />
+                                <Mail className="w-4 h-4 mr-2" />
+                                Email
                               </Button>
                               <Button
                                 onClick={() => sendOnboardingEmail(existingToken)}
                                 variant="outline"
                                 size="sm"
-                                className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/20"
+                                className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/20 h-11"
                                 data-testid={`onboard-portal-${campaign.id}`}
                                 title="Send onboarding email"
                               >
-                                <Users className="w-4 h-4" />
+                                <Users className="w-4 h-4 mr-2" />
+                                Onboard
                               </Button>
                               <Button
                                 onClick={() => window.open(`/sponsor/${existingToken.token}`, '_blank')}
                                 variant="outline"
                                 size="sm"
-                                className="border-purple-500/50 text-purple-400 hover:bg-purple-500/20"
+                                className="border-purple-500/50 text-purple-400 hover:bg-purple-500/20 h-11"
                                 data-testid={`open-portal-${campaign.id}`}
                                 title="Open as sponsor"
                               >
-                                <ExternalLink className="w-4 h-4" />
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                Open
                               </Button>
                               <Button
                                 onClick={() => revokeToken(existingToken.id)}
                                 variant="outline"
                                 size="sm"
-                                className="border-orange-500/50 text-orange-400 hover:bg-orange-500/20"
+                                className="border-orange-500/50 text-orange-400 hover:bg-orange-500/20 h-11"
                                 data-testid={`revoke-portal-${campaign.id}`}
                                 title="Revoke portal access"
                               >
-                                <Shield className="w-4 h-4" />
+                                <Shield className="w-4 h-4 mr-2" />
+                                Revoke
                               </Button>
                             </>
-                          );
-                        }
-                        return null;
-                      })()}
+                          )}
 
-                      {/* Campaign Actions */}
-                      <Button
-                        onClick={() => openEditCampaign(campaign)}
-                        variant="outline"
-                        size="sm"
-                        className="border-white/20 text-white hover:bg-white/10"
-                        data-testid={`edit-campaign-${campaign.id}`}
-                        title="Edit campaign"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        onClick={() => duplicateCampaign(campaign.id)}
-                        variant="outline"
-                        size="sm"
-                        className="border-white/20 text-white hover:bg-white/10"
-                        data-testid={`duplicate-campaign-${campaign.id}`}
-                        title="Duplicate campaign"
-                      >
-                        <RefreshCw className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        onClick={() => deleteCampaign(campaign.id)}
-                        variant="outline"
-                        size="sm"
-                        className="border-red-500/50 text-red-400 hover:bg-red-500/20"
-                        data-testid={`delete-campaign-${campaign.id}`}
-                        title="Delete campaign"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                          {/* Campaign Actions */}
+                          <Button
+                            onClick={() => openEditCampaign(campaign)}
+                            variant="outline"
+                            size="sm"
+                            className="border-white/20 text-white hover:bg-white/10 h-11"
+                            data-testid={`edit-campaign-${campaign.id}`}
+                            title="Edit campaign"
+                          >
+                            <Edit3 className="w-4 h-4 mr-2" />
+                            Edit
+                          </Button>
+                          <Button
+                            onClick={() => duplicateCampaign(campaign.id)}
+                            variant="outline"
+                            size="sm"
+                            className="border-white/20 text-white hover:bg-white/10 h-11"
+                            data-testid={`duplicate-campaign-${campaign.id}`}
+                            title="Duplicate campaign"
+                          >
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Duplicate
+                          </Button>
+                          <Button
+                            onClick={() => deleteCampaign(campaign.id)}
+                            variant="outline"
+                            size="sm"
+                            className="border-red-500/50 text-red-400 hover:bg-red-500/20 h-11"
+                            data-testid={`delete-campaign-${campaign.id}`}
+                            title="Delete campaign"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
 
               {campaigns.length === 0 && (
-                <Card className="p-12 bg-white/5 border-white/10 text-center">
-                  <Target className="w-16 h-16 text-muted mx-auto mb-4" />
-                  <h3 className="font-medium text-white mb-2">No campaigns yet</h3>
-                  <p className="text-muted mb-6">Create your first sponsorship campaign to get started.</p>
+                <Card className="p-8 sm:p-12 bg-white/5 border-white/10 text-center">
+                  <Target className="w-12 h-12 sm:w-16 sm:h-16 text-muted mx-auto mb-4" />
+                  <h3 className="font-medium text-white mb-2 text-sm sm:text-base">No campaigns yet</h3>
+                  <p className="text-muted mb-6 text-sm sm:text-base">Create your first sponsorship campaign to get started.</p>
                   <Button
                     onClick={() => {
                       resetCampaignForm();
                       setEditingCampaign(null);
                       setShowCampaignForm(true);
                     }}
-                    className="bg-copper-500 hover:bg-copper-600 text-black"
+                    className="bg-copper-500 hover:bg-copper-600 text-black h-11"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Create Campaign
@@ -876,14 +1034,14 @@ export default function AdminPromote() {
           </TabsContent>
 
           {/* Portal Tokens Tab */}
-          <TabsContent value="tokens" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="font-fraunces text-xl font-bold text-white">
+          <TabsContent value="tokens" className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <h2 className="font-fraunces text-lg sm:text-xl font-bold text-white">
                 Portal Token Management
               </h2>
               <Button
                 onClick={() => setShowTokenForm(true)}
-                className="bg-copper-500 hover:bg-copper-600 text-black"
+                className="bg-copper-500 hover:bg-copper-600 text-black h-11 w-full sm:w-auto"
                 data-testid="create-token-button"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -891,20 +1049,20 @@ export default function AdminPromote() {
               </Button>
             </div>
 
-            <div className="grid gap-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
               {portalTokens.map((token) => (
-                <Card key={token.id} className="p-6 bg-white/5 border-white/10">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium text-white mb-1">
+                <Card key={token.id} className="p-4 sm:p-6 bg-white/5 border-white/10">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-white mb-1 text-sm sm:text-base truncate">
                         {token.sponsor_campaigns.name}
                       </h3>
                       <p className="text-muted text-sm mb-2">
                         {token.sponsor_campaigns.sponsor_name}
                       </p>
-                      <div className="flex items-center gap-4 text-xs text-muted">
-                        <span>
-                          <Clock className="w-3 h-3 inline mr-1" />
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs text-muted">
+                        <span className="flex items-center">
+                          <Clock className="w-3 h-3 mr-1" />
                           Created {formatDate(token.created_at)}
                         </span>
                         <span>
@@ -917,12 +1075,56 @@ export default function AdminPromote() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    
+                    {/* Mobile Actions */}
+                    <div className="flex items-center gap-2 sm:hidden">
                       <Button
                         onClick={() => copyPortalUrl(token.token)}
                         variant="outline"
                         size="sm"
-                        className="border-white/20 text-white hover:bg-white/10"
+                        className="border-white/20 text-white hover:bg-white/10 h-11 flex-1"
+                        data-testid={`copy-token-${token.id}`}
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy URL
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-white/20 text-white hover:bg-white/10 h-11 w-11 p-0"
+                            data-testid={`token-more-${token.id}`}
+                          >
+                            <MoreHorizontal className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-bg border-white/10">
+                          <DropdownMenuItem 
+                            onClick={() => window.open(`/sponsor/${token.token}`, '_blank')}
+                            className="text-white hover:bg-white/10"
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            Open portal
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => revokeToken(token.id)}
+                            className="text-red-400 hover:bg-red-500/20"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Revoke token
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    {/* Desktop Actions */}
+                    <div className="hidden sm:flex items-center gap-2">
+                      <Button
+                        onClick={() => copyPortalUrl(token.token)}
+                        variant="outline"
+                        size="sm"
+                        className="border-white/20 text-white hover:bg-white/10 h-11"
                         data-testid={`copy-token-${token.id}`}
                       >
                         <Copy className="w-4 h-4 mr-2" />
@@ -932,7 +1134,7 @@ export default function AdminPromote() {
                         onClick={() => window.open(`/sponsor/${token.token}`, '_blank')}
                         variant="outline"
                         size="sm"
-                        className="border-white/20 text-white hover:bg-white/10"
+                        className="border-white/20 text-white hover:bg-white/10 h-11"
                         data-testid={`open-portal-${token.id}`}
                       >
                         <ExternalLink className="w-4 h-4" />
@@ -941,7 +1143,7 @@ export default function AdminPromote() {
                         onClick={() => revokeToken(token.id)}
                         variant="outline"
                         size="sm"
-                        className="border-red-500/50 text-red-400 hover:bg-red-500/20"
+                        className="border-red-500/50 text-red-400 hover:bg-red-500/20 h-11"
                         data-testid={`revoke-token-${token.id}`}
                       >
                         <Trash2 className="w-4 h-4" />
@@ -952,13 +1154,13 @@ export default function AdminPromote() {
               ))}
 
               {portalTokens.length === 0 && (
-                <Card className="p-12 bg-white/5 border-white/10 text-center">
-                  <LinkIcon className="w-16 h-16 text-muted mx-auto mb-4" />
-                  <h3 className="font-medium text-white mb-2">No portal tokens</h3>
-                  <p className="text-muted mb-6">Generate secure portal access links for sponsors.</p>
+                <Card className="p-8 sm:p-12 bg-white/5 border-white/10 text-center">
+                  <LinkIcon className="w-12 h-12 sm:w-16 sm:h-16 text-muted mx-auto mb-4" />
+                  <h3 className="font-medium text-white mb-2 text-sm sm:text-base">No portal tokens</h3>
+                  <p className="text-muted mb-6 text-sm sm:text-base">Generate secure portal access links for sponsors.</p>
                   <Button
                     onClick={() => setShowTokenForm(true)}
-                    className="bg-copper-500 hover:bg-copper-600 text-black"
+                    className="bg-copper-500 hover:bg-copper-600 text-black h-11"
                   >
                     <Plus className="w-4 h-4 mr-2" />
                     Generate Token
@@ -969,42 +1171,42 @@ export default function AdminPromote() {
           </TabsContent>
 
           {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-6">
-            <h2 className="font-fraunces text-xl font-bold text-white">
+          <TabsContent value="analytics" className="space-y-4 sm:space-y-6">
+            <h2 className="font-fraunces text-lg sm:text-xl font-bold text-white">
               System Analytics
             </h2>
             
-            <div className="grid md:grid-cols-3 gap-6">
-              <Card className="p-6 bg-white/5 border-white/10">
+            <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <Card className="p-4 sm:p-6 bg-white/5 border-white/10">
                 <div className="flex items-center gap-3 mb-2">
-                  <Target className="w-8 h-8 text-copper-500" />
+                  <Target className="w-6 h-6 sm:w-8 sm:h-8 text-copper-500" />
                   <div>
-                    <h3 className="font-medium text-white">Total Campaigns</h3>
-                    <p className="text-2xl font-bold text-white">
+                    <h3 className="font-medium text-white text-sm sm:text-base">Total Campaigns</h3>
+                    <p className="text-xl sm:text-2xl font-bold text-white">
                       {campaigns.length}
                     </p>
                   </div>
                 </div>
               </Card>
 
-              <Card className="p-6 bg-white/5 border-white/10">
+              <Card className="p-4 sm:p-6 bg-white/5 border-white/10">
                 <div className="flex items-center gap-3 mb-2">
-                  <Play className="w-8 h-8 text-green-500" />
+                  <Play className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
                   <div>
-                    <h3 className="font-medium text-white">Active Campaigns</h3>
-                    <p className="text-2xl font-bold text-white">
+                    <h3 className="font-medium text-white text-sm sm:text-base">Active Campaigns</h3>
+                    <p className="text-xl sm:text-2xl font-bold text-white">
                       {campaigns.filter(c => c.is_active).length}
                     </p>
                   </div>
                 </div>
               </Card>
 
-              <Card className="p-6 bg-white/5 border-white/10">
+              <Card className="p-4 sm:p-6 bg-white/5 border-white/10">
                 <div className="flex items-center gap-3 mb-2">
-                  <LinkIcon className="w-8 h-8 text-blue-500" />
+                  <LinkIcon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
                   <div>
-                    <h3 className="font-medium text-white">Portal Tokens</h3>
-                    <p className="text-2xl font-bold text-white">
+                    <h3 className="font-medium text-white text-sm sm:text-base">Portal Tokens</h3>
+                    <p className="text-xl sm:text-2xl font-bold text-white">
                       {portalTokens.length}
                     </p>
                   </div>
@@ -1017,7 +1219,7 @@ export default function AdminPromote() {
 
       {/* Campaign Form Dialog */}
       <Dialog open={showCampaignForm} onOpenChange={setShowCampaignForm}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-bg border-white/10">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-bg border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white">
               {editingCampaign ? 'Edit Campaign' : 'Create Campaign'}
