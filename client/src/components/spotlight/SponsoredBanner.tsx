@@ -13,7 +13,7 @@ interface SpotlightData {
   click_url: string;
   is_sponsored: boolean;
   freq_cap_per_user_per_day?: number;
-  creative: {
+  creative?: {
     image_desktop_url?: string;
     image_mobile_url?: string;
     logo_url?: string;
@@ -157,8 +157,8 @@ export function SponsoredBanner() {
   }
 
   const bgImage = window.innerWidth >= 768 
-    ? spotlight.creative.image_desktop_url 
-    : spotlight.creative.image_mobile_url || spotlight.creative.image_desktop_url;
+    ? spotlight.creative?.image_desktop_url 
+    : spotlight.creative?.image_mobile_url || spotlight.creative?.image_desktop_url;
 
   return (
     <div
@@ -213,7 +213,7 @@ export function SponsoredBanner() {
         {/* CTA and Logo */}
         <div className="flex items-center gap-3 ml-4">
           {/* Logo if available */}
-          {spotlight.creative.logo_url && (
+          {spotlight.creative?.logo_url && (
             <div className="hidden md:block">
               <img
                 src={spotlight.creative.logo_url}
