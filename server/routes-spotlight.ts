@@ -965,6 +965,12 @@ This email was generated automatically from your Jugnu Sponsor Portal.`;
       
       // Test 6: Public API endpoints return JSON
       results.tests.publicAPIs = await testPublicAPIs(req);
+      
+      // Test 7: UTM redirector functionality
+      results.tests.utmRedirector = await testUTMRedirector();
+      
+      // Test 8: Robots.txt and schema validation
+      results.tests.robotsSchema = await testRobotsSchema(req);
 
       // Determine overall status
       const failedTests = Object.values(results.tests).filter(test => test.status === 'FAIL');
@@ -1292,6 +1298,141 @@ This email was generated automatically from your Jugnu Sponsor Portal.`;
       return {
         status: 'FAIL',
         message: 'Public API test failed',
+        error: error.message
+      };
+    }
+  }
+
+  async function testUTMRedirector() {
+    try {
+      // Get a test campaign
+      const { data: campaigns } = await supabase
+        .from('sponsor_campaigns')
+        .select('id, click_url')
+        .limit(1);
+
+      if (!campaigns || campaigns.length === 0) {
+        return {
+          status: 'SKIP',
+          message: 'No campaigns available for redirector test'
+        };
+      }
+
+      const testCampaignId = campaigns[0].id;
+      const testUrl = campaigns[0].click_url || 'https://example.com';
+      const redirectorUrl = `http://localhost:5000/r/${testCampaignId}?to=${encodeURIComponent(testUrl)}&utm_content=events_banner`;
+
+      // Test redirector returns 302 and doesn't follow redirect
+      const redirectResponse = await fetch(redirectorUrl, {
+        method: 'GET',
+        redirect: 'manual'  // Don't follow redirects
+      });
+
+      // Check that it returns 302
+      const is302 = redirectResponse.status === 302;
+      const hasLocation = redirectResponse.headers.get('location') !== null;
+      
+      // Check if UTM parameters are merged
+      const locationHeader = redirectResponse.headers.get('location') || '';
+      const hasUTMSource = locationHeader.includes('utm_source=jugnu');
+      const hasUTMContent = locationHeader.includes('utm_content=events_banner');
+
+      // Give a moment for click tracking to process
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Check if click was logged in metrics
+      const today = new Date().toISOString().split('T')[0];
+      const { data: metrics } = await supabase
+        .from('sponsor_metrics_daily')
+        .select('clicks')
+        .eq('campaign_id', testCampaignId)
+        .eq('date', today)
+        .eq('placement', 'events_banner');
+
+      const clickLogged = metrics && metrics.some(m => m.clicks > 0);
+
+      return {
+        status: is302 && hasLocation && hasUTMSource && hasUTMContent ? 'PASS' : 'FAIL',
+        message: is302 && hasLocation && hasUTMSource && hasUTMContent
+          ? 'UTM redirector working correctly'
+          : 'UTM redirector issues detected',
+        details: {
+          returns302: is302,
+          hasLocationHeader: hasLocation,
+          utmSourceAdded: hasUTMSource,
+          utmContentAdded: hasUTMContent,
+          clickTracked: clickLogged,
+          redirectUrl: locationHeader.substring(0, 100) + (locationHeader.length > 100 ? '...' : '')
+        }
+      };
+    } catch (error) {
+      return {
+        status: 'FAIL',
+        message: 'UTM redirector test failed',
+        error: error.message
+      };
+    }
+  }
+
+  async function testRobotsSchema(req) {
+    try {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const results = {
+        robotsTxt: false,
+        sitemapInRobots: false,
+        promoteSchema: false,
+        hasProductOffer: false,
+        hasFAQSchema: false
+      };
+
+      // Test 1: Check robots.txt exists and contains sitemap
+      try {
+        const robotsResponse = await fetch(`${baseUrl}/robots.txt`);
+        results.robotsTxt = robotsResponse.ok;
+        
+        if (robotsResponse.ok) {
+          const robotsText = await robotsResponse.text();
+          results.sitemapInRobots = robotsText.toLowerCase().includes('sitemap:');
+        }
+      } catch (error) {
+        console.warn('Robots.txt test error:', error.message);
+      }
+
+      // Test 2: Check /promote page for JSON-LD schemas
+      try {
+        const promoteResponse = await fetch(`${baseUrl}/promote`);
+        results.promoteSchema = promoteResponse.ok;
+        
+        if (promoteResponse.ok) {
+          const promoteHtml = await promoteResponse.text();
+          
+          // Check for Product/Offer schema
+          const hasOfferSchema = promoteHtml.includes('"@type":"Offer"') || promoteHtml.includes('"@type": "Offer"');
+          const hasOrganizationSchema = promoteHtml.includes('"@type":"Organization"') || promoteHtml.includes('"@type": "Organization"');
+          results.hasProductOffer = hasOfferSchema || hasOrganizationSchema;
+          
+          // Check for FAQ schema
+          const hasFAQPageSchema = promoteHtml.includes('"@type":"FAQPage"') || promoteHtml.includes('"@type": "FAQPage"');
+          const hasQuestionSchema = promoteHtml.includes('"@type":"Question"') || promoteHtml.includes('"@type": "Question"');
+          results.hasFAQSchema = hasFAQPageSchema && hasQuestionSchema;
+        }
+      } catch (error) {
+        console.warn('Promote schema test error:', error.message);
+      }
+
+      const allPassed = results.robotsTxt && results.sitemapInRobots && results.promoteSchema && results.hasProductOffer && results.hasFAQSchema;
+
+      return {
+        status: allPassed ? 'PASS' : 'FAIL',
+        message: allPassed
+          ? 'Robots.txt and schema validation passed'
+          : 'Some robots/schema issues detected',
+        details: results
+      };
+    } catch (error) {
+      return {
+        status: 'FAIL',
+        message: 'Robots/schema test failed',
         error: error.message
       };
     }

@@ -1,2 +1,10 @@
 User-agent: *
-Disallow: /
+Allow: /
+
+# Sitemap
+Sitemap: https://jugnu.events/sitemap.xml
+
+# Block admin and development routes
+Disallow: /api/
+Disallow: /admin/
+Disallow: /sponsor/
