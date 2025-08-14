@@ -142,75 +142,25 @@ export function addAdminRoutes(app: Express) {
   // Verify environment on startup
   checkEnvironment();
 
-  // Admin aliases that forward to spotlight handlers
-  // POST /api/admin/campaigns → spotlight upsert
-  app.post('/api/admin/campaigns', requireAdminKey, async (req: Request, res: Response) => {
-    try {
-      // Forward to spotlight admin upsert endpoint
-      const response = await fetch(`http://localhost:5000/api/spotlight/admin/campaigns`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-key': req.headers['x-admin-key'] as string
-        },
-        body: JSON.stringify(req.body)
-      });
-      
-      const data = await response.json();
-      res.status(response.status).json(data);
-    } catch (error) {
-      res.status(500).json({ ok: false, error: 'Failed to forward request' });
-    }
-  });
+  // Admin routes use session authentication and direct database access
 
-  // GET /api/admin/campaigns → spotlight list
-  app.get('/api/admin/campaigns', requireAdminKey, async (req: Request, res: Response) => {
-    try {
-      const response = await fetch(`http://localhost:5000/api/spotlight/admin/campaigns?${new URLSearchParams(req.query as any)}`, {
-        headers: {
-          'x-admin-key': req.headers['x-admin-key'] as string
-        }
-      });
-      
-      const data = await response.json();
-      res.status(response.status).json(data);
-    } catch (error) {
-      res.status(500).json({ ok: false, error: 'Failed to forward request' });
-    }
-  });
+  // All admin routes now use session authentication
 
-  // POST /api/admin/portal-tokens → spotlight portal token create
-  app.post('/api/admin/portal-tokens', requireAdminKey, async (req: Request, res: Response) => {
+  // GET /api/admin/selftest - session-based selftest endpoint
+  app.get('/api/admin/selftest', requireAdminSession, async (req: Request, res: Response) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/spotlight/admin/portal-tokens`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-key': req.headers['x-admin-key'] as string
-        },
-        body: JSON.stringify(req.body)
-      });
-      
-      const data = await response.json();
-      res.status(response.status).json(data);
-    } catch (error) {
-      res.status(500).json({ ok: false, error: 'Failed to forward request' });
-    }
-  });
-
-  // GET /api/admin/selftest → self-test endpoint
-  app.get('/api/admin/selftest', requireAdminKey, async (req: Request, res: Response) => {
-    try {
+      // Forward to spotlight admin selftest with admin key header
       const response = await fetch(`http://localhost:5000/api/spotlight/admin/selftest`, {
         headers: {
-          'x-admin-key': req.headers['x-admin-key'] as string
+          'x-admin-key': process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025'
         }
       });
       
       const data = await response.json();
       res.status(response.status).json(data);
     } catch (error) {
-      res.status(500).json({ ok: false, error: 'Failed to forward request' });
+      console.error('Admin selftest forward error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to run selftest' });
     }
   });
 
@@ -492,16 +442,15 @@ export function addAdminRoutes(app: Express) {
   // GET /api/admin/portal-tokens
   app.get('/api/admin/portal-tokens', requireAdminSession, async (req: Request, res: Response) => {
     try {
-      // Use service role to bypass RLS
+      // Use service role to bypass RLS - match existing table schema
       const { data: tokens, error } = await supabase
         .from('sponsor_portal_tokens')
         .select(`
-          id,
           token,
           campaign_id,
           expires_at,
-          last_accessed_at,
           created_at,
+          disabled,
           sponsor_campaigns!campaign_id (
             name,
             sponsor_name
@@ -550,7 +499,9 @@ export function addAdminRoutes(app: Express) {
           expires_at: expiresAt.toISOString()
         })
         .select(`
-          *,
+          token,
+          campaign_id,
+          expires_at,
           sponsor_campaigns!campaign_id (
             name,
             sponsor_name,
@@ -563,7 +514,7 @@ export function addAdminRoutes(app: Express) {
       if (error) throw error;
 
       await auditLog('portal_token_created', {
-        tokenId: data.id,
+        token: token.substring(0, 8) + '...',
         campaignId,
         hoursValid,
         ip: req.ip,
