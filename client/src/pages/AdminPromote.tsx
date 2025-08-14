@@ -38,6 +38,7 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
+import { ENDPOINTS, adminFetch } from '@/lib/endpoints';
 
 interface Campaign {
   id: string;
@@ -105,6 +106,7 @@ export default function AdminPromote() {
 
   // Form state
   const [loginPassword, setLoginPassword] = useState('');
+  const [adminKey, setAdminKey] = useState(localStorage.getItem('adminKey') || '');
   const [campaignForm, setCampaignForm] = useState({
     name: '',
     sponsor_name: '',
@@ -138,10 +140,13 @@ export default function AdminPromote() {
 
   const checkSession = async () => {
     try {
-      const response = await fetch('/api/admin/session');
+      const response = await fetch(ENDPOINTS.ADMIN.SESSION);
       const data = await response.json();
       
       if (data.ok && data.isAdmin) {
+        // Store admin key for API calls
+        localStorage.setItem('adminKey', loginPassword);
+        setAdminKey(loginPassword);
         setSession({ isAdmin: true, loginTime: data.loginTime });
         loadData();
       } else {
@@ -157,7 +162,7 @@ export default function AdminPromote() {
 
   const login = async () => {
     try {
-      const response = await fetch('/api/admin/login', {
+      const response = await fetch(ENDPOINTS.ADMIN.LOGIN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: loginPassword })
@@ -182,7 +187,9 @@ export default function AdminPromote() {
 
   const logout = async () => {
     try {
-      await fetch('/api/admin/logout', { method: 'POST' });
+      await fetch(ENDPOINTS.ADMIN.LOGOUT, { method: 'POST' });
+      localStorage.removeItem('adminKey');
+      setAdminKey('');
       setSession(null);
       setShowLoginForm(true);
       toast({ title: "Logged out successfully" });
@@ -194,8 +201,8 @@ export default function AdminPromote() {
   const loadData = async () => {
     try {
       const [campaignsRes, tokensRes] = await Promise.all([
-        fetch('/api/admin/campaigns'),
-        fetch('/api/admin/portal-tokens')
+        adminFetch(ENDPOINTS.ADMIN.CAMPAIGNS),
+        adminFetch(ENDPOINTS.ADMIN.PORTAL_TOKENS)
       ]);
 
       if (campaignsRes.ok) {
@@ -220,9 +227,8 @@ export default function AdminPromote() {
         id: editingCampaign?.id
       };
 
-      const response = await fetch('/api/admin/campaigns', {
+      const response = await adminFetch(ENDPOINTS.ADMIN.CAMPAIGNS, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
@@ -245,9 +251,8 @@ export default function AdminPromote() {
 
   const toggleCampaign = async (id: string, is_active: boolean) => {
     try {
-      const response = await fetch(`/api/admin/campaigns/${id}/toggle`, {
+      const response = await adminFetch(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}/toggle`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active })
       });
 
@@ -263,7 +268,7 @@ export default function AdminPromote() {
 
   const duplicateCampaign = async (id: string) => {
     try {
-      const response = await fetch(`/api/admin/campaigns/${id}/duplicate`, {
+      const response = await adminFetch(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}/duplicate`, {
         method: 'POST'
       });
 
@@ -285,7 +290,7 @@ export default function AdminPromote() {
     if (!confirm('Are you sure you want to delete this campaign?')) return;
 
     try {
-      const response = await fetch(`/api/admin/campaigns/${id}`, {
+      const response = await adminFetch(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}`, {
         method: 'DELETE'
       });
 
@@ -301,9 +306,8 @@ export default function AdminPromote() {
 
   const createPortalToken = async () => {
     try {
-      const response = await fetch('/api/admin/portal-tokens', {
+      const response = await adminFetch(ENDPOINTS.ADMIN.PORTAL_TOKENS, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tokenForm)
       });
 
@@ -331,7 +335,7 @@ export default function AdminPromote() {
     if (!confirm('Are you sure you want to revoke this portal token?')) return;
 
     try {
-      const response = await fetch(`/api/admin/portal-tokens/${id}`, {
+      const response = await adminFetch(`${ENDPOINTS.ADMIN.PORTAL_TOKENS}/${id}`, {
         method: 'DELETE'
       });
 
@@ -364,9 +368,8 @@ export default function AdminPromote() {
     if (!selectedToken) return;
 
     try {
-      const response = await fetch('/api/admin/portal-tokens/email', {
+      const response = await adminFetch('/api/admin/portal-tokens/email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           token: selectedToken.token,
           recipients: emailForm.recipients.filter(email => email.trim()),
@@ -405,7 +408,7 @@ export default function AdminPromote() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-key': process.env.VITE_ADMIN_KEY || ''
+          'x-admin-key': localStorage.getItem('adminKey') || ''
         },
         body: JSON.stringify({
           tokenId: token.id
@@ -438,9 +441,8 @@ export default function AdminPromote() {
 
   const generatePortalToken = async (campaignId: string) => {
     try {
-      const response = await fetch('/api/admin/portal-tokens', {
+      const response = await adminFetch(ENDPOINTS.ADMIN.PORTAL_TOKENS, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ campaignId, hoursValid: 24 * 30 })
       });
 
@@ -509,12 +511,7 @@ export default function AdminPromote() {
   const runSelfTest = async () => {
     setRunningTest(true);
     try {
-      const response = await fetch('/api/admin/selftest', {
-        headers: {
-          'x-admin-key': process.env.VITE_ADMIN_KEY || ''
-        }
-      });
-
+      const response = await adminFetch(ENDPOINTS.ADMIN.SELFTEST);
       const data = await response.json();
       
       if (data.ok) {
@@ -653,17 +650,20 @@ export default function AdminPromote() {
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
           <TabsList className="grid w-full grid-cols-3 bg-white/5">
-            <TabsTrigger value="campaigns" className="data-[state=active]:bg-copper-500 data-[state=active]:text-black">
-              <Target className="w-4 h-4 mr-2" />
-              Campaigns
+            <TabsTrigger value="campaigns" className="data-[state=active]:bg-copper-500 data-[state=active]:text-black text-xs sm:text-sm">
+              <Target className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Campaigns</span>
+              <span className="sm:hidden">Camps</span>
             </TabsTrigger>
-            <TabsTrigger value="tokens" className="data-[state=active]:bg-copper-500 data-[state=active]:text-black">
-              <LinkIcon className="w-4 h-4 mr-2" />
-              Portal Tokens
+            <TabsTrigger value="tokens" className="data-[state=active]:bg-copper-500 data-[state=active]:text-black text-xs sm:text-sm">
+              <LinkIcon className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Portal Tokens</span>
+              <span className="sm:hidden">Portals</span>
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-copper-500 data-[state=active]:text-black">
-              <BarChart3 className="w-4 h-4 mr-2" />
-              Analytics
+            <TabsTrigger value="analytics" className="data-[state=active]:bg-copper-500 data-[state=active]:text-black text-xs sm:text-sm">
+              <BarChart3 className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Analytics</span>
+              <span className="sm:hidden">Stats</span>
             </TabsTrigger>
           </TabsList>
 
@@ -689,19 +689,21 @@ export default function AdminPromote() {
 
             <div className="grid gap-6">
               {campaigns.map((campaign) => (
-                <Card key={campaign.id} className="p-6 bg-white/5 border-white/10">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-medium text-white text-lg">
+                <Card key={campaign.id} className="p-4 sm:p-6 bg-white/5 border-white/10">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 space-y-3 sm:space-y-0">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                        <h3 className="font-medium text-white text-base sm:text-lg truncate">
                           {campaign.name}
                         </h3>
-                        <Badge variant={campaign.is_active ? "default" : "secondary"}>
-                          {campaign.is_active ? "Active" : "Paused"}
-                        </Badge>
-                        <Badge variant="outline" className="text-muted border-white/20">
-                          {campaign.placements.join(', ')}
-                        </Badge>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant={campaign.is_active ? "default" : "secondary"} className="text-xs">
+                            {campaign.is_active ? "Active" : "Paused"}
+                          </Badge>
+                          <Badge variant="outline" className="text-muted border-white/20 text-xs">
+                            {campaign.placements.join(', ')}
+                          </Badge>
+                        </div>
                       </div>
                       <p className="text-muted mb-2">
                         <span className="font-medium">{campaign.sponsor_name}</span> • {campaign.headline}

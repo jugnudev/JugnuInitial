@@ -109,14 +109,14 @@ export function addSpotlightRoutes(app: Express) {
       // Create sponsor_portal_tokens table
       await supabase.rpc('exec_sql', {
         sql: `
+          CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          
           CREATE TABLE IF NOT EXISTS public.sponsor_portal_tokens (
-            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            token uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            campaign_id uuid NOT NULL REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
             created_at timestamptz NOT NULL DEFAULT now(),
-            updated_at timestamptz NOT NULL DEFAULT now(),
-            campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
-            token text UNIQUE NOT NULL,
-            expires_at timestamptz,
-            is_active boolean NOT NULL DEFAULT true
+            expires_at timestamptz NOT NULL,
+            revoked boolean NOT NULL DEFAULT false
           );
         `
       });

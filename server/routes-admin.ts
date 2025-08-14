@@ -7,16 +7,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-interface AdminRequest extends Request {
-  session?: {
+// Extend session data interface
+declare module 'express-session' {
+  interface SessionData {
     isAdmin?: boolean;
     loginTime?: number;
     userId?: string;
-  };
+  }
 }
 
 // Admin session middleware
-const requireAdminSession = (req: AdminRequest, res: Response, next: Function) => {
+const requireAdminSession = (req: Request, res: Response, next: Function) => {
   const adminSession = req.session?.isAdmin;
   const loginTime = req.session?.loginTime;
   
@@ -109,9 +110,112 @@ const auditLog = async (action: string, details: any, userId?: string) => {
   }
 };
 
+// Admin key middleware for API endpoints
+const requireAdminKey = (req: Request, res: Response, next: Function) => {
+  const adminKey = req.headers['x-admin-key'];
+  const expectedKey = process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+  
+  if (!expectedKey) {
+    return res.status(500).json({ ok: false, error: 'Admin system not configured' });
+  }
+  
+  if (!adminKey || adminKey !== expectedKey) {
+    return res.status(401).json({ ok: false, error: 'Admin key required' });
+  }
+  
+  next();
+};
+
 export function addAdminRoutes(app: Express) {
+  // Environment check
+  const checkEnvironment = () => {
+    const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+    const missing = required.filter(key => !process.env[key]);
+    
+    if (missing.length > 0) {
+      console.warn(`⚠️  Missing environment variables: ${missing.join(', ')}`);
+      return false;
+    }
+    return true;
+  };
+
+  // Verify environment on startup
+  checkEnvironment();
+
+  // Admin aliases that forward to spotlight handlers
+  // POST /api/admin/campaigns → spotlight upsert
+  app.post('/api/admin/campaigns', requireAdminKey, async (req: Request, res: Response) => {
+    try {
+      // Forward to spotlight admin upsert endpoint
+      const response = await fetch(`http://localhost:5000/api/spotlight/admin/campaigns`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': req.headers['x-admin-key'] as string
+        },
+        body: JSON.stringify(req.body)
+      });
+      
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error) {
+      res.status(500).json({ ok: false, error: 'Failed to forward request' });
+    }
+  });
+
+  // GET /api/admin/campaigns → spotlight list
+  app.get('/api/admin/campaigns', requireAdminKey, async (req: Request, res: Response) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/spotlight/admin/campaigns?${new URLSearchParams(req.query as any)}`, {
+        headers: {
+          'x-admin-key': req.headers['x-admin-key'] as string
+        }
+      });
+      
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error) {
+      res.status(500).json({ ok: false, error: 'Failed to forward request' });
+    }
+  });
+
+  // POST /api/admin/portal-tokens → spotlight portal token create
+  app.post('/api/admin/portal-tokens', requireAdminKey, async (req: Request, res: Response) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/spotlight/admin/portal-tokens`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': req.headers['x-admin-key'] as string
+        },
+        body: JSON.stringify(req.body)
+      });
+      
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error) {
+      res.status(500).json({ ok: false, error: 'Failed to forward request' });
+    }
+  });
+
+  // GET /api/admin/selftest → self-test endpoint
+  app.get('/api/admin/selftest', requireAdminKey, async (req: Request, res: Response) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/spotlight/admin/selftest`, {
+        headers: {
+          'x-admin-key': req.headers['x-admin-key'] as string
+        }
+      });
+      
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (error) {
+      res.status(500).json({ ok: false, error: 'Failed to forward request' });
+    }
+  });
+
   // POST /api/admin/login
-  app.post('/api/admin/login', rateLimit(5, 15 * 60 * 1000), async (req: AdminRequest, res) => {
+  app.post('/api/admin/login', rateLimit(5, 15 * 60 * 1000), async (req: Request, res: Response) => {
     try {
       const { password } = req.body;
       const adminPassword = process.env.ADMIN_PASSWORD;
@@ -147,13 +251,13 @@ export function addAdminRoutes(app: Express) {
   });
 
   // POST /api/admin/logout
-  app.post('/api/admin/logout', (req: AdminRequest, res) => {
+  app.post('/api/admin/logout', (req: Request, res: Response) => {
     req.session = undefined;
     res.json({ ok: true });
   });
 
   // GET /api/admin/session
-  app.get('/api/admin/session', (req: AdminRequest, res) => {
+  app.get('/api/admin/session', (req: Request, res: Response) => {
     const isValid = req.session?.isAdmin && 
                    req.session?.loginTime && 
                    (Date.now() - req.session.loginTime) < 24 * 60 * 60 * 1000;
@@ -166,7 +270,7 @@ export function addAdminRoutes(app: Express) {
   });
 
   // GET /api/admin/campaigns
-  app.get('/api/admin/campaigns', requireAdminSession, async (req: AdminRequest, res) => {
+  app.get('/api/admin/campaigns', requireAdminSession, async (req: Request, res: Response) => {
     try {
       // Use service role to bypass RLS
       const { data: campaigns, error } = await supabase
@@ -216,7 +320,7 @@ export function addAdminRoutes(app: Express) {
   });
 
   // POST /api/admin/campaigns (create/update) - Forward to spotlight admin endpoint
-  app.post('/api/admin/campaigns', requireAdminSession, async (req: AdminRequest, res) => {
+  app.post('/api/admin/campaigns', requireAdminSession, async (req: Request, res: Response) => {
     try {
       // Forward to the spotlight admin endpoint with audit logging
       const response = await fetch(`${req.protocol}://${req.get('host')}/api/spotlight/admin/campaign/upsert`, {
@@ -248,7 +352,7 @@ export function addAdminRoutes(app: Express) {
   });
 
   // PATCH /api/admin/campaigns/:id/toggle
-  app.patch('/api/admin/campaigns/:id/toggle', requireAdminSession, async (req: AdminRequest, res) => {
+  app.patch('/api/admin/campaigns/:id/toggle', requireAdminSession, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { is_active } = req.body;
@@ -278,7 +382,7 @@ export function addAdminRoutes(app: Express) {
   });
 
   // POST /api/admin/campaigns/:id/duplicate
-  app.post('/api/admin/campaigns/:id/duplicate', requireAdminSession, async (req: AdminRequest, res) => {
+  app.post('/api/admin/campaigns/:id/duplicate', requireAdminSession, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -345,7 +449,7 @@ export function addAdminRoutes(app: Express) {
   });
 
   // DELETE /api/admin/campaigns/:id
-  app.delete('/api/admin/campaigns/:id', requireAdminSession, async (req: AdminRequest, res) => {
+  app.delete('/api/admin/campaigns/:id', requireAdminSession, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -385,7 +489,7 @@ export function addAdminRoutes(app: Express) {
   });
 
   // GET /api/admin/portal-tokens
-  app.get('/api/admin/portal-tokens', requireAdminSession, async (req: AdminRequest, res) => {
+  app.get('/api/admin/portal-tokens', requireAdminSession, async (req: Request, res: Response) => {
     try {
       // Use service role to bypass RLS
       const { data: tokens, error } = await supabase
@@ -422,7 +526,7 @@ export function addAdminRoutes(app: Express) {
   });
 
   // POST /api/admin/portal-tokens
-  app.post('/api/admin/portal-tokens', requireAdminSession, async (req: AdminRequest, res) => {
+  app.post('/api/admin/portal-tokens', requireAdminSession, async (req: Request, res: Response) => {
     try {
       const { campaignId, hoursValid = 24 * 30 } = req.body; // Default 30 days
 
@@ -430,8 +534,9 @@ export function addAdminRoutes(app: Express) {
         return res.status(400).json({ ok: false, error: 'campaignId required' });
       }
 
-      // Generate 32-byte cryptographically secure random token
-      const token = crypto.randomBytes(32).toString('hex');
+      // Generate UUID token (using gen_random_uuid from database)
+      const tokenResponse = await supabase.rpc('gen_random_uuid');
+      const token = tokenResponse.data || crypto.randomBytes(32).toString('hex');
       
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + hoursValid);
@@ -476,7 +581,7 @@ export function addAdminRoutes(app: Express) {
   });
 
   // POST /api/admin/portal-tokens/email (send portal link via email)
-  app.post('/api/admin/portal-tokens/email', requireAdminSession, async (req: AdminRequest, res) => {
+  app.post('/api/admin/portal-tokens/email', requireAdminSession, async (req: Request, res: Response) => {
     try {
       const { token, recipients, message } = req.body;
 
@@ -565,7 +670,7 @@ The Jugnu Team
   });
 
   // DELETE /api/admin/portal-tokens/:id
-  app.delete('/api/admin/portal-tokens/:id', requireAdminSession, async (req: AdminRequest, res) => {
+  app.delete('/api/admin/portal-tokens/:id', requireAdminSession, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -590,7 +695,7 @@ The Jugnu Team
   });
 
   // GET /api/admin/audit-log
-  app.get('/api/admin/audit-log', requireAdminSession, async (req: AdminRequest, res) => {
+  app.get('/api/admin/audit-log', requireAdminSession, async (req: Request, res: Response) => {
     try {
       const { limit = 100 } = req.query;
 
