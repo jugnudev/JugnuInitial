@@ -84,11 +84,13 @@ export function HomeMidSpotlight() {
       })
     }).catch(console.error);
 
-    // Add UTM parameters to click URL
+    // Add UTM parameters if not present
     const url = new URL(spotlight.click_url);
-    url.searchParams.set('utm_source', 'jugnu');
-    url.searchParams.set('utm_medium', 'home_mid_placement');
-    url.searchParams.set('utm_campaign', spotlight.campaignId);
+    if (!url.searchParams.has('utm_source')) {
+      url.searchParams.set('utm_source', 'jugnu');
+      url.searchParams.set('utm_medium', 'spotlight');
+      url.searchParams.set('utm_campaign', spotlight.campaignId);
+    }
 
     window.open(url.toString(), '_blank');
   };

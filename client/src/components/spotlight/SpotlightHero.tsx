@@ -93,8 +93,8 @@ export function SpotlightHero({ fallbackContent }: SpotlightHeroProps) {
       const url = new URL(spotlight.click_url);
       if (!url.searchParams.has('utm_source')) {
         url.searchParams.set('utm_source', 'jugnu');
-        url.searchParams.set('utm_medium', 'hero');
-        url.searchParams.set('utm_campaign', 'spotlight');
+        url.searchParams.set('utm_medium', 'spotlight');
+        url.searchParams.set('utm_campaign', spotlight.campaignId);
       }
 
       // Open in new tab

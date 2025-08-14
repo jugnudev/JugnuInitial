@@ -10,9 +10,9 @@ export const PRICING_CONFIG = {
     spotlight_banner: {
       name: 'Spotlight Banner',
       description: 'Featured banner placement on Events page',
-      daily: 15,
-      weekly: 75,
-      base: 75,
+      daily: 12,
+      weekly: 60,
+      base: 60,
       features: [
         '1,500+ weekly impressions',
         'Events page banner placement',
@@ -27,9 +27,9 @@ export const PRICING_CONFIG = {
     homepage_hero: {
       name: 'Homepage Hero',
       description: 'Premium hero placement on homepage',
-      daily: 35,
-      weekly: 175,
-      base: 175,
+      daily: 28,
+      weekly: 140,
+      base: 140,
       features: [
         '3,000+ weekly impressions',
         'Homepage hero banner',
@@ -45,9 +45,9 @@ export const PRICING_CONFIG = {
     full_feature: {
       name: 'Full Feature',
       description: 'Complete campaign with multiple placements',
-      daily: 75,
-      weekly: 300,
-      base: 300,
+      daily: 60,
+      weekly: 240,
+      base: 240,
       features: [
         '5,000+ weekly impressions',
         'All placement options',
