@@ -1,8 +1,51 @@
 import type { Express } from "express";
 import { getSupabaseAdmin } from './supabaseAdmin.js';
+import crypto from 'crypto';
 
 export function addSpotlightRoutes(app: Express) {
   const supabase = getSupabaseAdmin();
+
+  // Domain validation middleware for portal routes
+  const validatePortalOrigin = (req: any, res: any, next: any) => {
+    const host = req.get('host');
+    const origin = req.get('origin');
+    const referer = req.get('referer');
+    
+    // Allow local development
+    if (process.env.NODE_ENV === 'development') {
+      return next();
+    }
+    
+    // Expected domains (configure via environment)
+    const allowedDomains = [
+      'jugnu.events',
+      'www.jugnu.events',
+      process.env.ALLOWED_PORTAL_DOMAIN || 'jugnu.events'
+    ].filter(Boolean);
+    
+    // Check host header
+    if (host && !allowedDomains.includes(host)) {
+      console.warn(`🚫 Portal access denied for host: ${host}`);
+      return res.status(403).json({ 
+        ok: false, 
+        error: 'Portal access not allowed from this domain' 
+      });
+    }
+    
+    // Check origin if present (for AJAX requests)
+    if (origin) {
+      const originDomain = new URL(origin).hostname;
+      if (!allowedDomains.includes(originDomain)) {
+        console.warn(`🚫 Portal access denied for origin: ${origin}`);
+        return res.status(403).json({ 
+          ok: false, 
+          error: 'Portal access not allowed from this domain' 
+        });
+      }
+    }
+    
+    next();
+  };
 
   // Initialize database tables if they don't exist
   const initTables = async () => {
@@ -663,7 +706,7 @@ This email was generated automatically from your Jugnu Sponsor Portal.`;
   });
 
   // Sponsor Portal Data Endpoint
-  app.get('/api/spotlight/portal/:token', async (req, res) => {
+  app.get('/api/spotlight/portal/:token', validatePortalOrigin, async (req, res) => {
     try {
       const { token } = req.params;
       
@@ -831,7 +874,7 @@ This email was generated automatically from your Jugnu Sponsor Portal.`;
   });
 
   // Get campaign details for renewal form prefill
-  app.get('/api/spotlight/portal/:token/campaign-details', async (req, res) => {
+  app.get('/api/spotlight/portal/:token/campaign-details', validatePortalOrigin, async (req, res) => {
     try {
       const { token } = req.params;
       
@@ -885,7 +928,7 @@ This email was generated automatically from your Jugnu Sponsor Portal.`;
   });
 
   // Weekly summary email endpoint (env-gated)
-  app.post('/api/spotlight/portal/:token/weekly-summary', async (req, res) => {
+  app.post('/api/spotlight/portal/:token/weekly-summary', validatePortalOrigin, async (req, res) => {
     try {
       if (process.env.ENABLE_WEEKLY_SUMMARIES !== 'true') {
         return res.status(404).json({ ok: false, error: 'Feature not enabled' });

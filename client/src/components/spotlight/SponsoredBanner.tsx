@@ -82,11 +82,24 @@ export function SponsoredBanner() {
             const seenKey = `spotlightSeen:${spotlight.campaignId}:events_banner:${today}`;
             const seenCount = parseInt(localStorage.getItem(seenKey) || '0', 10);
             
+            // 10-second debounce to prevent accidental double counts
+            const now = Date.now();
+            const lastImpressionKey = `lastImpression:${spotlight.campaignId}:events_banner`;
+            const lastImpression = parseInt(localStorage.getItem(lastImpressionKey) || '0', 10);
+            
+            if (now - lastImpression < 10000) {
+              console.log('🚫 Impression debounced (< 10s since last)');
+              setHasTrackedImpression(true);
+              observer.disconnect();
+              return;
+            }
+
             // Determine if this is a billable impression
             const isBillable = freqCap === 0 || seenCount < freqCap;
             
-            // Update seen count
+            // Update seen count and last impression timestamp
             localStorage.setItem(seenKey, String(seenCount + 1));
+            localStorage.setItem(lastImpressionKey, String(now));
             
             // Track both raw view and billable impression
             fetch('/api/spotlight/admin/metrics/track', {

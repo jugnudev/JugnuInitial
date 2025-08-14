@@ -1,5 +1,6 @@
 import { Express, Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
+import crypto from 'crypto';
 
 const supabase = createClient(
   process.env.SUPABASE_URL!,
@@ -425,8 +426,8 @@ export function addAdminRoutes(app: Express) {
         return res.status(400).json({ ok: false, error: 'campaignId required' });
       }
 
-      // Generate unique token
-      const token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      // Generate 32-byte cryptographically secure random token
+      const token = crypto.randomBytes(32).toString('hex');
       
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + hoursValid);

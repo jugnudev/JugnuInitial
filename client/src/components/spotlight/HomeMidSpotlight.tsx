@@ -43,6 +43,21 @@ export function HomeMidSpotlight() {
         (entries) => {
           const entry = entries[0];
           if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+            // 10-second debounce to prevent accidental double counts
+            const now = Date.now();
+            const lastImpressionKey = `lastImpression:${spotlight.campaignId}:home_mid`;
+            const lastImpression = parseInt(localStorage.getItem(lastImpressionKey) || '0', 10);
+            
+            if (now - lastImpression < 10000) {
+              console.log('🚫 Impression debounced (< 10s since last)');
+              setHasTrackedImpression(true);
+              observer.disconnect();
+              return;
+            }
+
+            // Update last impression timestamp
+            localStorage.setItem(lastImpressionKey, String(now));
+            
             // Track impression
             fetch('/api/spotlight/admin/metrics/track', {
               method: 'POST',
@@ -50,7 +65,8 @@ export function HomeMidSpotlight() {
               body: JSON.stringify({
                 campaignId: spotlight.campaignId,
                 placement: 'home_mid',
-                kind: 'impression'
+                type: 'impression',
+                is_billable: true
               })
             }).catch(console.error);
 
