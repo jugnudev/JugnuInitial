@@ -352,8 +352,8 @@ export function addAdminRoutes(app: Express) {
         });
       }
 
-      // Create portal token directly
-      const token = crypto.randomUUID();
+      // Create portal token using crypto.randomBytes
+      const token = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + expires_in_hours * 60 * 60 * 1000);
 
       const { data: tokenData, error } = await supabase
@@ -362,7 +362,7 @@ export function addAdminRoutes(app: Express) {
           campaign_id,
           token,
           expires_at: expiresAt.toISOString(),
-          disabled: false
+          disabled: false  // Use existing schema until cache refreshes
         })
         .select()
         .single();

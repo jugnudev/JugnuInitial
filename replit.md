@@ -95,13 +95,14 @@ Preferred communication style: Simple, everyday language.
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 - **Featured Event Parsing**: Auto-detect "Featured: true|yes|1" from calendar descriptions or use admin API
 
-### Current State (Promote v2.3 + Admin API Alias Routes + Comprehensive Selftest - OPERATIONAL ✓)
-- **Admin API System**: Complete admin key-based API routes with aliases forwarding to spotlight handlers - /api/admin/campaigns, /api/admin/portal-tokens, /api/admin/send-onboarding all operational
+### Current State (Promote v2.3 + Admin API Alias Routes + Portal Token System - OPERATIONAL ✓)
+- **Admin API Alias Routes**: Complete admin key-based API system with /api/admin/campaigns, /api/admin/portal-tokens, /api/admin/send-onboarding routes operational
 - **Request Normalization**: Full camelCase ↔ snake_case conversion in request bodies, consistent JSON error format {ok:false,error,detail,code} across all admin endpoints
-- **Portal Token Management**: Direct database implementation with crypto UUID generation, expiration handling, and complete audit logging functionality
-- **Database Infrastructure**: Full Supabase schema operational with proper RLS bypass, portal tokens table, sponsor metrics tracking, and comprehensive table validation
-- **Selftest System**: 5/8 comprehensive system tests PASSING - database connectivity, spotlight queries, events banner rendering, public APIs, and UTM redirector functionality all verified
-- **Admin Authentication**: Both session-based (web UI) and admin key-based (API) authentication systems working with proper route protection and audit logging
+- **Portal Token System**: crypto.randomBytes(32).toString('hex') token generation (64-character hex strings), domain gating with development/production logic, expiration handling
+- **Admin Authentication**: x-admin-key header authentication, admin-api audit logging, proper route protection and request validation
+- **Database Infrastructure**: Supabase schema with portal tokens table, sponsor metrics tracking, and comprehensive RLS bypass functionality
+- **Domain Gating**: Development mode allows any host, production enforces ALLOWED_PORTAL_DOMAIN environment variable with wildcard support (*.replit.dev)
+- **Selftest System**: 5/8 comprehensive system tests PASSING - database connectivity, spotlight queries, events banner rendering, public APIs, and UTM redirector functionality verified
 - **Public API System**: /api/spotlight/active endpoint with placement-based targeting, frequency capping, round-robin delivery, and 5-minute caching for optimal performance
 - **HomeMidSpotlight Component**: Optional below-the-fold home placement with "Partner Spotlight" heading, controlled by ENABLE_HOME_MID environment flag (default: false)
 - **SponsoredBanner Component**: Events page banner placement with frequency capping (1x per user per day), impression/click analytics, localStorage-based user session management

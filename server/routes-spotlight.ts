@@ -9,30 +9,34 @@ export function addSpotlightRoutes(app: Express) {
   const validatePortalOrigin = (req: any, res: any, next: any) => {
     const host = req.get('host');
     const origin = req.get('origin');
-    const referer = req.get('referer');
     
-    // Allow local development
-    if (process.env.NODE_ENV === 'development') {
+    // Always allow in development
+    if (process.env.NODE_ENV !== 'production') {
       return next();
     }
     
-    // Expected domains (configure via environment)
-    const allowedDomains = [
-      'jugnu.events',
-      'www.jugnu.events',
-      process.env.ALLOWED_PORTAL_DOMAIN || 'jugnu.events'
-    ].filter(Boolean);
+    // Parse allowed domains from environment (comma-separated list)
+    const allowedDomains = (process.env.ALLOWED_PORTAL_DOMAIN || 'jugnu.events')
+      .split(',')
+      .map(domain => domain.trim())
+      .filter(Boolean);
     
-    // Check host header
-    if (host && !allowedDomains.includes(host)) {
+    // Check if host matches any allowed domain (supports wildcards like *.replit.dev)
+    const isAllowed = allowedDomains.some(allowed => {
+      if (allowed.startsWith('*.')) {
+        const suffix = allowed.substring(2);
+        return host?.endsWith(suffix);
+      }
+      return host === allowed;
+    });
+    
+    if (!isAllowed) {
       console.warn(`🚫 Portal access denied for host: ${host}`);
       return res.status(403).json({ 
         ok: false, 
         error: 'Portal access not allowed from this domain' 
       });
     }
-    
-    // Check origin if present (for AJAX requests)
     if (origin) {
       const originDomain = new URL(origin).hostname;
       if (!allowedDomains.includes(originDomain)) {
@@ -106,18 +110,30 @@ export function addSpotlightRoutes(app: Express) {
         `
       });
 
-      // Create sponsor_portal_tokens table
+      // Create sponsor_portal_tokens table with correct schema - force cache refresh
       await supabase.rpc('exec_sql', {
         sql: `
+          BEGIN;
+          
+          DROP TABLE IF EXISTS public.sponsor_portal_tokens CASCADE;
+          
           CREATE EXTENSION IF NOT EXISTS pgcrypto;
           
-          CREATE TABLE IF NOT EXISTS public.sponsor_portal_tokens (
-            token uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+          CREATE TABLE public.sponsor_portal_tokens (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             campaign_id uuid NOT NULL REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
-            created_at timestamptz NOT NULL DEFAULT now(),
+            token text NOT NULL UNIQUE,
+            is_active boolean NOT NULL DEFAULT true,
             expires_at timestamptz NOT NULL,
-            revoked boolean NOT NULL DEFAULT false
+            emailed_to text,
+            email_sent_at timestamptz,
+            created_at timestamptz NOT NULL DEFAULT now()
           );
+          
+          CREATE INDEX idx_spt_campaign ON public.sponsor_portal_tokens(campaign_id);
+          CREATE INDEX idx_spt_active ON public.sponsor_portal_tokens(is_active);
+          
+          COMMIT;
         `
       });
 
@@ -183,19 +199,31 @@ export function addSpotlightRoutes(app: Express) {
           -- Add freq_cap_per_user_per_day to sponsor_campaigns if missing
           ALTER TABLE public.sponsor_campaigns ADD COLUMN IF NOT EXISTS freq_cap_per_user_per_day int NOT NULL DEFAULT 0;
           
-          -- Ensure sponsor_portal_tokens has correct schema
-          CREATE TABLE IF NOT EXISTS public.sponsor_portal_tokens (
+          -- Force recreate sponsor_portal_tokens using direct DDL
+          BEGIN;
+          
+          DROP TABLE IF EXISTS public.sponsor_portal_tokens CASCADE;
+          
+          CREATE EXTENSION IF NOT EXISTS pgcrypto;
+          
+          CREATE TABLE public.sponsor_portal_tokens (
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-            created_at timestamptz NOT NULL DEFAULT now(),
-            updated_at timestamptz NOT NULL DEFAULT now(),
-            campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
-            token text UNIQUE NOT NULL,
-            expires_at timestamptz,
-            last_accessed_at timestamptz,
+            campaign_id uuid NOT NULL REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
+            token text NOT NULL UNIQUE,
             is_active boolean NOT NULL DEFAULT true,
-            email_subscription text,
-            weekly_emails_enabled boolean DEFAULT false
+            expires_at timestamptz NOT NULL,
+            emailed_to text,
+            email_sent_at timestamptz,
+            created_at timestamptz NOT NULL DEFAULT now()
           );
+          
+          CREATE INDEX idx_spt_campaign ON public.sponsor_portal_tokens(campaign_id);
+          CREATE INDEX idx_spt_active ON public.sponsor_portal_tokens(is_active);
+          
+          -- Refresh PostgREST schema cache
+          NOTIFY pgrst, 'reload schema';
+          
+          COMMIT;
           
           -- Add missing columns to sponsor_portal_tokens if they don't exist
           ALTER TABLE public.sponsor_portal_tokens ADD COLUMN IF NOT EXISTS email_subscription text;
@@ -1217,15 +1245,15 @@ Need help or want to extend your run? Reply to this email or book the next slot 
         };
       }
 
-      // Create test token using crypto UUID
-      const testToken = crypto.randomUUID();
+      // Create test token using crypto.randomBytes
+      const testToken = crypto.randomBytes(32).toString('hex');
       const { data: tokenData, error: createError } = await supabase
         .from('sponsor_portal_tokens')
         .insert({
           campaign_id: campaigns[0].id,
           token: testToken,
           expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          disabled: false
+          disabled: false  // Use existing schema until cache refreshes
         })
         .select()
         .single();
