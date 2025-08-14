@@ -12,6 +12,7 @@ interface SpotlightData {
   cta_text?: string;
   click_url: string;
   is_sponsored: boolean;
+  freq_cap_per_user_per_day?: number;
   creative: {
     image_desktop_url?: string;
     image_mobile_url?: string;
@@ -37,7 +38,7 @@ export function SponsoredBanner() {
 
   const spotlight: SpotlightData | null = data?.ok ? data.spotlights?.events_banner : null;
 
-  // Frequency capping - check if user has seen this campaign today
+  // Frequency capping - check if user has seen this campaign today based on campaign settings
   useEffect(() => {
     if (spotlight) {
       // Debug mode bypass frequency capping (dev only)
@@ -49,16 +50,22 @@ export function SponsoredBanner() {
         return; // Skip frequency capping logic
       }
 
-      const today = new Date().toISOString().split('T')[0];
-      const seenKey = `spotlightSeen:${spotlight.campaignId}:events_banner:${today}`;
+      // Get frequency cap from spotlight data (default to 1 if not provided)
+      const freqCap = spotlight.freq_cap_per_user_per_day || 1;
       
-      if (localStorage.getItem(seenKey)) {
-        setIsVisible(false);
+      // If frequency cap is 0, no limit
+      if (freqCap === 0) {
         return;
       }
 
-      // Mark as seen when component loads
-      localStorage.setItem(seenKey, 'true');
+      const today = new Date().toISOString().split('T')[0];
+      const seenKey = `spotlightSeen:${spotlight.campaignId}:events_banner:${today}`;
+      const seenCount = parseInt(localStorage.getItem(seenKey) || '0', 10);
+      
+      if (seenCount >= freqCap) {
+        setIsVisible(false);
+        return;
+      }
     }
   }, [spotlight]);
 
@@ -69,14 +76,27 @@ export function SponsoredBanner() {
         (entries) => {
           const entry = entries[0];
           if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
-            // Track impression
+            // Track raw view (always counted)
+            const today = new Date().toISOString().split('T')[0];
+            const freqCap = spotlight.freq_cap_per_user_per_day || 1;
+            const seenKey = `spotlightSeen:${spotlight.campaignId}:events_banner:${today}`;
+            const seenCount = parseInt(localStorage.getItem(seenKey) || '0', 10);
+            
+            // Determine if this is a billable impression
+            const isBillable = freqCap === 0 || seenCount < freqCap;
+            
+            // Update seen count
+            localStorage.setItem(seenKey, String(seenCount + 1));
+            
+            // Track both raw view and billable impression
             fetch('/api/spotlight/admin/metrics/track', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 campaignId: spotlight.campaignId,
                 placement: 'events_banner',
-                kind: 'impression'
+                type: 'impression',
+                is_billable: isBillable
               })
             }).catch(console.error);
 
@@ -107,7 +127,7 @@ export function SponsoredBanner() {
         body: JSON.stringify({
           campaignId: spotlight.campaignId,
           placement: 'events_banner',
-          kind: 'click'
+          type: 'click'
         })
       });
 

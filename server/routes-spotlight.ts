@@ -8,7 +8,7 @@ export function addSpotlightRoutes(app: Express) {
   // Initialize database tables if they don't exist
   const initTables = async () => {
     try {
-      // Create sponsor_campaigns table
+      // Create sponsor_campaigns table with frequency capping
       await supabase.rpc('exec_sql', {
         sql: `
           CREATE TABLE IF NOT EXISTS public.sponsor_campaigns (
@@ -27,8 +27,12 @@ export function addSpotlightRoutes(app: Express) {
             priority int NOT NULL DEFAULT 0,
             is_active boolean NOT NULL DEFAULT true,
             is_sponsored boolean NOT NULL DEFAULT true,
-            tags text[] DEFAULT '{}'
+            tags text[] DEFAULT '{}',
+            freq_cap_per_user_per_day int NOT NULL DEFAULT 1
           );
+          
+          -- Add freq_cap_per_user_per_day column if it doesn't exist
+          ALTER TABLE public.sponsor_campaigns ADD COLUMN IF NOT EXISTS freq_cap_per_user_per_day int NOT NULL DEFAULT 1;
         `
       });
 
@@ -123,7 +127,7 @@ export function addSpotlightRoutes(app: Express) {
         console.error('❌ Portal tokens table setup exception:', error);
       }
 
-      // Create enhanced sponsor_metrics_daily table with CTR calculation
+      // Create enhanced sponsor_metrics_daily table with enhanced tracking
       await supabase.rpc('exec_sql', {
         sql: `
           CREATE TABLE IF NOT EXISTS public.sponsor_metrics_daily (
@@ -132,11 +136,13 @@ export function addSpotlightRoutes(app: Express) {
             creative_id uuid,
             date date NOT NULL,
             placement text NOT NULL,
-            impressions integer DEFAULT 0,
+            billable_impressions integer DEFAULT 0,
+            raw_views integer DEFAULT 0,
+            unique_users integer DEFAULT 0,
             clicks integer DEFAULT 0,
             ctr numeric GENERATED ALWAYS AS (
               CASE 
-                WHEN impressions > 0 THEN (clicks::numeric / impressions::numeric * 100)
+                WHEN billable_impressions > 0 THEN (clicks::numeric / billable_impressions::numeric * 100)
                 ELSE 0
               END
             ) STORED,
@@ -144,6 +150,15 @@ export function addSpotlightRoutes(app: Express) {
             updated_at timestamptz NOT NULL DEFAULT now(),
             UNIQUE(campaign_id, creative_id, date, placement)
           );
+          
+          -- Add new columns if they don't exist
+          ALTER TABLE public.sponsor_metrics_daily ADD COLUMN IF NOT EXISTS billable_impressions integer DEFAULT 0;
+          ALTER TABLE public.sponsor_metrics_daily ADD COLUMN IF NOT EXISTS raw_views integer DEFAULT 0;
+          ALTER TABLE public.sponsor_metrics_daily ADD COLUMN IF NOT EXISTS unique_users integer DEFAULT 0;
+          
+          -- Migrate old impressions column to billable_impressions if needed
+          UPDATE public.sponsor_metrics_daily SET billable_impressions = impressions WHERE billable_impressions = 0 AND impressions > 0;
+          UPDATE public.sponsor_metrics_daily SET raw_views = impressions WHERE raw_views = 0 AND impressions > 0;
         `
       });
 
@@ -212,6 +227,7 @@ export function addSpotlightRoutes(app: Express) {
             is_active,
             is_sponsored,
             tags,
+            freq_cap_per_user_per_day: req.body.freq_cap_per_user_per_day || 1,
             updated_at: new Date().toISOString()
           })
           .eq('id', id)
@@ -237,7 +253,8 @@ export function addSpotlightRoutes(app: Express) {
             priority,
             is_active,
             is_sponsored,
-            tags
+            tags,
+            freq_cap_per_user_per_day: req.body.freq_cap_per_user_per_day || 1
           })
           .select()
           .single();
@@ -406,53 +423,101 @@ export function addSpotlightRoutes(app: Express) {
   // POST /api/spotlight/admin/metrics/track
   app.post('/api/spotlight/admin/metrics/track', async (req, res) => {
     try {
-      const { campaignId, placement, kind } = req.body;
+      const { campaignId, placement, type, is_billable } = req.body;
       
-      if (!['click', 'impression'].includes(kind)) {
-        return res.status(400).json({ ok: false, error: 'Invalid tracking kind' });
+      if (!campaignId || !placement || !type) {
+        return res.status(400).json({
+          ok: false,
+          error: 'campaignId, placement, and type are required'
+        });
+      }
+
+      if (!['click', 'impression'].includes(type)) {
+        return res.status(400).json({ ok: false, error: 'Invalid tracking type' });
       }
 
       const today = new Date().toISOString().split('T')[0];
 
-      // Upsert daily metrics
-      const { error } = await supabase.rpc('upsert_sponsor_metrics', {
-        p_day: today,
-        p_campaign_id: campaignId,
-        p_placement: placement,
-        p_impressions: kind === 'impression' ? 1 : 0,
-        p_clicks: kind === 'click' ? 1 : 0
-      });
+      // Handle enhanced tracking with billable vs raw impressions
+      if (type === 'impression') {
+        // Try enhanced upsert first
+        const { error } = await supabase.rpc('upsert_enhanced_sponsor_metrics', {
+          p_campaign_id: campaignId,
+          p_date: today,
+          p_placement: placement,
+          p_billable_impressions: is_billable ? 1 : 0,
+          p_raw_views: 1,
+          p_unique_users: 1,
+          p_clicks: 0
+        });
 
-      if (error) {
-        // Fallback to manual upsert if RPC doesn't exist
+        if (error) {
+          // Fallback to manual upsert if RPC doesn't exist
+          const { data: existing } = await supabase
+            .from('sponsor_metrics_daily')
+            .select('*')
+            .eq('date', today)
+            .eq('campaign_id', campaignId)
+            .eq('placement', placement)
+            .single();
+
+          if (existing) {
+            const updates = {
+              billable_impressions: (existing.billable_impressions || 0) + (is_billable ? 1 : 0),
+              raw_views: (existing.raw_views || 0) + 1,
+              unique_users: (existing.unique_users || 0) + 1
+            };
+
+            await supabase
+              .from('sponsor_metrics_daily')
+              .update(updates)
+              .eq('date', today)
+              .eq('campaign_id', campaignId)
+              .eq('placement', placement);
+          } else {
+            await supabase
+              .from('sponsor_metrics_daily')
+              .insert({
+                date: today,
+                campaign_id: campaignId,
+                placement: placement,
+                billable_impressions: is_billable ? 1 : 0,
+                raw_views: 1,
+                unique_users: 1,
+                clicks: 0
+              });
+          }
+        }
+      } else if (type === 'click') {
+        // Handle click tracking
         const { data: existing } = await supabase
           .from('sponsor_metrics_daily')
           .select('*')
-          .eq('day', today)
+          .eq('date', today)
           .eq('campaign_id', campaignId)
           .eq('placement', placement)
           .single();
 
         if (existing) {
-          const updates = kind === 'impression' 
-            ? { impressions: existing.impressions + 1 }
-            : { clicks: existing.clicks + 1 };
-
           await supabase
             .from('sponsor_metrics_daily')
-            .update(updates)
-            .eq('day', today)
+            .update({
+              clicks: (existing.clicks || 0) + 1
+            })
+            .eq('date', today)
             .eq('campaign_id', campaignId)
             .eq('placement', placement);
         } else {
           await supabase
             .from('sponsor_metrics_daily')
             .insert({
-              day: today,
+              date: today,
               campaign_id: campaignId,
               placement: placement,
-              impressions: kind === 'impression' ? 1 : 0,
-              clicks: kind === 'click' ? 1 : 0
+              billable_impressions: 0,
+              raw_views: 0,
+              unique_users: 0,
+              clicks: 1
             });
         }
       }
@@ -828,6 +893,7 @@ export function addSpotlightRoutes(app: Express) {
               click_url: selectedCampaign.click_url,
               is_sponsored: selectedCampaign.is_sponsored,
               tags: selectedCampaign.tags,
+              freq_cap_per_user_per_day: selectedCampaign.freq_cap_per_user_per_day || 1,
               creative: {
                 image_desktop_url: creative.image_desktop_url,
                 image_mobile_url: creative.image_mobile_url,
@@ -916,37 +982,41 @@ export function addSpotlightRoutes(app: Express) {
 
       if (campaignError) throw campaignError;
 
-      // Get metrics for last 30 days
+      // Get metrics for last 30 days with enhanced tracking
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
       const { data: metrics, error: metricsError } = await supabase
         .from('sponsor_metrics_daily')
-        .select('day, placement, impressions, clicks')
+        .select('date, placement, billable_impressions, raw_views, unique_users, clicks')
         .eq('campaign_id', campaignId)
-        .gte('day', thirtyDaysAgo.toISOString().split('T')[0])
-        .order('day', { ascending: true });
+        .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
+        .order('date', { ascending: true });
 
       if (metricsError) throw metricsError;
 
-      // Calculate totals and daily arrays
-      const totalImpressions = metrics.reduce((sum, m) => sum + m.impressions, 0);
-      const totalClicks = metrics.reduce((sum, m) => sum + m.clicks, 0);
-      const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions * 100).toFixed(2) : '0.00';
+      // Calculate totals and daily arrays with enhanced metrics
+      const totalBillableImpressions = metrics.reduce((sum, m) => sum + (m.billable_impressions || 0), 0);
+      const totalRawViews = metrics.reduce((sum, m) => sum + (m.raw_views || 0), 0);
+      const totalUniqueUsers = metrics.reduce((sum, m) => sum + (m.unique_users || 0), 0);
+      const totalClicks = metrics.reduce((sum, m) => sum + (m.clicks || 0), 0);
+      const ctr = totalBillableImpressions > 0 ? (totalClicks / totalBillableImpressions * 100).toFixed(2) : '0.00';
 
-      // Group by day for charts
-      const dailyData: Record<string, { date: string; impressions: number; clicks: number }> = {};
+      // Group by day for charts with enhanced metrics
+      const dailyData: Record<string, { date: string; billable_impressions: number; raw_views: number; unique_users: number; clicks: number }> = {};
       metrics.forEach(m => {
-        if (!dailyData[m.day]) {
-          dailyData[m.day] = { date: m.day, impressions: 0, clicks: 0 };
+        if (!dailyData[m.date]) {
+          dailyData[m.date] = { date: m.date, billable_impressions: 0, raw_views: 0, unique_users: 0, clicks: 0 };
         }
-        dailyData[m.day].impressions += m.impressions;
-        dailyData[m.day].clicks += m.clicks;
+        dailyData[m.date].billable_impressions += m.billable_impressions || 0;
+        dailyData[m.date].raw_views += m.raw_views || 0;
+        dailyData[m.date].unique_users += m.unique_users || 0;
+        dailyData[m.date].clicks += m.clicks || 0;
       });
 
       const chartData = Object.values(dailyData).map((d: any) => ({
         ...d,
-        ctr: d.impressions > 0 ? (d.clicks / d.impressions * 100).toFixed(2) : '0.00'
+        ctr: d.billable_impressions > 0 ? (d.clicks / d.billable_impressions * 100).toFixed(2) : '0.00'
       }));
 
       res.json({
@@ -957,7 +1027,9 @@ export function addSpotlightRoutes(app: Express) {
           end_at: campaign.end_at
         },
         totals: {
-          impressions: totalImpressions,
+          billable_impressions: totalBillableImpressions,
+          raw_views: totalRawViews,
+          unique_users: totalUniqueUsers, 
           clicks: totalClicks,
           ctr: parseFloat(ctr)
         },

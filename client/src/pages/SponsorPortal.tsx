@@ -15,13 +15,17 @@ interface PortalData {
     end_at: string;
   };
   totals?: {
-    impressions: number;
+    billable_impressions: number;
+    raw_views: number;
+    unique_users: number;
     clicks: number;
     ctr: number;
   };
   chartData?: Array<{
     date: string;
-    impressions: number;
+    billable_impressions: number;
+    raw_views: number;
+    unique_users: number;
     clicks: number;
     ctr: string;
   }>;
@@ -69,10 +73,12 @@ export default function SponsorPortal() {
   const exportCSV = () => {
     if (!data?.chartData) return;
 
-    const csvHeaders = ['Date', 'Impressions', 'Clicks', 'CTR (%)'];
+    const csvHeaders = ['Date', 'Billable Impressions', 'Raw Views', 'Reach (Unique Users)', 'Clicks', 'CTR (%)'];
     const csvRows = data.chartData.map(row => [
       row.date,
-      row.impressions,
+      row.billable_impressions,
+      row.raw_views,
+      row.unique_users,
       row.clicks,
       row.ctr
     ]);
@@ -192,53 +198,69 @@ export default function SponsorPortal() {
           >
             <h2 className="font-fraunces text-2xl font-bold text-white mb-8">Overview</h2>
             
-            <div className="grid md:grid-cols-3 gap-6 mb-12">
-              {/* Total Impressions */}
-              <Card className="p-6 bg-white/5 border-white/10">
+            <div className="grid md:grid-cols-4 gap-6 mb-12">
+              {/* Billable Impressions */}
+              <Card className="p-6 bg-white/5 border-white/10" title="Billable impressions are views that count toward your campaign billing, respecting frequency capping rules.">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
                     <Eye className="w-6 h-6 text-blue-400" />
                   </div>
                   <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+                    Billable
+                  </Badge>
+                </div>
+                <div className="text-3xl font-bold text-white mb-2">
+                  {totals?.billable_impressions.toLocaleString() || '0'}
+                </div>
+                <p className="text-muted text-sm">Billable Impressions</p>
+              </Card>
+
+              {/* Raw Views */}
+              <Card className="p-6 bg-white/5 border-white/10" title="Raw views include all impressions, including those beyond frequency caps.">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                    <BarChart3 className="w-6 h-6 text-purple-400" />
+                  </div>
+                  <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
                     Total
                   </Badge>
                 </div>
                 <div className="text-3xl font-bold text-white mb-2">
-                  {totals?.impressions.toLocaleString() || '0'}
+                  {totals?.raw_views.toLocaleString() || '0'}
                 </div>
-                <p className="text-muted text-sm">Total Impressions</p>
+                <p className="text-muted text-sm">Raw Views</p>
               </Card>
 
-              {/* Total Clicks */}
+              {/* Reach (Unique Users) */}
+              <Card className="p-6 bg-white/5 border-white/10" title="Estimated number of unique users who viewed your campaign.">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
+                    <Calendar className="w-6 h-6 text-orange-400" />
+                  </div>
+                  <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
+                    Reach
+                  </Badge>
+                </div>
+                <div className="text-3xl font-bold text-white mb-2">
+                  {totals?.unique_users.toLocaleString() || '0'}
+                </div>
+                <p className="text-muted text-sm">Unique Users</p>
+              </Card>
+
+              {/* Total Clicks & CTR */}
               <Card className="p-6 bg-white/5 border-white/10">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
                     <MousePointer className="w-6 h-6 text-green-400" />
                   </div>
                   <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                    Total
+                    {totals?.ctr.toFixed(1) || '0.0'}% CTR
                   </Badge>
                 </div>
                 <div className="text-3xl font-bold text-white mb-2">
                   {totals?.clicks.toLocaleString() || '0'}
                 </div>
                 <p className="text-muted text-sm">Total Clicks</p>
-              </Card>
-
-              {/* Click-Through Rate */}
-              <Card className="p-6 bg-white/5 border-white/10">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-copper-500/20 rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-copper-400" />
-                  </div>
-                  <Badge className="bg-copper-500/20 text-copper-400 border-copper-500/30">
-                    Average
-                  </Badge>
-                </div>
-                <div className="text-3xl font-bold text-white mb-2">
-                  {totals?.ctr.toFixed(1) || '0.0'}%
-                </div>
-                <p className="text-muted text-sm">Click-Through Rate</p>
               </Card>
             </div>
           </motion.div>
@@ -259,7 +281,7 @@ export default function SponsorPortal() {
               <Card className="p-6 bg-white/5 border-white/10">
                 <h3 className="font-medium text-white mb-6 flex items-center gap-2">
                   <Eye className="w-5 h-5 text-blue-400" />
-                  Daily Impressions
+                  Daily Billable Impressions
                 </h3>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
@@ -282,7 +304,7 @@ export default function SponsorPortal() {
                       />
                       <Area 
                         type="monotone" 
-                        dataKey="impressions" 
+                        dataKey="billable_impressions" 
                         stroke="#3b82f6" 
                         fill="rgba(59, 130, 246, 0.2)" 
                       />

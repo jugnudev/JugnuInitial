@@ -576,6 +576,10 @@ export default function Promote() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
+                    <span className="text-muted">Frequency capping (1×/day/user)</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
                     <span className="text-muted">Custom headline/subline/CTA</span>
                   </li>
                   <li className="flex items-center gap-2">
@@ -652,6 +656,10 @@ export default function Promote() {
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
                     <span className="text-muted">Cross-platform performance report</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
+                    <span className="text-muted">No frequency limits (premium)</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
