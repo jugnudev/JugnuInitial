@@ -113,7 +113,7 @@ export default function AdminPromote() {
     is_active: true,
     is_sponsored: true,
     tags: [] as string[],
-    freq_cap_per_user_per_day: 1,
+    freq_cap_per_user_per_day: 0,
     creatives: [] as Creative[]
   });
   const [tokenForm, setTokenForm] = useState({
@@ -356,7 +356,7 @@ export default function AdminPromote() {
       is_active: true,
       is_sponsored: true,
       tags: [],
-      freq_cap_per_user_per_day: 1,
+      freq_cap_per_user_per_day: 0,
       creatives: []
     });
   };
@@ -870,21 +870,23 @@ export default function AdminPromote() {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="freq_cap" className="text-white">Frequency Cap (per day)</Label>
-                <Input
-                  id="freq_cap"
-                  type="number"
-                  min="0"
-                  value={campaignForm.freq_cap_per_user_per_day}
-                  onChange={(e) => setCampaignForm(prev => ({ 
-                    ...prev, 
-                    freq_cap_per_user_per_day: parseInt(e.target.value) || 0 
-                  }))}
-                  className="bg-white/10 border-white/20 text-white"
-                />
-                <p className="text-xs text-muted mt-1">0 = no limit</p>
-              </div>
+              {process.env.NODE_ENV === 'development' && (
+                <div>
+                  <Label htmlFor="freq_cap" className="text-white">Frequency Cap (per day) - MVP: 0 = No Cap</Label>
+                  <Input
+                    id="freq_cap"
+                    type="number"
+                    min="0"
+                    value={campaignForm.freq_cap_per_user_per_day}
+                    onChange={(e) => setCampaignForm(prev => ({ 
+                      ...prev, 
+                      freq_cap_per_user_per_day: parseInt(e.target.value) || 0 
+                    }))}
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                  <p className="text-xs text-muted mt-1">0 = no limit</p>
+                </div>
+              )}
 
               <div>
                 <Label htmlFor="priority" className="text-white">Priority</Label>

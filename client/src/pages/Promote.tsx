@@ -520,7 +520,7 @@ export default function Promote() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Frequency capping (1×/day/user)</span>
+                    <span className="text-muted">Impression tracking & analytics</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
@@ -599,7 +599,7 @@ export default function Promote() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Frequency capping (1×/day/user)</span>
+                    <span className="text-muted">Real-time impression tracking</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
@@ -682,7 +682,7 @@ export default function Promote() {
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">No frequency limits (premium)</span>
+                    <span className="text-muted">Premium placement priority</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />

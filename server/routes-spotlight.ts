@@ -27,11 +27,11 @@ export function addSpotlightRoutes(app: Express) {
             is_active boolean NOT NULL DEFAULT true,
             is_sponsored boolean NOT NULL DEFAULT true,
             tags text[] DEFAULT '{}',
-            freq_cap_per_user_per_day int NOT NULL DEFAULT 1
+            freq_cap_per_user_per_day int NOT NULL DEFAULT 0
           );
           
           -- Add freq_cap_per_user_per_day column if it doesn't exist
-          ALTER TABLE public.sponsor_campaigns ADD COLUMN IF NOT EXISTS freq_cap_per_user_per_day int NOT NULL DEFAULT 1;
+          ALTER TABLE public.sponsor_campaigns ADD COLUMN IF NOT EXISTS freq_cap_per_user_per_day int NOT NULL DEFAULT 0;
         `
       });
 
@@ -136,7 +136,7 @@ export function addSpotlightRoutes(app: Express) {
       await supabase.rpc('exec_sql', {
         sql: `
           -- Add freq_cap_per_user_per_day to sponsor_campaigns if missing
-          ALTER TABLE public.sponsor_campaigns ADD COLUMN IF NOT EXISTS freq_cap_per_user_per_day int NOT NULL DEFAULT 1;
+          ALTER TABLE public.sponsor_campaigns ADD COLUMN IF NOT EXISTS freq_cap_per_user_per_day int NOT NULL DEFAULT 0;
           
           -- Ensure sponsor_portal_tokens has correct schema
           CREATE TABLE IF NOT EXISTS public.sponsor_portal_tokens (
@@ -302,7 +302,7 @@ export function addSpotlightRoutes(app: Express) {
       const coercedPriority = parseInt(priority) || 1;
       const coercedIsActive = is_active !== false; // Default to true
       const coercedIsSponsored = is_sponsored !== false; // Default to true  
-      const coercedFreqCap = parseInt(freq_cap_per_user_per_day) || 1;
+      const coercedFreqCap = parseInt(freq_cap_per_user_per_day) || parseInt(process.env.FREQ_CAP_DEFAULT || '0');
       const coercedTags = Array.isArray(tags) ? tags : [];
 
       // Date handling
@@ -322,7 +322,7 @@ export function addSpotlightRoutes(app: Express) {
           finalEndAt = parseDate(end_at);
         }
       } catch (dateError) {
-        return res.status(400).json({ ok: false, error: dateError.message });
+        return res.status(400).json({ ok: false, error: dateError instanceof Error ? dateError.message : 'Invalid date format' });
       }
 
       // Auto-add UTM parameters if not present
@@ -427,17 +427,31 @@ export function addSpotlightRoutes(app: Express) {
       const today = new Date().toISOString().split('T')[0];
 
       if (event === 'impression') {
+        // Get frequency cap for this campaign
+        const freqCapEnabled = process.env.FREQ_CAP_ENABLED === 'true';
+        const { data: campaign } = await supabase
+          .from('sponsor_campaigns')
+          .select('freq_cap_per_user_per_day')
+          .eq('id', campaignId)
+          .single();
+        
+        const freqCap = campaign?.freq_cap_per_user_per_day || 0;
+        
+        // For MVP launch: when cap=0, both raw and billable increment the same
+        // In future: billable will respect the cap, raw will always increment
+        const billableIncrement = (freqCapEnabled && freqCap > 0) ? 0 : 1; // Future: implement actual cap logic
+        
         await supabase.rpc('exec_sql', {
           sql: `
             INSERT INTO public.sponsor_metrics_daily (campaign_id, creative_id, date, placement, billable_impressions, raw_views)
-            VALUES ($1, $2, $3, $4, 1, 1)
+            VALUES ($1, $2, $3, $4, $5, 1)
             ON CONFLICT (campaign_id, creative_id, date, placement)
             DO UPDATE SET 
-              billable_impressions = sponsor_metrics_daily.billable_impressions + 1,
+              billable_impressions = sponsor_metrics_daily.billable_impressions + $5,
               raw_views = sponsor_metrics_daily.raw_views + 1,
               updated_at = now();
           `,
-          params: [campaignId, creativeId, today, placement]
+          params: [campaignId, creativeId, today, placement, billableIncrement]
         });
       } else if (event === 'click') {
         await supabase.rpc('exec_sql', {

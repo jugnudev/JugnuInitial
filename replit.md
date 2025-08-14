@@ -95,7 +95,7 @@ Preferred communication style: Simple, everyday language.
 - **Timezone Support**: Proper Vancouver timezone handling for date ranges and formatting utilities
 - **Featured Event Parsing**: Auto-detect "Featured: true|yes|1" from calendar descriptions or use admin API
 
-### Current State (Promote v2.3 + Configurable Frequency Capping - COMPLETE ✓)
+### Current State (Promote v2.3 + MVP Frequency Capping Policy - COMPLETE ✓)
 - **Promote v2 - OPERATIONAL**: Comprehensive conversion-first sales page with real analytics, sponsor portal, premium design, and lead management system
 - **Database Infrastructure**: Full Supabase schema operational - sponsor_campaigns, sponsor_creatives, sponsor_metrics_daily, sponsor_leads tables initialized and functioning
 - **Admin API System**: Secure server-side admin endpoints for campaign management, creative uploads, metrics tracking, and lead management with environment-based admin key authentication
@@ -120,7 +120,7 @@ Preferred communication style: Simple, everyday language.
 - **Enhanced Database Schema**: sponsor_metrics_daily table with generated CTR column, row-level security policies for data protection, upsert API for real-time metrics aggregation, and comprehensive tracking infrastructure
 - **Advanced Pricing System**: Multi-week discounts (10% for 2+ weeks, 15% for 4+ weeks), early partner 20% discount configuration, auto-calculation engine with real-time quote summaries, and persistent add-ons storage in lead records
 - **Hardened Analytics**: Viewable impressions tracking with IntersectionObserver 50% threshold, 1-per-session frequency capping via localStorage, server-side event aggregation, and enhanced sponsor portal with date filtering and CSV export
-- **Configurable Frequency Capping System**: Database-level frequency cap configuration per campaign (freq_cap_per_user_per_day column), enhanced metrics tracking with billable_impressions vs raw_views distinction, comprehensive sponsor portal analytics with reach/unique users tracking, and package-specific frequency policies (1×/day for standard, unlimited for premium)
+- **MVP Frequency Capping Policy**: Default freq_cap_per_user_per_day = 0 (no cap) for launch simplicity, dual analytics counters (raw_views and billable_impressions) increment identically when cap=0, frequency cap mentions removed from public /promote page, admin-only frequency controls with FREQ_CAP_ENABLED environment flag for future activation, comprehensive backend infrastructure ready for advanced capping when needed
 
 ### Active Integrations
 - **Supabase**: Full database backend with community_events table and RLS
