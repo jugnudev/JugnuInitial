@@ -474,5 +474,122 @@ export function addSpotlightRoutes(app: Express) {
     }
   });
 
+  // Sponsor Portal Data Endpoint
+  app.get('/api/spotlight/portal/:token', async (req, res) => {
+    try {
+      const { token } = req.params;
+      
+      if (!token) {
+        return res.status(400).json({ ok: false, error: 'Token is required' });
+      }
+
+      // Validate token and get campaign
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('sponsor_portal_tokens')
+        .select(`
+          *,
+          sponsor_campaigns (
+            id,
+            name,
+            sponsor_name,
+            start_at,
+            end_at
+          )
+        `)
+        .eq('token', token)
+        .eq('is_active', true)
+        .single();
+
+      if (tokenError || !tokenData) {
+        return res.status(404).json({ ok: false, error: 'Invalid or expired portal link' });
+      }
+
+      // Check if token is expired
+      if (tokenData.expires_at && new Date(tokenData.expires_at) < new Date()) {
+        return res.status(401).json({ ok: false, error: 'Portal link has expired' });
+      }
+
+      // Update last accessed
+      await supabase
+        .from('sponsor_portal_tokens')
+        .update({ last_accessed_at: new Date().toISOString() })
+        .eq('id', tokenData.id);
+
+      const campaign = tokenData.sponsor_campaigns;
+      if (!campaign) {
+        return res.status(404).json({ ok: false, error: 'Campaign not found' });
+      }
+
+      // Get metrics data for the campaign
+      const { data: metricsData, error: metricsError } = await supabase
+        .from('sponsor_metrics_daily')
+        .select('*')
+        .eq('campaign_id', campaign.id)
+        .order('date', { ascending: true });
+
+      if (metricsError) {
+        console.error('Metrics query error:', metricsError);
+        return res.status(500).json({ ok: false, error: 'Failed to load analytics data' });
+      }
+
+      // Process metrics data
+      const metrics = metricsData || [];
+      
+      // Calculate totals
+      const totals = metrics.reduce(
+        (acc, row) => ({
+          billable_impressions: acc.billable_impressions + (row.billable_impressions || 0),
+          raw_views: acc.raw_views + (row.raw_views || 0),
+          unique_users: acc.unique_users + (row.unique_users || 0),
+          clicks: acc.clicks + (row.clicks || 0),
+        }),
+        { billable_impressions: 0, raw_views: 0, unique_users: 0, clicks: 0 }
+      );
+
+      // Calculate CTR
+      const ctr = totals.billable_impressions > 0 
+        ? (totals.clicks / totals.billable_impressions * 100).toFixed(2)
+        : '0.00';
+
+      // Prepare chart data
+      const chartData = metrics.map(row => ({
+        date: row.date,
+        billable_impressions: row.billable_impressions || 0,
+        raw_views: row.raw_views || 0,
+        unique_users: row.unique_users || 0,
+        clicks: row.clicks || 0,
+        ctr: row.billable_impressions > 0 
+          ? ((row.clicks || 0) / row.billable_impressions * 100).toFixed(2)
+          : '0.00'
+      }));
+
+      // Get last 7 days data
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const last7Days = chartData.filter(row => new Date(row.date) >= sevenDaysAgo);
+
+      res.json({
+        ok: true,
+        campaign: {
+          name: campaign.name,
+          sponsor_name: campaign.sponsor_name,
+          start_at: campaign.start_at,
+          end_at: campaign.end_at
+        },
+        totals: {
+          ...totals,
+          ctr: parseFloat(ctr)
+        },
+        chartData,
+        last7Days,
+        last30Days: chartData // Return all data as 30-day view for now
+      });
+
+    } catch (error) {
+      console.error('Portal data error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to load portal data' });
+    }
+  });
+
   console.log('✓ Spotlight routes added');
 }

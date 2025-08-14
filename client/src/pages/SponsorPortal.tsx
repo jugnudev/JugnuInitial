@@ -11,6 +11,7 @@ interface PortalData {
   ok: boolean;
   campaign?: {
     name: string;
+    sponsor_name: string;
     start_at: string;
     end_at: string;
   };
@@ -149,12 +150,35 @@ export default function SponsorPortal() {
           >
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h1 className="font-fraunces text-3xl sm:text-4xl font-bold text-white mb-2">
-                  Campaign Analytics
-                </h1>
-                <p className="text-muted text-lg">
-                  Real-time performance data for your Jugnu sponsorship
-                </p>
+                {campaign && (
+                  <>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h1 className="font-fraunces text-3xl sm:text-4xl font-bold text-white">
+                        {campaign.sponsor_name}
+                      </h1>
+                      <Badge variant="outline" className="text-copper-400 border-copper-500/50">
+                        Sponsor Portal
+                      </Badge>
+                    </div>
+                    <h2 className="font-fraunces text-xl text-white/80 mb-1">
+                      {campaign.name}
+                    </h2>
+                    <p className="text-muted text-lg flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      {formatDate(campaign.start_at)} - {formatDate(campaign.end_at)}
+                    </p>
+                  </>
+                )}
+                {!campaign && (
+                  <>
+                    <h1 className="font-fraunces text-3xl sm:text-4xl font-bold text-white mb-2">
+                      Campaign Analytics
+                    </h1>
+                    <p className="text-muted text-lg">
+                      Real-time performance data for your Jugnu sponsorship
+                    </p>
+                  </>
+                )}
               </div>
               <Button
                 onClick={exportCSV}

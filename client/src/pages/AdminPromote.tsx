@@ -94,6 +94,8 @@ export default function AdminPromote() {
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [showCampaignForm, setShowCampaignForm] = useState(false);
   const [showTokenForm, setShowTokenForm] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [selectedToken, setSelectedToken] = useState<PortalToken | null>(null);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [activeTab, setActiveTab] = useState('campaigns');
 
@@ -119,6 +121,10 @@ export default function AdminPromote() {
   const [tokenForm, setTokenForm] = useState({
     campaignId: '',
     hoursValid: 24 * 30 // 30 days default
+  });
+  const [emailForm, setEmailForm] = useState({
+    recipients: [''],
+    message: 'Your sponsor analytics portal is ready! Please find your personalized dashboard link below.'
   });
 
   // Check admin session on load
@@ -341,6 +347,77 @@ export default function AdminPromote() {
     toast({ title: "Portal URL copied to clipboard" });
   };
 
+  const openEmailForm = (token: PortalToken) => {
+    setSelectedToken(token);
+    setEmailForm({
+      recipients: [''],
+      message: `Your sponsor analytics portal for "${token.sponsor_campaigns.name}" is ready! Please find your personalized dashboard link below.`
+    });
+    setShowEmailForm(true);
+  };
+
+  const sendPortalEmail = async () => {
+    if (!selectedToken) return;
+
+    try {
+      const response = await fetch('/api/admin/portal-tokens/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token: selectedToken.token,
+          recipients: emailForm.recipients.filter(email => email.trim()),
+          message: emailForm.message
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        // Show email content modal for manual sending
+        const emailText = `Subject: ${data.emailData.subject}\n\nTo: ${data.emailData.recipients.join(', ')}\n\n${data.emailData.body}`;
+        
+        // Copy to clipboard for manual sending
+        navigator.clipboard.writeText(emailText);
+        
+        toast({ 
+          title: "Email content copied to clipboard", 
+          description: "Paste into your email client to send" 
+        });
+        
+        setShowEmailForm(false);
+        setSelectedToken(null);
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch (error) {
+      console.error('Send email error:', error);
+      toast({ title: "Error", description: "Failed to prepare email", variant: "destructive" });
+    }
+  };
+
+  const generatePortalToken = async (campaignId: string) => {
+    try {
+      const response = await fetch('/api/admin/portal-tokens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaignId, hoursValid: 24 * 30 })
+      });
+
+      const data = await response.json();
+
+      if (data.ok) {
+        toast({ title: "Portal token generated successfully" });
+        loadData(); // Refresh the tokens list
+        return data.token;
+      } else {
+        toast({ title: "Error", description: data.error, variant: "destructive" });
+      }
+    } catch (error) {
+      console.error('Generate token error:', error);
+      toast({ title: "Error", description: "Failed to generate token", variant: "destructive" });
+    }
+  };
+
   const resetCampaignForm = () => {
     setCampaignForm({
       name: '',
@@ -550,23 +627,102 @@ export default function AdminPromote() {
                         </span>
                         <span>
                           <Users className="w-4 h-4 inline mr-1" />
-                          {campaign.freq_cap_per_user_per_day}×/day cap
+                          {campaign.freq_cap_per_user_per_day === 0 ? 'No cap' : `${campaign.freq_cap_per_user_per_day}×/day cap`}
                         </span>
+                        {(() => {
+                          const existingToken = portalTokens.find(t => t.campaign_id === campaign.id);
+                          if (existingToken) {
+                            return (
+                              <span className="text-green-400">
+                                <LinkIcon className="w-4 h-4 inline mr-1" />
+                                Portal active
+                              </span>
+                            );
+                          }
+                          return null;
+                        })()}
                         <span>Priority: {campaign.priority}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Switch
                         checked={campaign.is_active}
                         onCheckedChange={(checked) => toggleCampaign(campaign.id, checked)}
                         data-testid={`toggle-campaign-${campaign.id}`}
                       />
+                      
+                      {/* Portal Actions */}
+                      <Button
+                        onClick={() => generatePortalToken(campaign.id)}
+                        variant="outline"
+                        size="sm"
+                        className="border-copper-500/50 text-copper-400 hover:bg-copper-500/20"
+                        data-testid={`generate-portal-${campaign.id}`}
+                        title="Generate portal link"
+                      >
+                        <LinkIcon className="w-4 h-4" />
+                      </Button>
+                      
+                      {/* Show existing portal info if available */}
+                      {(() => {
+                        const existingToken = portalTokens.find(t => t.campaign_id === campaign.id);
+                        if (existingToken) {
+                          return (
+                            <>
+                              <Button
+                                onClick={() => copyPortalUrl(existingToken.token)}
+                                variant="outline"
+                                size="sm"
+                                className="border-green-500/50 text-green-400 hover:bg-green-500/20"
+                                data-testid={`copy-portal-${campaign.id}`}
+                                title="Copy portal URL"
+                              >
+                                <Copy className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                onClick={() => openEmailForm(existingToken)}
+                                variant="outline"
+                                size="sm"
+                                className="border-blue-500/50 text-blue-400 hover:bg-blue-500/20"
+                                data-testid={`email-portal-${campaign.id}`}
+                                title="Email portal link"
+                              >
+                                <Mail className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                onClick={() => window.open(`/sponsor/${existingToken.token}`, '_blank')}
+                                variant="outline"
+                                size="sm"
+                                className="border-purple-500/50 text-purple-400 hover:bg-purple-500/20"
+                                data-testid={`open-portal-${campaign.id}`}
+                                title="Open as sponsor"
+                              >
+                                <ExternalLink className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                onClick={() => revokeToken(existingToken.id)}
+                                variant="outline"
+                                size="sm"
+                                className="border-orange-500/50 text-orange-400 hover:bg-orange-500/20"
+                                data-testid={`revoke-portal-${campaign.id}`}
+                                title="Revoke portal access"
+                              >
+                                <Shield className="w-4 h-4" />
+                              </Button>
+                            </>
+                          );
+                        }
+                        return null;
+                      })()}
+
+                      {/* Campaign Actions */}
                       <Button
                         onClick={() => openEditCampaign(campaign)}
                         variant="outline"
                         size="sm"
                         className="border-white/20 text-white hover:bg-white/10"
                         data-testid={`edit-campaign-${campaign.id}`}
+                        title="Edit campaign"
                       >
                         <Edit3 className="w-4 h-4" />
                       </Button>
@@ -576,6 +732,7 @@ export default function AdminPromote() {
                         size="sm"
                         className="border-white/20 text-white hover:bg-white/10"
                         data-testid={`duplicate-campaign-${campaign.id}`}
+                        title="Duplicate campaign"
                       >
                         <RefreshCw className="w-4 h-4" />
                       </Button>
@@ -585,6 +742,7 @@ export default function AdminPromote() {
                         size="sm"
                         className="border-red-500/50 text-red-400 hover:bg-red-500/20"
                         data-testid={`delete-campaign-${campaign.id}`}
+                        title="Delete campaign"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -1030,6 +1188,104 @@ export default function AdminPromote() {
               data-testid="create-portal-token-button"
             >
               Generate Token
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Composer Modal */}
+      <Dialog open={showEmailForm} onOpenChange={setShowEmailForm}>
+        <DialogContent className="bg-bg border-white/20 text-white max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-fraunces text-xl">
+              Send Portal Link
+            </DialogTitle>
+            <DialogDescription className="text-muted">
+              {selectedToken && `Send portal access for "${selectedToken.sponsor_campaigns.name}" campaign`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label className="text-white mb-2 block">Recipient Email(s)</Label>
+              {emailForm.recipients.map((email, index) => (
+                <div key={index} className="flex gap-2 mb-2">
+                  <Input
+                    value={email}
+                    onChange={(e) => {
+                      const newRecipients = [...emailForm.recipients];
+                      newRecipients[index] = e.target.value;
+                      setEmailForm(prev => ({ ...prev, recipients: newRecipients }));
+                    }}
+                    placeholder="sponsor@company.com"
+                    className="bg-white/10 border-white/20 text-white"
+                  />
+                  {emailForm.recipients.length > 1 && (
+                    <Button
+                      onClick={() => {
+                        const newRecipients = emailForm.recipients.filter((_, i) => i !== index);
+                        setEmailForm(prev => ({ ...prev, recipients: newRecipients }));
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="border-red-500/50 text-red-400 hover:bg-red-500/20"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+              <Button
+                onClick={() => {
+                  setEmailForm(prev => ({ ...prev, recipients: [...prev.recipients, ''] }));
+                }}
+                variant="outline"
+                size="sm"
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Email
+              </Button>
+            </div>
+
+            <div>
+              <Label className="text-white mb-2 block">Message</Label>
+              <Textarea
+                value={emailForm.message}
+                onChange={(e) => setEmailForm(prev => ({ ...prev, message: e.target.value }))}
+                placeholder="Your sponsor analytics portal is ready! Please find your personalized dashboard link below."
+                className="bg-white/10 border-white/20 text-white min-h-[120px]"
+              />
+            </div>
+
+            {selectedToken && (
+              <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
+                <h4 className="font-medium text-white mb-2">Portal Details</h4>
+                <div className="text-sm text-muted space-y-1">
+                  <p><strong>Campaign:</strong> {selectedToken.sponsor_campaigns.name}</p>
+                  <p><strong>Sponsor:</strong> {selectedToken.sponsor_campaigns.sponsor_name}</p>
+                  <p><strong>Expires:</strong> {formatDate(selectedToken.expires_at)}</p>
+                  <p><strong>Portal URL:</strong> {window.location.origin}/sponsor/{selectedToken.token}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={() => setShowEmailForm(false)}
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={sendPortalEmail}
+              className="bg-copper-500 hover:bg-copper-600 text-black"
+              disabled={!emailForm.recipients.some(email => email.trim())}
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              Prepare Email
             </Button>
           </DialogFooter>
         </DialogContent>

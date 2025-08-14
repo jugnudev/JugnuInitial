@@ -442,7 +442,9 @@ export function addAdminRoutes(app: Express) {
           *,
           sponsor_campaigns!campaign_id (
             name,
-            sponsor_name
+            sponsor_name,
+            start_at,
+            end_at
           )
         `)
         .single();
@@ -465,6 +467,95 @@ export function addAdminRoutes(app: Express) {
     } catch (error) {
       console.error('Admin portal token create error:', error);
       res.status(500).json({ ok: false, error: 'Failed to create portal token' });
+    }
+  });
+
+  // POST /api/admin/portal-tokens/email (send portal link via email)
+  app.post('/api/admin/portal-tokens/email', requireAdminSession, async (req: AdminRequest, res) => {
+    try {
+      const { token, recipients, message } = req.body;
+
+      if (!token || !recipients || !Array.isArray(recipients) || recipients.length === 0) {
+        return res.status(400).json({ ok: false, error: 'Token and recipients are required' });
+      }
+
+      // Get token details
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('sponsor_portal_tokens')
+        .select(`
+          *,
+          sponsor_campaigns!campaign_id (
+            name,
+            sponsor_name,
+            start_at,
+            end_at
+          )
+        `)
+        .eq('token', token)
+        .single();
+
+      if (tokenError || !tokenData) {
+        return res.status(404).json({ ok: false, error: 'Portal token not found' });
+      }
+
+      const campaign = tokenData.sponsor_campaigns;
+      const portalUrl = `${req.protocol}://${req.get('host')}/sponsor/${token}`;
+      
+      // Format dates
+      const startDate = new Date(campaign.start_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      const endDate = new Date(campaign.end_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+
+      const emailSubject = `Sponsor Analytics Portal - ${campaign.name}`;
+      const emailBody = `
+${message || 'Your sponsor analytics portal is ready!'}
+
+Campaign: ${campaign.name}
+Sponsor: ${campaign.sponsor_name}
+Campaign Period: ${startDate} - ${endDate}
+
+Access your analytics portal here:
+${portalUrl}
+
+This link will remain active until ${new Date(tokenData.expires_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}.
+
+Best regards,
+The Jugnu Team
+      `.trim();
+
+      // Log the email action
+      await auditLog('portal_email_sent', {
+        campaignId: tokenData.campaign_id,
+        token: token.substring(0, 8) + '...',
+        recipients: recipients.length,
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
+      }, req.session?.userId);
+
+      // Return email content for manual sending or integration with email service
+      res.json({ 
+        ok: true, 
+        message: 'Email content prepared',
+        emailData: {
+          subject: emailSubject,
+          body: emailBody,
+          recipients
+        }
+      });
+    } catch (error) {
+      console.error('Admin portal email error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to send portal email' });
     }
   });
 
