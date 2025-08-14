@@ -612,14 +612,22 @@ export function addSpotlightRoutes(app: Express) {
   // Send Onboarding Email Endpoint
   app.post('/api/spotlight/admin/send-onboarding', requireAdminKey, async (req, res) => {
     try {
-      const { tokenId } = req.body;
+      const { token_id, tokenId, token, email } = req.body;
       
-      if (!tokenId) {
-        return res.status(400).json({ ok: false, error: 'Token ID is required' });
+      // Accept either token_id, tokenId (legacy), or token (hex string)
+      const lookupId = token_id || tokenId;
+      const tokenHex = token;
+      
+      if (!lookupId && !tokenHex) {
+        return res.status(400).json({ 
+          ok: false, 
+          error: 'Token ID or token is required',
+          detail: 'Provide either token_id (UUID) or token (hex string)'
+        });
       }
 
-      // Get token and campaign data
-      const { data: tokenData, error: tokenError } = await supabase
+      // Get token and campaign data - lookup by ID or token
+      let tokenQuery = supabase
         .from('sponsor_portal_tokens')
         .select(`
           *,
@@ -630,12 +638,22 @@ export function addSpotlightRoutes(app: Express) {
             start_at,
             end_at
           )
-        `)
-        .eq('id', tokenId)
-        .single();
+        `);
+
+      if (lookupId) {
+        tokenQuery = tokenQuery.eq('id', lookupId);
+      } else {
+        tokenQuery = tokenQuery.eq('token', tokenHex);
+      }
+
+      const { data: tokenData, error: tokenError } = await tokenQuery.single();
 
       if (tokenError || !tokenData) {
-        return res.status(404).json({ ok: false, error: 'Portal token not found' });
+        return res.status(404).json({ 
+          ok: false, 
+          error: 'Portal token not found',
+          detail: lookupId ? `No token found with ID ${lookupId}` : `No token found with hex ${tokenHex}`
+        });
       }
 
       const campaign = tokenData.sponsor_campaigns;
@@ -646,6 +664,9 @@ export function addSpotlightRoutes(app: Express) {
         day: 'numeric'
       });
 
+      // Use provided email or default to sponsor name
+      const recipientEmail = email || `${campaign.sponsor_name.toLowerCase().replace(/\s+/g, '')}@example.com`;
+
       // Polished onboarding email template
       const subject = `Your Jugnu Campaign Analytics`;
       
@@ -655,60 +676,70 @@ export function addSpotlightRoutes(app: Express) {
       
       const body = `Hi ${campaign.sponsor_name},
 
-Your sponsor portal is ready for ${campaign.name} (${dateRange}).
+Your campaign "${campaign.name}" is now live on Jugnu (${dateRange}).
 
-Portal: ${portalUrl} (expires ${expiryDate})
+Access your analytics portal here: ${portalUrl}
 
-Inside you'll see real-time Impressions, Clicks, CTR, 7-day trends, and CSV export.
+Your portal includes:
+• Real-time impressions and clicks
+• Click-through rates (CTR) 
+• 7-day performance summary
+• CSV export for your records
 
-Tip: Compare performance to site benchmarks shown in the header.
+This portal link expires on ${expiryDate}.
 
-Need help or want to extend your run? Reply to this email or book the next slot from the portal.
+Questions? Reply to this email or contact our team.
 
-— Team Jugnu`;
+Best,
+The Jugnu Team
+jugnu.events`;
 
-      // Log to audit table
-      try {
-        await supabase.rpc('exec_sql', {
-          sql: `
-            INSERT INTO public.admin_audit_log (action, details, ip_address, user_agent, created_at)
-            VALUES ($1, $2, $3, $4, now())
-          `,
-          params: [
-            'onboarding_email_sent',
-            JSON.stringify({
-              tokenId: tokenData.id,
-              campaignId: campaign.id,
-              campaignName: campaign.name,
-              sponsorName: campaign.sponsor_name,
-              portalUrl: portalUrl,
-              expiryDate: expiryDate,
-              timestamp: new Date().toISOString()
-            }),
-            req.ip || req.connection?.remoteAddress || 'unknown',
-            req.headers['user-agent'] || 'unknown'
-          ]
-        });
-      } catch (auditError) {
-        console.error('Audit log error:', auditError);
-        // Don't fail the request if audit logging fails
-      }
-
-      res.json({
-        ok: true,
-        emailData: {
-          subject,
-          body,
-          recipients: [`contact@${campaign.sponsor_name.toLowerCase().replace(/\s+/g, '')}.com`], // Generic fallback
-          portalUrl,
-          expiryDate
-        },
-        message: 'Onboarding email template prepared successfully'
+      // TODO: Integrate with actual email service (SendGrid, etc.)
+      console.log('Onboarding email content:', { 
+        to: recipientEmail,
+        subject, 
+        body, 
+        portalUrl 
       });
 
-    } catch (error) {
+      // Update token with email info
+      await supabase
+        .from('sponsor_portal_tokens')
+        .update({
+          emailed_to: recipientEmail,
+          email_sent_at: new Date().toISOString()
+        })
+        .eq('id', tokenData.id);
+
+      // Audit log the email send
+      await auditLog('onboarding_email_sent', {
+        tokenId: tokenData.id,
+        token: tokenData.token,
+        campaignId: campaign.id,
+        campaignName: campaign.name,
+        recipientEmail,
+        portalUrl,
+        expiryDate,
+        lookupMethod: lookupId ? 'id' : 'token',
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
+      }, 'admin-api');
+
+      res.json({ 
+        ok: true, 
+        message: 'Onboarding email sent successfully',
+        portalUrl,
+        expiryDate,
+        recipientEmail
+      });
+
+    } catch (error: any) {
       console.error('Onboarding email error:', error);
-      res.status(500).json({ ok: false, error: 'Failed to prepare onboarding email' });
+      res.status(500).json({ 
+        ok: false, 
+        error: 'Failed to send onboarding email',
+        detail: error?.message || 'Unknown error'
+      });
     }
   });
 
