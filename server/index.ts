@@ -39,6 +39,15 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // API fallback guardrail - ensure no /api/* route returns index.html
+  app.use('/api/*', (req, res) => {
+    res.set('Content-Type', 'application/json');
+    res.status(404).json({
+      ok: false,
+      error: 'Not found'
+    });
+  });
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

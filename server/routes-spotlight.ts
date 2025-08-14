@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import crypto from "crypto";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 
 export function addSpotlightRoutes(app: Express) {
@@ -69,6 +70,19 @@ export function addSpotlightRoutes(app: Express) {
             created_at timestamptz NOT NULL DEFAULT now(),
             payload jsonb NOT NULL,
             status text NOT NULL DEFAULT 'new'
+          );
+        `
+      });
+
+      // Create sponsor_portal_tokens table
+      await supabase.rpc('exec_sql', {
+        sql: `
+          CREATE TABLE IF NOT EXISTS public.sponsor_portal_tokens (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            created_at timestamptz NOT NULL DEFAULT now(),
+            token text UNIQUE NOT NULL,
+            campaign_id uuid REFERENCES public.sponsor_campaigns(id) ON DELETE CASCADE,
+            expires_at timestamptz
           );
         `
       });
@@ -266,6 +280,7 @@ export function addSpotlightRoutes(app: Express) {
         if (creativesError) throw creativesError;
       }
 
+      res.set('Content-Type', 'application/json');
       res.json({
         ok: true,
         campaign,
@@ -298,6 +313,7 @@ export function addSpotlightRoutes(app: Express) {
 
       if (error) throw error;
 
+      res.set('Content-Type', 'application/json');
       res.json({
         ok: true,
         campaign: data,
@@ -309,6 +325,39 @@ export function addSpotlightRoutes(app: Express) {
       res.status(500).json({
         ok: false,
         error: error instanceof Error ? error.message : 'Failed to toggle campaign'
+      });
+    }
+  });
+
+  // GET /api/spotlight/admin/campaign/list - Campaigns list for sanity checks
+  app.get('/api/spotlight/admin/campaign/list', requireAdminKey, async (req, res) => {
+    try {
+      const { data: campaigns, error } = await supabase
+        .from('sponsor_campaigns')
+        .select(`
+          id,
+          name,
+          sponsor_name,
+          is_active,
+          start_at,
+          end_at,
+          placements
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      res.set('Content-Type', 'application/json');
+      res.json({
+        ok: true,
+        campaigns
+      });
+
+    } catch (error) {
+      console.error('Get campaign list error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to get campaign list'
       });
     }
   });
@@ -348,6 +397,7 @@ export function addSpotlightRoutes(app: Express) {
         })
       );
 
+      res.set('Content-Type', 'application/json');
       res.json({
         ok: true,
         campaigns: campaignsWithMetrics
@@ -425,6 +475,142 @@ export function addSpotlightRoutes(app: Express) {
     }
   });
 
+  // POST /api/spotlight/admin/portal-token - Create portal token for campaign analytics
+  app.post('/api/spotlight/admin/portal-token', requireAdminKey, async (req, res) => {
+    try {
+      const { campaign_id, expires_in_hours = 72 } = req.body;
+
+      if (!campaign_id) {
+        return res.status(400).json({
+          ok: false,
+          error: 'campaign_id is required'
+        });
+      }
+
+      // Verify campaign exists
+      const { data: campaign, error: campaignError } = await supabase
+        .from('sponsor_campaigns')
+        .select('id, name')
+        .eq('id', campaign_id)
+        .single();
+
+      if (campaignError || !campaign) {
+        return res.status(404).json({
+          ok: false,
+          error: 'Campaign not found'
+        });
+      }
+
+      // Generate token (using UUID for simplicity, could be JWT in production)
+      const token = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + expires_in_hours);
+
+      // Store token in database
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('sponsor_portal_tokens')
+        .insert({
+          token,
+          campaign_id,
+          expires_at: expiresAt.toISOString()
+        })
+        .select()
+        .single();
+
+      if (tokenError) throw tokenError;
+
+      res.set('Content-Type', 'application/json');
+      res.json({
+        ok: true,
+        token,
+        portal_url: `/sponsor/${token}`,
+        campaign_id,
+        expires_at: expiresAt.toISOString()
+      });
+
+    } catch (error) {
+      console.error('Portal token creation error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to create portal token'
+      });
+    }
+  });
+
+  // GET /api/spotlight/admin/portal-token - Convenience alias for curl testing
+  app.get('/api/spotlight/admin/portal-token', requireAdminKey, async (req, res) => {
+    try {
+      const { campaign_id, expires_in_hours = 72 } = req.query;
+
+      if (!campaign_id) {
+        return res.status(400).json({
+          ok: false,
+          error: 'campaign_id query parameter is required'
+        });
+      }
+
+      // Forward to POST handler with same logic
+      const forwardedReq = {
+        ...req,
+        body: {
+          campaign_id: campaign_id as string,
+          expires_in_hours: parseInt(expires_in_hours as string) || 72
+        }
+      };
+
+      // Call POST handler logic directly
+      const { campaign_id: cid, expires_in_hours: eih = 72 } = forwardedReq.body;
+
+      // Verify campaign exists
+      const { data: campaign, error: campaignError } = await supabase
+        .from('sponsor_campaigns')
+        .select('id, name')
+        .eq('id', cid)
+        .single();
+
+      if (campaignError || !campaign) {
+        return res.status(404).json({
+          ok: false,
+          error: 'Campaign not found'
+        });
+      }
+
+      // Generate token
+      const token = crypto.randomUUID();
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + eih);
+
+      // Store token in database
+      const { data: tokenData, error: tokenError } = await supabase
+        .from('sponsor_portal_tokens')
+        .insert({
+          token,
+          campaign_id: cid,
+          expires_at: expiresAt.toISOString()
+        })
+        .select()
+        .single();
+
+      if (tokenError) throw tokenError;
+
+      res.set('Content-Type', 'application/json');
+      res.json({
+        ok: true,
+        token,
+        portal_url: `/sponsor/${token}`,
+        campaign_id: cid,
+        expires_at: expiresAt.toISOString()
+      });
+
+    } catch (error) {
+      console.error('Portal token creation error (GET):', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to create portal token'
+      });
+    }
+  });
+
   // GET /api/spotlight/admin/leads
   app.get('/api/spotlight/admin/leads', requireAdminKey, async (req, res) => {
     try {
@@ -435,6 +621,7 @@ export function addSpotlightRoutes(app: Express) {
 
       if (error) throw error;
 
+      res.set('Content-Type', 'application/json');
       res.json({
         ok: true,
         leads
@@ -658,6 +845,7 @@ export function addSpotlightRoutes(app: Express) {
 
       if (error) throw error;
 
+      res.set('Content-Type', 'application/json');
       res.json({
         ok: true,
         lead: data,

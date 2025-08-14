@@ -40,6 +40,15 @@ export function SponsoredBanner() {
   // Frequency capping - check if user has seen this campaign today
   useEffect(() => {
     if (spotlight) {
+      // Debug mode bypass frequency capping (dev only)
+      const urlParams = new URLSearchParams(window.location.search);
+      const debugSponsor = urlParams.get('debugSponsor') === '1';
+      
+      if (debugSponsor && import.meta.env.DEV) {
+        console.log('🔧 Debug mode: Bypassing frequency capping for sponsor banner');
+        return; // Skip frequency capping logic
+      }
+
       const today = new Date().toISOString().split('T')[0];
       const seenKey = `spotlightSeen:${spotlight.campaignId}:events_banner:${today}`;
       
