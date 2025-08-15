@@ -1,0 +1,165 @@
+1) Fix the 500 on POST /api/admin/portal-tokens (surface the real error + make creation succeed)
+
+Task: Diagnose and fix the server error when creating a portal token. Return helpful JSON in dev and make sure the insert succeeds.
+
+Do this:
+
+Wrap the /api/admin/portal-tokens handler in a try/catch that returns:
+
+{ "ok": false, "where": "admin/portal-tokens", "code": "<db_or_app_code>", "detail": "<db_or_app_message>" }
+
+
+Log the raw Supabase error to the server console.
+
+Verify the insert uses only these columns:
+
+campaign_id (uuid, required)
+
+expires_at (timestamptz; compute from expires_in_hours, default 720h)
+
+is_active (boolean default true)
+
+id must be defaulted by DB (gen_random_uuid()), do not supply it from app code.
+
+Return { ok:true, tokenId: "<uuid>", portal_url: "/sponsor/<uuid>" }.
+
+Acceptance checks:
+
+curl -sS -X POST "$BASE/api/admin/portal-tokens" \
+  -H "x-admin-key: $EXPORT_ADMIN_KEY" -H "Content-Type: application/json" \
+  -d '{"campaignId":"<valid-campaign-uuid>","expiresInHours":72}'
+# => 200 JSON with ok:true and tokenId (uuid)
+
+2) Add the missing column + refresh schema: freq_cap_per_user_per_day on sponsor_campaigns
+
+Task: The update modal error shows PostgREST can’t see freq_cap_per_user_per_day. Add it and refresh the REST schema.
+
+Do this:
+
+Run idempotent SQL:
+
+alter table public.sponsor_campaigns
+  add column if not exists freq_cap_per_user_per_day integer not null default 0;
+
+
+Refresh PostgREST schema after migration:
+
+select pg_notify('pgrst', 'reload schema');
+
+
+(If you have a server helper, expose POST /api/admin/db/reload that calls this.)
+
+In the campaign upsert handler, map the UI field:
+
+request: frequencyCap → DB: freq_cap_per_user_per_day
+
+Keep default 0 = no cap.
+
+Acceptance:
+
+The edit/update call from the admin modal succeeds (no red snackbar).
+
+GET /api/spotlight/admin/campaign/list shows the column populated.
+
+3) Make the portal table schema bullet-proof (UUID id + indexes)
+
+Task: Ensure sponsor_portal_tokens has the right shape and works in both dev and prod.
+
+Do this:
+
+Idempotent SQL:
+
+create extension if not exists pgcrypto;
+alter table public.sponsor_portal_tokens
+  add column if not exists id uuid;
+update public.sponsor_portal_tokens set id = gen_random_uuid() where id is null;
+alter table public.sponsor_portal_tokens
+  alter column id set default gen_random_uuid();
+do $$
+begin
+  if not exists (
+    select 1 from pg_indexes where schemaname='public' and indexname='sponsor_portal_tokens_pkey'
+  ) then
+    -- drop old PK if needed then:
+    begin
+      alter table public.sponsor_portal_tokens add primary key (id);
+    exception when others then null;
+    end;
+  end if;
+end$$;
+alter table public.sponsor_portal_tokens
+  add column if not exists campaign_id uuid not null,
+  add column if not exists expires_at timestamptz not null default now() + interval '30 days',
+  add column if not exists is_active boolean not null default true;
+create index if not exists sponsor_portal_tokens_campaign_idx
+  on public.sponsor_portal_tokens(campaign_id);
+select pg_notify('pgrst','reload schema');
+
+
+In the portal APIs, look up by id (uuid). If you keep legacy token text around, only match it as text (no ::uuid casts).
+
+Acceptance:
+
+Creating + opening /sponsor/<uuid> works; no “Access Denied”.
+
+4) Fix onboarding email “Token ID or token is required”
+
+Task: Ensure the client always sends an identifier and the server accepts either.
+
+Do this (client):
+
+In sendOnboardingEmail(...), send:
+
+{ tokenId: row.id } if row.id exists,
+
+else { token: row.token } if present,
+
+else disable button + toast “No token for this row”.
+
+Do this (server):
+
+/api/spotlight/admin/send-onboarding must accept { tokenId } or { token }, resolve to a row, and return { ok:true }.
+
+Acceptance:
+
+Clicking “Send onboarding” yields { ok:true } and the toast shows success.
+
+5) Keep dev portal links working (domain gating)
+
+Task: Don’t block Replit/localhost during development.
+
+Do this:
+
+validatePortalOrigin should allow hosts that end with .replit.dev, localhost, 127.0.0.1 when NODE_ENV !== 'production' (or import.meta.env.DEV).
+
+Log the host/origin you allow in dev.
+
+Acceptance: Visiting /sponsor/<uuid> on your current URL loads the portal.
+
+6) Make the self-test green for Tracking and Portal Tokens
+
+Task: Ensure self-test writes actually hit DB and token lookup uses UUID.
+
+Do this:
+
+For /api/spotlight/admin/metrics/test, use the service-role Supabase client, insert two records, and verify by returned IDs (not by time windows). Respond { ok:true, metricsRecorded: <>=2 }.
+
+Update portal self-test to create a token, then fetch /api/spotlight/portal?tokenId=<uuid> and require a 200 with data.
+
+Acceptance: Admin “Run Self-test” shows PASS for Tracking and Portal Tokens.
+
+7) Admin page mobile polish (concrete tweaks)
+
+Task: Ensure the admin portal is comfortable on small screens.
+
+Do this:
+
+Tabs: horizontal scroll with snap; min-touch target 44px.
+
+Cards: 1-col ≤ 640px, 2-col 641–1024px, 3-col ≥ 1025px.
+
+Modals: max-h: 85vh; overflow-y: auto; sticky modal footer.
+
+Action buttons: move less-used actions into a “More” menu on ≤ 640px.
+
+Acceptance: No horizontal page scroll on iPhone 13/14 size; modals scroll internally; all actions reachable.

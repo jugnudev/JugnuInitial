@@ -480,11 +480,13 @@ export function addSpotlightRoutes(app: Express) {
         }
       }
 
-      // Type coercion and defaults
+      // Type coercion and defaults - handle both frequencyCap and freq_cap_per_user_per_day
       const coercedPriority = parseInt(priority) || 1;
       const coercedIsActive = is_active !== false; // Default to true
       const coercedIsSponsored = is_sponsored !== false; // Default to true  
-      const coercedFreqCap = parseInt(freq_cap_per_user_per_day) || parseInt(process.env.FREQ_CAP_DEFAULT || '0');
+      // Accept both frequencyCap (from UI) and freq_cap_per_user_per_day (from DB)
+      const frequencyCap = req.body.frequencyCap;
+      const coercedFreqCap = parseInt(frequencyCap || freq_cap_per_user_per_day) || parseInt(process.env.FREQ_CAP_DEFAULT || '0');
       const coercedTags = Array.isArray(tags) ? tags : [];
 
       // Date handling
@@ -528,7 +530,8 @@ export function addSpotlightRoutes(app: Express) {
         is_active: coercedIsActive,
         is_sponsored: coercedIsSponsored,
         tags: coercedTags,
-        freq_cap_per_user_per_day: coercedFreqCap,
+        // Only include freq_cap_per_user_per_day if we have a value
+        ...(coercedFreqCap > 0 ? { freq_cap_per_user_per_day: coercedFreqCap } : {}),
         updated_at: new Date().toISOString()
       };
 

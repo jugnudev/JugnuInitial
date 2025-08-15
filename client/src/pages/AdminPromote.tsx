@@ -751,7 +751,8 @@ export default function AdminPromote() {
               </Button>
             </div>
 
-            <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-1">
+            {/* Responsive card grid: 1-col on mobile, 2-col on tablet, 1-col on desktop */}
+            <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-1">
               {campaigns.map((campaign) => {
                 const existingToken = portalTokens.find(t => t.campaign_id === campaign.id);
                 
@@ -1227,9 +1228,9 @@ export default function AdminPromote() {
         </Tabs>
       </div>
 
-      {/* Campaign Form Dialog */}
+      {/* Campaign Form Dialog - Mobile optimized */}
       <Dialog open={showCampaignForm} onOpenChange={setShowCampaignForm}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-bg border-white/10">
+        <DialogContent className="w-[95vw] max-w-4xl h-[85vh] max-h-[85vh] overflow-y-auto bg-bg border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white">
               {editingCampaign ? 'Edit Campaign' : 'Create Campaign'}

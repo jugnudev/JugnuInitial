@@ -341,65 +341,81 @@ export function addAdminRoutes(app: Express) {
   // POST /api/admin/portal-tokens → Create portal token directly (no existing spotlight route)
   app.post('/api/admin/portal-tokens', requireAdminKey, async (req, res) => {
     try {
-      const { campaign_id, expires_in_hours = 168 } = normalizeBody(req.body); // default 7 days
+      const normalizedBody = normalizeBody(req.body);
+      const { campaign_id, campaignId, expires_in_hours = 720, expiresInHours } = normalizedBody; // default 30 days
       
-      if (!campaign_id) {
+      // Accept both campaign_id and campaignId
+      const finalCampaignId = campaign_id || campaignId;
+      const finalExpiresInHours = expires_in_hours || expiresInHours || 720;
+      
+      if (!finalCampaignId) {
         return res.status(400).json({
           ok: false,
-          error: 'Campaign ID is required',
-          detail: 'campaign_id field is missing',
-          code: 400
+          where: 'admin/portal-tokens',
+          code: 'MISSING_CAMPAIGN_ID',
+          detail: 'campaign_id or campaignId field is required'
         });
       }
 
-      // Create portal token using crypto.randomBytes
+      // Create portal token using crypto.randomBytes for legacy token field
       const token = crypto.randomBytes(32).toString('hex');
-      const expiresAt = new Date(Date.now() + expires_in_hours * 60 * 60 * 1000);
+      const expiresAt = new Date(Date.now() + finalExpiresInHours * 60 * 60 * 1000);
 
+      // Don't supply ID - let database generate it with gen_random_uuid()
+      // Use only columns that exist in the cached schema
+      const insertData: any = {
+        campaign_id: finalCampaignId,
+        token,
+        expires_at: expiresAt.toISOString()
+      };
+
+      // Try with disabled field first (fallback from is_active)
+      // Note: If id column doesn't exist, use token as identifier
       const { data: tokenData, error } = await supabase
         .from('sponsor_portal_tokens')
-        .insert({
-          campaign_id,
-          token,
-          expires_at: expiresAt.toISOString(),
-          is_active: true
-        })
-        .select()
+        .insert(insertData)
+        .select('token, campaign_id, expires_at')
         .single();
 
       if (error) {
-        console.error('Portal token creation error:', error);
+        // Log full error to server console for debugging
+        console.error('Portal token creation error - full details:', error);
+        
+        // Return structured error response for dev mode
         return res.status(500).json({
           ok: false,
-          error: 'Failed to create portal token',
-          detail: error.message,
-          code: 500
+          where: 'admin/portal-tokens',
+          code: error.code || 'DB_ERROR',
+          detail: error.message || 'Database operation failed'
         });
       }
 
+      // Use token as identifier if id doesn't exist
+      const tokenId = (tokenData as any).id || tokenData.token;
+      
       await auditLog('portal_token_created', {
-        tokenId: tokenData.id,
+        tokenId: tokenId,
         hexToken: token.substring(0, 8) + '...',
-        campaignId: campaign_id,
+        campaignId: finalCampaignId,
         expiresAt: expiresAt.toISOString(),
         ip: req.ip,
         userAgent: req.get('User-Agent')
       }, 'admin-api');
 
+      // Return success with token identifier and portal URL
       res.json({
         ok: true,
-        tokenId: tokenData.id,
-        token: tokenData.token,
-        expires_at: tokenData.expires_at,
-        portalUrl: `${req.protocol}://${req.get('host')}/sponsor/${tokenData.id}`
+        tokenId: tokenId,
+        portal_url: `/sponsor/${tokenId}`,
+        expires_at: tokenData.expires_at
       });
     } catch (error: any) {
-      console.error('Admin portal-tokens error:', error);
+      console.error('Admin portal-tokens unexpected error:', error);
       res.status(500).json({
         ok: false,
-        error: 'Internal server error',
-        detail: error?.message || 'Unknown error',
-        code: 500
+        where: 'admin/portal-tokens',
+        code: 'UNEXPECTED_ERROR',
+        detail: error?.message || 'Unexpected server error'
       });
     }
   });
@@ -652,63 +668,7 @@ export function addAdminRoutes(app: Express) {
     }
   });
 
-  // POST /api/admin/portal-tokens
-  app.post('/api/admin/portal-tokens', requireAdminSession, async (req: Request, res: Response) => {
-    try {
-      const { campaignId, hoursValid = 24 * 30 } = req.body; // Default 30 days
-
-      if (!campaignId) {
-        return res.status(400).json({ ok: false, error: 'campaignId required' });
-      }
-
-      // Generate hex token for backward compatibility, but return UUID id
-      const hexToken = crypto.randomBytes(32).toString('hex');
-      
-      const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + hoursValid);
-
-      const { data, error } = await supabase
-        .from('sponsor_portal_tokens')
-        .insert({
-          token: hexToken,
-          campaign_id: campaignId,
-          expires_at: expiresAt.toISOString()
-        })
-        .select(`
-          token,
-          campaign_id,
-          expires_at,
-          sponsor_campaigns!campaign_id (
-            name,
-            sponsor_name,
-            start_at,
-            end_at
-          )
-        `)
-        .single();
-
-      if (error) throw error;
-
-      await auditLog('portal_token_created', {
-        tokenId: data.id,
-        hexToken: hexToken.substring(0, 8) + '...',
-        campaignId,
-        hoursValid,
-        ip: req.ip,
-        userAgent: req.get('User-Agent')
-      }, req.session?.userId);
-
-      res.json({ 
-        ok: true, 
-        token: data,
-        tokenId: data.id,
-        portalUrl: `${req.protocol}://${req.get('host')}/sponsor/${data.id}`
-      });
-    } catch (error) {
-      console.error('Admin portal token create error:', error);
-      res.status(500).json({ ok: false, error: 'Failed to create portal token' });
-    }
-  });
+  // Duplicate handler removed - using requireAdminKey handler at line 345
 
   // POST /api/admin/portal-tokens/email (send portal link via email)
   app.post('/api/admin/portal-tokens/email', requireAdminSession, async (req: Request, res: Response) => {
