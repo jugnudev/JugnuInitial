@@ -10,17 +10,37 @@ export function addSpotlightRoutes(app: Express) {
     const host = req.get('host');
     const origin = req.get('origin');
     
-    // Always allow in development
+    // In development, use permissive defaults or skip checks entirely
     if (process.env.NODE_ENV !== 'production') {
-      return next();
+      // Development defaults: .replit.dev,localhost,127.0.0.1
+      const devDefaults = '.replit.dev,localhost,127.0.0.1';
+      const allowedDomains = (process.env.ALLOWED_PORTAL_DOMAIN || devDefaults)
+        .split(',')
+        .map(domain => domain.trim())
+        .filter(Boolean);
+      
+      // Check if host matches any allowed domain (supports wildcards like *.replit.dev)
+      const isAllowed = allowedDomains.some(allowed => {
+        if (allowed.startsWith('*.')) {
+          const suffix = allowed.substring(2);
+          return host?.endsWith(suffix);
+        }
+        if (allowed.startsWith('.')) {
+          // Support .replit.dev format - check if host ends with the domain
+          return host?.endsWith(allowed);
+        }
+        return host === allowed || host?.includes(allowed);
+      });
+      
+      if (isAllowed) {
+        return next();
+      }
+      
+      console.log(`🔍 Dev mode - allowing host: ${host} (would be blocked in production)`);
+      return next(); // Allow in development even if not in the list
     }
     
-    // Also allow localhost and current Replit host in development
-    if (host?.includes('localhost') || host?.includes('.replit.dev') || host?.includes('.replit.app')) {
-      return next();
-    }
-    
-    // Parse allowed domains from environment (comma-separated list)
+    // Production: strict domain checking
     const allowedDomains = (process.env.ALLOWED_PORTAL_DOMAIN || 'jugnu.events')
       .split(',')
       .map(domain => domain.trim())
@@ -32,6 +52,9 @@ export function addSpotlightRoutes(app: Express) {
         const suffix = allowed.substring(2);
         return host?.endsWith(suffix);
       }
+      if (allowed.startsWith('.')) {
+        return host?.endsWith(allowed);
+      }
       return host === allowed;
     });
     
@@ -42,9 +65,21 @@ export function addSpotlightRoutes(app: Express) {
         error: 'Portal access not allowed from this domain' 
       });
     }
+    
     if (origin) {
       const originDomain = new URL(origin).hostname;
-      if (!allowedDomains.includes(originDomain)) {
+      const originAllowed = allowedDomains.some(allowed => {
+        if (allowed.startsWith('*.')) {
+          const suffix = allowed.substring(2);
+          return originDomain.endsWith(suffix);
+        }
+        if (allowed.startsWith('.')) {
+          return originDomain.endsWith(allowed);
+        }
+        return originDomain === allowed;
+      });
+      
+      if (!originAllowed) {
         console.warn(`🚫 Portal access denied for origin: ${origin}`);
         return res.status(403).json({ 
           ok: false, 
