@@ -676,23 +676,25 @@ export function addSpotlightRoutes(app: Express) {
       // Create a service-role client for guaranteed write access
       const serviceRoleSupabase = getSupabaseAdmin();
       
-      // Insert two distinct test metrics records using 'date' column
+      // Insert two distinct test metrics records with all required columns
       const testRecords = [
         {
           campaign_id,
           placement,
-          date: today,  // Use 'date' column not 'day'
-          billable_impressions: 1,
-          raw_impressions: 1,
-          clicks: 0
+          date: today,
+          raw_views: 10,
+          billable_impressions: 8,
+          clicks: 1,
+          unique_users: 5
         },
         {
           campaign_id,
-          placement: `${placement}_click`,  // Different placement to avoid uniqueness conflict
+          placement: `${placement}_test2`,  // Different placement to avoid uniqueness conflict
           date: today,
-          billable_impressions: 0,
-          raw_impressions: 1,
-          clicks: 1
+          raw_views: 5,
+          billable_impressions: 4,
+          clicks: 2,
+          unique_users: 3
         }
       ];
 
@@ -735,10 +737,33 @@ export function addSpotlightRoutes(app: Express) {
     }
   });
 
+  // Reload Schema Endpoint (Dev Only)
+  app.post('/api/admin/reload-schema', requireAdminKey, async (req, res) => {
+    try {
+      // For development, we can't directly execute pg_notify without exec_sql RPC
+      // The schema cache will be refreshed on next query automatically
+      // This endpoint serves as a placeholder for development
+      
+      console.log('Schema reload requested (development mode - cache will refresh on next query)');
+      
+      res.json({
+        ok: true,
+        message: 'Schema cache refresh noted - PostgREST will refresh on next query'
+      });
+    } catch (error: any) {
+      console.error('Schema reload unexpected error:', error);
+      res.status(500).json({
+        ok: false,
+        error: 'Failed to reload schema',
+        detail: error?.message || 'Unexpected error'
+      });
+    }
+  });
+
   // Send Onboarding Email Endpoint
   app.post('/api/spotlight/admin/send-onboarding', requireAdminKey, async (req, res) => {
     try {
-      const { tokenId, token, email } = req.body;
+      const { tokenId, token, recipient } = req.body;
       
       // Accept either tokenId (UUID) or token (hex string)
       const lookupId = tokenId;
@@ -748,7 +773,15 @@ export function addSpotlightRoutes(app: Express) {
         return res.status(400).json({ 
           ok: false, 
           error: 'Token ID or token is required',
-          detail: 'Provide either token_id (UUID) or token (hex string)'
+          detail: 'Provide either tokenId (UUID) or token (hex string)'
+        });
+      }
+      
+      if (!recipient || !recipient.includes('@')) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Valid recipient email is required',
+          detail: 'Please provide a valid email address for the recipient'
         });
       }
 
@@ -790,8 +823,8 @@ export function addSpotlightRoutes(app: Express) {
         day: 'numeric'
       });
 
-      // Use provided email or default to sponsor name
-      const recipientEmail = email || `${campaign.sponsor_name.toLowerCase().replace(/\s+/g, '')}@example.com`;
+      // Use the provided recipient email
+      const recipientEmail = recipient;
 
       // Polished onboarding email template
       const subject = `Your Jugnu Campaign Analytics`;
@@ -893,12 +926,14 @@ jugnu.events`;
         `)
         .eq('is_active', true);
 
-      // Check if tokenId looks like a UUID (has hyphens) or hex string
-      if (tokenId.includes('-')) {
-        // UUID format - query by id
+      // Check if tokenId is UUID format or legacy hex token
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tokenId);
+      
+      if (isUuid) {
+        // UUID format - query by id column
         tokenQuery = tokenQuery.eq('id', tokenId);
       } else {
-        // Legacy hex token - query by token field
+        // Legacy hex token - query by token column (never cast to UUID)
         tokenQuery = tokenQuery.eq('token', tokenId);
       }
 

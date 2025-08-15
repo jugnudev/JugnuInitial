@@ -134,6 +134,9 @@ export default function AdminPromote() {
     recipients: [''],
     message: 'Your sponsor analytics portal is ready! Please find your personalized dashboard link below.'
   });
+  const [showOnboardingDialog, setShowOnboardingDialog] = useState(false);
+  const [onboardingRecipient, setOnboardingRecipient] = useState('');
+  const [onboardingToken, setOnboardingToken] = useState<PortalToken | null>(null);
 
   // Check admin session on load
   useEffect(() => {
@@ -409,10 +412,20 @@ export default function AdminPromote() {
     }
   };
 
-  const sendOnboardingEmail = async (token: PortalToken) => {
+  const sendOnboardingEmail = async (token: PortalToken, recipientEmail: string) => {
     try {
+      // Validate email
+      if (!recipientEmail || !recipientEmail.includes('@')) {
+        toast({
+          title: "Invalid email",
+          description: "Please enter a valid recipient email address",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       // Prepare the request body with proper identifier
-      let requestBody: any = {};
+      let requestBody: any = { recipient: recipientEmail };
       
       if (token.id) {
         requestBody.tokenId = token.id;
@@ -441,7 +454,15 @@ export default function AdminPromote() {
       if (data.ok) {
         toast({
           title: "Onboarding Email Sent Successfully",
-          description: `Email sent to ${data.recipientEmail} for ${token.sponsor_campaigns?.sponsor_name || 'sponsor'}`
+          description: `Email sent to ${recipientEmail} for ${token.sponsor_campaigns?.sponsor_name || 'sponsor'}`
+        });
+        
+        // Audit log the email send
+        console.log('Onboarding email sent:', {
+          tokenId: token.id,
+          recipient: recipientEmail,
+          campaignName: token.sponsor_campaigns?.name,
+          sponsorName: token.sponsor_campaigns?.sponsor_name
         });
       } else {
         throw new Error(data.error || 'Failed to send onboarding email');
@@ -865,7 +886,11 @@ export default function AdminPromote() {
                                     Custom email
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
-                                    onClick={() => sendOnboardingEmail(existingToken)}
+                                    onClick={() => {
+                                      setOnboardingToken(existingToken);
+                                      setOnboardingRecipient('');
+                                      setShowOnboardingDialog(true);
+                                    }}
                                     className="text-white hover:bg-white/10"
                                   >
                                     <Users className="w-4 h-4 mr-2" />
@@ -947,7 +972,11 @@ export default function AdminPromote() {
                                 Email
                               </Button>
                               <Button
-                                onClick={() => sendOnboardingEmail(existingToken)}
+                                onClick={() => {
+                                  setOnboardingToken(existingToken);
+                                  setOnboardingRecipient('');
+                                  setShowOnboardingDialog(true);
+                                }}
                                 variant="outline"
                                 size="sm"
                                 className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/20 h-11"
@@ -1602,6 +1631,69 @@ export default function AdminPromote() {
             >
               <Mail className="w-4 h-4 mr-2" />
               Prepare Email
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Onboarding Email Dialog */}
+      <Dialog open={showOnboardingDialog} onOpenChange={setShowOnboardingDialog}>
+        <DialogContent className="bg-bg border-white/20 text-white">
+          <DialogHeader>
+            <DialogTitle className="font-fraunces text-xl">Send Onboarding Email</DialogTitle>
+            <DialogDescription className="text-muted">
+              Send portal access details to the sponsor
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div>
+              <Label className="text-white mb-2 block">Recipient Email *</Label>
+              <Input
+                type="email"
+                value={onboardingRecipient}
+                onChange={(e) => setOnboardingRecipient(e.target.value)}
+                placeholder="sponsor@company.com"
+                className="bg-white/10 border-white/20 text-white"
+                data-testid="onboarding-recipient"
+              />
+              <p className="text-xs text-muted mt-1">Enter the sponsor's email address</p>
+            </div>
+
+            {onboardingToken && (
+              <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
+                <h4 className="font-medium text-white mb-2">Campaign Details</h4>
+                <div className="text-sm text-muted space-y-1">
+                  <p><strong>Campaign:</strong> {onboardingToken.sponsor_campaigns?.name}</p>
+                  <p><strong>Sponsor:</strong> {onboardingToken.sponsor_campaigns?.sponsor_name}</p>
+                  <p><strong>Portal URL:</strong> {window.location.origin}/sponsor/{onboardingToken.id || onboardingToken.token}</p>
+                  <p><strong>Expires:</strong> {formatDate(onboardingToken.expires_at)}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              onClick={() => setShowOnboardingDialog(false)}
+              variant="outline"
+              className="border-white/20 text-white hover:bg-white/10"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (onboardingToken && onboardingRecipient) {
+                  sendOnboardingEmail(onboardingToken, onboardingRecipient);
+                  setShowOnboardingDialog(false);
+                }
+              }}
+              className="bg-copper-500 hover:bg-copper-600 text-black"
+              disabled={!onboardingRecipient || !onboardingRecipient.includes('@')}
+              data-testid="send-onboarding"
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              Send Email
             </Button>
           </DialogFooter>
         </DialogContent>
