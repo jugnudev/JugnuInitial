@@ -42,17 +42,17 @@ interface PortalData {
 }
 
 export default function SponsorPortal() {
-  const [, params] = useRoute('/sponsor/:token');
+  const [, params] = useRoute('/sponsor/:tokenId');
   const [data, setData] = useState<PortalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [emailSubscription, setEmailSubscription] = useState('');
   const [subscribing, setSubscribing] = useState(false);
 
-  const token = params?.token;
+  const tokenId = params?.tokenId;
 
   useEffect(() => {
-    if (!token) {
+    if (!tokenId) {
       setError('Invalid portal link');
       setLoading(false);
       return;
@@ -60,7 +60,7 @@ export default function SponsorPortal() {
 
     const fetchPortalData = async () => {
       try {
-        const response = await fetch(`/api/spotlight/portal/${token}`);
+        const response = await fetch(`/api/spotlight/portal/${tokenId}`);
         const result = await response.json();
         
         if (!result.ok) {
@@ -77,7 +77,7 @@ export default function SponsorPortal() {
     };
 
     fetchPortalData();
-  }, [token]);
+  }, [tokenId]);
 
   const exportCSV = () => {
     if (!data?.chartData) return;
@@ -106,10 +106,10 @@ export default function SponsorPortal() {
   };
 
   const handleNextCampaign = async () => {
-    if (!token) return;
+    if (!tokenId) return;
     
     try {
-      const response = await fetch(`/api/spotlight/portal/${token}/campaign-details`);
+      const response = await fetch(`/api/spotlight/portal/${tokenId}/campaign-details`);
       const result = await response.json();
       
       if (result.ok && result.campaign) {
@@ -134,11 +134,11 @@ export default function SponsorPortal() {
   };
 
   const handleWeeklySummary = async (subscribe: boolean) => {
-    if (!token || !emailSubscription.trim()) return;
+    if (!tokenId || !emailSubscription.trim()) return;
     
     setSubscribing(true);
     try {
-      const response = await fetch(`/api/spotlight/portal/${token}/weekly-summary`, {
+      const response = await fetch(`/api/spotlight/portal/${tokenId}/weekly-summary`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

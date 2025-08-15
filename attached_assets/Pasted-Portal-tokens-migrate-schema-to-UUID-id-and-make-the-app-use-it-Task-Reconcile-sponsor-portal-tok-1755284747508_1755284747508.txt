@@ -1,0 +1,67 @@
+Portal tokens: migrate schema to UUID id and make the app use it
+
+Task: Reconcile sponsor_portal_tokens so we use a UUID id as the portal token everywhere (URL becomes /sponsor/:id). Keep any old token (hex/text) column only as a compatibility alias, but don’t cast it to uuid in queries.
+
+Required steps:
+
+Schema audit & migration
+
+Print the current DDL for public.sponsor_portal_tokens.
+
+If id column is missing, add it as a UUID PK with default:
+
+alter table public.sponsor_portal_tokens add column if not exists id uuid;
+
+If there’s an existing PK on some other column (e.g., token), drop that PK constraint, then:
+
+update public.sponsor_portal_tokens set id = gen_random_uuid() where id is null;
+
+alter table public.sponsor_portal_tokens alter column id set default gen_random_uuid();
+
+alter table public.sponsor_portal_tokens add primary key (id);
+
+Ensure these columns exist with correct types/defaults:
+
+campaign_id uuid not null
+
+expires_at timestamptz not null default now() + interval '30 days'
+
+is_active boolean not null default true
+
+Optionally keep token text unique (if it already exists) for backward compatibility.
+
+Add helpful indexes:
+
+create index if not exists sponsor_portal_tokens_campaign_idx on public.sponsor_portal_tokens(campaign_id);
+
+API updates
+
+Token creation endpoint returns { ok:true, tokenId: <uuid>, portal_url: "/sponsor/<uuid>" }. Stop returning / using 64-char hex for the public link.
+
+Portal lookup must accept:
+
+tokenId (UUID) → where id = :uuid and is_active = true and now() < expires_at
+
+If a legacy token exists, you can accept token (TEXT) → where token = :text (no uuid cast).
+
+Remove any ::uuid casts applied to a hex string.
+
+Frontend updates
+
+Admin “Generate Token” and tokens table should display/copy tokenId (id).
+
+Sponsor portal route: /sponsor/:tokenId (UUID).
+
+Update any code that still passes a 64-char hex token.
+
+Domain gate in dev
+
+Relax ALLOWED_PORTAL_DOMAIN for dev: include current Replit host and localhost.
+
+Acceptance checks (run & paste results):
+
+POST /api/spotlight/admin/portal-token with a valid campaign returns { ok:true, tokenId: "<uuid>", portal_url: "/sponsor/<uuid>" }.
+
+GET /api/spotlight/portal?tokenId=<uuid> returns campaign+metrics JSON (not “invalid or expired”).
+
+Visiting /sponsor/<uuid> loads the portal (no Access Denied).

@@ -362,7 +362,7 @@ export function addAdminRoutes(app: Express) {
           campaign_id,
           token,
           expires_at: expiresAt.toISOString(),
-          disabled: false  // Use existing schema until cache refreshes
+          is_active: true
         })
         .select()
         .single();
@@ -378,7 +378,8 @@ export function addAdminRoutes(app: Express) {
       }
 
       await auditLog('portal_token_created', {
-        tokenId: token,
+        tokenId: tokenData.id,
+        hexToken: token.substring(0, 8) + '...',
         campaignId: campaign_id,
         expiresAt: expiresAt.toISOString(),
         ip: req.ip,
@@ -388,8 +389,9 @@ export function addAdminRoutes(app: Express) {
       res.json({
         ok: true,
         token: tokenData.token,
+        token_id: tokenData.id,
         expires_at: tokenData.expires_at,
-        portal_url: `${req.protocol}://${req.get('host')}/sponsor/${tokenData.token}`
+        portal_url: `${req.protocol}://${req.get('host')}/sponsor/${tokenData.id}`
       });
     } catch (error: any) {
       console.error('Admin portal-tokens error:', error);
@@ -579,15 +581,16 @@ export function addAdminRoutes(app: Express) {
   // GET /api/admin/portal-tokens
   app.get('/api/admin/portal-tokens', requireAdminSession, async (req: Request, res: Response) => {
     try {
-      // Use service role to bypass RLS - match existing table schema
+      // Use service role to bypass RLS - include UUID id for migration
       const { data: tokens, error } = await supabase
         .from('sponsor_portal_tokens')
         .select(`
+          id,
           token,
           campaign_id,
           expires_at,
           created_at,
-          disabled,
+          is_active,
           sponsor_campaigns!campaign_id (
             name,
             sponsor_name
@@ -621,9 +624,8 @@ export function addAdminRoutes(app: Express) {
         return res.status(400).json({ ok: false, error: 'campaignId required' });
       }
 
-      // Generate UUID token (using gen_random_uuid from database)
-      const tokenResponse = await supabase.rpc('gen_random_uuid');
-      const token = tokenResponse.data || crypto.randomBytes(32).toString('hex');
+      // Generate hex token for backward compatibility, but return UUID id
+      const hexToken = crypto.randomBytes(32).toString('hex');
       
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + hoursValid);
@@ -631,7 +633,7 @@ export function addAdminRoutes(app: Express) {
       const { data, error } = await supabase
         .from('sponsor_portal_tokens')
         .insert({
-          token,
+          token: hexToken,
           campaign_id: campaignId,
           expires_at: expiresAt.toISOString()
         })
@@ -651,7 +653,8 @@ export function addAdminRoutes(app: Express) {
       if (error) throw error;
 
       await auditLog('portal_token_created', {
-        token: token.substring(0, 8) + '...',
+        tokenId: data.id,
+        hexToken: hexToken.substring(0, 8) + '...',
         campaignId,
         hoursValid,
         ip: req.ip,
@@ -661,7 +664,8 @@ export function addAdminRoutes(app: Express) {
       res.json({ 
         ok: true, 
         token: data,
-        portalUrl: `${req.protocol}://${req.get('host')}/sponsor/${token}`
+        tokenId: data.id,
+        portalUrl: `${req.protocol}://${req.get('host')}/sponsor/${data.id}`
       });
     } catch (error) {
       console.error('Admin portal token create error:', error);

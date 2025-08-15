@@ -34,7 +34,7 @@ function Router() {
         <Route path="/community/feature" component={CommunityRedirect} />
         <Route path="/promote" component={Promote} />
         <Route path="/promote/apply" component={Promote} />
-        <Route path="/sponsor/:token" component={SponsorPortal} />
+        <Route path="/sponsor/:tokenId" component={SponsorPortal} />
         <Route path="/admin/promote" component={AdminPromote} />
         <Route path="/places" component={() => { window.location.href = '/events'; return null; }} />
         <Route path="/places/submit" component={() => { window.location.href = '/events'; return null; }} />
