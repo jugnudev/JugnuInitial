@@ -356,8 +356,8 @@ export default function AdminPromote() {
     }
   };
 
-  const copyPortalUrl = (token: string) => {
-    const url = `${window.location.origin}/sponsor/${token}`;
+  const copyPortalUrl = (tokenData: PortalToken) => {
+    const url = `${window.location.origin}/sponsor/${tokenData.id || tokenData.token}`;
     navigator.clipboard.writeText(url);
     toast({ title: "Portal URL copied to clipboard" });
   };
@@ -411,30 +411,40 @@ export default function AdminPromote() {
 
   const sendOnboardingEmail = async (token: PortalToken) => {
     try {
+      // Prepare the request body with proper identifier
+      let requestBody: any = {};
+      
+      if (token.id) {
+        requestBody.tokenId = token.id;
+      } else if (token.token) {
+        requestBody.token = token.token;
+      } else {
+        toast({
+          title: "Error",
+          description: "Invalid token: missing both ID and token value",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const response = await fetch('/api/spotlight/admin/send-onboarding', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-admin-key': localStorage.getItem('adminKey') || ''
         },
-        body: JSON.stringify({
-          tokenId: token.id
-        })
+        body: JSON.stringify(requestBody)
       });
 
       const data = await response.json();
       
       if (data.ok) {
-        // Open the email in default client
-        const emailText = `Subject: ${data.emailData.subject}\n\nTo: ${data.emailData.recipients.join(', ')}\n\n${data.emailData.body}`;
-        navigator.clipboard.writeText(emailText);
-        
         toast({
-          title: "Onboarding Email Ready",
-          description: `Professional onboarding template copied to clipboard for ${token.sponsor_campaigns.sponsor_name}`
+          title: "Onboarding Email Sent Successfully",
+          description: `Email sent to ${data.recipientEmail} for ${token.sponsor_campaigns.sponsor_name}`
         });
       } else {
-        throw new Error(data.error || 'Failed to prepare onboarding email');
+        throw new Error(data.error || 'Failed to send onboarding email');
       }
     } catch (error) {
       console.error('Onboarding email error:', error);
@@ -810,7 +820,7 @@ export default function AdminPromote() {
                           
                           {existingToken ? (
                             <Button
-                              onClick={() => copyPortalUrl(existingToken.token)}
+                              onClick={() => copyPortalUrl(existingToken)}
                               variant="outline"
                               size="sm"
                               className="border-green-500/50 text-green-400 hover:bg-green-500/20 h-11 w-11 p-0"
@@ -861,7 +871,7 @@ export default function AdminPromote() {
                                     Send onboarding
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
-                                    onClick={() => window.open(`/sponsor/${existingToken.token}`, '_blank')}
+                                    onClick={() => window.open(`/sponsor/${existingToken.id || existingToken.token}`, '_blank')}
                                     className="text-white hover:bg-white/10"
                                   >
                                     <ExternalLink className="w-4 h-4 mr-2" />
@@ -914,7 +924,7 @@ export default function AdminPromote() {
                           {existingToken && (
                             <>
                               <Button
-                                onClick={() => copyPortalUrl(existingToken.token)}
+                                onClick={() => copyPortalUrl(existingToken)}
                                 variant="outline"
                                 size="sm"
                                 className="border-green-500/50 text-green-400 hover:bg-green-500/20 h-11"
@@ -947,7 +957,7 @@ export default function AdminPromote() {
                                 Onboard
                               </Button>
                               <Button
-                                onClick={() => window.open(`/sponsor/${existingToken.token}`, '_blank')}
+                                onClick={() => window.open(`/sponsor/${existingToken.id || existingToken.token}`, '_blank')}
                                 variant="outline"
                                 size="sm"
                                 className="border-purple-500/50 text-purple-400 hover:bg-purple-500/20 h-11"
@@ -1079,7 +1089,7 @@ export default function AdminPromote() {
                     {/* Mobile Actions */}
                     <div className="flex items-center gap-2 sm:hidden">
                       <Button
-                        onClick={() => copyPortalUrl(token.token)}
+                        onClick={() => copyPortalUrl(token)}
                         variant="outline"
                         size="sm"
                         className="border-white/20 text-white hover:bg-white/10 h-11 flex-1"
@@ -1101,7 +1111,7 @@ export default function AdminPromote() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="bg-bg border-white/10">
                           <DropdownMenuItem 
-                            onClick={() => window.open(`/sponsor/${token.token}`, '_blank')}
+                            onClick={() => window.open(`/sponsor/${token.id || token.token}`, '_blank')}
                             className="text-white hover:bg-white/10"
                           >
                             <ExternalLink className="w-4 h-4 mr-2" />
@@ -1121,7 +1131,7 @@ export default function AdminPromote() {
                     {/* Desktop Actions */}
                     <div className="hidden sm:flex items-center gap-2">
                       <Button
-                        onClick={() => copyPortalUrl(token.token)}
+                        onClick={() => copyPortalUrl(token)}
                         variant="outline"
                         size="sm"
                         className="border-white/20 text-white hover:bg-white/10 h-11"
@@ -1131,7 +1141,7 @@ export default function AdminPromote() {
                         Copy URL
                       </Button>
                       <Button
-                        onClick={() => window.open(`/sponsor/${token.token}`, '_blank')}
+                        onClick={() => window.open(`/sponsor/${token.id || token.token}`, '_blank')}
                         variant="outline"
                         size="sm"
                         className="border-white/20 text-white hover:bg-white/10 h-11"
