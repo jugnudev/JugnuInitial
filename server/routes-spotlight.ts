@@ -204,6 +204,13 @@ export function addSpotlightRoutes(app: Express) {
           -- Add freq_cap_per_user_per_day to sponsor_campaigns if missing
           ALTER TABLE public.sponsor_campaigns ADD COLUMN IF NOT EXISTS freq_cap_per_user_per_day int NOT NULL DEFAULT 0;
           
+          -- Add missing columns to sponsor_portal_tokens if they don't exist
+          ALTER TABLE public.sponsor_portal_tokens ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true;
+          ALTER TABLE public.sponsor_portal_tokens ADD COLUMN IF NOT EXISTS emailed_to text;
+          ALTER TABLE public.sponsor_portal_tokens ADD COLUMN IF NOT EXISTS email_sent_at timestamptz;
+          ALTER TABLE public.sponsor_portal_tokens ADD COLUMN IF NOT EXISTS email_subscription text;
+          ALTER TABLE public.sponsor_portal_tokens ADD COLUMN IF NOT EXISTS weekly_emails_enabled boolean DEFAULT false;
+          
           -- Force recreate sponsor_portal_tokens using direct DDL
           BEGIN;
           

@@ -147,7 +147,7 @@ export function addAdminRoutes(app: Express) {
   // All admin routes now use session authentication
 
   // Selftest endpoint - forward to spotlight admin route
-  app.get('/api/admin/selftest', requireAdminSession, async (req: Request, res: Response) => {
+  app.get('/api/admin/selftest', requireAdminKey, async (req: Request, res: Response) => {
     try {
       // Make internal request to the admin selftest with proper admin key
       const adminKey = process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025';
@@ -388,10 +388,10 @@ export function addAdminRoutes(app: Express) {
 
       res.json({
         ok: true,
+        tokenId: tokenData.id,
         token: tokenData.token,
-        token_id: tokenData.id,
         expires_at: tokenData.expires_at,
-        portal_url: `${req.protocol}://${req.get('host')}/sponsor/${tokenData.id}`
+        portalUrl: `${req.protocol}://${req.get('host')}/sponsor/${tokenData.id}`
       });
     } catch (error: any) {
       console.error('Admin portal-tokens error:', error);
@@ -404,7 +404,44 @@ export function addAdminRoutes(app: Express) {
     }
   });
 
-  // POST /api/admin/send-onboarding → POST /api/spotlight/admin/send-onboarding
+  // POST /api/admin/portal-tokens/onboarding → POST /api/spotlight/admin/send-onboarding
+  app.post('/api/admin/portal-tokens/onboarding', requireAdminKey, async (req, res) => {
+    try {
+      const normalizedBody = normalizeBody(req.body);
+      
+      const response = await fetch('http://localhost:5000/api/spotlight/admin/send-onboarding', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025'
+        },
+        body: JSON.stringify(normalizedBody)
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return res.status(response.status).json({
+          ok: false,
+          error: data.error || 'Send onboarding operation failed',
+          detail: data.detail || data.message,
+          code: response.status
+        });
+      }
+      
+      res.json(data);
+    } catch (error: any) {
+      console.error('Admin portal-tokens/onboarding alias error:', error);
+      res.status(500).json({
+        ok: false,
+        error: 'Internal server error',
+        detail: error?.message || 'Unknown error',
+        code: 500
+      });
+    }
+  });
+
+  // POST /api/admin/send-onboarding → POST /api/spotlight/admin/send-onboarding (legacy route)
   app.post('/api/admin/send-onboarding', requireAdminKey, async (req, res) => {
     try {
       const normalizedBody = normalizeBody(req.body);
