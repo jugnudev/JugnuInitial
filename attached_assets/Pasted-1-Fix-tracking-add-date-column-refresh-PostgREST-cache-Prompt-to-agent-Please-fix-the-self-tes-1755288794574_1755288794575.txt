@@ -1,0 +1,125 @@
+1) Fix tracking: add date column & refresh PostgREST cache
+
+Prompt to agent
+
+Please fix the self-test Tracking failure (PGRST204: Could not find the 'date' column of 'sponsor_metrics_daily'):
+
+Run this idempotent SQL so the table has exactly what the self-test expects, then refresh PostgREST:
+
+create extension if not exists pgcrypto;
+
+create table if not exists public.sponsor_metrics_daily (
+  id uuid primary key default gen_random_uuid(),
+  campaign_id uuid not null,
+  placement text not null,
+  date date not null,                              -- <== REQUIRED BY SELF-TEST
+  raw_impressions integer not null default 0,
+  billable_impressions integer not null default 0,
+  clicks integer not null default 0,
+  created_at timestamptz not null default now()
+);
+
+-- If a legacy column 'day' exists but 'date' does not, rename it:
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='sponsor_metrics_daily' and column_name='day'
+  ) and not exists (
+    select 1 from information_schema.columns
+    where table_schema='public' and table_name='sponsor_metrics_daily' and column_name='date'
+  ) then
+    alter table public.sponsor_metrics_daily rename column "day" to "date";
+  end if;
+end$$;
+
+-- Useful uniqueness guard for upserts:
+create unique index if not exists sponsor_metrics_daily_unique_idx
+  on public.sponsor_metrics_daily (campaign_id, placement, date);
+
+-- Make PostgREST see the new columns immediately
+select pg_notify('pgrst','reload schema');
+
+
+In the admin metrics test endpoint (/api/spotlight/admin/metrics/test), when inserting rows, write the date column (not day), and use the service-role client. Respond with { ok:true, metricsRecorded: <number> } based on returned IDs, not a time window.
+
+Acceptance checks
+
+Re-run Run Self-test → “Tracking” shows PASS with metricsRecorded >= 2.
+
+2) Fix portal tokens: stop casting hex to UUID; ensure table shape; return JSON error details
+
+Prompt to agent
+
+Please fix portal tokens so creation works and self-test stops complaining about “invalid input syntax for type uuid”:
+
+Make the table schema bullet-proof and idempotent, then refresh PostgREST:
+
+create extension if not exists pgcrypto;
+
+create table if not exists public.sponsor_portal_tokens (
+  id uuid primary key default gen_random_uuid(),    -- canonical key used by URLs
+  campaign_id uuid not null,
+  token text,                                       -- LEGACY HEX (optional)
+  expires_at timestamptz not null default now() + interval '30 days',
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists sponsor_portal_tokens_campaign_idx
+  on public.sponsor_portal_tokens(campaign_id);
+
+select pg_notify('pgrst','reload schema');
+
+
+Creation handler (POST /api/admin/portal-tokens and spotlight alias):
+
+Accept { campaignId, expiresInHours }.
+
+Compute expires_at = now() + interval '<hours> hours'.
+
+Insert only campaign_id, expires_at (optionally is_active=true).
+
+Do not supply id; let the DB default generate it.
+
+Return { ok:true, tokenId: "<uuid>", portal_url: "/sponsor/<uuid>" }.
+
+Lookup / portal access:
+
+If the request supplies tokenId → query where id = :uuid.
+
+If it supplies legacy token → query where token = :text.
+
+Never cast the legacy token text to uuid (::uuid)—that’s what causes the “invalid input syntax for type uuid …” error.
+
+Error handling for /api/admin/portal-tokens:
+
+Wrap in try/catch and on error return:
+
+{ "ok": false, "where": "admin/portal-tokens", "code": "<db_or_app_code>", "message": "<details>" }
+
+
+Log the raw Supabase error to the server console.
+
+Acceptance checks
+
+# Create token (should 200 with ok:true and tokenId uuid)
+curl -sS -X POST "$BASE/api/admin/portal-tokens" \
+  -H "x-admin-key: $EXPORT_ADMIN_KEY" -H "Content-Type: application/json" \
+  -d '{"campaignId":"<valid-campaign-uuid>","expiresInHours":72}'
+
+# Open the returned URL in browser: /sponsor/<tokenId>  (should load, not "Access Denied")
+
+3) Ensure onboarding email always has an identifier
+
+Prompt to agent
+
+In the admin UI, the Send onboarding button should:
+
+Send { tokenId: row.id } if present, else { token: row.token }.
+
+If neither exists, disable the button and show a toast: “No portal token yet. Generate one first.”
+
+Server endpoint /api/spotlight/admin/send-onboarding must accept either tokenId (uuid) or token (text), resolve to a row, and return { ok:true }.
+
+Acceptance: Clicking Send onboarding now succeeds (toast + 200 { ok:true }).

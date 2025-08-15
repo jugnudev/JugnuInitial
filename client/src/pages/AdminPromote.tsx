@@ -420,8 +420,8 @@ export default function AdminPromote() {
         requestBody.token = token.token;
       } else {
         toast({
-          title: "Error",
-          description: "Invalid token: missing both ID and token value",
+          title: "No portal token yet",
+          description: "Generate a portal token first before sending onboarding email",
           variant: "destructive"
         });
         return;
@@ -441,7 +441,7 @@ export default function AdminPromote() {
       if (data.ok) {
         toast({
           title: "Onboarding Email Sent Successfully",
-          description: `Email sent to ${data.recipientEmail} for ${token.sponsor_campaigns.sponsor_name}`
+          description: `Email sent to ${data.recipientEmail} for ${token.sponsor_campaigns?.sponsor_name || 'sponsor'}`
         });
       } else {
         throw new Error(data.error || 'Failed to send onboarding email');

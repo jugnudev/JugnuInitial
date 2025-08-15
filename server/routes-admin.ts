@@ -357,24 +357,22 @@ export function addAdminRoutes(app: Express) {
         });
       }
 
-      // Create portal token using crypto.randomBytes for legacy token field
-      const token = crypto.randomBytes(32).toString('hex');
+      // Create expiration timestamp  
       const expiresAt = new Date(Date.now() + finalExpiresInHours * 60 * 60 * 1000);
 
       // Don't supply ID - let database generate it with gen_random_uuid()
-      // Use only columns that exist in the cached schema
+      // Don't supply token - we're using UUID id now
       const insertData: any = {
         campaign_id: finalCampaignId,
-        token,
-        expires_at: expiresAt.toISOString()
+        expires_at: expiresAt.toISOString(),
+        is_active: true
       };
 
-      // Try with disabled field first (fallback from is_active)
-      // Note: If id column doesn't exist, use token as identifier
+      // Insert and select back the generated id
       const { data: tokenData, error } = await supabase
         .from('sponsor_portal_tokens')
         .insert(insertData)
-        .select('token, campaign_id, expires_at')
+        .select('id, campaign_id, expires_at')
         .single();
 
       if (error) {
@@ -390,19 +388,27 @@ export function addAdminRoutes(app: Express) {
         });
       }
 
-      // Use token as identifier if id doesn't exist
-      const tokenId = (tokenData as any).id || tokenData.token;
+      // Use the UUID id returned from database
+      const tokenId = tokenData.id;
+      
+      if (!tokenId) {
+        return res.status(500).json({
+          ok: false,
+          where: 'admin/portal-tokens',
+          code: 'NO_ID_RETURNED',
+          message: 'Token created but no ID was returned'
+        });
+      }
       
       await auditLog('portal_token_created', {
         tokenId: tokenId,
-        hexToken: token.substring(0, 8) + '...',
         campaignId: finalCampaignId,
         expiresAt: expiresAt.toISOString(),
         ip: req.ip,
         userAgent: req.get('User-Agent')
       }, 'admin-api');
 
-      // Return success with token identifier and portal URL
+      // Return success with UUID and portal URL
       res.json({
         ok: true,
         tokenId: tokenId,
