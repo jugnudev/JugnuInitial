@@ -101,6 +101,13 @@ export function SponsoredBanner() {
             localStorage.setItem(seenKey, String(seenCount + 1));
             localStorage.setItem(lastImpressionKey, String(now));
             
+            // Generate or get unique user ID
+            let userId = localStorage.getItem('jugnu_user_id');
+            if (!userId) {
+              userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+              localStorage.setItem('jugnu_user_id', userId);
+            }
+
             // Track both raw view and billable impression
             fetch('/api/spotlight/admin/metrics/track', {
               method: 'POST',
@@ -109,7 +116,8 @@ export function SponsoredBanner() {
                 campaignId: spotlight.id,
                 placement: 'events_banner',
                 eventType: 'impression', // Changed from 'type' to 'eventType'
-                is_billable: isBillable
+                is_billable: isBillable,
+                userId: userId
               })
             }).catch(console.error);
 

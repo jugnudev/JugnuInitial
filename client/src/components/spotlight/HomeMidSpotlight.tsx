@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 interface SpotlightData {
-  campaignId: string;
+  id: string; // This is the actual campaign ID
   sponsor_name: string;
   headline?: string;
   subline?: string;
@@ -45,7 +45,7 @@ export function HomeMidSpotlight() {
           if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
             // 10-second debounce to prevent accidental double counts
             const now = Date.now();
-            const lastImpressionKey = `lastImpression:${spotlight.campaignId}:home_mid`;
+            const lastImpressionKey = `lastImpression:${spotlight.id}:home_mid`;
             const lastImpression = parseInt(localStorage.getItem(lastImpressionKey) || '0', 10);
             
             if (now - lastImpression < 10000) {
@@ -58,15 +58,23 @@ export function HomeMidSpotlight() {
             // Update last impression timestamp
             localStorage.setItem(lastImpressionKey, String(now));
             
+            // Generate or get unique user ID
+            let userId = localStorage.getItem('jugnu_user_id');
+            if (!userId) {
+              userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+              localStorage.setItem('jugnu_user_id', userId);
+            }
+
             // Track impression
             fetch('/api/spotlight/admin/metrics/track', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                campaignId: spotlight.campaignId,
+                campaignId: spotlight.id,
                 placement: 'home_mid',
-                type: 'impression',
-                is_billable: true
+                eventType: 'impression', // Changed from 'type' to 'eventType'
+                is_billable: true,
+                userId: userId
               })
             }).catch(console.error);
 
@@ -89,8 +97,19 @@ export function HomeMidSpotlight() {
   const handleClick = () => {
     if (!spotlight) return;
 
+    // Track click event
+    fetch('/api/spotlight/admin/metrics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaignId: spotlight.id,
+        placement: 'home_mid',
+        eventType: 'click'
+      })
+    }).catch(console.error);
+
     // Build redirector URL with encoded target and utm_content
-    const redirectUrl = `/r/${spotlight.campaignId}?to=${encodeURIComponent(spotlight.click_url)}&utm_content=home_mid`;
+    const redirectUrl = `/r/${spotlight.id}?to=${encodeURIComponent(spotlight.click_url)}&utm_content=home_mid`;
     
     // Open in new tab with proper attributes
     window.open(redirectUrl, '_blank', 'noopener,noreferrer');
