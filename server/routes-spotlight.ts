@@ -1085,6 +1085,98 @@ jugnu.events`;
     }
   });
 
+  // CSV Export endpoint for portal
+  app.get('/api/spotlight/portal/:tokenId/export.csv', validatePortalOrigin, async (req, res) => {
+    try {
+      const { tokenId } = req.params;
+      
+      // Validate token - accept both UUID and legacy hex tokens
+      let tokenQuery = supabase
+        .from('sponsor_portal_tokens')
+        .select(`
+          campaign_id,
+          sponsor_campaigns (
+            id,
+            name,
+            sponsor_name,
+            start_at,
+            end_at
+          )
+        `)
+        .eq('is_active', true);
+
+      // Check if tokenId looks like a UUID (has hyphens) or hex string
+      if (tokenId.includes('-')) {
+        tokenQuery = tokenQuery.eq('id', tokenId);
+      } else {
+        tokenQuery = tokenQuery.eq('token', tokenId);
+      }
+
+      const { data: tokenData, error: tokenError } = await tokenQuery
+        .gte('expires_at', new Date().toISOString())
+        .single();
+
+      if (tokenError || !tokenData) {
+        return res.status(401).json({ ok: false, error: 'Invalid or expired portal link' });
+      }
+
+      const campaign = tokenData.sponsor_campaigns as any;
+      const campaignId = tokenData.campaign_id;
+
+      // Get metrics for last 30 days or campaign range
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+      
+      // Use campaign start date if it's more recent
+      const campaignStart = new Date(campaign.start_at);
+      if (campaignStart > startDate) {
+        startDate.setTime(campaignStart.getTime());
+      }
+
+      const { data: metrics, error: metricsError } = await supabase
+        .from('sponsor_metrics_daily')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .gte('date', startDate.toISOString().split('T')[0])
+        .lte('date', endDate.toISOString().split('T')[0])
+        .order('date', { ascending: false });
+
+      if (metricsError) {
+        console.error('Metrics query error:', metricsError);
+        return res.status(500).json({ ok: false, error: 'Failed to load metrics' });
+      }
+
+      // Build CSV content
+      const csvRows = ['date,placement,billable_impressions,raw_views,clicks,unique_users,ctr'];
+      
+      if (metrics && metrics.length > 0) {
+        metrics.forEach(row => {
+          const ctr = row.billable_impressions > 0 
+            ? ((row.clicks || 0) / row.billable_impressions * 100).toFixed(2)
+            : '0.00';
+          
+          csvRows.push(
+            `${row.date},${row.placement || ''},${row.billable_impressions || 0},${row.raw_views || 0},${row.clicks || 0},${row.unique_users || 0},${ctr}`
+          );
+        });
+      } else {
+        // Add at least one row with today's date and zeros
+        const today = new Date().toISOString().split('T')[0];
+        csvRows.push(`${today},events_banner,0,0,0,0,0.00`);
+      }
+
+      // Set CSV headers and send
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="campaign-metrics-${campaign.name.replace(/[^a-z0-9]/gi, '-')}.csv"`);
+      res.status(200).send(csvRows.join('\n'));
+      
+    } catch (error) {
+      console.error('CSV export error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to export data' });
+    }
+  });
+
   // Get campaign details for renewal form prefill
   app.get('/api/spotlight/portal/:tokenId/campaign-details', validatePortalOrigin, async (req, res) => {
     try {
@@ -1456,23 +1548,22 @@ jugnu.events`;
         };
       }
 
-      // Create test token using existing cached schema - try disabled field first
+      // Create test token using the UUID id approach
       const testToken = crypto.randomBytes(32).toString('hex');
       const { data: tokenData, error: createError } = await supabase
         .from('sponsor_portal_tokens')
         .insert({
           campaign_id: campaigns[0].id,
-          token: testToken,
-          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          disabled: false
-          // Skip is_active due to cache issue, use disabled field instead
+          token: testToken, // Keep legacy hex token for backward compatibility
+          is_active: true,
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
         })
-        .select()
+        .select('id, token, campaign_id') // Select the UUID id
         .single();
 
       if (createError) throw createError;
 
-      // Test portal data endpoint using tokenId (UUID) instead of hex token
+      // Test portal data endpoint using UUID id (not the hex token)
       const portalResponse = await fetch(`http://localhost:5000/api/spotlight/portal/${tokenData.id}`);
       const portalData = await portalResponse.json();
 
@@ -1489,6 +1580,7 @@ jugnu.events`;
           : 'Portal token issues detected',
         details: {
           tokenCreated: !!tokenData,
+          tokenId: tokenData?.id,
           portalResponse: portalResponse.ok,
           dataReturned: !!portalData.campaign
         }

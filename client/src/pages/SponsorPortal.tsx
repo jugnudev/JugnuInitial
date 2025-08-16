@@ -79,30 +79,35 @@ export default function SponsorPortal() {
     fetchPortalData();
   }, [tokenId]);
 
-  const exportCSV = () => {
-    if (!data?.chartData) return;
+  const exportCSV = async () => {
+    if (!tokenId) return;
 
-    const csvHeaders = ['Date', 'Billable Impressions', 'Raw Views', 'Reach (Unique Users)', 'Clicks', 'CTR (%)'];
-    const csvRows = data.chartData.map(row => [
-      row.date,
-      row.billable_impressions,
-      row.raw_views,
-      row.unique_users,
-      row.clicks,
-      row.ctr
-    ]);
+    try {
+      // Use the new CSV export endpoint
+      const response = await fetch(`/api/spotlight/portal/${tokenId}/export.csv`);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('CSV export failed:', error);
+        alert('Failed to export CSV. Please try again.');
+        return;
+      }
 
-    const csvContent = [csvHeaders, ...csvRows]
-      .map(row => row.join(','))
-      .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${data.campaign?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'campaign'}_analytics.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+      // Get the CSV content
+      const csvContent = await response.text();
+      
+      // Create download link
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${data?.campaign?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'campaign'}_analytics.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('CSV export error:', error);
+      alert('Failed to export CSV. Please try again.');
+    }
   };
 
   const handleNextCampaign = async () => {

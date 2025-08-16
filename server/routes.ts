@@ -70,6 +70,55 @@ function checkRateLimit(ip: string): boolean {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Health check endpoint - always returns JSON
+  app.get("/api/health", async (req, res) => {
+    const version = process.env.APP_VERSION || 'dev';
+    
+    try {
+      // Test database connectivity
+      const supabase = getSupabaseAdmin();
+      const startTime = Date.now();
+      
+      // Quick DB check
+      const { error: metricsError } = await supabase
+        .from('sponsor_metrics_daily')
+        .select('campaign_id')
+        .limit(1);
+      
+      const { error: tokensError } = await supabase
+        .from('sponsor_portal_tokens')
+        .select('id')
+        .limit(1);
+      
+      const dbTime = Date.now() - startTime;
+      const dbHealthy = !metricsError && !tokensError;
+      
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Cache-Control', 'no-cache, max-age=0');
+      res.status(200).json({
+        ok: dbHealthy,
+        version,
+        db: dbHealthy,
+        tables: {
+          sponsor_metrics_daily: !metricsError,
+          sponsor_portal_tokens: !tokensError
+        },
+        responseTime: `${dbTime}ms`,
+        time: new Date().toISOString()
+      });
+    } catch (error) {
+      // Even on error, return JSON
+      res.setHeader('Content-Type', 'application/json');
+      res.status(503).json({
+        ok: false,
+        version,
+        db: false,
+        error: 'Database connection failed',
+        time: new Date().toISOString()
+      });
+    }
+  });
+
   // Waitlist form submission endpoint
   app.post("/api/waitlist", async (req, res) => {
     try {
