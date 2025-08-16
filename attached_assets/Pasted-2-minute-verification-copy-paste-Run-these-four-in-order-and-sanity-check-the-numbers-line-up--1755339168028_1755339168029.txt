@@ -1,0 +1,55 @@
+2-minute verification (copy/paste)
+
+Run these four in order and sanity-check the numbers line up:
+
+# 1) seed two events (impression+click path the agent added)
+curl -s "$BASE/api/spotlight/admin/metrics/test?campaignId=<CID>" \
+  -H "x-admin-key: $EXPORT_ADMIN_KEY"
+
+# 2) raw DB view for today
+curl -s "$BASE/api/spotlight/admin/metrics/dump?campaignId=<CID>&placement=events_banner" \
+  -H "x-admin-key: $EXPORT_ADMIN_KEY"
+
+# 3) portal JSON totals (should reflect same non-zero counts)
+curl -s "$BASE/api/spotlight/portal/<TID>"
+
+# 4) CSV first 3 lines (today’s row should match #2 and #3)
+curl -s "$BASE/api/spotlight/portal/<TID>/export.csv" | head -n 3
+
+
+✅ You’re good if:
+
+dump JSON shows a row for today ("day": "YYYY-MM-DD") with non-zero billable_impressions/raw_views and maybe clicks.
+
+portal totals reflect the same day’s counts.
+
+CSV’s first data row (today) matches the dump/JSON totals.
+
+One schema tidy-up (optional but recommended)
+
+You previously added a "date" column; the code now uses "day". If everything works, either ignore the leftover "date" or clean it up safely:
+
+-- Make sure "day" exists and is populated from "date" if needed
+alter table public.sponsor_metrics_daily
+  add column if not exists day date;
+
+update public.sponsor_metrics_daily
+set day = coalesce(day, "date");
+
+-- Ensure uniqueness is on (campaign_id, placement, day)
+create unique index if not exists sponsor_metrics_daily_unique_idx
+  on public.sponsor_metrics_daily (campaign_id, placement, day);
+
+-- (optional) drop the unused "date" column after confirming charts/CSV look good
+-- alter table public.sponsor_metrics_daily drop column "date";
+
+
+If you don’t want to drop anything now, you can leave "date" in place—no harm.
+
+Two small robustness fixes you might still want
+
+Timezone correctness: when writing rows, compute “day” in Pacific time to avoid UTC midnight edge cases:
+
+server‐side: day = (now() at time zone 'America/Vancouver')::date
+
+Double-count protection: you already have the 10-second debounce; keep it as is with freq-cap=0 (MVP).

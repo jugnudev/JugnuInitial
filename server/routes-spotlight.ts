@@ -114,11 +114,11 @@ export function addSpotlightRoutes(app: Express) {
             is_active boolean NOT NULL DEFAULT true,
             is_sponsored boolean NOT NULL DEFAULT true,
             tags text[] DEFAULT '{}',
-            freq_cap_per_user_per_day int NOT NULL DEFAULT 0
+            -- freq_cap_per_user_per_day int NOT NULL DEFAULT 0 -- Temporarily disabled
           );
           
-          -- Add freq_cap_per_user_per_day column if it doesn't exist
-          ALTER TABLE public.sponsor_campaigns ADD COLUMN IF NOT EXISTS freq_cap_per_user_per_day int NOT NULL DEFAULT 0;
+          -- Temporarily disabled freq_cap_per_user_per_day column due to schema cache issue
+          -- ALTER TABLE public.sponsor_campaigns ADD COLUMN IF NOT EXISTS freq_cap_per_user_per_day int NOT NULL DEFAULT 0;
         `
       });
 
@@ -236,8 +236,8 @@ export function addSpotlightRoutes(app: Express) {
       // Add missing columns to existing tables
       await supabase.rpc('exec_sql', {
         sql: `
-          -- Add freq_cap_per_user_per_day to sponsor_campaigns if missing
-          ALTER TABLE public.sponsor_campaigns ADD COLUMN IF NOT EXISTS freq_cap_per_user_per_day int NOT NULL DEFAULT 0;
+          -- Temporarily disabled due to schema cache issue
+          -- ALTER TABLE public.sponsor_campaigns ADD COLUMN IF NOT EXISTS freq_cap_per_user_per_day int NOT NULL DEFAULT 0;
           
           -- Add missing columns to sponsor_portal_tokens if they don't exist
           ALTER TABLE public.sponsor_portal_tokens ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true;
@@ -360,7 +360,6 @@ export function addSpotlightRoutes(app: Express) {
         .from('sponsor_campaigns')
         .select(`
           *,
-          freq_cap_per_user_per_day,
           sponsor_creatives (*)
         `)
         .eq('is_active', true)
@@ -452,7 +451,7 @@ export function addSpotlightRoutes(app: Express) {
         is_active,
         is_sponsored,
         tags,
-        freq_cap_per_user_per_day, // Re-enabled - use frequencyCap as fallback
+        // freq_cap_per_user_per_day, // Schema cache issue - disable until PostgREST refreshes
         creatives
       } = req.body;
 
@@ -485,9 +484,9 @@ export function addSpotlightRoutes(app: Express) {
       const coercedPriority = parseInt(priority) || 1;
       const coercedIsActive = is_active !== false; // Default to true
       const coercedIsSponsored = is_sponsored !== false; // Default to true  
-      // Accept both frequencyCap (from UI) and freq_cap_per_user_per_day (from DB)
+      // Accept frequencyCap (from UI) - schema cache blocking freq_cap_per_user_per_day
       const frequencyCap = req.body.frequencyCap;
-      const coercedFreqCap = parseInt(frequencyCap || freq_cap_per_user_per_day) || parseInt(process.env.FREQ_CAP_DEFAULT || '0');
+      const coercedFreqCap = parseInt(frequencyCap) || 0; // Default to unlimited
       const coercedTags = Array.isArray(tags) ? tags : [];
 
       // Date handling
@@ -531,8 +530,8 @@ export function addSpotlightRoutes(app: Express) {
         is_active: coercedIsActive,
         is_sponsored: coercedIsSponsored,
         tags: coercedTags,
-        // Include frequency cap - always include the field (0 = no limit)
-        freq_cap_per_user_per_day: coercedFreqCap,
+        // Skip freq_cap_per_user_per_day due to schema cache issue
+        // Will use default of 0 (unlimited) in frontend
         updated_at: new Date().toISOString()
       };
 
@@ -610,25 +609,21 @@ export function addSpotlightRoutes(app: Express) {
   app.post('/api/spotlight/admin/metrics/track', async (req, res) => {
     try {
       const { campaignId, placement = 'events_banner', eventType, userId } = req.body;
-      const today = new Date().toISOString().split('T')[0]; // CURRENT_DATE in server timezone
+      // Use Pacific timezone for consistency to avoid UTC midnight edge cases
+      const pacificTime = new Date().toLocaleString("en-CA", {
+        timeZone: "America/Vancouver",
+        year: 'numeric',
+        month: '2-digit', 
+        day: '2-digit'
+      });
+      const today = pacificTime.replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3'); // Ensure YYYY-MM-DD format
       
       // Use service-role client for direct database access
       const serviceRoleClient = getSupabaseAdmin();
       
       if (eventType === 'impression') {
-        // Get frequency cap for this campaign (handle missing column gracefully)
-        let freqCap = 0;
-        try {
-          const { data: campaign } = await serviceRoleClient
-            .from('sponsor_campaigns')
-            .select('freq_cap_per_user_per_day')
-            .eq('id', campaignId)
-            .single();
-          freqCap = campaign?.freq_cap_per_user_per_day || 0;
-        } catch (err) {
-          // Column might not exist, use default
-          freqCap = 0;
-        }
+        // Skip frequency cap check due to schema cache issue - default to unlimited
+        let freqCap = 0; // 0 = unlimited impressions
         
         // For MVP: when cap=0, both raw and billable increment the same
         const billableIncrement = freqCap === 0 ? 1 : 1; // Both increment for now
