@@ -50,8 +50,8 @@ export function SponsoredBanner() {
         return; // Skip frequency capping logic
       }
 
-      // Get frequency cap from spotlight data (default to 1 if not provided)
-      const freqCap = spotlight.freq_cap_per_user_per_day || 1;
+      // Get frequency cap from spotlight data (default to 0 for unlimited if not provided)
+      const freqCap = spotlight.freq_cap_per_user_per_day ?? 0;
       
       // If frequency cap is 0, no limit
       if (freqCap === 0) {
@@ -78,7 +78,7 @@ export function SponsoredBanner() {
           if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
             // Track raw view (always counted)
             const today = new Date().toISOString().split('T')[0];
-            const freqCap = spotlight.freq_cap_per_user_per_day || 1;
+            const freqCap = spotlight.freq_cap_per_user_per_day ?? 0;
             const seenKey = `spotlightSeen:${spotlight.campaignId}:events_banner:${today}`;
             const seenCount = parseInt(localStorage.getItem(seenKey) || '0', 10);
             

@@ -360,6 +360,7 @@ export function addSpotlightRoutes(app: Express) {
         .from('sponsor_campaigns')
         .select(`
           *,
+          freq_cap_per_user_per_day,
           sponsor_creatives (*)
         `)
         .eq('is_active', true)
@@ -451,7 +452,7 @@ export function addSpotlightRoutes(app: Express) {
         is_active,
         is_sponsored,
         tags,
-        // freq_cap_per_user_per_day, // Temporarily disabled due to schema cache issue
+        freq_cap_per_user_per_day, // Re-enabled - use frequencyCap as fallback
         creatives
       } = req.body;
 
@@ -484,9 +485,9 @@ export function addSpotlightRoutes(app: Express) {
       const coercedPriority = parseInt(priority) || 1;
       const coercedIsActive = is_active !== false; // Default to true
       const coercedIsSponsored = is_sponsored !== false; // Default to true  
-      // Accept both frequencyCap (from UI) - temporarily disabled freq_cap_per_user_per_day
+      // Accept both frequencyCap (from UI) and freq_cap_per_user_per_day (from DB)
       const frequencyCap = req.body.frequencyCap;
-      const coercedFreqCap = parseInt(frequencyCap) || parseInt(process.env.FREQ_CAP_DEFAULT || '0');
+      const coercedFreqCap = parseInt(frequencyCap || freq_cap_per_user_per_day) || parseInt(process.env.FREQ_CAP_DEFAULT || '0');
       const coercedTags = Array.isArray(tags) ? tags : [];
 
       // Date handling
@@ -530,9 +531,8 @@ export function addSpotlightRoutes(app: Express) {
         is_active: coercedIsActive,
         is_sponsored: coercedIsSponsored,
         tags: coercedTags,
-        // Temporarily disabled freq_cap_per_user_per_day due to schema cache issue
-        // TODO: Re-enable after PostgREST schema cache refresh
-        // ...(coercedFreqCap > 0 ? { freq_cap_per_user_per_day: coercedFreqCap } : {}),
+        // Include frequency cap - always include the field (0 = no limit)
+        freq_cap_per_user_per_day: coercedFreqCap,
         updated_at: new Date().toISOString()
       };
 
