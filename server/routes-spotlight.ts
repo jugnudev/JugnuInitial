@@ -658,6 +658,8 @@ export function addSpotlightRoutes(app: Express) {
             if (updateError) {
               console.error('Failed to update metrics:', updateError);
               throw updateError;
+            } else {
+              console.log('✅ Successfully updated metrics record for campaign:', campaignId, 'on day:', today);
             }
           } else {
             // Insert new record
@@ -675,7 +677,18 @@ export function addSpotlightRoutes(app: Express) {
               
             if (insertError) {
               console.error('Failed to insert metrics:', insertError);
+              console.error('Insert payload was:', {
+                campaign_id: campaignId,
+                placement,
+                day: today,
+                raw_views: 1,
+                billable_impressions: billableIncrement,
+                unique_users: userId ? 1 : 0,
+                clicks: 0
+              });
               throw insertError;
+            } else {
+              console.log('✅ Successfully inserted metrics record for campaign:', campaignId, 'on day:', today);
             }
           }
         } else {
@@ -825,7 +838,16 @@ export function addSpotlightRoutes(app: Express) {
         });
       }
       
-      const today = new Date().toISOString().split('T')[0];
+      // Use Pacific timezone for consistency with portal analytics
+      const vancouverTime = new Date().toLocaleString('en-CA', { 
+        timeZone: 'America/Vancouver',
+        year: 'numeric',
+        month: '2-digit', 
+        day: '2-digit'
+      });
+      const today = vancouverTime.split(',')[0]; // Format: YYYY-MM-DD
+      console.log('📅 Metrics tracking for date:', today, 'Campaign:', campaignId, 'Placement:', placement, 'Type:', eventType);
+      
       const serviceRoleClient = getSupabaseAdmin();
       
       // C) Get today's raw rows using day column only

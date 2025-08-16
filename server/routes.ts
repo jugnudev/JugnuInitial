@@ -1150,6 +1150,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Community Events - Alias for backward compatibility  
+  app.get("/api/community", async (req, res) => {
+    try {
+      const supabase = getSupabaseAdmin();
+      const { category, range, month, year } = req.query;
+      
+      // Handle month/year filtering for Events page
+      let startDate, endDate;
+      if (month && year) {
+        const monthNum = parseInt(month as string);
+        const yearNum = parseInt(year as string);
+        startDate = new Date(yearNum, monthNum - 1, 1); // month is 0-indexed
+        endDate = new Date(yearNum, monthNum, 0, 23, 59, 59); // last day of month
+      } else {
+        // Default to current month
+        const now = new Date();
+        const daysAhead = range === 'week' ? 7 : 30;
+        startDate = now;
+        endDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+      }
+      
+      let query = supabase
+        .from('community_events')
+        .select('*')
+        .in('status', ['upcoming', 'soldout'])
+        .gte('start_at', startDate.toISOString())
+        .lte('start_at', endDate.toISOString())
+        .order('start_at', { ascending: true });
+      
+      // Apply category filter if specified
+      if (category && category !== 'All') {
+        query = query.eq('category', category);
+      }
+      
+      const { data: events, error } = await query;
+      
+      if (error) {
+        console.error('Community events query error:', error);
+        return res.status(500).json({ ok: false, error: 'Failed to fetch events' });
+      }
+      
+      res.json({ ok: true, events: events || [] });
+    } catch (error) {
+      console.error('Community events error:', error);
+      res.status(500).json({ ok: false, error: 'server_error' });
+    }
+  });
+
   app.get("/api/community/weekly", async (req, res) => {
     try {
       const supabase = getSupabaseAdmin();
