@@ -57,6 +57,8 @@ Preferred communication style: Simple, everyday language.
 - **Timezone Hardening**: All metrics writes use Pacific timezone ((now() at time zone 'America/Vancouver')::date) for consistency.
 - **Enhanced Logging**: Metrics test endpoint provides before→after count logging for verification.
 - **Schema Robustness**: All operations use 'day' column only, with safe schema cleanup approach.
+- **Security Hardening**: Test scripts sanitized to use environment variables; no hardcoded secrets in repository.
+- **Frequency Cap Support**: Full CRUD support for frequency capping with proper 0-value handling (0 = unlimited).
 
 ## External Dependencies
 

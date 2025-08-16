@@ -1,8 +1,11 @@
-// Quick test script to debug the onboarding endpoint
-const { default: fetch } = await import('node-fetch');
+// Test helper script for onboarding endpoint
+// Uses environment variables for testing; no secrets committed
+// Uses native fetch available in Node.js 20+
 
 const BASE_URL = 'http://localhost:5000';
 const ADMIN_KEY = process.env.ADMIN_KEY || 'jugnu-admin-dev-2025';
+const TOKEN_ID = process.env.TEST_PORTAL_TOKEN_ID || '00000000-0000-4000-8000-000000000000';
+const TEST_TOKEN = process.env.TEST_PORTAL_TOKEN || 'test-sample-token-safe';
 
 console.log('Testing onboarding endpoint with different parameter formats...');
 
@@ -16,7 +19,7 @@ try {
       'x-admin-key': ADMIN_KEY
     },
     body: JSON.stringify({
-      token: "test-hex-token-123",
+      token: TEST_TOKEN,
       email: "sponsor@example.com"
     })
   });
@@ -37,7 +40,7 @@ try {
       'x-admin-key': ADMIN_KEY
     },
     body: JSON.stringify({
-      token_id: "123e4567-e89b-12d3-a456-426614174000",
+      token_id: TOKEN_ID,
       email: "sponsor@example.com"
     })
   });
