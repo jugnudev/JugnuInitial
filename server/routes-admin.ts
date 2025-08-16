@@ -246,6 +246,7 @@ export function addAdminRoutes(app: Express) {
           is_active,
           is_sponsored,
           tags,
+          freq_cap_per_user_per_day,
           created_at,
           updated_at,
           sponsor_creatives (

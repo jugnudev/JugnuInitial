@@ -484,9 +484,15 @@ export function addSpotlightRoutes(app: Express) {
       const coercedPriority = parseInt(priority) || 1;
       const coercedIsActive = is_active !== false; // Default to true
       const coercedIsSponsored = is_sponsored !== false; // Default to true  
-      // Accept frequencyCap (from UI) - schema cache blocking freq_cap_per_user_per_day
-      const frequencyCap = req.body.frequencyCap;
-      const coercedFreqCap = parseInt(frequencyCap) || 0; // Default to unlimited
+      
+      // Accept frequencyCap (from UI) - properly handle 0 as valid value
+      const frequencyCap = req.body.frequencyCap ?? req.body.freq_cap_per_user_per_day;
+      // Parse frequencyCap but keep 0 as valid (0 = no cap, not undefined)
+      const capStr = frequencyCap;
+      const coercedFreqCap = 
+        capStr === '' || capStr === null || capStr === undefined
+          ? undefined  // Only undefined means don't change
+          : Math.max(0, Number(capStr));  // 0 is valid (no cap)
       const coercedTags = Array.isArray(tags) ? tags : [];
 
       // Date handling
@@ -516,7 +522,7 @@ export function addSpotlightRoutes(app: Express) {
         finalClickUrl += `${separator}utm_source=jugnu&utm_medium=sponsorship&utm_campaign=${encodeURIComponent(name)}`;
       }
 
-      const campaignData = {
+      const campaignData: any = {
         name: name.trim(),
         sponsor_name: sponsor_name.trim(),
         headline: headline.trim(),
@@ -530,10 +536,14 @@ export function addSpotlightRoutes(app: Express) {
         is_active: coercedIsActive,
         is_sponsored: coercedIsSponsored,
         tags: coercedTags,
-        // Skip freq_cap_per_user_per_day due to schema cache issue
-        // Will use default of 0 (unlimited) in frontend
         updated_at: new Date().toISOString()
       };
+      
+      // Only include freq_cap_per_user_per_day if it's defined (including 0)
+      // Don't include if undefined to avoid overwriting existing values
+      if (coercedFreqCap !== undefined) {
+        campaignData.freq_cap_per_user_per_day = coercedFreqCap;
+      }
 
       let campaign;
       
@@ -609,7 +619,7 @@ export function addSpotlightRoutes(app: Express) {
   app.post('/api/spotlight/admin/metrics/track', async (req, res) => {
     try {
       const { campaignId, placement = 'events_banner', eventType, userId } = req.body;
-      // Note: Using database timezone function instead of JS for consistency
+      const today = new Date().toISOString().split('T')[0];
       
       // Use service-role client for direct database access
       const serviceRoleClient = getSupabaseAdmin();
@@ -656,7 +666,7 @@ export function addSpotlightRoutes(app: Express) {
               .insert({
                 campaign_id: campaignId,
                 placement,
-                day: serviceRoleClient.sql`(now() at time zone 'America/Vancouver')::date`, // B) Pacific timezone in DB
+                day: today, // Use the same date format
                 raw_views: 1,
                 billable_impressions: billableIncrement,
                 unique_users: userId ? 1 : 0,
@@ -707,7 +717,7 @@ export function addSpotlightRoutes(app: Express) {
               .insert({
                 campaign_id: campaignId,
                 placement,
-                day: serviceRoleClient.sql`(now() at time zone 'America/Vancouver')::date`, // B) Pacific timezone
+                day: today, // Use the same date format
                 clicks: 1,
                 raw_views: 0,
                 billable_impressions: 0,
@@ -755,13 +765,14 @@ export function addSpotlightRoutes(app: Express) {
         .eq('placement', placement)
         .single();
       
-      // Record impression and click using Pacific timezone (B)
+      // Record impression and click using today's date
+      const today = new Date().toISOString().split('T')[0];
       await serviceRoleClient
         .from('sponsor_metrics_daily')
         .upsert({
           campaign_id: campaignId,
           placement,
-          day: serviceRoleClient.sql`(now() at time zone 'America/Vancouver')::date`, // B) Pacific timezone
+          day: today, // Use the same date format
           raw_views: (before?.raw_views || 0) + 1,
           billable_impressions: (before?.billable_impressions || 0) + 1,
           clicks: (before?.clicks || 0) + 1,
@@ -1443,6 +1454,7 @@ jugnu.events`;
         publicAPIs?: any;
         utmRedirector?: any;
         robotsSchema?: any;
+        frequencyCap?: any;
       };
     } = {
       timestamp: new Date().toISOString(),
@@ -1474,6 +1486,9 @@ jugnu.events`;
       
       // Test 8: Robots.txt and schema validation
       results.tests.robotsSchema = await testRobotsSchema(req);
+      
+      // Test 9: Frequency cap regression test
+      results.tests.frequencyCap = await testFrequencyCap();
 
       // Determine overall status
       const failedTests = Object.values(results.tests).filter((test: any) => test.status === 'FAIL');
@@ -1958,6 +1973,89 @@ jugnu.events`;
       return {
         status: 'FAIL',
         message: 'UTM redirector test failed',
+        error: error?.message || 'Unknown error'
+      };
+    }
+  }
+
+  async function testFrequencyCap(): Promise<any> {
+    try {
+      const serviceRoleClient = getSupabaseAdmin();
+      const testResults = [];
+      
+      // Test 1: Create campaign with frequencyCap = 0
+      const { data: campaign1, error: error1 } = await serviceRoleClient
+        .from('sponsor_campaigns')
+        .insert({
+          name: 'FreqCap Test 0 ' + Date.now(),
+          sponsor_name: 'Test Sponsor',
+          headline: 'Test Headline',
+          click_url: 'https://test.com',
+          placements: ['events_banner'],
+          start_at: new Date().toISOString(),
+          end_at: new Date(Date.now() + 86400000).toISOString(),
+          freq_cap_per_user_per_day: 0,
+          is_active: true
+        })
+        .select('id, freq_cap_per_user_per_day')
+        .single();
+      
+      if (error1 || !campaign1) {
+        return {
+          status: 'FAIL',
+          message: 'Failed to create campaign with freq_cap = 0',
+          error: error1?.message
+        };
+      }
+      
+      testResults.push({
+        test: 'Create with 0',
+        expected: 0,
+        actual: campaign1.freq_cap_per_user_per_day,
+        passed: campaign1.freq_cap_per_user_per_day === 0
+      });
+      
+      // Test 2: Update campaign to frequencyCap = 7
+      const { data: campaign2, error: error2 } = await serviceRoleClient
+        .from('sponsor_campaigns')
+        .update({ freq_cap_per_user_per_day: 7 })
+        .eq('id', campaign1.id)
+        .select('freq_cap_per_user_per_day')
+        .single();
+      
+      if (error2 || !campaign2) {
+        // Clean up
+        await serviceRoleClient.from('sponsor_campaigns').delete().eq('id', campaign1.id);
+        return {
+          status: 'FAIL',
+          message: 'Failed to update campaign freq_cap to 7',
+          error: error2?.message
+        };
+      }
+      
+      testResults.push({
+        test: 'Update to 7',
+        expected: 7,
+        actual: campaign2.freq_cap_per_user_per_day,
+        passed: campaign2.freq_cap_per_user_per_day === 7
+      });
+      
+      // Clean up
+      await serviceRoleClient.from('sponsor_campaigns').delete().eq('id', campaign1.id);
+      
+      const allPassed = testResults.every(t => t.passed);
+      
+      return {
+        status: allPassed ? 'PASS' : 'FAIL',
+        message: allPassed 
+          ? 'Frequency cap saves and reads correctly (0 and 7)'
+          : 'Frequency cap test failed',
+        details: testResults
+      };
+    } catch (error: any) {
+      return {
+        status: 'FAIL',
+        message: 'Frequency cap test failed',
         error: error?.message || 'Unknown error'
       };
     }

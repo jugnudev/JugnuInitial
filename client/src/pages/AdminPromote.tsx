@@ -232,10 +232,21 @@ export default function AdminPromote() {
 
   const saveCampaign = async () => {
     try {
-      const payload = {
+      // Parse frequencyCap properly - don't drop 0
+      const capValue = campaignForm.freq_cap_per_user_per_day;
+      const cap = 
+        capValue === null || capValue === undefined || capValue === ''
+          ? undefined  // Only undefined means don't change
+          : Math.max(0, Number(capValue));  // 0 is valid (no cap)
+      
+      const payload: any = {
         ...campaignForm,
-        id: editingCampaign?.id
+        id: editingCampaign?.id,
+        // Only include frequencyCap if defined (including 0)
+        ...(cap !== undefined && { frequencyCap: cap })
       };
+      // Remove the raw freq_cap_per_user_per_day from payload
+      delete payload.freq_cap_per_user_per_day;
 
       const response = await adminFetch(ENDPOINTS.ADMIN.CAMPAIGNS, {
         method: 'POST',
@@ -805,7 +816,7 @@ export default function AdminPromote() {
                             </span>
                             <span className="flex items-center">
                               <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                              {campaign.freq_cap_per_user_per_day === 0 ? 'No cap' : `${campaign.freq_cap_per_user_per_day}×/day`}
+                              {(campaign.freq_cap_per_user_per_day ?? 0) === 0 ? 'No cap' : `${campaign.freq_cap_per_user_per_day}/day cap`}
                             </span>
                             {existingToken && (
                               <span className="text-green-400 flex items-center">
@@ -1380,11 +1391,14 @@ export default function AdminPromote() {
                     id="freq_cap"
                     type="number"
                     min="0"
-                    value={campaignForm.freq_cap_per_user_per_day}
-                    onChange={(e) => setCampaignForm(prev => ({ 
-                      ...prev, 
-                      freq_cap_per_user_per_day: parseInt(e.target.value) || 0 
-                    }))}
+                    value={String(campaignForm.freq_cap_per_user_per_day ?? 0)}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCampaignForm(prev => ({ 
+                        ...prev, 
+                        freq_cap_per_user_per_day: val === '' ? 0 : parseInt(val) || 0 
+                      }));
+                    }}
                     className="bg-white/10 border-white/20 text-white"
                   />
                   <p className="text-xs text-muted mt-1">0 = no limit</p>
