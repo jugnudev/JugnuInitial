@@ -1,0 +1,137 @@
+Title: End-to-end Sponsor Portal Verification & Fix
+
+Do the following exactly, then report back with the requested artifacts.
+
+Prereqs
+
+Use my current project. Start the server in dev.
+
+Set envs if missing (don’t print secrets):
+SUPABASE_URL, SUPABASE_SERVICE_ROLE, EXPORT_ADMIN_KEY, ADMIN_PASSWORD,
+ALLOWED_PORTAL_DOMAIN (allow my current Replit URL),
+VITE_ENABLE_EVENTS_BANNER=true, FREQ_CAP_DEFAULT=0.
+
+Determine my base URL as BASE (e.g., https://<my-replit>.replit.dev).
+
+DB schema: verify & patch (idempotent)
+
+Confirm portal tokens table matches this shape (don’t duplicate):
+
+public.sponsor_portal_tokens:
+id uuid PK not null default gen_random_uuid(),
+campaign_id uuid not null,
+token text (legacy hex; unique where token is not null),
+is_active boolean not null default true,
+created_at timestamptz not null default now(),
+expires_at timestamptz not null default now()+interval '30 days',
+index on (campaign_id).
+
+Confirm metrics table has the columns used by tracking & portal:
+public.sponsor_metrics_daily(campaign_id uuid, placement text, "date" date, raw_views int default 0, billable_impressions int default 0, clicks int default 0, unique_users int default 0)
+plus a unique index on (campaign_id, placement, "date").
+
+If anything is missing, run the minimal idempotent SQL to add it, then select pg_notify('pgrst','reload schema');.
+
+Sanity checks (paste JSON in report)
+
+GET $BASE/api/health
+
+GET $BASE/api/spotlight/active?placement=events_banner
+
+GET $BASE/api/admin/selftest (with x-admin-key)
+
+Create a short live test campaign (today→+2d)
+
+POST $BASE/api/admin/campaigns with body:
+
+{
+  "campaignName": "Portal E2E",
+  "sponsorName": "Portal QA",
+  "headline": "Portal QA Headline",
+  "subline": "Testing end-to-end",
+  "clickUrl": "https://example.com",
+  "placements": ["events_banner"],
+  "priority": 0,
+  "isActive": true,
+  "showSponsored": true,
+  "frequencyCapPerUserPerDay": 0,
+  "startDate": "<today YYYY-MM-DD>",
+  "endDate": "<today+2 YYYY-MM-DD>"
+}
+
+
+Save campaignId as CID and include it in the report.
+
+Generate a portal token (UUID)
+
+POST $BASE/api/admin/portal-tokens with:
+
+{ "campaignId": "<CID>", "expiresInHours": 72 }
+
+
+Save tokenId as TID. Open GET $BASE/sponsor/<TID> and confirm the portal shell loads (screenshot).
+
+Produce real metrics
+
+Open $BASE/events?debugSponsor=1. Scroll until the banner is ≥50% in viewport to log an impression (component already handles this). Click the banner once to log a click (goes through /r/:campaignId).
+
+If needed, call the admin metrics test endpoint (if present):
+GET $BASE/api/spotlight/admin/metrics/test?campaignId=<CID> (with x-admin-key) and capture JSON.
+
+Validate portal API + UI
+
+Call the portal data API the page uses (usually GET $BASE/api/spotlight/portal/<TID>). Paste JSON totals: billableImpressions, rawViews, clicks, uniqueUsers, ctr, plus a sample of the daily series that includes today.
+
+Take a screenshot of /sponsor/<TID> showing non-zero numbers and the trend charts rendering a point for today.
+
+Use the Export CSV button and paste the first 3 lines of the CSV into the report.
+
+Onboarding email
+
+From the admin UI, use the “Send onboarding email” and send it to my chosen address (prompt me for it). Paste the success JSON. (If there’s a CLI endpoint, you may also show the curl + JSON.)
+
+Self-test final
+
+GET $BASE/api/admin/selftest again. All sections should be PASS, especially Tracking and Portal Tokens. Paste the JSON.
+
+Mobile polish
+
+Take a 375px-wide screenshot of /admin/promote main list + any modal and one of the /sponsor/<TID> overview. Ensure tap targets ≥44px and no overflow.
+
+Deliverables (paste into reply):
+
+The exact curl commands & JSON responses for steps 3, 4, 5, 7, 9 (mask secrets).
+
+CID, TID values.
+
+3–5 screenshots: (a) portal page overview with numbers, (b) line charts with today’s point, (c) CSV dialog or snippet, (d) mobile admin, (e) mobile portal.
+
+If anything failed, list the fix you applied (code/SQL), the commit or diff, and the before/after evidence.
+
+Acceptance criteria:
+
+/sponsor/<TID> loads on this Replit domain (no “Access Denied”).
+
+Metrics for today are ≥1 impression and ≥1 click (either via UI or test endpoint).
+
+Trend charts render with a data point for today.
+
+CSV includes today’s row.
+
+Self-test shows PASS for Tracking and Portal Tokens.
+
+Optional fallback (only if tracking still fails)
+
+If you still see schema errors in self-test, apply this minimal SQL and retry the steps:
+
+alter table public.sponsor_metrics_daily
+  add column if not exists "date" date,
+  add column if not exists raw_views int not null default 0,
+  add column if not exists billable_impressions int not null default 0,
+  add column if not exists clicks int not null default 0,
+  add column if not exists unique_users int not null default 0;
+
+create unique index if not exists sponsor_metrics_daily_unique_idx
+  on public.sponsor_metrics_daily (campaign_id, placement, "date");
+
+select pg_notify('pgrst','reload schema');
