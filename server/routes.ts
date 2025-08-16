@@ -1191,7 +1191,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ ok: false, error: 'Failed to fetch events' });
       }
       
-      res.json({ ok: true, events: events || [] });
+      // Return in the same format as /api/community/weekly
+      res.json({ ok: true, featured: null, items: events || [] });
     } catch (error) {
       console.error('Community events error:', error);
       res.status(500).json({ ok: false, error: 'server_error' });

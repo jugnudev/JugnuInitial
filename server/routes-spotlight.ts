@@ -619,7 +619,16 @@ export function addSpotlightRoutes(app: Express) {
   app.post('/api/spotlight/admin/metrics/track', async (req, res) => {
     try {
       const { campaignId, placement = 'events_banner', eventType, userId } = req.body;
-      const today = new Date().toISOString().split('T')[0];
+      
+      // Use Pacific timezone for consistency
+      const vancouverTime = new Date().toLocaleString('en-CA', { 
+        timeZone: 'America/Vancouver',
+        year: 'numeric',
+        month: '2-digit', 
+        day: '2-digit'
+      });
+      const today = vancouverTime.split(',')[0]; // Format: YYYY-MM-DD
+      console.log('📅 Metrics tracking - Date:', today, 'Campaign:', campaignId, 'Type:', eventType);
       
       // Use service-role client for direct database access
       const serviceRoleClient = getSupabaseAdmin();
