@@ -1,5 +1,6 @@
-import { Search, Filter, X } from "lucide-react";
+import { Search, Filter, X, Heart } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import SegmentedControl from "./SegmentedControl";
 
 interface ToolbarProps {
@@ -10,6 +11,9 @@ interface ToolbarProps {
   onSegmentChange: (value: string) => void;
   onFiltersClick: () => void;
   activeFiltersCount?: number;
+  showSavedOnly?: boolean;
+  onSavedToggle?: () => void;
+  savedCount?: number;
   className?: string;
 }
 
@@ -21,6 +25,9 @@ export default function Toolbar({
   onSegmentChange,
   onFiltersClick,
   activeFiltersCount = 0,
+  showSavedOnly = false,
+  onSavedToggle,
+  savedCount = 0,
   className = ""
 }: ToolbarProps) {
   return (
@@ -55,6 +62,33 @@ export default function Toolbar({
           value={segmentValue}
           onChange={onSegmentChange}
         />
+
+        {/* Saved Toggle */}
+        {onSavedToggle && (
+          <Button
+            variant={showSavedOnly ? "default" : "ghost"}
+            size="sm"
+            onClick={onSavedToggle}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl transition-all ${
+              showSavedOnly 
+                ? 'bg-copper-500 hover:bg-copper-600 text-black border-copper-500' 
+                : 'bg-white/5 hover:bg-white/10 border border-white/20 text-white'
+            }`}
+            data-testid="saved-toggle"
+            aria-pressed={showSavedOnly}
+            aria-label={`${showSavedOnly ? 'Hide' : 'Show'} saved events only`}
+          >
+            <Heart 
+              className={`w-4 h-4 ${showSavedOnly ? 'fill-current' : 'fill-transparent'}`} 
+            />
+            <span className="hidden sm:inline">Saved</span>
+            {savedCount > 0 && (
+              <span className="bg-black/20 text-xs rounded-full px-1.5 py-0.5 min-w-5 h-5 flex items-center justify-center font-medium">
+                {savedCount}
+              </span>
+            )}
+          </Button>
+        )}
 
         {/* Filters Button */}
         <button
@@ -96,7 +130,7 @@ export default function Toolbar({
           )}
         </div>
 
-        {/* Segmented Control + Filters */}
+        {/* Segmented Control + Saved + Filters */}
         <div className="flex items-center justify-between gap-4">
           <div className="flex-1 overflow-x-auto">
             <SegmentedControl
@@ -107,18 +141,41 @@ export default function Toolbar({
             />
           </div>
           
-          <button
-            onClick={onFiltersClick}
-            className="relative flex items-center justify-center w-10 h-10 bg-white/5 hover:bg-white/10 border border-white/20 text-white rounded-2xl transition-colors shrink-0"
-            data-testid="filters-button-mobile"
-          >
-            <Filter className="w-4 h-4" />
-            {activeFiltersCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-primary text-black text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
-                {activeFiltersCount}
-              </span>
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Saved Toggle */}
+            {onSavedToggle && (
+              <Button
+                variant={showSavedOnly ? "default" : "ghost"}
+                size="sm"
+                onClick={onSavedToggle}
+                className={`flex items-center justify-center w-10 h-10 rounded-2xl transition-all ${
+                  showSavedOnly 
+                    ? 'bg-copper-500 hover:bg-copper-600 text-black' 
+                    : 'bg-white/5 hover:bg-white/10 border border-white/20 text-white'
+                }`}
+                data-testid="saved-toggle-mobile"
+                aria-pressed={showSavedOnly}
+                aria-label={`${showSavedOnly ? 'Hide' : 'Show'} saved events only`}
+              >
+                <Heart 
+                  className={`w-4 h-4 ${showSavedOnly ? 'fill-current' : 'fill-transparent'}`} 
+                />
+              </Button>
             )}
-          </button>
+            
+            <button
+              onClick={onFiltersClick}
+              className="relative flex items-center justify-center w-10 h-10 bg-white/5 hover:bg-white/10 border border-white/20 text-white rounded-2xl transition-colors"
+              data-testid="filters-button-mobile"
+            >
+              <Filter className="w-4 h-4" />
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-primary text-black text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

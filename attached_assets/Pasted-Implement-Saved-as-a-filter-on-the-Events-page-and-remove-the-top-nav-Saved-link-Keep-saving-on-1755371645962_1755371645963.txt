@@ -1,0 +1,129 @@
+Implement “Saved” as a filter on the Events page and remove the top-nav “Saved” link. Keep saving only for events (drop “Places”). Details below.
+
+Objectives
+
+Remove Saved from the header nav.
+
+Add a Saved filter/toggle on /events that shows only saved events.
+
+Keep the heart/bookmark on event cards; persist saved IDs in localStorage.
+
+Redirect legacy /saved links to /events?saved=1.
+
+Remove “Places” from any saved-page code and sitemap.
+
+A11y + mobile friendly; preserve analytics hooks.
+
+Implementation (assume Vite + React + Express; adjust paths if different)
+
+Header/Nav
+
+File: src/components/HeaderNav.tsx (or whichever is your nav)
+
+Remove the “Saved” nav item.
+
+Router & Redirect
+
+Express: add a 301 from /saved → /events?saved=1.
+
+File: server/index.ts or your main server routes file:
+
+app.get('/saved', (req, res) => res.redirect(301, '/events?saved=1'));
+
+
+Remove /saved from sitemap generation (if you generate a sitemap).
+
+Events page filter
+
+File: src/pages/Events.tsx
+
+Add a local hook for saved IDs (persist to localStorage key jugnu:savedEvents).
+
+Read ?saved=1 on first load to pre-enable the filter. When toggled, update UI state (no reload needed); optional: update the URL query param.
+
+Empty state message when Saved is on and list is empty: “You haven’t saved anything yet. Tap the ♥ on an event to save it.”
+
+Example hook you can drop in (client-safe):
+
+function useSavedEventIds() {
+  const KEY = 'jugnu:savedEvents';
+  const [ids, setIds] = useState<string[]>([]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try { setIds(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch {}
+  }, []);
+  const toggle = (id: string) => {
+    setIds(prev => {
+      const next = prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id];
+      if (typeof window !== 'undefined') localStorage.setItem(KEY, JSON.stringify(next));
+      // optional analytics: track('save_toggle', { id, saved: next.includes(id) })
+      return next;
+    });
+  };
+  return { ids, toggle };
+}
+
+
+Use it to compute visibleEvents when saved filter is on.
+
+Event card save button
+
+File: src/components/EventCard.tsx
+
+Ensure each card gets saved={savedIds.includes(event.id)} and onToggleSave={() => toggle(event.id)}.
+
+Button requirements:
+
+Always visible on cards (top-right).
+
+aria-pressed reflects saved state.
+
+Label: “Save” / “Unsave”.
+
+No layout shift.
+
+Remove “Places”
+
+Delete any “Places” logic/tabs from the legacy saved page/component.
+
+If a /saved page component still exists, reduce it to a minimalist message with a link to /events?saved=1, or remove entirely since we’re redirecting.
+
+Mobile polish
+
+Saved toggle must be touch-friendly (≥44px target), sits with other filters, and works on small screens.
+
+Acceptance Criteria
+
+Header no longer shows Saved.
+
+Visiting /saved performs a 301 redirect to /events?saved=1.
+
+On /events, clicking Saved shows only saved events; empty state renders when none saved.
+
+The heart button saves/unsaves instantly, persisted across refresh via localStorage.
+
+No references to “Places” remain on any saved UI.
+
+No console errors; works on mobile and desktop.
+
+Analytics hooks (if present) still fire on save/unsave (keep existing event names; otherwise use a no-op placeholder).
+
+QA Steps
+
+Hard refresh, open /events, click ♥ on 2–3 events. Refresh — they remain saved.
+
+Toggle Saved — only those events show; empty state appears when unsaving all.
+
+Open /saved directly — confirm 301 to /events?saved=1.
+
+Check Lighthouse/Axe: buttons have aria-pressed, labels correct.
+
+Confirm no “Places” tab/content remains; sitemap excludes /saved.
+
+Notes
+
+If a previous saved system exists, migrate to the localStorage key jugnu:savedEvents (array of event IDs as strings).
+
+Use your design system/icons; if none present, simple text ♥/♡ is fine.
+
+Please implement the above with small, readable commits.

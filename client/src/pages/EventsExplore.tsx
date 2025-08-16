@@ -16,6 +16,7 @@ import EmptyState from "@/components/explore/EmptyState";
 import DetailsModal from "@/components/community/DetailsModal";
 import FilterDrawer from "@/components/explore/FilterDrawer";
 import { SponsoredBanner } from "@/components/spotlight/SponsoredBanner";
+import { useSavedEventIds } from "@/hooks/useSavedEvents";
 
 const CATEGORIES = [
   { value: 'All', label: 'All Events' },
@@ -31,10 +32,15 @@ export default function EventsExplore() {
   const [filters, setFilters] = useState<Record<string, any>>({ range: 'month' });
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const [showSavedOnly, setShowSavedOnly] = useState(false);
+
+  // Saved events functionality
+  const { ids: savedEventIds, toggle: toggleSaved, isEventSaved } = useSavedEventIds();
 
   // Extract event ID from URL for deep linking
   const urlParams = new URLSearchParams(window.location.search);
   const eventIdFromUrl = urlParams.get('e');
+  const savedFromUrl = urlParams.get('saved') === '1';
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['/api/community/weekly', filters.range || 'month', categoryFilter === 'All' ? undefined : categoryFilter.toLowerCase(), searchQuery || undefined],
@@ -52,7 +58,7 @@ export default function EventsExplore() {
   const events = (data as any)?.items || [];
   const featuredEvent = (data as any)?.featured || null;
 
-  // Filtered events based on search and category
+  // Filtered events based on search, category, and saved filter
   const filteredEvents = useMemo(() => {
     let filtered = events;
     
@@ -73,10 +79,17 @@ export default function EventsExplore() {
       );
     }
 
-    return filtered;
-  }, [events, searchQuery, categoryFilter]);
+    // Filter by saved events if enabled
+    if (showSavedOnly) {
+      filtered = filtered.filter((event: any) => 
+        savedEventIds.includes(event.id)
+      );
+    }
 
-  // Handle deep linking
+    return filtered;
+  }, [events, searchQuery, categoryFilter, showSavedOnly, savedEventIds]);
+
+  // Handle deep linking and saved filter from URL
   useEffect(() => {
     if (eventIdFromUrl && events.length > 0) {
       const event = events.find((e: any) => e.id === eventIdFromUrl);
@@ -89,6 +102,13 @@ export default function EventsExplore() {
       }
     }
   }, [eventIdFromUrl, events]);
+
+  // Handle saved filter from URL parameter
+  useEffect(() => {
+    if (savedFromUrl) {
+      setShowSavedOnly(true);
+    }
+  }, [savedFromUrl]);
 
   const handleEventClick = (event: any) => {
     setSelectedEvent(event);
@@ -142,10 +162,15 @@ export default function EventsExplore() {
     setSearchQuery('');
     setCategoryFilter('All');
     setFilters({ range: 'month' });
+    setShowSavedOnly(false);
     setIsFilterDrawerOpen(false);
+    // Update URL to remove saved parameter
+    const url = new URL(window.location.href);
+    url.searchParams.delete('saved');
+    window.history.replaceState({}, '', url.toString());
   };
 
-  const hasActiveFilters = searchQuery || categoryFilter !== 'All' || filters.range !== 'month';
+  const hasActiveFilters = searchQuery || categoryFilter !== 'All' || filters.range !== 'month' || showSavedOnly;
 
   return (
     <div className="min-h-screen bg-bg">
@@ -165,6 +190,20 @@ export default function EventsExplore() {
           onSegmentChange={setCategoryFilter}
           onFiltersClick={() => setIsFilterDrawerOpen(true)}
           activeFiltersCount={hasActiveFilters ? 1 : 0}
+          showSavedOnly={showSavedOnly}
+          onSavedToggle={() => {
+            const newShowSaved = !showSavedOnly;
+            setShowSavedOnly(newShowSaved);
+            // Update URL to include/remove saved parameter
+            const url = new URL(window.location.href);
+            if (newShowSaved) {
+              url.searchParams.set('saved', '1');
+            } else {
+              url.searchParams.delete('saved');
+            }
+            window.history.replaceState({}, '', url.toString());
+          }}
+          savedCount={savedEventIds.length}
         />
 
         {/* Loading State */}
@@ -253,6 +292,8 @@ export default function EventsExplore() {
                         onClick={() => handleEventClick(event)}
                         index={index}
                         showFavorite={true}
+                        onToggleSave={() => toggleSaved(event.id)}
+                        isSaved={isEventSaved(event.id)}
                       />
                     );
 
@@ -285,6 +326,7 @@ export default function EventsExplore() {
                 <EmptyState
                   type="events"
                   hasFilters={hasActiveFilters}
+                  showSavedOnly={showSavedOnly}
                   onAddClick={() => window.location.href = '/events/feature'}
                 />
                 <SponsoredBanner />

@@ -1,13 +1,38 @@
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface EmptyStateProps {
   type: 'events' | 'places';
   hasFilters?: boolean;
+  showSavedOnly?: boolean;
   onAddClick?: () => void;
 }
 
-export default function EmptyState({ type, hasFilters = false, onAddClick }: EmptyStateProps) {
+export default function EmptyState({ type, hasFilters = false, showSavedOnly = false, onAddClick }: EmptyStateProps) {
+  // Handle saved filter empty state
+  if (showSavedOnly && type === 'events') {
+    return (
+      <div className="text-center py-16 px-4">
+        <div className="max-w-md mx-auto space-y-6">
+          {/* Icon */}
+          <div className="w-20 h-20 mx-auto bg-white/5 rounded-full flex items-center justify-center">
+            <Heart className="w-10 h-10 text-white/40" />
+          </div>
+
+          {/* Text */}
+          <div className="space-y-2">
+            <h3 className="text-xl font-semibold text-white">
+              No saved events yet
+            </h3>
+            <p className="text-muted text-base">
+              You haven't saved anything yet. Tap the ♥ on an event to save it.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const config = type === 'events' ? {
     title: hasFilters ? "No events found" : "Nothing here yet",
     subtitle: hasFilters 

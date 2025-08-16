@@ -1,8 +1,7 @@
-import { ExternalLink, MapPin, Calendar, Star, ImageIcon } from "lucide-react";
+import { ExternalLink, MapPin, Calendar, Star, ImageIcon, Heart } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import FavoriteButton from "@/components/FavoriteButton";
 import { formatPriceLevel } from "@/lib/taxonomy";
 import { formatDateBadge, formatTimeRange, isValidISO } from "@/lib/dates";
 
@@ -47,6 +46,8 @@ interface CardProps {
   onClick: () => void;
   index?: number;
   showFavorite?: boolean;
+  onToggleSave?: () => void;
+  isSaved?: boolean;
 }
 
 const getTypeColor = (type?: string) => {
@@ -112,7 +113,7 @@ const getDateBadgeInfo = (eventItem: EventItem) => {
   }
 };
 
-export default function Card({ item, onClick, index = 0, showFavorite = false }: CardProps) {
+export default function Card({ item, onClick, index = 0, showFavorite = false, onToggleSave, isSaved = false }: CardProps) {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const isSponsored = item.sponsored && (!item.sponsored_until || new Date(item.sponsored_until) > new Date());
@@ -199,15 +200,23 @@ export default function Card({ item, onClick, index = 0, showFavorite = false }:
         {/* Top badges */}
         <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
           {/* Favorite Button */}
-          {showFavorite && (
+          {showFavorite && onToggleSave && (
             <div className="absolute -top-1 -right-1">
-              <FavoriteButton
-                id={item.id}
-                type={item.type}
-                name={item.name}
-                size="md"
-                variant="ghost"
-              />
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleSave();
+                }}
+                className="w-8 h-8 rounded-full bg-black/40 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white hover:bg-black/60 transition-all duration-200 hover:scale-110"
+                aria-label={isSaved ? 'Remove from saved' : 'Save event'}
+                data-testid={`save-button-${item.id}`}
+              >
+                <Heart 
+                  className={`w-4 h-4 transition-all duration-200 ${
+                    isSaved ? 'fill-red-500 text-red-500' : 'fill-transparent text-white'
+                  }`} 
+                />
+              </button>
             </div>
           )}
           {/* Date/Type Badge */}

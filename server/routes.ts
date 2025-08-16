@@ -70,6 +70,11 @@ function checkRateLimit(ip: string): boolean {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Redirect /saved to /events?saved=1
+  app.get("/saved", (req, res) => {
+    res.redirect(301, '/events?saved=1');
+  });
+
   // Health check endpoint - always returns JSON
   app.get("/api/health", async (req, res) => {
     const version = process.env.APP_VERSION || 'dev';
