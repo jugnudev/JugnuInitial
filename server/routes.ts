@@ -266,6 +266,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const supabase = getSupabaseAdmin();
+      
+      // Ensure required columns exist before processing
+      try {
+        await supabase.rpc('exec_sql', {
+          query: `
+            ALTER TABLE public.community_events 
+            ADD COLUMN IF NOT EXISTS source_uid text,
+            ADD COLUMN IF NOT EXISTS canonical_key text,
+            ADD COLUMN IF NOT EXISTS is_all_day boolean DEFAULT false;
+            
+            -- Create indices for performance
+            CREATE INDEX IF NOT EXISTS idx_community_events_source_uid ON public.community_events (source_uid);
+            CREATE INDEX IF NOT EXISTS idx_community_events_canonical_key ON public.community_events (canonical_key);
+            
+            -- Refresh PostgREST schema cache
+            SELECT pg_notify('pgrst', 'reload schema');
+          `
+        });
+        console.log('✓ Schema updated with required columns for ICS import');
+      } catch (schemaError) {
+        console.log('Schema update warning (columns may exist):', schemaError);
+      }
+      
       const urls = icsUrls.split(',').map(url => url.trim()).filter(Boolean);
       let imported = 0;
       let updated = 0;
@@ -568,7 +591,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               start_at: eventData.startAt,
               end_at: eventData.endAt,
               timezone: eventData.timezone,
-              // is_all_day: eventData.isAllDay, // Commented out until column exists
+              is_all_day: eventData.isAllDay,
               venue: eventData.venue,
               address: eventData.address,
               city: eventData.city,
@@ -671,16 +694,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const supabase = getSupabaseAdmin();
 
-      // Try to add columns using a simple query (may fail if already exist, which is fine)
+      // Try to add all missing columns based on schema definition
       try {
         await supabase.rpc('exec_sql', {
           query: `
             ALTER TABLE public.community_events 
             ADD COLUMN IF NOT EXISTS description text,
             ADD COLUMN IF NOT EXISTS category text,
-            ADD COLUMN IF NOT EXISTS is_all_day boolean DEFAULT false;
+            ADD COLUMN IF NOT EXISTS is_all_day boolean DEFAULT false,
+            ADD COLUMN IF NOT EXISTS source_uid text,
+            ADD COLUMN IF NOT EXISTS canonical_key text;
+            
+            -- Refresh PostgREST schema cache
+            SELECT pg_notify('pgrst', 'reload schema');
           `
         });
+        console.log("✓ Added missing columns to community_events table");
       } catch (sqlError) {
         console.log("Column creation may have failed (might already exist):", sqlError);
       }
