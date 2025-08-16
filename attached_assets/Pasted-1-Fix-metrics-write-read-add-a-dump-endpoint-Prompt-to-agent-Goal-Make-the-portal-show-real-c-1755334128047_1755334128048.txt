@@ -1,0 +1,107 @@
+1) Fix metrics write/read + add a dump endpoint
+
+Prompt to agent:
+
+Goal: Make the portal show real counts. Unify metrics on the "date" column and add a quick dump endpoint to prove writes.
+
+Do this:
+
+In all tracking handlers (impression & click, including the admin /api/spotlight/admin/metrics/test route), ensure we upsert into public.sponsor_metrics_daily with:
+
+campaign_id (UUID of the campaign we’re testing)
+
+placement ("events_banner" for this test)
+
+"date" = CURRENT_DATE (server TZ), not day.
+
+increment raw_views and/or billable_impressions (cap=0 → both increment), and clicks, unique_users as applicable.
+
+honor the unique index (campaign_id, placement, "date").
+
+In the portal API /api/spotlight/portal/:tokenId, totals and chart queries must also key on "date", not day. Replace any lingering references to day.
+
+Add read-only admin endpoint: GET /api/spotlight/admin/metrics/dump?campaignId=<cid>&placement=<p> that returns today’s raw rows from sponsor_metrics_daily (JSON array: campaign_id, placement, date, billable_impressions, raw_views, clicks, unique_users).
+
+Do not change the DB schema we already applied.
+
+Acceptance criteria:
+
+Hitting /api/spotlight/admin/metrics/test?campaignId=<CID> returns {ok:true, wrote:2}.
+
+/api/spotlight/admin/metrics/dump?campaignId=<CID>&placement=events_banner returns a row for today with non-zero counts.
+
+/api/spotlight/portal/<TID> shows non-zero totals for the same day.
+
+/api/spotlight/portal/<TID>/export.csv first data row for today shows the same non-zero counts.
+
+2) Fix self-test (use UUID tokens + "date" column)
+
+Prompt to agent:
+
+Goal: Make /api/admin/selftest PASS by removing stale assumptions.
+
+Do this:
+
+Update self-test tracking checks to expect the "date" column (not day).
+
+Update self-test portal checks to always create a UUID portal token and use /api/spotlight/portal/:tokenId and related CSV route with that UUID (no hex→UUID casts).
+
+Self-test should: create a temp active campaign (today…+2d), create a portal token (UUID), call the admin metrics test twice, then assert:
+
+Portal JSON totals have billable_impressions >= 2 (cap=0)
+
+CSV has a row for today with matching counts
+
+Return { ok:true, overall:"PASS" } when all pass.
+
+Acceptance criteria:
+
+Running GET /api/admin/selftest with the admin key returns overall:"PASS" and shows PASS for Tracking and Portal Tokens.
+
+3) Make schema cache reload bullet-proof
+
+Prompt to agent:
+
+Goal: guarantee PostgREST schema cache refresh in dev after migrations.
+
+Do this:
+
+Keep /api/admin/reload-schema (already added). Ensure it runs select pg_notify('pgrst','reload schema') and returns {ok:true}.
+
+After any migration file the code runs in dev, automatically call that endpoint once on server start (guarded by NODE_ENV!=="production").
+
+Acceptance criteria:
+
+Hitting /api/admin/reload-schema returns {ok:true}.
+
+After a server restart in dev, logs show “schema reload requested”, and subsequent queries see new columns without a manual refresh.
+
+4) Prove it with a short scripted test
+
+Prompt to agent:
+
+Goal: Provide a 4-command proof that numbers show up end-to-end.
+
+Do this: Post in the console the exact output for:
+
+curl -s "$BASE/api/spotlight/admin/metrics/test?campaignId=<CID>" -H "x-admin-key: $KEY"
+
+curl -s "$BASE/api/spotlight/admin/metrics/dump?campaignId=<CID>&placement=events_banner" -H "x-admin-key: $KEY"
+
+curl -s "$BASE/api/spotlight/portal/<TID>"
+
+curl -s "$BASE/api/spotlight/portal/<TID>/export.csv" | head -n 3
+
+Acceptance criteria:
+
+(2), (3), (4) reflect matching non-zero counts for today.
+
+5) Small polish (optional but nice)
+
+Prompt to agent:
+
+In the onboarding email modal, default “Recipient” to the sponsor email if present, but allow override.
+
+Add a tiny “Raw rows” link in the portal (visible to admin only via a token param or session) that hits the new metrics dump endpoint for the current campaign.
+
+Keep impression debounce (10s) and freq-cap=0 as is for MVP.
