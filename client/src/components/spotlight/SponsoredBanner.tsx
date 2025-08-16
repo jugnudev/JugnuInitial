@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
 interface SpotlightData {
-  campaignId: string;
+  id: string; // This is the actual campaign ID
   sponsor_name: string;
   headline?: string;
   subline?: string;
@@ -59,7 +59,7 @@ export function SponsoredBanner() {
       }
 
       const today = new Date().toISOString().split('T')[0];
-      const seenKey = `spotlightSeen:${spotlight.campaignId}:events_banner:${today}`;
+      const seenKey = `spotlightSeen:${spotlight.id}:events_banner:${today}`;
       const seenCount = parseInt(localStorage.getItem(seenKey) || '0', 10);
       
       if (seenCount >= freqCap) {
@@ -79,12 +79,12 @@ export function SponsoredBanner() {
             // Track raw view (always counted)
             const today = new Date().toISOString().split('T')[0];
             const freqCap = spotlight.freq_cap_per_user_per_day ?? 0;
-            const seenKey = `spotlightSeen:${spotlight.campaignId}:events_banner:${today}`;
+            const seenKey = `spotlightSeen:${spotlight.id}:events_banner:${today}`;
             const seenCount = parseInt(localStorage.getItem(seenKey) || '0', 10);
             
             // 10-second debounce to prevent accidental double counts
             const now = Date.now();
-            const lastImpressionKey = `lastImpression:${spotlight.campaignId}:events_banner`;
+            const lastImpressionKey = `lastImpression:${spotlight.id}:events_banner`;
             const lastImpression = parseInt(localStorage.getItem(lastImpressionKey) || '0', 10);
             
             if (now - lastImpression < 10000) {
@@ -106,9 +106,9 @@ export function SponsoredBanner() {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                campaignId: spotlight.campaignId,
+                campaignId: spotlight.id,
                 placement: 'events_banner',
-                type: 'impression',
+                eventType: 'impression', // Changed from 'type' to 'eventType'
                 is_billable: isBillable
               })
             }).catch(console.error);
@@ -132,8 +132,19 @@ export function SponsoredBanner() {
   const handleClick = () => {
     if (!spotlight) return;
 
-    // Build redirector URL with encoded target and utm_content
-    const redirectUrl = `/r/${spotlight.campaignId}?to=${encodeURIComponent(spotlight.click_url)}&utm_content=events_banner`;
+    // Track click event
+    fetch('/api/spotlight/admin/metrics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        campaignId: spotlight.id,
+        placement: 'events_banner',
+        eventType: 'click'
+      })
+    }).catch(console.error);
+
+    // Build redirector URL with encoded target and utm_content  
+    const redirectUrl = `/r/${spotlight.id}?to=${encodeURIComponent(spotlight.click_url)}&utm_content=events_banner`;
     
     // Open in new tab with proper attributes
     window.open(redirectUrl, '_blank', 'noopener,noreferrer');

@@ -47,7 +47,13 @@ export default function EventsExplore() {
     queryFn: async () => {
       const params = new URLSearchParams({
         range: filters.range || 'month',
-        ...(categoryFilter !== 'All' && { category: categoryFilter.toLowerCase() }),
+        ...(categoryFilter !== 'All' && { 
+          // Map frontend category names to backend category values
+          category: categoryFilter.toLowerCase()
+            .replace(' nights', '')  // "Club Nights" -> "club"
+            .replace('concerts', 'concert')  // "Concerts" -> "concert"
+            .replace('festivals', 'festival')  // "Festivals" -> "festival"
+        }),
         ...(searchQuery && { q: searchQuery })
       });
       const response = await fetch(`/api/community/weekly?${params.toString()}`);
@@ -72,12 +78,9 @@ export default function EventsExplore() {
       );
     }
 
-    if (categoryFilter !== 'All') {
-      const categoryKey = categoryFilter.toLowerCase().replace(' nights', '').replace('s', '');
-      filtered = filtered.filter((event: any) =>
-        event.category === categoryKey
-      );
-    }
+    // NOTE: The category filtering is already done by the API
+    // We don't need to filter again on the frontend
+    // The API handles the category mapping correctly
 
     // Filter by saved events if enabled
     if (showSavedOnly) {
