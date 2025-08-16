@@ -1460,24 +1460,38 @@ jugnu.events`;
 
   async function testTracking() {
     try {
-      // Use service-role client directly to bypass schema cache issues
+      // Use service-role client directly 
       const serviceRoleClient = getSupabaseAdmin();
       
-      // Test metrics insertion directly with service-role client
-      const testCampaignId = 'test-campaign-' + Date.now();
-      const testDate = new Date().toISOString().split('T')[0];
+      // Get an existing campaign to use for test (must be a valid UUID)
+      const { data: campaigns } = await serviceRoleClient
+        .from('sponsor_campaigns')
+        .select('id')
+        .limit(1);
       
-      // Use existing cached schema columns - check what works in other parts of codebase
+      if (!campaigns || campaigns.length === 0) {
+        return {
+          status: 'SKIP',
+          message: 'No campaigns available for tracking test'
+        };
+      }
+      
+      // Use real campaign ID
+      const testCampaignId = campaigns[0].id;
+      const testDate = new Date().toISOString().split('T')[0];
+      const uniqueUserId = 'test-user-' + Date.now();
+      
+      // Insert test metrics
       const { error: insertError } = await serviceRoleClient
         .from('sponsor_metrics_daily')
         .upsert({
           campaign_id: testCampaignId,
           date: testDate,
-          placement: 'events_banner',
+          placement: 'test_selftest',
           raw_views: 120,
+          billable_impressions: 100,
           unique_users: 85,
           clicks: 5
-          // Skip billable_impressions for now due to cache issue
         });
 
       if (insertError) {
@@ -1489,11 +1503,12 @@ jugnu.events`;
         };
       }
 
-      // Verify the insertion worked by counting records
+      // Verify the insertion worked
       const { data: verifyData, error: verifyError } = await serviceRoleClient
         .from('sponsor_metrics_daily')
         .select('*')
         .eq('campaign_id', testCampaignId)
+        .eq('placement', 'test_selftest')
         .eq('date', testDate);
 
       const recordCount = verifyData?.length || 0;
@@ -1503,6 +1518,7 @@ jugnu.events`;
         .from('sponsor_metrics_daily')
         .delete()
         .eq('campaign_id', testCampaignId)
+        .eq('placement', 'test_selftest')
         .eq('date', testDate);
 
       if (verifyError || recordCount === 0) {
@@ -1515,8 +1531,8 @@ jugnu.events`;
       }
 
       return {
-        status: recordCount >= 1 ? 'PASS' : 'FAIL',
-        message: `Service-role metrics tracking working correctly, recorded ${recordCount} entries`,
+        status: 'PASS',
+        message: `Metrics tracking working correctly, recorded ${recordCount} entries`,
         metricsRecorded: recordCount,
         details: { 
           testCampaignId,
