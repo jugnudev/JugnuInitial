@@ -267,26 +267,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const supabase = getSupabaseAdmin();
       
-      // Ensure required columns exist before processing
+      // Check if required columns exist by attempting a test query
+      let hasNewColumns = false;
       try {
-        await supabase.rpc('exec_sql', {
-          query: `
-            ALTER TABLE public.community_events 
-            ADD COLUMN IF NOT EXISTS source_uid text,
-            ADD COLUMN IF NOT EXISTS canonical_key text,
-            ADD COLUMN IF NOT EXISTS is_all_day boolean DEFAULT false;
-            
-            -- Create indices for performance
-            CREATE INDEX IF NOT EXISTS idx_community_events_source_uid ON public.community_events (source_uid);
-            CREATE INDEX IF NOT EXISTS idx_community_events_canonical_key ON public.community_events (canonical_key);
-            
-            -- Refresh PostgREST schema cache
-            SELECT pg_notify('pgrst', 'reload schema');
-          `
-        });
-        console.log('✓ Schema updated with required columns for ICS import');
-      } catch (schemaError) {
-        console.log('Schema update warning (columns may exist):', schemaError);
+        const { error } = await supabase
+          .from('community_events')
+          .select('canonical_key, source_uid')
+          .limit(1);
+        
+        if (!error) {
+          hasNewColumns = true;
+          console.log('✓ Using canonical_key and source_uid for deduplication');
+        } else {
+          console.log('⚠️ Missing columns for deduplication - using legacy title-based matching');
+        }
+      } catch (e) {
+        console.log('⚠️ Column check failed - using fallback mode');
       }
       
       const urls = icsUrls.split(',').map(url => url.trim()).filter(Boolean);
@@ -583,23 +579,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
               featured: featured, // v2.8 Use parsed featured value
             };
 
-            // v2.7 Two-step upsert strategy for solid deduplication
-            const upsertPayload = {
+            // Build upsert payload based on available columns
+            const basePayload: any = {
               title: eventData.title,
               description: eventData.description,
               category: eventData.category,
               start_at: eventData.startAt,
               end_at: eventData.endAt,
               timezone: eventData.timezone,
-              is_all_day: eventData.isAllDay,
               venue: eventData.venue,
               address: eventData.address,
               city: eventData.city,
               organizer: eventData.organizer,
               status: eventData.status,
-              source_hash: eventData.sourceHash,
-              source_uid: eventData.sourceUid,
-              canonical_key: eventData.canonicalKey,
               tags: eventData.tags,
               tickets_url: eventData.ticketsUrl,
               source_url: eventData.sourceUrl,
@@ -610,13 +602,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
               updated_at: new Date().toISOString(),
             };
 
+            // Add new columns only if they exist in schema
+            if (hasNewColumns) {
+              basePayload.source_hash = eventData.sourceHash;
+              basePayload.source_uid = eventData.sourceUid;
+              basePayload.canonical_key = eventData.canonicalKey;
+              basePayload.is_all_day = eventData.isAllDay;
+            }
+
             let upsertResult;
 
-            // Step 1: If we have a source_uid, upsert by that first
-            if (sourceUid) {
+            if (hasNewColumns && sourceUid) {
+              // Use new deduplication strategy with source_uid and canonical_key
+              // Step 1: If we have a source_uid, upsert by that first
               const { error: sourceUidError, data: sourceUidData } = await supabase
                 .from('community_events')
-                .upsert(upsertPayload, { 
+                .upsert(basePayload, { 
                   onConflict: 'source_uid',
                   ignoreDuplicates: false 
                 })
@@ -628,34 +629,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 upsertResult = sourceUidData;
                 console.log(`Upserted by source_uid: ${title}`);
               }
-            }
-
-            // Step 2: Always ensure canonical match too (covers multi-feed same event)
-            const { error: canonicalError, data: canonicalData } = await supabase
-              .from('community_events')
-              .upsert(upsertPayload, { 
-                onConflict: 'canonical_key',
-                ignoreDuplicates: false 
-              })
-              .select();
-            
-            if (canonicalError) {
-              console.error(`Failed to upsert by canonical_key for "${title}":`, canonicalError);
-            } else {
-              if (!upsertResult) {
+              
+              // Step 2: Also try canonical key for deduplication
+              const { error: canonicalError, data: canonicalData } = await supabase
+                .from('community_events')
+                .upsert(basePayload, { 
+                  onConflict: 'canonical_key',
+                  ignoreDuplicates: false 
+                })
+                .select();
+              
+              if (canonicalError) {
+                console.error(`Failed to upsert by canonical_key for "${title}":`, canonicalError);
+              } else if (!upsertResult) {
                 upsertResult = canonicalData;
               }
               
-              // Track stats based on operation type
-              if (canonicalData && canonicalData.length > 0) {
-                // Check if this was an insert or update by comparing created/updated timestamps
-                const event = canonicalData[0];
+              // Track stats
+              if (upsertResult && upsertResult.length > 0) {
+                const event = upsertResult[0];
                 if (new Date(event.created_at).getTime() === new Date(event.updated_at).getTime()) {
                   imported++;
                   console.log(`Inserted new event: ${title}`);
                 } else {
                   updated++;
                   console.log(`Updated existing event: ${title}`);
+                }
+              }
+            } else {
+              // Fallback: Use title and start_at for deduplication (legacy mode)
+              // Check if event already exists
+              const { data: existing } = await supabase
+                .from('community_events')
+                .select('id')
+                .eq('title', eventData.title)
+                .eq('start_at', eventData.startAt)
+                .single();
+
+              if (existing) {
+                // Update existing event
+                const { error: updateError, data: updateData } = await supabase
+                  .from('community_events')
+                  .update(basePayload)
+                  .eq('id', existing.id)
+                  .select();
+                
+                if (updateError) {
+                  console.error(`Failed to update event "${title}":`, updateError);
+                } else {
+                  upsertResult = updateData;
+                  console.log(`Updated existing event: ${title}`);
+                  updated++;
+                }
+              } else {
+                // Insert new event
+                const { error: insertError, data: insertData } = await supabase
+                  .from('community_events')
+                  .insert(basePayload)
+                  .select();
+                
+                if (insertError) {
+                  console.error(`Failed to insert event "${title}":`, insertError);
+                } else {
+                  upsertResult = insertData;
+                  console.log(`Imported new event: ${title}`);
+                  imported++;
                 }
               }
             }
