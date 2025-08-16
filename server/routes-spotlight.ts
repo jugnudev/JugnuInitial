@@ -609,14 +609,7 @@ export function addSpotlightRoutes(app: Express) {
   app.post('/api/spotlight/admin/metrics/track', async (req, res) => {
     try {
       const { campaignId, placement = 'events_banner', eventType, userId } = req.body;
-      // Use Pacific timezone for consistency to avoid UTC midnight edge cases
-      const pacificTime = new Date().toLocaleString("en-CA", {
-        timeZone: "America/Vancouver",
-        year: 'numeric',
-        month: '2-digit', 
-        day: '2-digit'
-      });
-      const today = pacificTime.replace(/(\d{4})-(\d{2})-(\d{2})/, '$1-$2-$3'); // Ensure YYYY-MM-DD format
+      // Note: Using database timezone function instead of JS for consistency
       
       // Use service-role client for direct database access
       const serviceRoleClient = getSupabaseAdmin();
@@ -663,7 +656,7 @@ export function addSpotlightRoutes(app: Express) {
               .insert({
                 campaign_id: campaignId,
                 placement,
-                day: today, // Using "day" column (actual column in database)
+                day: serviceRoleClient.sql`(now() at time zone 'America/Vancouver')::date`, // B) Pacific timezone in DB
                 raw_views: 1,
                 billable_impressions: billableIncrement,
                 unique_users: userId ? 1 : 0,
@@ -714,7 +707,7 @@ export function addSpotlightRoutes(app: Express) {
               .insert({
                 campaign_id: campaignId,
                 placement,
-                day: today,
+                day: serviceRoleClient.sql`(now() at time zone 'America/Vancouver')::date`, // B) Pacific timezone
                 clicks: 1,
                 raw_views: 0,
                 billable_impressions: 0,
@@ -739,7 +732,7 @@ export function addSpotlightRoutes(app: Express) {
     }
   });
 
-  // Test Metrics Endpoint - Fixed to properly track 2 metrics with "date" column
+  // A) Test Metrics Endpoint with enhanced logging
   app.get('/api/spotlight/admin/metrics/test', requireAdminKey, async (req, res) => {
     try {
       const { campaignId } = req.query;
@@ -751,49 +744,43 @@ export function addSpotlightRoutes(app: Express) {
         });
       }
 
-      const today = new Date().toISOString().split('T')[0];
       const serviceRoleClient = getSupabaseAdmin();
+      const placement = 'events_banner';
       
-      // Track 2 test impressions to prove writes work
-      for (let i = 0; i < 2; i++) {
-        const { error } = await serviceRoleClient
-          .from('sponsor_metrics_daily')
-          .upsert({
-            campaign_id: campaignId,
-            placement: 'events_banner',
-            day: today, // Using "day" column (actual database column)
-            raw_views: 1,
-            billable_impressions: 1, // cap=0 so both increment
-            clicks: 0,
-            unique_users: 1
-          }, {
-            onConflict: 'campaign_id,placement,day',
-            ignoreDuplicates: false
-          });
-          
-        if (error && error.code === '23505') {
-          // Row exists, increment it
-          const { data: current } = await serviceRoleClient
-            .from('sponsor_metrics_daily')
-            .select('raw_views, billable_impressions')
-            .eq('campaign_id', campaignId)
-            .eq('placement', 'events_banner')
-            .eq('day', today)
-            .single();
-            
-          if (current) {
-            await serviceRoleClient
-              .from('sponsor_metrics_daily')
-              .update({
-                raw_views: (current.raw_views || 0) + 1,
-                billable_impressions: (current.billable_impressions || 0) + 1
-              })
-              .eq('campaign_id', campaignId)
-              .eq('placement', 'events_banner')
-              .eq('day', today);
-          }
-        }
-      }
+      // Get before counts for logging
+      const { data: before } = await serviceRoleClient
+        .from('sponsor_metrics_daily')
+        .select('day, raw_views, billable_impressions, clicks, unique_users')
+        .eq('campaign_id', campaignId)
+        .eq('placement', placement)
+        .single();
+      
+      // Record impression and click using Pacific timezone (B)
+      await serviceRoleClient
+        .from('sponsor_metrics_daily')
+        .upsert({
+          campaign_id: campaignId,
+          placement,
+          day: serviceRoleClient.sql`(now() at time zone 'America/Vancouver')::date`, // B) Pacific timezone
+          raw_views: (before?.raw_views || 0) + 1,
+          billable_impressions: (before?.billable_impressions || 0) + 1,
+          clicks: (before?.clicks || 0) + 1,
+          unique_users: (before?.unique_users || 0) + 1
+        }, {
+          onConflict: 'campaign_id, placement, day', // C) Using day column index
+          ignoreDuplicates: false
+        });
+      
+      // Get after counts for logging
+      const { data: after } = await serviceRoleClient
+        .from('sponsor_metrics_daily')
+        .select('day, raw_views, billable_impressions, clicks, unique_users')
+        .eq('campaign_id', campaignId)
+        .eq('placement', placement)
+        .single();
+      
+      // A) Enhanced logging showing before→after counts
+      console.log(`📊 Metrics Test: {campaignId: ${campaignId}, placement: ${placement}, day: ${after?.day}, before→after: {raw_views: ${before?.raw_views || 0}→${after?.raw_views || 0}, billable_impressions: ${before?.billable_impressions || 0}→${after?.billable_impressions || 0}, clicks: ${before?.clicks || 0}→${after?.clicks || 0}}}`);
 
       res.json({ 
         ok: true, 
@@ -801,8 +788,8 @@ export function addSpotlightRoutes(app: Express) {
         message: 'Test metrics recorded successfully',
         details: {
           campaignId,
-          placement: 'events_banner',
-          day: today
+          placement,
+          day: after?.day
         }
       });
     } catch (error: any) {
@@ -830,14 +817,13 @@ export function addSpotlightRoutes(app: Express) {
       const today = new Date().toISOString().split('T')[0];
       const serviceRoleClient = getSupabaseAdmin();
       
-      // Get today's raw rows from sponsor_metrics_daily
+      // C) Get today's raw rows using day column only
       const { data, error } = await serviceRoleClient
         .from('sponsor_metrics_daily')
         .select('campaign_id, placement, day, billable_impressions, raw_views, clicks, unique_users')
         .eq('campaign_id', campaignId)
         .eq('placement', placement)
-        .eq('day', today)
-        .order('day', { ascending: false });
+        .order('day', { ascending: false }); // Get all days, not just today
       
       if (error) {
         return res.status(500).json({ 
@@ -1096,7 +1082,7 @@ jugnu.events`;
         .from('sponsor_metrics_daily')
         .select('*')
         .eq('campaign_id', campaign.id)
-        .order('date', { ascending: true });
+        .order('day', { ascending: true }); // C) Use day column only
 
       if (metricsError) {
         console.error('Metrics query error:', metricsError);

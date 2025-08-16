@@ -49,11 +49,14 @@ Preferred communication style: Simple, everyday language.
 - **Promote v2 Sales Page**: Premium sales page for sponsorship packages with detailed pricing, add-ons, and application forms.
 - **Sponsor Portal System**: Token-based analytics portal (`/sponsor/:tokenId`) with real-time metrics (impressions, clicks, CTR), charts, and CSV export.
 - **CSV Export**: `/api/spotlight/portal/:tokenId/export.csv` endpoint for downloading campaign metrics.
-- **Advanced Analytics Backend**: `sponsor_metrics_daily` table with date, raw_views, billable_impressions, clicks, unique_users columns.
-- **Frequency Capping**: Infrastructure for viewable impression tracking with IntersectionObserver and session-based frequency capping.
+- **Advanced Analytics Backend**: `sponsor_metrics_daily` table with day (Pacific timezone), raw_views, billable_impressions, clicks, unique_users columns.
+- **Frequency Capping**: Infrastructure for viewable impression tracking with IntersectionObserver and session-based frequency capping (defaults to unlimited for better visibility).
 - **Sponsor Onboarding**: One-click email feature for new sponsors with portal details.
 - **Self-test System**: Comprehensive `/api/admin/selftest` endpoint for validating system health and functionality.
 - **Mobile-First Admin Console**: Responsive redesign for `/admin/promote` for various screen sizes.
+- **Timezone Hardening**: All metrics writes use Pacific timezone ((now() at time zone 'America/Vancouver')::date) for consistency.
+- **Enhanced Logging**: Metrics test endpoint provides before→after count logging for verification.
+- **Schema Robustness**: All operations use 'day' column only, with safe schema cleanup approach.
 
 ## External Dependencies
 
