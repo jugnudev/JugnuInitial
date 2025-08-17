@@ -21,6 +21,7 @@ import DevPlacesSync from "@/pages/DevPlacesSync";
 import Promote from "@/pages/Promote";
 import SponsorPortal from "@/pages/SponsorPortal";
 import AdminPromote from "@/pages/AdminPromote";
+import AdminLeads from "@/pages/AdminLeads";
 
 function Router() {
   return (
@@ -36,6 +37,7 @@ function Router() {
         <Route path="/promote/apply" component={Promote} />
         <Route path="/sponsor/:tokenId" component={SponsorPortal} />
         <Route path="/admin/promote" component={AdminPromote} />
+        <Route path="/admin/leads" component={AdminLeads} />
         <Route path="/places" component={() => { window.location.href = '/events'; return null; }} />
         <Route path="/places/submit" component={() => { window.location.href = '/events'; return null; }} />
         <Route path="/saved" component={Saved} />

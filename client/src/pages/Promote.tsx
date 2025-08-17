@@ -14,6 +14,8 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { PRICING_CONFIG, calculatePricing, formatCAD, type PackageType, type AddOnType, type DurationType } from '@/lib/pricing';
+import { useQuotePrefill } from '@/hooks/useQuotePrefill';
+import QuotePrefillBanner from '@/components/QuotePrefillBanner';
 
 // Sample data for analytics preview
 const sampleData = [
@@ -73,6 +75,9 @@ export default function Promote() {
   const [weekDuration, setWeekDuration] = useState(1);
   const [dayDuration, setDayDuration] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnType[]>([]);
+  
+  // Quote prefill functionality
+  const { quoteId, prefillData, isLoading: isPrefillLoading, error: prefillError, hasPrefill } = useQuotePrefill();
   
   // Force Full Feature to weekly
   useEffect(() => {
@@ -177,26 +182,44 @@ export default function Promote() {
       });
     }
   }, []);
-  
-  // Load quote data
-  const loadQuoteData = async (quoteId: string) => {
-    try {
-      const response = await fetch(`/api/spotlight/quotes/${quoteId}`);
-      if (response.ok) {
-        const quote = await response.json();
-        // Apply quote configuration to form
-        setSelectedPackage(quote.package_code);
-        setDurationType(quote.duration || 'weekly');
-        setWeekDuration(quote.num_weeks || 1);
-        setSelectedAddOns(quote.add_ons?.map((a: any) => a.code) || []);
-        
-        // Store quote ID for submission
-        sessionStorage.setItem('jugnu:current_quote', quoteId);
+
+  // Handle quote prefill data when loaded
+  useEffect(() => {
+    if (prefillData && !isPrefillLoading) {
+      // Apply prefill data to form state
+      setSelectedPackage(prefillData.packageCode as PackageType);
+      setDurationType(prefillData.duration as DurationType);
+      setWeekDuration(prefillData.numWeeks);
+      setSelectedAddOns(prefillData.addOns?.map((addon: any) => addon.code) || []);
+      
+      // Store quote ID for submission
+      if (prefillData.quoteId) {
+        sessionStorage.setItem('jugnu:current_quote', prefillData.quoteId);
       }
-    } catch (err) {
-      console.error('Failed to load quote:', err);
+      
+      // Show success notification
+      toast({
+        title: "Form prefilled from quote",
+        description: "Your quote settings have been loaded. Pricing is locked until expiry.",
+      });
+      
+      // Scroll to form section for user convenience
+      setTimeout(() => {
+        scrollToSection('calculator');
+      }, 500);
     }
-  };
+  }, [prefillData, isPrefillLoading]);
+  
+  // Handle prefill errors
+  useEffect(() => {
+    if (prefillError) {
+      toast({
+        variant: "destructive",
+        title: "Quote could not be loaded",
+        description: prefillError.message || "The quote may have expired or is no longer available.",
+      });
+    }
+  }, [prefillError]);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);

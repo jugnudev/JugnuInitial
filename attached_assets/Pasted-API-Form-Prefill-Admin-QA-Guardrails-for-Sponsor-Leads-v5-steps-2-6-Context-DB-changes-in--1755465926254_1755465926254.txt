@@ -1,0 +1,178 @@
+API, Form Prefill, Admin, QA & Guardrails for Sponsor Leads (v5 • steps 2–6)
+
+Context
+DB changes in Step 1 are already applied in Supabase. Continue with our existing stack (React 18 + TS, Express + TS, Drizzle/Supabase Postgres). Quotes already exist; unify usage where needed.
+
+2) API — Quote + Application endpoints
+
+A. Ensure Quotes API is solid (use one data path)
+
+Keep/implement:
+
+POST /api/spotlight/quotes
+
+GET /api/spotlight/quotes/:id
+
+Rules:
+
+package_code ∈ {events_spotlight, home_feature, full_feature}
+
+duration ∈ {daily, weekly}; if package_code='full_feature' then duration='weekly' (reject otherwise).
+
+Prices: Events $10/day, $60/week; Home $25/day, $140/week; Full Feature $350/week.
+
+Add-ons: ig_story +$10, email_feature +$30 (flat).
+
+September promo: if weekly booking in September and brand/email hasn’t redeemed → set promo_applied=true, promo_code='SEPTEMBER_FREE_WEEK_2025', zero out base package price only; add-ons billed as normal.
+
+Persist full quote in sponsor_quotes and return { id, ... }. Use one client (prefer Drizzle) for DB writes. If quotes previously used Supabase client, refactor into a common DB service so both endpoints use the same client.
+
+B. Application submit
+
+Implement/extend POST /api/spotlight/applications:
+
+Body can include quote_id (preferred path). If none, accept raw selection (package, duration, dates, add-ons) and compute pricing server-side with the same rules.
+
+If quote_id present:
+
+Fetch quote (410 if expired).
+
+Verify request selection matches quote (package, duration, dates, add-ons, totals).
+
+Use quote values for all pricing fields.
+
+Validate:
+
+Full Feature must be weekly.
+
+Creatives provided and pass min dimensions/mime (use existing image validation).
+
+Insert row into sponsor_leads with all explicit columns:
+
+Contact: business_name, contact_name, email, instagram, website
+
+Selection/Pricing: quote_id, package_code, duration, num_weeks, selected_dates, start_date, end_date, add_ons, promo_applied, promo_code, currency, subtotal_cents, addons_cents, total_cents
+
+Campaign meta: budget_range, objective, ack_exclusive, ack_guarantee
+
+Creatives: desktop_asset_url, mobile_asset_url, creative_links
+
+Notes: comments
+
+Keep the raw request in payload JSONB for debugging.
+
+Send admin email (SendGrid) summarizing: contact, package, dates, add-ons, totals, links to assets and to the Admin Lead page.
+
+3) Form Prefill & UX
+
+Application page behavior
+
+On load, read quote_id from ?quote=<uuid> (fallback to sessionStorage['jugnu:sponsor_quote']).
+
+Fetch the quote:
+
+Show a Selected Package summary box (read-only): package name, weekly/daily, dates (start–end or list of daily), #weeks, add-ons + prices, subtotal, promo line (“Launch promo applied: Base package free (September). Add-ons billed separately.” when promo_applied), total.
+
+Prefill hidden fields for quote_id, pricing and selection.
+
+If quote missing/expired → friendly error and button Back to Packages.
+
+Fields/acknowledgements:
+
+Keep existing contact + objective + creatives fields.
+
+If Full Feature: show two required checkboxes
+
+“Placement is exclusive per day and subject to availability.”
+
+“Guaranteed minimum: 4,500 viewable impressions and 225 clicks. If under-delivered, Jugnu extends at no cost until target is met.”
+
+“Edit selection” link: navigate back to packages without losing in-progress form data; preserve quote_id in sessionStorage.
+
+4) Admin UI
+
+Build/extend Leads List at /admin/leads:
+
+Table columns: created_at, business_name, email, package_code, duration, start_date/end_date or selected_dates count, add_ons (chips), promo_applied, total_cents (formatted), status.
+
+Filters: date range, package, status; search by email or business name.
+
+Lead Detail /admin/leads/:id:
+
+Top summary: contact, selection, dates, add-ons, subtotal/promo/total.
+
+Quote panel: link to quote_id with full JSON view (read-only).
+
+Creatives: clickable URLs/previews.
+
+Status dropdown: new → reviewing → approved/rejected; admin_notes textarea.
+
+Button: Export CSV of the single lead (header row + values) and list page bulk export (date-range).
+
+5) Tests / QA
+
+Unit/Integration
+
+POST /api/spotlight/quotes
+
+Accepts Events daily with add-ons; totals match price rules.
+
+Rejects Full Feature daily with 400.
+
+Applies September promo to base only; add-ons remain billed.
+
+POST /api/spotlight/applications
+
+With quote_id: validates equality of selection; writes all explicit columns; stores raw payload.
+
+Without quote_id: computes totals server-side; writes row.
+
+Requires creative URLs and passes validation for dimensions/mime.
+
+Expired quotes return 410 and application page handles gracefully.
+
+E2E (Cypress)
+
+Flow A (Events Spotlight daily + IG Story):
+
+Create quote → continue → form shows Selected Package summary; submit → DB row has selected_dates filled, add_ons=[{ig_story}], totals match.
+
+Flow B (Full Feature weekly + Email Feature):
+
+Quote with weekly, add Email Feature; continue; acknowledgements required; submit → DB row has ack_exclusive=true, ack_guarantee=true, weekly dates, add_ons include email_feature, totals match.
+
+September promo flow:
+
+Weekly booking in September → base becomes 0, add-ons billed; summary shows promo line; DB row has promo_applied=true.
+
+Manual checks
+
+Admin list filters by package/status; exports CSV.
+
+Lead detail shows linked quote and creative links.
+
+6) Guardrails
+
+Server-only DB access for sponsor_quotes and sponsor_leads; no client-side direct writes. Keep RLS disabled for server role; ensure public client cannot read these tables.
+
+Rate-limit POST /quotes and POST /applications (basic IP throttling) to prevent spam.
+
+Sanitize file names and validate asset types (JPG/PNG/WebP) and minimum sizes (1600×400 desktop, 1080×1080 mobile).
+
+Always enforce Full Feature = weekly only on both /quotes and /applications.
+
+Currency formatting: store cents as integers; display CAD with $ and thousand separators.
+
+Acceptance Criteria
+
+Application form prefills from quote_id and links the created lead to the quote.
+
+sponsor_leads rows populate all explicit columns (contact, selection, pricing, add-ons, creatives, acknowledgements, promo fields).
+
+September promo affects base only; add-ons billed.
+
+Admin list + detail pages show all the above, with CSV export.
+
+Full Feature cannot be booked daily anywhere (API + UI).
+
+All tests pass; manual E2E flows reflect accurate totals and stored data.

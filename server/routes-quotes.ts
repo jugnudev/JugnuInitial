@@ -1,100 +1,264 @@
 import type { Express } from 'express';
-import { getSupabaseAdmin } from './supabaseAdmin.js';
+import { createQuote, getQuote, createApplication, createQuoteSchema, createApplicationSchema } from './services/sponsorService';
 import { z } from 'zod';
+import sgMail from '@sendgrid/mail';
 
-// Create quote schema
-const createQuoteSchema = z.object({
-  packageCode: z.enum(['events_spotlight', 'homepage_feature', 'full_feature']),
-  duration: z.enum(['daily', 'weekly']),
-  numWeeks: z.number().min(1).default(1),
-  selectedDates: z.array(z.string()).default([]),
-  startDate: z.string().nullish(),
-  endDate: z.string().nullish(),
-  addOns: z.array(z.object({
-    code: z.string(),
-    price: z.number()
-  })).default([]),
-  basePriceCents: z.number(),
-  promoApplied: z.boolean().default(false),
-  promoCode: z.string().nullish(),
-  currency: z.string().default('CAD'),
-  totalCents: z.number()
-});
+// Rate limiting for quote and application endpoints
+const rateLimit = { windowMs: 60_000, max: 10 };
+const quotesHits = new Map<string, { count: number; ts: number }>();
+
+function checkRateLimit(ip: string, hitMap: Map<string, { count: number; ts: number }>): boolean {
+  const now = Date.now();
+  const hit = hitMap.get(ip);
+  
+  if (!hit || now - hit.ts > rateLimit.windowMs) {
+    hitMap.set(ip, { count: 1, ts: now });
+    return true;
+  }
+  
+  if (hit.count >= rateLimit.max) {
+    return false;
+  }
+  
+  hit.count++;
+  return true;
+}
+
+// Validate creative assets
+function validateCreativeAssets(desktopUrl: string, mobileUrl: string): { valid: boolean; error?: string } {
+  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  
+  // Basic URL validation (more comprehensive validation would happen server-side with actual image fetching)
+  try {
+    const desktopUrlObj = new URL(desktopUrl);
+    const mobileUrlObj = new URL(mobileUrl);
+    
+    // Check if URLs look like image URLs
+    const desktopExt = desktopUrlObj.pathname.split('.').pop()?.toLowerCase();
+    const mobileExt = mobileUrlObj.pathname.split('.').pop()?.toLowerCase();
+    
+    const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+    
+    if (desktopExt && !validExtensions.includes(desktopExt)) {
+      return { valid: false, error: 'Desktop asset must be a valid image (JPG, PNG, WebP)' };
+    }
+    
+    if (mobileExt && !validExtensions.includes(mobileExt)) {
+      return { valid: false, error: 'Mobile asset must be a valid image (JPG, PNG, WebP)' };
+    }
+    
+    return { valid: true };
+  } catch {
+    return { valid: false, error: 'Invalid creative asset URLs' };
+  }
+}
+
+// Send admin notification email
+async function sendAdminNotificationEmail(leadId: string, leadData: any) {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.log('SendGrid not configured, skipping admin notification email');
+    return;
+  }
+  
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+  
+  const packageNames = {
+    events_spotlight: 'Events Spotlight',
+    homepage_feature: 'Homepage Feature',
+    full_feature: 'Full Feature'
+  };
+  
+  const subject = `New Sponsor Application: ${leadData.businessName} - ${packageNames[leadData.packageCode as keyof typeof packageNames]}`;
+  
+  const html = `
+    <h2>New Sponsor Application Received</h2>
+    
+    <h3>Contact Information</h3>
+    <p><strong>Business:</strong> ${leadData.businessName}</p>
+    <p><strong>Contact:</strong> ${leadData.contactName}</p>
+    <p><strong>Email:</strong> ${leadData.email}</p>
+    ${leadData.instagram ? `<p><strong>Instagram:</strong> @${leadData.instagram}</p>` : ''}
+    ${leadData.website ? `<p><strong>Website:</strong> <a href="${leadData.website}">${leadData.website}</a></p>` : ''}
+    
+    <h3>Package Selection</h3>
+    <p><strong>Package:</strong> ${packageNames[leadData.packageCode as keyof typeof packageNames]}</p>
+    <p><strong>Duration:</strong> ${leadData.duration}</p>
+    <p><strong>Dates:</strong> ${leadData.startDate && leadData.endDate ? `${leadData.startDate} to ${leadData.endDate}` : leadData.selectedDates.join(', ')}</p>
+    ${leadData.addOns.length > 0 ? `<p><strong>Add-ons:</strong> ${leadData.addOns.map((a: any) => a.code).join(', ')}</p>` : ''}
+    
+    <h3>Pricing</h3>
+    <p><strong>Subtotal:</strong> CA$${(leadData.subtotalCents / 100).toFixed(2)}</p>
+    ${leadData.promoApplied ? `<p><strong>Promo:</strong> ${leadData.promoCode} (Base package free)</p>` : ''}
+    <p><strong>Total:</strong> CA$${(leadData.totalCents / 100).toFixed(2)}</p>
+    
+    <h3>Campaign Details</h3>
+    ${leadData.objective ? `<p><strong>Objective:</strong> ${leadData.objective}</p>` : ''}
+    ${leadData.budgetRange ? `<p><strong>Budget Range:</strong> ${leadData.budgetRange}</p>` : ''}
+    
+    <h3>Creative Assets</h3>
+    <p><strong>Desktop Asset:</strong> <a href="${leadData.desktopAssetUrl}">View Desktop Creative</a></p>
+    <p><strong>Mobile Asset:</strong> <a href="${leadData.mobileAssetUrl}">View Mobile Creative</a></p>
+    ${leadData.creativeLinks ? `<p><strong>Additional Links:</strong> ${leadData.creativeLinks}</p>` : ''}
+    
+    ${leadData.comments ? `<h3>Comments</h3><p>${leadData.comments}</p>` : ''}
+    
+    <h3>Admin Actions</h3>
+    <p><a href="${process.env.FRONTEND_URL || 'http://localhost:5000'}/admin/leads/${leadId}">View Lead Details</a></p>
+  `;
+  
+  try {
+    await sgMail.send({
+      to: process.env.ADMIN_EMAIL || 'admin@jugnu.events',
+      from: process.env.FROM_EMAIL || 'noreply@jugnu.events',
+      subject,
+      html
+    });
+    console.log('Admin notification email sent for lead:', leadId);
+  } catch (error) {
+    console.error('Failed to send admin notification email:', error);
+  }
+}
 
 export function addQuotesRoutes(app: Express) {
-  const supabase = getSupabaseAdmin();
-  
   // POST /api/spotlight/quotes - Create a new quote
   app.post('/api/spotlight/quotes', async (req, res) => {
-  try {
-    const body = createQuoteSchema.parse(req.body);
-    
-    // Validate Full Feature must be weekly
-    if (body.packageCode === 'full_feature' && body.duration === 'daily') {
-      return res.status(400).json({ 
-        error: 'Full Feature package is only available as a weekly booking' 
+    try {
+      // Rate limiting
+      if (!checkRateLimit(req.ip, quotesHits)) {
+        return res.status(429).json({ 
+          ok: false,
+          error: 'Too many quote requests. Please try again later.' 
+        });
+      }
+
+      const body = createQuoteSchema.parse(req.body);
+      const quoteId = await createQuote(body);
+      
+      res.json({ ok: true, quote_id: quoteId });
+    } catch (err) {
+      console.error('Error creating quote:', err);
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ 
+          ok: false,
+          error: 'Invalid request data', 
+          details: err.errors 
+        });
+      }
+      
+      if (err instanceof Error) {
+        return res.status(400).json({ 
+          ok: false,
+          error: err.message 
+        });
+      }
+      
+      res.status(500).json({ 
+        ok: false,
+        error: 'Failed to create quote' 
       });
     }
-    
-    const { data: quote, error } = await supabase
-      .from('sponsor_quotes')
-      .insert({
-        package_code: body.packageCode,
-        duration: body.duration,
-        num_weeks: body.numWeeks,
-        selected_dates: body.selectedDates,
-        start_date: body.startDate ? body.startDate : null,
-        end_date: body.endDate ? body.endDate : null,
-        add_ons: body.addOns,
-        base_price_cents: body.basePriceCents,
-        promo_applied: body.promoApplied,
-        promo_code: body.promoCode || null,
-        currency: body.currency,
-        total_cents: body.totalCents,
-        valid_until: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
-      })
-      .select('id')
-      .single();
-    
-    if (error) {
-      console.error('Failed to create quote:', error);
-      return res.status(500).json({ error: 'Failed to create quote' });
-    }
-    
-    res.json({ ok: true, quote_id: quote.id });
-  } catch (err) {
-    console.error('Error creating quote:', err);
-    if (err instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid request data', details: err.errors });
-    }
-    res.status(500).json({ error: 'Failed to create quote' });
-  }
-});
+  });
 
   // GET /api/spotlight/quotes/:id - Get quote by ID
   app.get('/api/spotlight/quotes/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    const { data: quote, error } = await supabase
-      .from('sponsor_quotes')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error || !quote) {
-      return res.status(404).json({ error: 'Quote not found' });
+    try {
+      const { id } = req.params;
+      
+      if (!id) {
+        return res.status(400).json({ 
+          ok: false,
+          error: 'Quote ID is required' 
+        });
+      }
+      
+      const quote = await getQuote(id);
+      
+      if (!quote) {
+        return res.status(404).json({ 
+          ok: false,
+          error: 'Quote not found' 
+        });
+      }
+      
+      res.json({ ok: true, quote });
+    } catch (err) {
+      console.error('Error fetching quote:', err);
+      
+      if (err instanceof Error && err.message.includes('expired')) {
+        return res.status(410).json({ 
+          ok: false,
+          error: err.message 
+        });
+      }
+      
+      res.status(500).json({ 
+        ok: false,
+        error: 'Failed to fetch quote' 
+      });
     }
-    
-    // Check if expired
-    if (quote.valid_until && new Date(quote.valid_until) < new Date()) {
-      return res.status(410).json({ error: 'Quote has expired' });
+  });
+
+  // POST /api/spotlight/applications - Submit sponsor application
+  app.post('/api/spotlight/applications', async (req, res) => {
+    try {
+      // Rate limiting
+      if (!checkRateLimit(req.ip, quotesHits)) {
+        return res.status(429).json({ 
+          ok: false,
+          error: 'Too many application requests. Please try again later.' 
+        });
+      }
+
+      const body = createApplicationSchema.parse(req.body);
+      
+      // Validate creative assets
+      const assetValidation = validateCreativeAssets(body.desktopAssetUrl, body.mobileAssetUrl);
+      if (!assetValidation.valid) {
+        return res.status(400).json({ 
+          ok: false,
+          error: assetValidation.error 
+        });
+      }
+      
+      // Store raw payload for debugging
+      const rawPayload = { ...req.body, ip: req.ip, userAgent: req.get('User-Agent') };
+      
+      const leadId = await createApplication(body, rawPayload);
+      
+      // Send admin notification email
+      await sendAdminNotificationEmail(leadId, body);
+      
+      res.json({ ok: true, lead_id: leadId });
+    } catch (err) {
+      console.error('Error creating application:', err);
+      
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ 
+          ok: false,
+          error: 'Invalid request data', 
+          details: err.errors 
+        });
+      }
+      
+      if (err instanceof Error) {
+        // Handle specific business logic errors
+        if (err.message.includes('expired')) {
+          return res.status(410).json({ 
+            ok: false,
+            error: err.message 
+          });
+        }
+        
+        return res.status(400).json({ 
+          ok: false,
+          error: err.message 
+        });
+      }
+      
+      res.status(500).json({ 
+        ok: false,
+        error: 'Failed to create application' 
+      });
     }
-    
-    res.json({ ok: true, ...quote });
-  } catch (err) {
-    console.error('Error fetching quote:', err);
-    res.status(500).json({ error: 'Failed to fetch quote' });
-  }
   });
 }
