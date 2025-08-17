@@ -1,0 +1,193 @@
+Promo Badge Fix, Pricing Reset, Stronger Full-Feature Guarantee, Email Feature (v3)
+
+Goal
+
+Replace all “20% off” badges with the September free-week promo.
+
+Reset pricing to launch rates.
+
+Only Full Feature shows numeric guarantee (higher click target).
+
+add Email Feature perk to Full Feature.
+
+Keep consistent global perks, daily/weekly logic, frequency caps, one sponsor/placement/day, existing FAQ.
+
+1) Pricing & Card Copy (UI)
+
+Global perks (identical on ALL cards):
+
+Real-time impressions & clicks with UTM tracking
+
+Custom headline, subline, and CTA
+
+Frequency capping to prevent ad fatigue
+
+Viewable impression tracking (billable)
+
+Sponsor portal + CSV export
+
+Card A — Events Spotlight Banner
+
+Price: $10/day · $60 / 7-day week
+
+Creative: 1600×400 (desktop), 400×300 (mobile)
+
+Extra bullets:
+
+Prime inline placement after the first row of events
+
+Native look on mobile & desktop
+
+Book daily or weekly
+
+CTA: Choose Events Spotlight
+
+Card B — Homepage Feature Banner
+
+Price: $25/day · $140 / 7-day week
+
+Creative: 1080×600 (desktop), 600×400 (mobile)
+
+Extra bullets:
+
+High-visibility placement in the homepage feed
+
+Book daily or weekly
+
+CTA: Choose Homepage Feature
+
+Card C — Full Feature (Both Placements + Email + IG Story)
+
+Price: $350 / 7-day week (weekly only)
+
+Creative: same specs as A & B + 1 Instagram Story during the week
+
+Extra bullets:
+
+Both placements for the same 7 days
+
+1 Email Feature to our community list (100+ subscribers) during your week
+
+1 Instagram Story during your week (creative provided or simple template)
+
+Delivery guarantee: We guarantee at least 3,500 viewable impressions and 175 clicks during your week. If we deliver less, we continue at no cost until the target is met.
+
+CTA: Choose Full Feature
+
+Remove any references to A/B creative.
+Keep the two global perks verbatim on all three cards.
+
+2) Promo Badge — replace all “20% off” ribbons
+
+Badge text on all three cards: 🎉 First 7-day booking free (September)
+
+Keep the existing eligibility logic (one free 7-day booking per brand/email in September; daily bookings excluded).
+
+Ensure the old “20% off first 3 bookings” never renders anywhere.
+
+3) Delivery Guarantee — targets & logic (Full Feature ONLY)
+
+Use the existing sponsor_guarantee_targets mechanism. Update/seed only the full_feature row:
+
+placement = 'full_feature'
+
+week_viewable_impressions_target = 3500
+
+week_clicks_target = 175
+
+effective_from = now()
+
+UI rules
+
+Interpolate 3,500 and 175 into the Full Feature guarantee line.
+
+Do not show numeric targets on Cards A or B (leave their copy as is). If targets exist server-side for A/B, keep them internal only.
+
+Backend rules
+
+On the final booked day of a Full Feature week, compare combined delivery across both placements against the two targets.
+
+If impressions < 3500 or clicks < 175 → mark needs_makegood=true.
+
+If AUTO_EXTEND_MAKEGOOD=true, auto-extend by 1 day at a time on the next open days (same placements) until both targets are met, max +14 days. Otherwise, flag in Admin.
+
+4) Email Feature (Full Feature perk)
+
+Add a simple scheduling/record so we can fulfill an email mention during the booked week.
+
+DB: sponsor_email_features
+
+id uuid pk
+
+campaign_id uuid not null references sponsor_campaigns(id)
+
+scheduled_for date not null // default = any day within the booked week (choose mid-week)
+
+status text not null check (status in ('scheduled','sent','canceled')) default 'scheduled'
+
+notes text null
+
+Admin UI
+
+On Full Feature campaigns, show an Email Feature section:
+
+Date picker (defaults to mid-week)
+
+Status dropdown (scheduled/sent/canceled)
+
+“Copy blurb” button that generates a short caption with campaign headline + UTM link
+
+Public UI
+
+Card C bullet: “1 Email Feature to our community list (100+ subscribers) during your week”
+
+Read list size from env EMAIL_LIST_SIZE_MIN (default 100). Render as “100+”.
+
+(Sending workflow can remain manual for now; we only need the record + admin controls.)
+
+5) Consistency & copy hygiene
+
+Ensure no “flight” wording appears; always “week” or “7-day week”.
+
+The two global perks must match exact wording across all cards.
+
+Keep the existing FAQ items; keep the previously appended items; you may add one new FAQ entry:
+
+New FAQ item to append:
+
+What’s included in the Full Feature email?
+One sponsor mention in our weekly community email during your booked week (headline, short blurb, and your link with UTM tracking).
+
+6) Tests / QA
+
+UI: All ribbons show “First 7-day booking free (September)”; old “20% off” does not exist.
+
+Prices: A = $10/$60, B = $25/$140, C = $350/week.
+
+Full Feature card shows 3,500 viewable impressions and 175 clicks guarantee.
+
+Cards A & B show no numeric guarantees.
+
+Admin: creating a Full Feature campaign auto-creates an sponsor_email_features row with a default mid-week scheduled_for date.
+
+Admin: can update email feature status to “sent”.
+
+Make-good: evaluator flags under-delivery and auto-extends (if enabled) up to +14 days.
+
+Copy check: global perks exactly identical across all three cards.
+
+7) Acceptance Criteria
+
+Promo badges updated platform-wide.
+
+Pricing and copy match this spec.
+
+Full Feature includes Email Feature perk (admin record + UI).
+
+Numeric guarantee only on Full Feature with 3500/175.
+
+No A/B creative code paths remain in Full Feature.
+
+No “flight” terminology.
+
+Frequency capping active for all packages.

@@ -408,10 +408,10 @@ export default function Promote() {
             "offers": {
               "@type": "Offer",
               "priceCurrency": "CAD",
-              "price": "85",
+              "price": "60",
               "priceSpecification": {
                 "@type": "UnitPriceSpecification",
-                "price": "85",
+                "price": "60",
                 "priceCurrency": "CAD",
                 "unitText": "per 7-day week"
               },
@@ -448,10 +448,10 @@ export default function Promote() {
             "offers": {
               "@type": "Offer",
               "priceCurrency": "CAD",
-              "price": "210",
+              "price": "140",
               "priceSpecification": {
                 "@type": "UnitPriceSpecification",
-                "price": "210",
+                "price": "140",
                 "priceCurrency": "CAD",
                 "unitText": "per 7-day week"
               },
@@ -488,10 +488,10 @@ export default function Promote() {
             "offers": {
               "@type": "Offer",
               "priceCurrency": "CAD",
-              "price": "499",
+              "price": "350",
               "priceSpecification": {
                 "@type": "UnitPriceSpecification",
-                "price": "499",
+                "price": "350",
                 "priceCurrency": "CAD",
                 "unitText": "per 7-day week"
               },
@@ -837,12 +837,11 @@ export default function Promote() {
               transition={{ duration: 0.6, delay: 0.1 }}
             >
               <Card className="p-8 bg-white/5 border-white/10 hover:border-copper-500/30 transition-all duration-300 relative group">
-                {/* Early Partner Discount Pill */}
-                {PRICING_CONFIG.discounts.earlyPartner.enabled && (
+                {/* September Promo Badge */}
+                {PRICING_CONFIG.promos.septemberFreeWeek.isActive() && (
                   <div className="absolute -top-3 -right-3 z-20">
                     <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 text-xs shadow-lg">
-                      <Star className="w-3 h-3 mr-1" />
-                      20% off first 3 bookings
+                      🎉 First 7-day booking free (September)
                     </Badge>
                   </div>
                 )}
@@ -932,12 +931,11 @@ export default function Promote() {
               transition={{ duration: 0.6, delay: 0.2 }}
             >
               <Card className="p-8 bg-white/5 border-copper-500/30 hover:border-copper-500/50 transition-all duration-300 relative group shadow-lg shadow-copper-500/10">
-                {/* Early Partner Discount Pill */}
-                {PRICING_CONFIG.discounts.earlyPartner.enabled && (
+                {/* September Promo Badge */}
+                {PRICING_CONFIG.promos.septemberFreeWeek.isActive() && (
                   <div className="absolute -top-3 -right-3 z-20">
                     <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 text-xs shadow-lg">
-                      <Star className="w-3 h-3 mr-1" />
-                      20% off first 3 bookings
+                      🎉 First 7-day booking free (September)
                     </Badge>
                   </div>
                 )}
@@ -1027,12 +1025,11 @@ export default function Promote() {
               transition={{ duration: 0.6, delay: 0.3 }}
             >
               <Card className="p-8 bg-white/5 border-white/10 hover:border-copper-500/30 transition-all duration-300 relative group">
-                {/* Early Partner Discount Pill */}
-                {PRICING_CONFIG.discounts.earlyPartner.enabled && (
+                {/* September Promo Badge */}
+                {PRICING_CONFIG.promos.septemberFreeWeek.isActive() && (
                   <div className="absolute -top-3 -right-3 z-20">
                     <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-3 py-1 text-xs shadow-lg">
-                      <Star className="w-3 h-3 mr-1" />
-                      20% off first 3 bookings
+                      🎉 First 7-day booking free (September)
                     </Badge>
                   </div>
                 )}
@@ -1774,10 +1771,10 @@ export default function Promote() {
                         <SelectValue placeholder="Select budget range" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="$85-210">CA$85-210/7-day week</SelectItem>
-                        <SelectItem value="$210-499">CA$210-499/7-day week</SelectItem>
-                        <SelectItem value="$499">CA$499/Full Feature</SelectItem>
-                        <SelectItem value="$500+">CA$500+/custom</SelectItem>
+                        <SelectItem value="$60-140">CA$60-140/7-day week</SelectItem>
+                        <SelectItem value="$140-350">CA$140-350/7-day week</SelectItem>
+                        <SelectItem value="$350">CA$350/Full Feature</SelectItem>
+                        <SelectItem value="$350+">CA$350+/custom</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

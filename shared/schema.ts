@@ -119,6 +119,14 @@ export const sponsorBookingDays = pgTable("sponsor_booking_days", {
   isActive: boolean("is_active").notNull().default(true),
 });
 
+export const sponsorEmailFeatures = pgTable("sponsor_email_features", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  campaignId: uuid("campaign_id").notNull().references(() => sponsorCampaigns.id, { onDelete: 'cascade' }),
+  scheduledFor: date("scheduled_for").notNull(),
+  status: text("status").notNull().default("scheduled"), // 'scheduled', 'sent', 'canceled'
+  notes: text("notes")
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -154,6 +162,10 @@ export const insertSponsorBookingDaySchema = createInsertSchema(sponsorBookingDa
   id: true,
 });
 
+export const insertSponsorEmailFeatureSchema = createInsertSchema(sponsorEmailFeatures).omit({
+  id: true,
+});
+
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -172,3 +184,5 @@ export type SponsorGuaranteeTarget = typeof sponsorGuaranteeTargets.$inferSelect
 export type InsertSponsorGuaranteeTarget = z.infer<typeof insertSponsorGuaranteeTargetSchema>;
 export type SponsorBookingDay = typeof sponsorBookingDays.$inferSelect;
 export type InsertSponsorBookingDay = z.infer<typeof insertSponsorBookingDaySchema>;
+export type SponsorEmailFeature = typeof sponsorEmailFeatures.$inferSelect;
+export type InsertSponsorEmailFeature = z.infer<typeof insertSponsorEmailFeatureSchema>;

@@ -19,9 +19,9 @@ export const PRICING_CONFIG = {
     events_spotlight: {
       name: 'Events Spotlight Banner',
       description: 'Prime inline placement after the first row of events',
-      daily: 15,
-      weekly: 85,
-      base: 85,
+      daily: 10,
+      weekly: 60,
+      base: 60,
       supportsDailyBooking: true,
       globalPerks: GLOBAL_PERKS,
       features: [
@@ -38,9 +38,9 @@ export const PRICING_CONFIG = {
     homepage_feature: {
       name: 'Homepage Feature Banner',
       description: 'High-visibility placement in the homepage feed',
-      daily: 35,
-      weekly: 210,
-      base: 210,
+      daily: 25,
+      weekly: 140,
+      base: 140,
       supportsDailyBooking: true,
       globalPerks: GLOBAL_PERKS,
       features: [
@@ -54,21 +54,22 @@ export const PRICING_CONFIG = {
       cta: 'Choose Homepage Feature'
     },
     full_feature: {
-      name: 'Full Feature (Both Placements + IG Story)',
-      description: 'Both placements for the same 7 days + 1 Instagram Story',
-      daily: 499, // Not applicable - weekly only
-      weekly: 499,
-      base: 499,
+      name: 'Full Feature (Both Placements + Email + IG Story)',
+      description: 'Both placements for the same 7 days + Email Feature + Instagram Story',
+      daily: 350, // Not applicable - weekly only
+      weekly: 350,
+      base: 350,
       supportsDailyBooking: false,
       globalPerks: GLOBAL_PERKS,
       features: [
         'Both placements for the same 7 days',
+        '1 Email Feature to our community list (100+ subscribers) during your week',
         '1 Instagram Story during your week (creative provided or simple template)',
-        'Delivery guarantee: We guarantee at least {X} viewable impressions{and_clicks} during your week. If we deliver less, we continue at no cost until the target is met.'
+        'Delivery guarantee: We guarantee at least 3,500 viewable impressions and 175 clicks during your week. If we deliver less, we continue at no cost until the target is met.'
       ],
       sizeSpecs: {
-        desktop: '1600×400 (desktop), 400×300 (mobile)',
-        mobile: '1080×600 (desktop), 600×400 (mobile)'
+        desktop: '1600×400 + 1080×600',
+        mobile: '400×300 + 600×400'
       },
       cta: 'Choose Full Feature',
       isWeeklyOnly: true
