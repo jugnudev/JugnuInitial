@@ -27,7 +27,9 @@ export default function AdminLeads() {
 
   const checkSession = async () => {
     try {
-      const response = await fetch(ENDPOINTS.ADMIN.SESSION);
+      const response = await fetch(ENDPOINTS.ADMIN.SESSION, {
+        credentials: 'include' // Include session cookies
+      });
       const data = await response.json();
       
       if (data.ok && data.isAdmin) {
@@ -48,6 +50,7 @@ export default function AdminLeads() {
       const response = await fetch(ENDPOINTS.ADMIN.LOGIN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Include session cookies
         body: JSON.stringify({ password: loginPassword })
       });
       
@@ -69,7 +72,10 @@ export default function AdminLeads() {
 
   const logout = async () => {
     try {
-      await fetch(ENDPOINTS.ADMIN.LOGOUT, { method: 'POST' });
+      await fetch(ENDPOINTS.ADMIN.LOGOUT, { 
+        method: 'POST',
+        credentials: 'include' // Include session cookies  
+      });
       setSession(null);
       setShowLoginForm(true);
       toast({ title: "Logged out successfully" });
