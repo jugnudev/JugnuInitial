@@ -61,16 +61,14 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
   
   // Fetch leads with filters
   const { data: leads = [], isLoading } = useQuery({
-    queryKey: ['admin-leads', filters, sessionBased],
+    queryKey: ['admin-leads', filters],
     queryFn: async () => {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
         if (value) params.append(key, value);
       });
       
-      const response = await fetch(sessionBased ? `/admin/leads/api?${params}` : `/admin/leads?${params}`, {
-        ...(sessionBased ? { credentials: 'include' } : { headers: { 'x-admin-key': '' } })
-      });
+      const response = await fetch(`/admin/leads/api?${params}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch leads');
@@ -79,7 +77,7 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
       const result = await response.json();
       return result.leads || [];
     },
-    enabled: sessionBased ? true : false, // Only fetch when properly authenticated
+    enabled: true,
     retry: false
   });
   

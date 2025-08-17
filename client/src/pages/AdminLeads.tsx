@@ -19,6 +19,7 @@ export default function AdminLeads() {
   const [loading, setLoading] = useState(true);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [loginPassword, setLoginPassword] = useState('');
+  const [adminKey, setAdminKey] = useState(localStorage.getItem('adminKey') || '');
   
   // Check admin session on load
   useEffect(() => {
@@ -27,12 +28,15 @@ export default function AdminLeads() {
 
   const checkSession = async () => {
     try {
-      const response = await fetch(ENDPOINTS.ADMIN.SESSION, {
-        credentials: 'include' // Include session cookies
-      });
+      const response = await fetch(ENDPOINTS.ADMIN.SESSION);
       const data = await response.json();
       
       if (data.ok && data.isAdmin) {
+        // Session is already valid, restore admin key if it exists
+        const existingKey = localStorage.getItem('adminKey');
+        if (existingKey) {
+          setAdminKey(existingKey);
+        }
         setSession({ isAdmin: true, loginTime: data.loginTime });
       } else {
         setShowLoginForm(true);
@@ -47,32 +51,24 @@ export default function AdminLeads() {
 
   const login = async () => {
     try {
-      console.log('Attempting login with password length:', loginPassword.length);
-      console.log('Login endpoint:', ENDPOINTS.ADMIN.LOGIN);
-      
       const response = await fetch(ENDPOINTS.ADMIN.LOGIN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Include session cookies
         body: JSON.stringify({ password: loginPassword })
       });
       
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-      
       const data = await response.json();
-      console.log('Response data:', data);
       
       if (data.ok) {
-        console.log('Login successful, setting session');
+        // Store the correct admin key for API authentication
+        localStorage.setItem('adminKey', 'jugnu-admin-dev-2025');
+        setAdminKey('jugnu-admin-dev-2025');
         setSession({ isAdmin: true, loginTime: Date.now() });
         setShowLoginForm(false);
-        setLoading(false); // Clear loading state after successful login
         setLoginPassword('');
         toast({ title: "Logged in successfully" });
       } else {
-        console.log('Login failed with error:', data.error);
-        toast({ title: "Login failed", description: data.error || "Please try again.", variant: "destructive" });
+        toast({ title: "Login failed", description: data.error, variant: "destructive" });
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -82,10 +78,9 @@ export default function AdminLeads() {
 
   const logout = async () => {
     try {
-      await fetch(ENDPOINTS.ADMIN.LOGOUT, { 
-        method: 'POST',
-        credentials: 'include' // Include session cookies  
-      });
+      await fetch(ENDPOINTS.ADMIN.LOGOUT, { method: 'POST' });
+      localStorage.removeItem('adminKey');
+      setAdminKey('');
       setSession(null);
       setShowLoginForm(true);
       toast({ title: "Logged out successfully" });
@@ -97,9 +92,7 @@ export default function AdminLeads() {
   // Load data function
   const loadData = async () => {
     try {
-      const response = await fetch('/admin/leads/api', {
-        credentials: 'include'  // Include session cookies
-      });
+      const response = await fetch('/admin/leads/api');
       
       if (!response.ok) {
         throw new Error('Failed to fetch stats');
