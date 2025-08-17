@@ -8,8 +8,9 @@ import AdminLeadsList from '@/components/AdminLeadsList';
 import { Shield, Users, DollarSign, TrendingUp } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { ENDPOINTS } from '@/lib/endpoints';
-import { getAdminKey, setAdminKey, clearAdminKey } from '@/lib/adminAuth';
-import { fetchAdmin } from '@/lib/fetchAdmin';
+import { useAdminAuth } from '@/lib/AdminAuthProvider';
+import { useAdminFetch } from '@/lib/fetchAdmin';
+import AdminLogin from '@/components/admin/AdminLogin';
 
 interface AdminSession {
   isAdmin: boolean;
@@ -17,78 +18,15 @@ interface AdminSession {
 }
 
 export default function AdminLeads() {
-  const [session, setSession] = useState<AdminSession | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [showLoginForm, setShowLoginForm] = useState(false);
-  const [loginPassword, setLoginPassword] = useState('');
-  const [adminKey, setAdminKeyState] = useState(getAdminKey());
+  const { isAuthed, logout } = useAdminAuth();
+  const adminFetch = useAdminFetch();
   
-  // Check admin session on load
-  useEffect(() => {
-    checkSession();
-  }, []);
 
-  const checkSession = async () => {
-    try {
-      // Simply check if we have an admin key stored
-      const existingKey = getAdminKey();
-      if (existingKey) {
-        setAdminKeyState(existingKey);
-        setSession({ isAdmin: true, loginTime: Date.now() });
-      } else {
-        setShowLoginForm(true);
-      }
-    } catch (error) {
-      console.error('Session check error:', error);
-      setShowLoginForm(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const login = async () => {
-    try {
-      const response = await fetch(ENDPOINTS.ADMIN.LOGIN, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: loginPassword })
-      });
-      
-      const data = await response.json();
-      
-      if (data.ok) {
-        // Store the correct admin key for API authentication
-        setAdminKey('jugnu-admin-dev-2025');
-        setAdminKeyState('jugnu-admin-dev-2025');
-        setSession({ isAdmin: true, loginTime: Date.now() });
-        setShowLoginForm(false);
-        setLoginPassword('');
-        toast({ title: "Logged in successfully" });
-      } else {
-        toast({ title: "Login failed", description: data.error, variant: "destructive" });
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      toast({ title: "Login error", description: "Failed to authenticate", variant: "destructive" });
-    }
-  };
-
-  const logout = async () => {
-    try {
-      clearAdminKey();
-      setAdminKeyState('');
-      setSession(null);
-      setShowLoginForm(true);
-      toast({ title: "Logged out successfully" });
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
   
   // Load data function
   const loadData = async () => {
     try {
-      const response = await fetchAdmin('/admin/leads/api');
+      const response = await adminFetch('/admin/leads/api');
       
       if (!response.ok) {
         throw new Error('Failed to fetch stats');
@@ -113,57 +51,13 @@ export default function AdminLeads() {
   const { data: stats } = useQuery({
     queryKey: ['admin-leads-stats'],
     queryFn: loadData,
-    enabled: !!session?.isAdmin,
+    enabled: isAuthed,
     retry: false
   });
   
-  if (loading && !showLoginForm) {
-    return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-copper-500/30 border-t-copper-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted">Loading admin console...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (showLoginForm) {
-    return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
-        <Card className="w-full max-w-md p-8 bg-white/5 border-white/10">
-          <div className="text-center mb-8">
-            <Shield className="w-16 h-16 text-copper-500 mx-auto mb-4" />
-            <h1 className="font-fraunces text-2xl font-bold text-white mb-2">
-              Admin Login - Sponsor Leads
-            </h1>
-            <p className="text-muted">Enter admin password to continue</p>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="password" className="text-white">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && login()}
-                className="bg-white/10 border-white/20 text-white"
-                data-testid="admin-password-input"
-              />
-            </div>
-            <Button
-              onClick={login}
-              className="w-full bg-copper-500 hover:bg-copper-600 text-black"
-              data-testid="admin-login-button"
-            >
-              Login
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
+  // Show login form if not authenticated
+  if (!isAuthed) {
+    return <AdminLogin />;
   }
   
   return (

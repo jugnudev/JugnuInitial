@@ -41,8 +41,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
 import { ENDPOINTS } from '@/lib/endpoints';
-import { getAdminKey, setAdminKey, clearAdminKey } from '@/lib/adminAuth';
-import { fetchAdmin } from '@/lib/fetchAdmin';
+// Removed old adminAuth imports - now using context
+import { useAdminAuth } from '@/lib/AdminAuthProvider';
+import { useAdminFetch } from '@/lib/fetchAdmin';
+import AdminLogin from '@/components/admin/AdminLogin';
 
 interface Campaign {
   id: string;
@@ -92,12 +94,11 @@ interface AdminSession {
 }
 
 export default function AdminPromote() {
+  const { isAuthed, adminKey, logout } = useAdminAuth();
+  const adminFetch = useAdminFetch();
   const [, setLocation] = useLocation();
-  const [session, setSession] = useState<AdminSession | null>(null);
-  const [loading, setLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [portalTokens, setPortalTokens] = useState<PortalToken[]>([]);
-  const [showLoginForm, setShowLoginForm] = useState(false);
   const [showCampaignForm, setShowCampaignForm] = useState(false);
   const [showTokenForm, setShowTokenForm] = useState(false);
   const [showEmailForm, setShowEmailForm] = useState(false);
@@ -107,10 +108,6 @@ export default function AdminPromote() {
   const [runningTest, setRunningTest] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [activeTab, setActiveTab] = useState('campaigns');
-
-  // Form state
-  const [loginPassword, setLoginPassword] = useState('');
-  const [adminKey, setAdminKeyState] = useState(getAdminKey());
   const [campaignForm, setCampaignForm] = useState({
     name: '',
     sponsor_name: '',
@@ -140,83 +137,18 @@ export default function AdminPromote() {
   const [onboardingRecipient, setOnboardingRecipient] = useState('');
   const [onboardingToken, setOnboardingToken] = useState<PortalToken | null>(null);
 
-  // Check admin session on load
+  // Load data when authenticated
   useEffect(() => {
-    checkSession();
-  }, []);
-
-  const checkSession = async () => {
-    try {
-      const response = await fetch(ENDPOINTS.ADMIN.SESSION);
-      const data = await response.json();
-      
-      if (data.ok && data.isAdmin) {
-        // Session is already valid, restore admin key if it exists
-        const existingKey = getAdminKey();
-        if (existingKey) {
-          setAdminKeyState(existingKey);
-        }
-        setSession({ isAdmin: true, loginTime: data.loginTime });
-        loadData();
-      } else {
-        setShowLoginForm(true);
-      }
-    } catch (error) {
-      console.error('Session check error:', error);
-      setShowLoginForm(true);
-    } finally {
-      setLoading(false);
+    if (isAuthed) {
+      loadData();
     }
-  };
-
-  const login = async () => {
-    try {
-      const response = await fetch(ENDPOINTS.ADMIN.LOGIN, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: loginPassword })
-      });
-      
-      const data = await response.json();
-      
-      if (data.ok) {
-        // Store the correct admin key for API authentication
-        setAdminKey('jugnu-admin-dev-2025');
-        setAdminKeyState('jugnu-admin-dev-2025');
-        setSession({ isAdmin: true, loginTime: Date.now() });
-        setShowLoginForm(false);
-        setLoginPassword('');
-        loadData();
-        toast({ title: "Logged in successfully" });
-      } else {
-        toast({ title: "Login failed", description: data.error, variant: "destructive" });
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      toast({ title: "Login error", description: "Failed to authenticate", variant: "destructive" });
-    }
-  };
-
-  const logout = async () => {
-    try {
-      await fetch(ENDPOINTS.ADMIN.LOGOUT, { method: 'POST' });
-      clearAdminKey();
-      setAdminKeyState('');
-      setSession(null);
-      setShowLoginForm(true);
-      setCampaigns([]);
-      setPortalTokens([]);
-      toast({ title: "Logged out successfully" });
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
+  }, [isAuthed]);
 
   const loadData = async () => {
     try {
       const [campaignsRes, tokensRes] = await Promise.all([
-        fetchAdmin(ENDPOINTS.ADMIN.CAMPAIGNS),
-        fetchAdmin(ENDPOINTS.ADMIN.PORTAL_TOKENS)
+        adminFetch(ENDPOINTS.ADMIN.CAMPAIGNS),
+        adminFetch(ENDPOINTS.ADMIN.PORTAL_TOKENS)
       ]);
 
       if (campaignsRes.ok) {
@@ -241,7 +173,7 @@ export default function AdminPromote() {
       const cap = 
         capValue === null || capValue === undefined || capValue === ''
           ? undefined  // Only undefined means don't change
-          : Math.max(0, Number(capValue));  // 0 is valid (no cap)
+          : Math.max(0, parseInt(String(capValue)));  // 0 is valid (no cap)
       
       const payload: any = {
         ...campaignForm,
@@ -252,7 +184,7 @@ export default function AdminPromote() {
       // Remove the raw freq_cap_per_user_per_day from payload
       delete payload.freq_cap_per_user_per_day;
 
-      const response = await fetchAdmin(ENDPOINTS.ADMIN.CAMPAIGNS, {
+      const response = await adminFetch(ENDPOINTS.ADMIN.CAMPAIGNS, {
         method: 'POST',
         body: JSON.stringify(payload)
       });
@@ -276,7 +208,7 @@ export default function AdminPromote() {
 
   const toggleCampaign = async (id: string, is_active: boolean) => {
     try {
-      const response = await fetchAdmin(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}/toggle`, {
+      const response = await adminFetch(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}/toggle`, {
         method: 'PATCH',
         body: JSON.stringify({ is_active })
       });
@@ -293,7 +225,7 @@ export default function AdminPromote() {
 
   const duplicateCampaign = async (id: string) => {
     try {
-      const response = await fetchAdmin(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}/duplicate`, {
+      const response = await adminFetch(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}/duplicate`, {
         method: 'POST'
       });
 
@@ -315,7 +247,7 @@ export default function AdminPromote() {
     if (!confirm('Are you sure you want to delete this campaign?')) return;
 
     try {
-      const response = await fetchAdmin(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}`, {
+      const response = await adminFetch(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}`, {
         method: 'DELETE'
       });
 
@@ -331,7 +263,7 @@ export default function AdminPromote() {
 
   const createPortalToken = async () => {
     try {
-      const response = await fetchAdmin(ENDPOINTS.ADMIN.PORTAL_TOKENS, {
+      const response = await adminFetch(ENDPOINTS.ADMIN.PORTAL_TOKENS, {
         method: 'POST',
         body: JSON.stringify(tokenForm)
       });
@@ -360,7 +292,7 @@ export default function AdminPromote() {
     if (!confirm('Are you sure you want to revoke this portal token?')) return;
 
     try {
-      const response = await fetchAdmin(`${ENDPOINTS.ADMIN.PORTAL_TOKENS}/${id}`, {
+      const response = await adminFetch(`${ENDPOINTS.ADMIN.PORTAL_TOKENS}/${id}`, {
         method: 'DELETE'
       });
 
@@ -393,7 +325,7 @@ export default function AdminPromote() {
     if (!selectedToken) return;
 
     try {
-      const response = await fetchAdmin('/api/admin/portal-tokens/email', {
+      const response = await adminFetch('/api/admin/portal-tokens/email', {
         method: 'POST',
         body: JSON.stringify({
           token: selectedToken.token,
@@ -459,7 +391,7 @@ export default function AdminPromote() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-key': getAdminKey()
+          'x-admin-key': adminKey
         },
         body: JSON.stringify(requestBody)
       });
@@ -598,53 +530,9 @@ export default function AdminPromote() {
     });
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-copper-500/30 border-t-copper-500 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-muted">Loading admin console...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (showLoginForm) {
-    return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
-        <Card className="w-full max-w-md p-8 bg-white/5 border-white/10">
-          <div className="text-center mb-8">
-            <Shield className="w-16 h-16 text-copper-500 mx-auto mb-4" />
-            <h1 className="font-fraunces text-2xl font-bold text-white mb-2">
-              Admin Console
-            </h1>
-            <p className="text-muted">Enter admin password to continue</p>
-          </div>
-
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="password" className="text-white">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && login()}
-                className="bg-white/10 border-white/20 text-white"
-                data-testid="admin-password-input"
-              />
-            </div>
-            <Button
-              onClick={login}
-              className="w-full bg-copper-500 hover:bg-copper-600 text-black"
-              data-testid="admin-login-button"
-            >
-              Login
-            </Button>
-          </div>
-        </Card>
-      </div>
-    );
+  // Show login form if not authenticated
+  if (!isAuthed) {
+    return <AdminLogin />;
   }
 
   return (

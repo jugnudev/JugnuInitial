@@ -1,20 +1,21 @@
-// Shared admin authentication utilities
-// This ensures both admin/promote and admin/leads use the exact same auth mechanism
+// Single source of truth for admin authentication
+export const ADMIN_LOCAL_KEY = 'jugnu-admin-dev-2025';
 
-export const ADMIN_LOCAL_KEY = 'jugnu-admin-dev-2025'; // must be the SAME one admin/promote uses
-
-export function getAdminKey(): string {
-  return localStorage.getItem(ADMIN_LOCAL_KEY) || '';
+export function getStoredAdminKey(): string {
+  try { 
+    return localStorage.getItem(ADMIN_LOCAL_KEY) || ''; 
+  } catch { 
+    return ''; 
+  }
 }
 
-export function setAdminKey(value: string): void {
+export function storeAdminKey(value: string): void {
   localStorage.setItem(ADMIN_LOCAL_KEY, value);
+  // Dispatch custom event so same-tab listeners update immediately
+  window.dispatchEvent(new CustomEvent('jugnu-admin-key-changed'));
 }
 
 export function clearAdminKey(): void {
   localStorage.removeItem(ADMIN_LOCAL_KEY);
-}
-
-export function isAdminAuthenticated(): boolean {
-  return !!getAdminKey();
+  window.dispatchEvent(new CustomEvent('jugnu-admin-key-changed'));
 }

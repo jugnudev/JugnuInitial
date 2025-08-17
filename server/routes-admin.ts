@@ -136,12 +136,8 @@ export function addAdminRoutes(app: Express) {
   // All admin routes now use session authentication
 
   // Echo auth endpoint for testing authentication
-  app.get('/api/admin/echo-auth', requireAdminKey, async (req: Request, res: Response) => {
-    res.json({ 
-      ok: true, 
-      message: 'Admin authentication successful',
-      timestamp: Date.now()
-    });
+  app.get('/api/admin/echo-auth', requireAdminKey, (req: Request, res: Response) => {
+    res.json({ ok: true });
   });
 
   // Selftest endpoint - forward to spotlight admin route

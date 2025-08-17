@@ -1,0 +1,177 @@
+Fix admin/leads Login Spinner by Sharing Auth State (v7)
+
+Goal
+Make /admin/leads authenticate exactly like /admin/promote, using a shared auth provider so the UI re-renders after login. Add an /api/admin/echo-auth check, gate queries by isAuthed, and prove it with tests.
+
+1) Create a shared AdminAuth provider (frontend)
+
+New: src/lib/adminAuth.ts
+
+// single source of truth for key name
+export const ADMIN_LOCAL_KEY = 'jugnu-admin-dev-2025';
+export function getStoredAdminKey(): string {
+  try { return localStorage.getItem(ADMIN_LOCAL_KEY) || ''; } catch { return ''; }
+}
+export function storeAdminKey(v: string) {
+  localStorage.setItem(ADMIN_LOCAL_KEY, v);
+  // dispatch a custom event so same-tab listeners update immediately
+  window.dispatchEvent(new CustomEvent('jugnu-admin-key-changed'));
+}
+export function clearAdminKey() {
+  localStorage.removeItem(ADMIN_LOCAL_KEY);
+  window.dispatchEvent(new CustomEvent('jugnu-admin-key-changed'));
+}
+
+
+New: src/lib/AdminAuthProvider.tsx
+
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import { getStoredAdminKey, storeAdminKey, clearAdminKey } from './adminAuth';
+
+type Ctx = { adminKey: string; isAuthed: boolean; login: (k:string)=>void; logout: () => void; };
+const AdminAuthCtx = createContext<Ctx | null>(null);
+
+export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
+  const [adminKey, setAdminKey] = useState<string>(() => getStoredAdminKey());
+  useEffect(() => {
+    const onChange = () => setAdminKey(getStoredAdminKey());
+    window.addEventListener('jugnu-admin-key-changed', onChange as any);
+    window.addEventListener('storage', onChange); // cross-tab
+    return () => {
+      window.removeEventListener('jugnu-admin-key-changed', onChange as any);
+      window.removeEventListener('storage', onChange);
+    };
+  }, []);
+  const value = useMemo<Ctx>(() => ({
+    adminKey, isAuthed: !!adminKey,
+    login: (k) => { storeAdminKey(k); setAdminKey(k); },
+    logout: () => { clearAdminKey(); setAdminKey(''); }
+  }), [adminKey]);
+  return <AdminAuthCtx.Provider value={value}>{children}</AdminAuthCtx.Provider>;
+}
+export function useAdminAuth(): Ctx {
+  const ctx = useContext(AdminAuthCtx);
+  if (!ctx) throw new Error('useAdminAuth must be used within AdminAuthProvider');
+  return ctx;
+}
+
+
+Wire provider at app root (once): wrap the app (or admin routes subtree) with AdminAuthProvider.
+
+2) Use ONE login component for both admin pages
+
+Extract the exact login UI used on /admin/promote into src/components/admin/AdminLogin.tsx.
+
+Both /admin/promote and /admin/leads should import and render the same component.
+
+Login behavior (mirror promote exactly):
+
+If promote calls POST /api/admin/login with { password } and the server returns { adminKey }, then:
+
+const { login } = useAdminAuth();
+const res = await fetch('/api/admin/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password }) });
+const { adminKey } = await res.json();
+login(adminKey); // this stores key + updates state immediately
+
+
+If promote simply uses the password as the key (no API), do that here too:
+
+login(passwordInputValue);
+
+
+After login(...), navigate to the same page (or invalidateQueries) so the table loads.
+
+3) Shared fetch wrapper that always sends the header
+
+New/ensure: src/lib/fetchAdmin.ts
+
+import { useAdminAuth } from './AdminAuthProvider';
+export function useAdminFetch() {
+  const { adminKey } = useAdminAuth();
+  return (input: RequestInfo, init: RequestInit = {}) => {
+    const headers = new Headers(init.headers || {});
+    if (adminKey) headers.set('x-admin-key', adminKey);
+    return fetch(input, { ...init, headers });
+  };
+}
+
+
+Replace all admin/leads API calls to use const adminFetch = useAdminFetch(); then adminFetch('/api/admin/leads?...').
+
+4) Gate queries by isAuthed and avoid stuck spinners
+
+Wherever TanStack Query loads leads/CSV/etc., use:
+
+const { isAuthed } = useAdminAuth();
+const q = useQuery({... , enabled: isAuthed });
+
+
+If !isAuthed, render the login component; do not start the query.
+
+After login, isAuthed flips to true, query auto-runs.
+
+5) Backend echo + unified middleware
+
+Add server/middleware/requireAdminKey.ts if not present:
+
+export function requireAdminKey(req,res,next){
+  const key = req.header('x-admin-key') || '';
+  if (!key) return res.status(401).json({ ok:false, error:'Missing admin key' });
+  if (key !== process.env.ADMIN_PASSWORD) return res.status(403).json({ ok:false, error:'Invalid admin key' });
+  next();
+}
+
+
+Mount on all admin routes (promote and leads).
+
+Add diagnostic route:
+
+app.get('/api/admin/echo-auth', requireAdminKey, (req,res)=>res.json({ ok:true }));
+
+6) Remove conflicting code paths
+
+Delete any session/cookie auth left under admin/leads (frontend & backend).
+
+Remove credentials:'include' on admin/leads fetches.
+
+Ensure both pages use the same localStorage key and the same password env: ADMIN_PASSWORD (currently jugnu1401).
+
+7) Small UI correctness
+
+Full Feature checkout preview: remove “Weekly saves …” ribbon.
+
+If Full Feature does not include IG Story/Email by default, do not grey them out; keep them as add-ons. If you intend to include them, grey them out and remove charges—pick one behavior and make it consistent in both the preview and pricing calc.
+
+8) Tests / QA to run now
+
+Auth parity
+
+Load /admin/promote, login with jugnu1401.
+
+Visit /admin/leads (same tab) → list loads without logging in again.
+
+Open devtools → localStorage.getItem('jugnu-admin-dev-2025') exists; call fetch('/api/admin/echo-auth',{headers:{'x-admin-key':localStorage.getItem('jugnu-admin-dev-2025')}}).then(r=>r.json()) → {ok:true}.
+
+Spinner fix
+
+On /admin/leads without key: login; verify the table appears within 1–2s (query enabled flips true).
+
+Form & DB sanity (re-run quickly)
+
+Create Events daily + IG Story quote → continue → submit → row in sponsor_leads has selected_dates + add_ons and totals.
+
+Create Full Feature weekly + Email Feature → 4 creative URLs saved; ack_guarantee=true.
+
+9) Acceptance Criteria
+
+Logging into either admin page unlocks both immediately (same tab).
+
+/admin/leads no longer spins; it shows the login, then the table after success.
+
+All admin/leads requests include x-admin-key (verified in Network tab).
+
+/api/admin/echo-auth returns {ok:true} when authed.
+
+Checkout preview + application form behavior unchanged (except the small ribbon tweak).
+
+If admin/promote uses a slightly different login handshake than described above, mirror it exactly rather than “improving” it. The spinner happens when state/queries don’t react to the stored key; the provider/hook above fixes that by updating state immediately after login().

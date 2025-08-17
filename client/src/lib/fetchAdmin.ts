@@ -1,18 +1,36 @@
-// Shared fetch wrapper for admin API calls
-// This ensures all admin requests use the same x-admin-key header
+// Hook-based fetch wrapper that automatically includes admin key
+import { useAdminAuth } from './AdminAuthProvider';
 
-import { getAdminKey } from './adminAuth';
+export function useAdminFetch() {
+  const { adminKey } = useAdminAuth();
+  
+  return (input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> => {
+    const headers = new Headers(init.headers || {});
+    
+    // Always add the admin key if present
+    if (adminKey) {
+      headers.set('x-admin-key', adminKey);
+    }
+    
+    // Ensure Content-Type is set for JSON requests
+    if (!headers.has('Content-Type') && init.body && typeof init.body === 'string') {
+      headers.set('Content-Type', 'application/json');
+    }
+    
+    return fetch(input, { ...init, headers });
+  };
+}
 
+// Static version for backwards compatibility
 export async function fetchAdmin(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
-  const key = getAdminKey();
+  const { getStoredAdminKey } = await import('./adminAuth');
+  const key = getStoredAdminKey();
   const headers = new Headers(init.headers || {});
   
-  // Always add the admin key if present
   if (key) {
     headers.set('x-admin-key', key);
   }
   
-  // Ensure Content-Type is set for JSON requests
   if (!headers.has('Content-Type') && init.body && typeof init.body === 'string') {
     headers.set('Content-Type', 'application/json');
   }
