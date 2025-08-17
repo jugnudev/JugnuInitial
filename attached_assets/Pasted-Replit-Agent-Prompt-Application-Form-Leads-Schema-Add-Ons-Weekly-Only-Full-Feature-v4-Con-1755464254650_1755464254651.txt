@@ -1,0 +1,329 @@
+Replit Agent Prompt — Application Form + Leads Schema + Add-Ons + Weekly-Only Full Feature (v4)
+
+Context to preserve from v3:
+
+Prices: Events $10/$60, Home $25/$140, Full Feature $350 (weekly-only)
+
+Promo badge: “🎉 First 7-day booking free (September)” (base only; add-ons not free)
+
+Full Feature guarantee: 4,500 viewable impressions + 225 clicks (combined across both placements) with make-good
+
+One sponsor per placement per day; frequency capping on all packages
+
+Quote object and quote_id pass-through (if you already added it)
+
+1) Checkout Preview Fixes (Selected Package panel)
+
+Remove any “Early partner discount” line/badge.
+
+Full Feature: remove/disable the Daily toggle everywhere. Weekly only.
+
+Add-ons in preview:
+
+IG Story Boost — +$10
+
+Email Feature (100+ subscribers) — +$30
+
+Show note under add-ons: “Add-ons billed separately. Launch promo applies to base package only.”
+
+If September promo applies: show small line under Subtotal:
+Launch promo applied: Base package free (September). Add-ons billed separately.
+
+2) “Continue to Application” must remember the selection
+
+If not already done, implement a robust Quote → Application handoff.
+
+DB: sponsor_quotes (create if missing)
+
+id uuid pk
+
+created_at timestamptz default now()
+
+expires_at timestamptz default now() + interval '7 days'
+
+package_code text not null // events_spotlight | home_feature | full_feature
+
+duration text not null // weekly | daily (must be weekly for full_feature)
+
+num_weeks int not null default 1
+
+selected_dates jsonb not null default '[]' // for daily bookings
+
+start_date date null, end_date date null // for weekly
+
+add_ons jsonb not null default '[]' // e.g. [{"code":"ig_story","price":10},{"code":"email_feature","price":30}]
+
+base_price_cents int not null
+
+promo_applied bool not null default false
+
+promo_code text null
+
+currency text not null default 'CAD'
+
+total_cents int not null
+
+API
+
+POST /api/spotlight/quotes creates a quote from the Selected Package state and returns {quote_id}.
+
+GET /api/spotlight/quotes/:id returns the quote for prefill; 410 if expired.
+
+Frontend
+
+On Continue to Application:
+
+POST /api/spotlight/quotes with the user’s current selection (package, duration, weeks, dates, add-ons, promo, totals).
+
+Put quote_id in URL ?quote=<uuid> and sessionStorage.setItem('jugnu:sponsor_quote', id).
+
+On the Application page:
+
+Read quote_id (URL → sessionStorage fallback) and fetch the quote.
+
+Prefill summary + hidden fields with the quote values.
+
+If missing/expired, show a friendly error and a Back to Packages button.
+
+Server-side validation
+
+Reject quotes for full_feature where duration='daily'.
+
+September promo discounts base only; add-ons remain billed.
+
+3) Application Form: revise fields + UX to match offerings
+
+Form header (top of the form, above inputs):
+A compact Selected Package summary box (read-only):
+
+Package name + price line
+
+Duration (Weekly or Daily) — Full Feature always Weekly
+
+Dates (start–end for weekly OR list of daily dates)
+
+Weeks count (for weekly)
+
+Add-ons list + costs
+
+Subtotal / Promo line (if September) / Total
+
+Link: Edit selection (goes back to packages, retains in-progress fields)
+
+Fields (keep existing styles; update labels/help text):
+
+Business Name*
+
+Contact Name*
+
+Email*
+
+Instagram (optional)
+
+Website (optional)
+
+Budget Range (dropdown, keep existing options)
+
+Campaign Objective (dropdown; keep your current options)
+
+Desired Dates
+
+If a quote exists: prefill and show as read-only display.
+
+If no quote:
+
+For Events/Home packages → allow Daily (multi-date picker) or Weekly (start date + #weeks stepper).
+
+For Full Feature → Weekly only (start date + #weeks stepper).
+
+Creative Assets (unchanged validation):
+
+Desktop Creative* (min 1600×400; JPG/PNG/WebP; ~4:1)
+
+Mobile Creative* (min 1080×1080; JPG/PNG/WebP; 1:1)
+
+Additional Creative Links (optional textarea: Figma/Drive links)
+
+Additional Comments (optional textarea)
+
+Acknowledgements (new checkboxes):
+
+I acknowledge the placement is exclusive per day and subject to availability.
+
+If Full Feature selected:
+I acknowledge the guaranteed minimum of 4,500 viewable impressions and 225 clicks for my week; if under-delivered, Jugnu will extend at no cost until targets are met.
+
+Creative Guidelines panel — keep as is.
+
+Submit button — unchanged.
+
+4) Persist applications properly (update sponsor_leads)
+
+Replace the barebones payload with a structured record that links to the quote and captures everything.
+
+DB: sponsor_leads (alter table)
+
+id uuid pk
+
+created_at timestamptz default now()
+
+status text not null default 'new' // new | reviewing | approved | rejected
+
+source text not null default 'web'
+
+Contact
+
+business_name text not null
+
+contact_name text not null
+
+email text not null
+
+instagram text null
+
+website text null
+
+Selection & pricing
+
+quote_id uuid null references sponsor_quotes(id)
+
+package_code text not null // events_spotlight | home_feature | full_feature
+
+duration text not null // weekly | daily
+
+num_weeks int not null default 1
+
+selected_dates jsonb not null default '[]' // daily only
+
+start_date date null, end_date date null // weekly
+
+add_ons jsonb not null default '[]' // [{code, price}]
+
+promo_applied bool not null default false
+
+promo_code text null
+
+currency text not null default 'CAD'
+
+subtotal_cents int not null
+
+addons_cents int not null
+
+total_cents int not null
+
+Campaign
+
+budget_range text null
+
+objective text null
+
+ack_exclusive bool not null default false
+
+ack_guarantee bool not null default false
+
+Creatives
+
+desktop_asset_url text not null
+
+mobile_asset_url text not null
+
+creative_links text null
+
+Notes
+
+comments text null
+
+admin_notes text null
+
+API: POST /api/spotlight/applications
+
+Validates:
+
+Full Feature must be weekly.
+
+Quote exists and not expired (if provided), and totals match.
+
+September promo affects base only.
+
+Creatives meet min dimensions/mime (keep your current checks).
+
+Writes one row into sponsor_leads.
+
+Sends an admin email (SendGrid) with a summary: contact info, package, dates, add-ons, totals, and links to creatives.
+
+Admin UI:
+
+On a lead detail page, surface the linked quote (if any) and show all pricing fields/add-ons/promos.
+
+5) Marketing page “Add-Ons & Discounts” section (bottom grid)
+
+Update the cards to match our new add-ons and pricing:
+
+IG Story Boost
+Instagram story on @jugnu.events during your run
++ $10
+
+Email Feature (100+ subscribers)
+Sponsor mention in our community email during your week
++ $30
+
+Custom Campaign (leave as is; button “Quote”)
+
+Multi-Week (leave if you have it; if you display a % ensure the math matches the pricing logic – otherwise change text to “Ask us about multi-week packages”)
+
+Also add a tiny caption under the grid:
+Add-ons are available with any booking and billed separately. Launch promo applies to base package only.
+
+6) Guarantee copy (Full Feature)
+
+Everywhere the Full Feature’s guarantee is mentioned (card, preview, application summary, FAQ snippet), ensure it reads:
+
+“We guarantee at least 4,500 viewable impressions and 225 clicks during your 7-day week. If we deliver less, we extend at no cost until the target is met.”
+
+Backend continues to evaluate combined totals across both placements, with auto-extend if enabled.
+
+7) Tests / QA
+
+UI / E2E
+
+Full Feature: no Daily toggle anywhere (preview & application).
+
+Add-ons list shows IG Story +$10 and Email Feature (100+ subscribers) +$30.
+
+Pricing Summary: no “Early partner discount”; promo line shows only when September promo applies; add-ons remain billed.
+
+“Continue to Application” creates a quote, navigates with ?quote=<id>, and the form prefills the summary + locks package/duration.
+
+Application submission creates a sponsor_leads row with all fields populated and linked quote_id.
+
+API / Integration
+
+POST /quotes rejects Full Feature daily.
+
+POST /applications enforces totals/quote matching.
+
+September promo applies to base only.
+
+Copy
+
+Guarantee lines show 4,500 / 225 for Full Feature only; A/B packages show no numeric targets.
+
+Global perks match wording exactly:
+
+“Real-time impressions & clicks with UTM tracking”
+
+“Custom headline, subline, and CTA”
+
+8) Acceptance Criteria
+
+Selected Package preview reflects new add-ons/prices; no “early partner discount.”
+
+Full Feature is weekly-only across the entire flow (UI + server).
+
+Add-ons grid updated (Story +$10, Email +$30).
+
+Quote → Application linking is reliable; the form remembers the user’s choices.
+
+sponsor_leads stores all relevant fields & links to sponsor_quotes.
+
+Full Feature guarantee consistently shows 4,500 imps / 225 clicks and is enforced by the make-good logic.

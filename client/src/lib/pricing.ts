@@ -1,7 +1,7 @@
 // Pricing configuration and calculation logic
 
 export type PackageType = 'events_spotlight' | 'homepage_feature' | 'full_feature';
-export type AddOnType = 'ig_story' | 'mid_run_repost';
+export type AddOnType = 'ig_story' | 'email_feature';
 export type DurationType = 'daily' | 'weekly';
 
 // Base pricing in CAD
@@ -78,13 +78,13 @@ export const PRICING_CONFIG = {
   addOns: {
     ig_story: {
       name: 'IG Story Boost',
-      description: 'Instagram story feature on @jugnu.events',
+      description: 'Instagram story on @jugnu.events during your run',
       price: 10
     },
-    mid_run_repost: {
-      name: 'Mid-run Repost',
-      description: 'Additional social media push during campaign',
-      price: 10
+    email_feature: {
+      name: 'Email Feature (100+ subscribers)',
+      description: 'Sponsor mention in our community email during your week',
+      price: 30
     }
   },
   discounts: {

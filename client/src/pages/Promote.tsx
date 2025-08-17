@@ -73,6 +73,13 @@ export default function Promote() {
   const [weekDuration, setWeekDuration] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnType[]>([]);
   
+  // Force Full Feature to weekly
+  useEffect(() => {
+    if (selectedPackage === 'full_feature' && durationType !== 'weekly') {
+      setDurationType('weekly');
+    }
+  }, [selectedPackage]);
+  
   // Creative validation state
   const [creatives, setCreatives] = useState({
     desktop: null as File | null,
@@ -114,9 +121,17 @@ export default function Promote() {
   const [formStartTime] = useState(Date.now());
   const [isPrefilled, setIsPrefilled] = useState(false);
 
-  // Handle URL parameters for prefilled forms
+  // Handle URL parameters for prefilled forms and quote integration
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.split('?')[1] || '');
+    const quoteId = hashParams.get('quote') || sessionStorage.getItem('jugnu:sponsor_quote');
+    
+    // Load quote if present
+    if (quoteId) {
+      loadQuoteData(quoteId);
+    }
+    
     const prefillData: any = {};
     let hasParams = false;
 
@@ -160,6 +175,26 @@ export default function Promote() {
       });
     }
   }, []);
+  
+  // Load quote data
+  const loadQuoteData = async (quoteId: string) => {
+    try {
+      const response = await fetch(`/api/spotlight/quotes/${quoteId}`);
+      if (response.ok) {
+        const quote = await response.json();
+        // Apply quote configuration to form
+        setSelectedPackage(quote.package_code);
+        setDurationType(quote.duration || 'weekly');
+        setWeekDuration(quote.num_weeks || 1);
+        setSelectedAddOns(quote.add_ons?.map((a: any) => a.code) || []);
+        
+        // Store quote ID for submission
+        sessionStorage.setItem('jugnu:current_quote', quoteId);
+      }
+    } catch (err) {
+      console.error('Failed to load quote:', err);
+    }
+  };
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -288,13 +323,17 @@ export default function Promote() {
     setIsSubmitting(true);
 
     try {
+      // Get quote ID from session storage
+      const quoteId = sessionStorage.getItem('jugnu:current_quote') || sessionStorage.getItem('jugnu:sponsor_quote');
+      
       const response = await fetch('/api/spotlight/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
+          quote_id: quoteId,
           selected_package: selectedPackage,
-          duration_type: durationType,
+          duration_type: selectedPackage === 'full_feature' ? 'weekly' : durationType,
           week_duration: weekDuration,
           selected_add_ons: selectedAddOns,
           pricing_breakdown: currentPricing,
@@ -305,7 +344,12 @@ export default function Promote() {
             mobile_dimensions: creativeValidation.mobile.dimensions,
             desktop_filename: creatives.desktop?.name,
             mobile_filename: creatives.mobile?.name
-          } : null
+          } : null,
+          // Add tracking fields
+          utm_source: new URLSearchParams(window.location.search).get('utm_source'),
+          utm_medium: new URLSearchParams(window.location.search).get('utm_medium'),
+          utm_campaign: new URLSearchParams(window.location.search).get('utm_campaign'),
+          referrer: document.referrer
         })
       });
 
@@ -1139,20 +1183,28 @@ export default function Promote() {
                     <div>
                       <h4 className="font-semibold text-white mb-3">Campaign Duration</h4>
                       
-                      {/* Duration Type Toggle */}
-                      <div className="flex items-center gap-4 mb-4">
-                        <span className={`text-sm font-medium ${durationType === 'daily' ? 'text-white' : 'text-muted'}`}>
-                          Daily
-                        </span>
-                        <Switch
-                          checked={durationType === 'weekly'}
-                          onCheckedChange={(checked) => setDurationType(checked ? 'weekly' : 'daily')}
-                          data-testid="duration-type-toggle"
-                        />
-                        <span className={`text-sm font-medium ${durationType === 'weekly' ? 'text-white' : 'text-muted'}`}>
-                          Weekly
-                        </span>
-                      </div>
+                      {/* Duration Type Toggle - Disabled for Full Feature */}
+                      {selectedPackage === 'full_feature' ? (
+                        <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg mb-4">
+                          <div className="text-purple-400 text-sm font-medium">
+                            Full Feature is weekly-only (7 days)
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-4 mb-4">
+                          <span className={`text-sm font-medium ${durationType === 'daily' ? 'text-white' : 'text-muted'}`}>
+                            Daily
+                          </span>
+                          <Switch
+                            checked={durationType === 'weekly'}
+                            onCheckedChange={(checked) => setDurationType(checked ? 'weekly' : 'daily')}
+                            data-testid="duration-type-toggle"
+                          />
+                          <span className={`text-sm font-medium ${durationType === 'weekly' ? 'text-white' : 'text-muted'}`}>
+                            Weekly
+                          </span>
+                        </div>
+                      )}
 
                       {/* Week Duration Selector */}
                       {durationType === 'weekly' && (
@@ -1193,6 +1245,9 @@ export default function Promote() {
                     {/* Add-ons Selection */}
                     <div>
                       <h4 className="font-semibold text-white mb-3">Add-ons</h4>
+                      <p className="text-muted text-sm mb-3">
+                        Add-ons billed separately. Launch promo applies to base package only.
+                      </p>
                       <div className="space-y-3">
                         {(Object.keys(PRICING_CONFIG.addOns) as AddOnType[]).map((addOnKey) => {
                           const addOn = PRICING_CONFIG.addOns[addOnKey];
@@ -1289,8 +1344,17 @@ export default function Promote() {
                             </span>
                           </div>
 
+                          {/* September Promo Note */}
+                          {currentPricing.breakdown.discounts.some(d => d.name.includes('September')) && (
+                            <div className="text-center p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                              <div className="text-green-400 text-sm">
+                                Launch promo applied: Base package free (September). Add-ons billed separately.
+                              </div>
+                            </div>
+                          )}
+                          
                           {/* Savings */}
-                          {currentPricing.savings > 0 && (
+                          {currentPricing.savings > 0 && !currentPricing.breakdown.discounts.some(d => d.name.includes('September')) && (
                             <div className="text-center p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
                               <div className="text-green-400 font-medium">
                                 You save {formatCAD(currentPricing.savings)}!
@@ -1311,7 +1375,49 @@ export default function Promote() {
                     )}
 
                     <Button
-                      onClick={() => scrollToSection('apply')}
+                      onClick={async () => {
+                        // Create quote and navigate to application
+                        if (!currentPricing) return;
+                        
+                        try {
+                          const quoteData = {
+                            packageCode: selectedPackage,
+                            duration: selectedPackage === 'full_feature' ? 'weekly' : durationType,
+                            numWeeks: durationType === 'weekly' ? weekDuration : 1,
+                            selectedDates: [],
+                            startDate: null,
+                            endDate: null,
+                            addOns: selectedAddOns.map(code => ({
+                              code,
+                              price: PRICING_CONFIG.addOns[code].price
+                            })),
+                            basePriceCents: Math.round(currentPricing.basePrice * 100),
+                            promoApplied: currentPricing.breakdown.discounts.some(d => d.name.includes('September')),
+                            promoCode: currentPricing.breakdown.discounts.some(d => d.name.includes('September')) ? 'SEPTEMBER2025' : null,
+                            currency: 'CAD',
+                            totalCents: Math.round(currentPricing.total * 100)
+                          };
+                          
+                          const response = await fetch('/api/spotlight/quotes', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(quoteData)
+                          });
+                          
+                          if (response.ok) {
+                            const { quote_id } = await response.json();
+                            sessionStorage.setItem('jugnu:sponsor_quote', quote_id);
+                            window.location.hash = `#apply?quote=${quote_id}`;
+                            scrollToSection('apply');
+                          } else {
+                            // Fallback to direct navigation without quote
+                            scrollToSection('apply');
+                          }
+                        } catch (err) {
+                          console.error('Failed to create quote:', err);
+                          scrollToSection('apply');
+                        }
+                      }}
                       className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold"
                       data-testid="proceed-to-application"
                     >
@@ -1610,16 +1716,16 @@ export default function Promote() {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
             <Card className="p-6 bg-white/5 border-white/10 text-center">
               <Plus className="w-8 h-8 text-copper-500 mx-auto mb-3" />
-              <h4 className="font-medium text-white mb-2">Story Boost</h4>
-              <p className="text-muted text-sm mb-3">Instagram story amplification</p>
-              <Badge className="bg-copper-500/20 text-copper-400">+CA$25</Badge>
+              <h4 className="font-medium text-white mb-2">IG Story Boost</h4>
+              <p className="text-muted text-sm mb-3">Instagram story on @jugnu.events during your run</p>
+              <Badge className="bg-copper-500/20 text-copper-400">+CA$10</Badge>
             </Card>
 
             <Card className="p-6 bg-white/5 border-white/10 text-center">
               <Plus className="w-8 h-8 text-copper-500 mx-auto mb-3" />
-              <h4 className="font-medium text-white mb-2">Mid-Run Repost</h4>
-              <p className="text-muted text-sm mb-3">Additional social boost</p>
-              <Badge className="bg-copper-500/20 text-copper-400">+CA$25</Badge>
+              <h4 className="font-medium text-white mb-2">Email Feature (100+ subscribers)</h4>
+              <p className="text-muted text-sm mb-3">Sponsor mention in our community email during your week</p>
+              <Badge className="bg-copper-500/20 text-copper-400">+CA$30</Badge>
             </Card>
 
             <Card className="p-6 bg-white/5 border-white/10 text-center">
@@ -1636,6 +1742,10 @@ export default function Promote() {
               <Badge className="bg-green-500/20 text-green-400">-10%</Badge>
             </Card>
           </div>
+          
+          <p className="text-center text-muted text-sm mt-8">
+            Add-ons are available with any booking and billed separately. Launch promo applies to base package only.
+          </p>
         </div>
       </section>
 

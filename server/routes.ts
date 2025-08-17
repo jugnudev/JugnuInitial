@@ -5,6 +5,7 @@ import { getSupabaseAdmin } from "./supabaseAdmin";
 import { addPlacesV13Routes } from './routes-places-v13.js';
 import { addSpotlightRoutes } from './routes-spotlight.js';
 import { addAdminRoutes } from './routes-admin.js';
+import { addQuotesRoutes } from './routes-quotes.js';
 import { createHash } from "crypto";
 import ical from "node-ical";
 import he from "he";
@@ -2737,6 +2738,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add Sponsorship & Spotlight v4.0 routes
   addSpotlightRoutes(app);
+  
+  // Add quotes routes for application flow
+  addQuotesRoutes(app);
   
   // Add admin routes for sponsorship console
   addAdminRoutes(app);

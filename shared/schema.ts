@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, numeric, uuid, integer, date } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, numeric, uuid, integer, date, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -127,6 +127,64 @@ export const sponsorEmailFeatures = pgTable("sponsor_email_features", {
   notes: text("notes")
 });
 
+export const sponsorQuotes = pgTable("sponsor_quotes", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull().default(sql`now() + interval '7 days'`),
+  packageCode: text("package_code").notNull(), // events_spotlight | homepage_feature | full_feature
+  duration: text("duration").notNull(), // weekly | daily
+  numWeeks: integer("num_weeks").notNull().default(1),
+  selectedDates: jsonb("selected_dates").notNull().default(sql`'[]'::jsonb`), // for daily bookings
+  startDate: date("start_date"),
+  endDate: date("end_date"),
+  addOns: jsonb("add_ons").notNull().default(sql`'[]'::jsonb`), // [{code, price}]
+  basePriceCents: integer("base_price_cents").notNull(),
+  promoApplied: boolean("promo_applied").notNull().default(false),
+  promoCode: text("promo_code"),
+  currency: text("currency").notNull().default("CAD"),
+  totalCents: integer("total_cents").notNull()
+});
+
+export const sponsorLeads = pgTable("sponsor_leads", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  status: text("status").notNull().default("new"), // new | reviewing | approved | rejected
+  source: text("source").notNull().default("web"),
+  // Contact
+  businessName: text("business_name").notNull(),
+  contactName: text("contact_name").notNull(),
+  email: text("email").notNull(),
+  instagram: text("instagram"),
+  website: text("website"),
+  // Selection & pricing
+  quoteId: uuid("quote_id").references(() => sponsorQuotes.id),
+  packageCode: text("package_code").notNull(),
+  duration: text("duration").notNull(),
+  numWeeks: integer("num_weeks").notNull().default(1),
+  selectedDates: jsonb("selected_dates").notNull().default(sql`'[]'::jsonb`),
+  startDate: date("start_date"),
+  endDate: date("end_date"),
+  addOns: jsonb("add_ons").notNull().default(sql`'[]'::jsonb`),
+  promoApplied: boolean("promo_applied").notNull().default(false),
+  promoCode: text("promo_code"),
+  currency: text("currency").notNull().default("CAD"),
+  subtotalCents: integer("subtotal_cents").notNull(),
+  addonsCents: integer("addons_cents").notNull(),
+  totalCents: integer("total_cents").notNull(),
+  // Campaign
+  budgetRange: text("budget_range"),
+  objective: text("objective"),
+  ackExclusive: boolean("ack_exclusive").notNull().default(false),
+  ackGuarantee: boolean("ack_guarantee").notNull().default(false),
+  // Creatives
+  desktopAssetUrl: text("desktop_asset_url").notNull(),
+  mobileAssetUrl: text("mobile_asset_url").notNull(),
+  creativeLinks: text("creative_links"),
+  // Notes
+  comments: text("comments"),
+  adminNotes: text("admin_notes")
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -166,6 +224,17 @@ export const insertSponsorEmailFeatureSchema = createInsertSchema(sponsorEmailFe
   id: true,
 });
 
+export const insertSponsorQuoteSchema = createInsertSchema(sponsorQuotes).omit({
+  id: true,
+  createdAt: true,
+  expiresAt: true,
+});
+
+export const insertSponsorLeadSchema = createInsertSchema(sponsorLeads).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -186,3 +255,7 @@ export type SponsorBookingDay = typeof sponsorBookingDays.$inferSelect;
 export type InsertSponsorBookingDay = z.infer<typeof insertSponsorBookingDaySchema>;
 export type SponsorEmailFeature = typeof sponsorEmailFeatures.$inferSelect;
 export type InsertSponsorEmailFeature = z.infer<typeof insertSponsorEmailFeatureSchema>;
+export type SponsorQuote = typeof sponsorQuotes.$inferSelect;
+export type InsertSponsorQuote = z.infer<typeof insertSponsorQuoteSchema>;
+export type SponsorLead = typeof sponsorLeads.$inferSelect;
+export type InsertSponsorLead = z.infer<typeof insertSponsorLeadSchema>;
