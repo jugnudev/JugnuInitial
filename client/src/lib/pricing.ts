@@ -65,7 +65,7 @@ export const PRICING_CONFIG = {
         'Both placements for the same 7 days',
         '1 Email Feature to our community list (100+ subscribers) during your week',
         '1 Instagram Story during your week (creative provided or simple template)',
-        'Delivery guarantee: We guarantee at least 3,500 viewable impressions and 175 clicks during your week. If we deliver less, we continue at no cost until the target is met.'
+        'Delivery guarantee: We guarantee at least 4,500 viewable impressions and 225 clicks during your week. If we deliver less, we continue at no cost until the target is met.'
       ],
       sizeSpecs: {
         desktop: '1600×400 + 1080×600',
