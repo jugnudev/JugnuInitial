@@ -47,6 +47,9 @@ export default function AdminLeads() {
 
   const login = async () => {
     try {
+      console.log('Attempting login with password length:', loginPassword.length);
+      console.log('Login endpoint:', ENDPOINTS.ADMIN.LOGIN);
+      
       const response = await fetch(ENDPOINTS.ADMIN.LOGIN, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -54,16 +57,22 @@ export default function AdminLeads() {
         body: JSON.stringify({ password: loginPassword })
       });
       
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+      
       const data = await response.json();
+      console.log('Response data:', data);
       
       if (data.ok) {
+        console.log('Login successful, setting session');
         setSession({ isAdmin: true, loginTime: Date.now() });
         setShowLoginForm(false);
         setLoading(false); // Clear loading state after successful login
         setLoginPassword('');
         toast({ title: "Logged in successfully" });
       } else {
-        toast({ title: "Login failed", description: data.error, variant: "destructive" });
+        console.log('Login failed with error:', data.error);
+        toast({ title: "Login failed", description: data.error || "Please try again.", variant: "destructive" });
       }
     } catch (error) {
       console.error('Login error:', error);
