@@ -596,9 +596,7 @@ export default function SponsorPortal() {
                 <a 
                   href="mailto:hello@jugnu.app" 
                   className="text-copper-400 hover:text-copper-300 transition-colors font-medium"
-                >
-                  hello@jugnu.app
-                </a>
+                >relations@thehouseofjugnu.com</a>
                 <span className="text-white/30">•</span>
                 <span className="text-muted">24-hour response time</span>
                 <span className="text-white/30">•</span>
