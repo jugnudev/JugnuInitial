@@ -22,7 +22,7 @@ interface SpotlightData {
 }
 
 export function SponsoredBanner() {
-  const [hasTrackedImpression, setHasTrackedImpression] = useState(false);
+  const [hasTrackedImpression, setHasTrackedImpression] = useState<{tracked: boolean; startTime?: number}>({tracked: false});
   const [isVisible, setIsVisible] = useState(true);
 
   const { data, isLoading, error } = useQuery({
@@ -71,7 +71,7 @@ export function SponsoredBanner() {
 
   // Track impression when component mounts and spotlight is active
   useEffect(() => {
-    if (spotlight && isVisible && !hasTrackedImpression) {
+    if (spotlight && isVisible && !hasTrackedImpression.tracked) {
       const observer = new IntersectionObserver(
         (entries) => {
           const entry = entries[0];
@@ -89,7 +89,7 @@ export function SponsoredBanner() {
             
             if (now - lastImpression < 10000) {
               console.log('🚫 Impression debounced (< 10s since last)');
-              setHasTrackedImpression(true);
+              setHasTrackedImpression({ tracked: true });
               observer.disconnect();
               return;
             }
@@ -108,20 +108,28 @@ export function SponsoredBanner() {
               localStorage.setItem('jugnu_user_id', userId);
             }
 
-            // Track both raw view and billable impression
+            // Detect device type
+            const deviceType = window.innerWidth < 768 ? 'mobile' : 'desktop';
+            
+            // Track view start time for duration
+            const viewStartTime = Date.now();
+
+            // Track both raw view and billable impression with device type
             fetch('/api/spotlight/admin/metrics/track', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 campaignId: spotlight.id,
                 placement: 'events_banner',
-                eventType: 'impression', // Changed from 'type' to 'eventType'
-                is_billable: isBillable,
-                userId: userId
+                eventType: 'impression', 
+                userId: userId,
+                deviceType: deviceType,
+                viewDuration: 0 // Will be updated when component unmounts or banner scrolls out
               })
             }).catch(console.error);
-
-            setHasTrackedImpression(true);
+            
+            // Store view start time for later duration calculation
+            setHasTrackedImpression({ tracked: true, startTime: viewStartTime });
             observer.disconnect();
           }
         },

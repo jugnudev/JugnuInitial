@@ -233,11 +233,20 @@ export function addSpotlightRoutes(app: Express) {
   // Schema migration endpoint
   app.post('/api/spotlight/admin/migrate-schema', requireAdminKey, async (req, res) => {
     try {
-      // Add missing columns to existing tables
+      // Add enhanced metrics columns
       await supabase.rpc('exec_sql', {
         sql: `
-          -- Temporarily disabled due to schema cache issue
-          -- ALTER TABLE public.sponsor_campaigns ADD COLUMN IF NOT EXISTS freq_cap_per_user_per_day int NOT NULL DEFAULT 0;
+          -- Add new columns for enhanced metrics
+          ALTER TABLE public.sponsor_metrics_daily 
+            ADD COLUMN IF NOT EXISTS impressions integer DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS mobile_impressions integer DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS desktop_impressions integer DEFAULT 0,
+            ADD COLUMN IF NOT EXISTS total_view_duration_ms bigint DEFAULT 0;
+          
+          -- Migrate existing data: consolidate raw_views/billable_impressions into impressions
+          UPDATE public.sponsor_metrics_daily 
+          SET impressions = GREATEST(COALESCE(raw_views, 0), COALESCE(billable_impressions, 0))
+          WHERE impressions IS NULL OR impressions = 0;
           
           -- Add missing columns to sponsor_portal_tokens if they don't exist
           ALTER TABLE public.sponsor_portal_tokens ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true;
@@ -615,10 +624,17 @@ export function addSpotlightRoutes(app: Express) {
     }
   });
 
-  // Metrics tracking endpoint - fixed to use "date" column and proper upsert
+  // Metrics tracking endpoint with enhanced device and duration tracking
   app.post('/api/spotlight/admin/metrics/track', async (req, res) => {
     try {
-      const { campaignId, placement = 'events_banner', eventType, userId } = req.body;
+      const { 
+        campaignId, 
+        placement = 'events_banner', 
+        eventType, 
+        userId,
+        deviceType,  // 'mobile' or 'desktop'
+        viewDuration // milliseconds the ad was visible
+      } = req.body;
       
       // Use Pacific timezone for consistency
       const vancouverTime = new Date().toLocaleString('en-CA', { 
@@ -628,18 +644,12 @@ export function addSpotlightRoutes(app: Express) {
         day: '2-digit'
       });
       const today = vancouverTime.split(',')[0]; // Format: YYYY-MM-DD
-      console.log('📅 Metrics tracking - Date:', today, 'Campaign:', campaignId, 'Type:', eventType);
+      console.log('📅 Metrics tracking - Date:', today, 'Campaign:', campaignId, 'Type:', eventType, 'Device:', deviceType);
       
       // Use service-role client for direct database access
       const serviceRoleClient = getSupabaseAdmin();
       
       if (eventType === 'impression') {
-        // Skip frequency cap check due to schema cache issue - default to unlimited
-        let freqCap = 0; // 0 = unlimited impressions
-        
-        // For MVP: when cap=0, both raw and billable increment the same
-        const billableIncrement = freqCap === 0 ? 1 : 1; // Both increment for now
-        
         // Insert or update metrics with proper error handling
         const { data: existing, error: selectError } = await serviceRoleClient
           .from('sponsor_metrics_daily')
@@ -652,14 +662,33 @@ export function addSpotlightRoutes(app: Express) {
         // single() returns error when no rows found, that's ok
         if (!selectError || selectError.code === 'PGRST116') {
           if (existing) {
-            // Update existing record
+            // Update existing record - use existing columns until schema cache refreshes
+            const updateData: any = {
+              raw_views: (existing.raw_views || 0) + 1,
+              billable_impressions: (existing.billable_impressions || 0) + 1,
+              unique_users: (existing.unique_users || 0) + (userId ? 1 : 0)
+            };
+            
+            // Try to update enhanced metrics if columns exist
+            if (existing.impressions !== undefined) {
+              updateData.impressions = (existing.impressions || 0) + 1;
+            }
+            
+            // Track device-specific impressions if columns exist
+            if (deviceType === 'mobile' && existing.mobile_impressions !== undefined) {
+              updateData.mobile_impressions = (existing.mobile_impressions || 0) + 1;
+            } else if (deviceType === 'desktop' && existing.desktop_impressions !== undefined) {
+              updateData.desktop_impressions = (existing.desktop_impressions || 0) + 1;
+            }
+            
+            // Track view duration if column exists
+            if (viewDuration && viewDuration > 0 && existing.total_view_duration_ms !== undefined) {
+              updateData.total_view_duration_ms = (existing.total_view_duration_ms || 0) + viewDuration;
+            }
+            
             const { error: updateError } = await serviceRoleClient
               .from('sponsor_metrics_daily')
-              .update({
-                raw_views: (existing.raw_views || 0) + 1,
-                billable_impressions: (existing.billable_impressions || 0) + billableIncrement,
-                unique_users: (existing.unique_users || 0) + (userId ? 1 : 0)
-              })
+              .update(updateData)
               .eq('campaign_id', campaignId)
               .eq('placement', placement)
               .eq('day', today);
@@ -671,30 +700,37 @@ export function addSpotlightRoutes(app: Express) {
               console.log('✅ Successfully updated metrics record for campaign:', campaignId, 'on day:', today);
             }
           } else {
-            // Insert new record
+            // Insert new record - use existing columns until schema cache refreshes
+            const insertData: any = {
+              campaign_id: campaignId,
+              placement,
+              day: today,
+              raw_views: 1,
+              billable_impressions: 1,
+              unique_users: userId ? 1 : 0,
+              clicks: 0
+            };
+            
+            // Only add new columns if they're supported (we'll try and let DB reject if not)
+            // These will work once schema cache refreshes
+            /*
+            if (deviceType === 'mobile') {
+              insertData.mobile_impressions = 1;
+            } else if (deviceType === 'desktop') {
+              insertData.desktop_impressions = 1;
+            }
+            if (viewDuration) {
+              insertData.total_view_duration_ms = viewDuration;
+            }
+            */
+            
             const { error: insertError } = await serviceRoleClient
               .from('sponsor_metrics_daily')
-              .insert({
-                campaign_id: campaignId,
-                placement,
-                day: today, // Use the same date format
-                raw_views: 1,
-                billable_impressions: billableIncrement,
-                unique_users: userId ? 1 : 0,
-                clicks: 0
-              });
+              .insert(insertData);
               
             if (insertError) {
               console.error('Failed to insert metrics:', insertError);
-              console.error('Insert payload was:', {
-                campaign_id: campaignId,
-                placement,
-                day: today,
-                raw_views: 1,
-                billable_impressions: billableIncrement,
-                unique_users: userId ? 1 : 0,
-                clicks: 0
-              });
+              console.error('Insert payload was:', insertData);
               throw insertError;
             } else {
               console.log('✅ Successfully inserted metrics record for campaign:', campaignId, 'on day:', today);
@@ -855,7 +891,7 @@ export function addSpotlightRoutes(app: Express) {
         day: '2-digit'
       });
       const today = vancouverTime.split(',')[0]; // Format: YYYY-MM-DD
-      console.log('📅 Metrics tracking for date:', today, 'Campaign:', campaignId, 'Placement:', placement, 'Type:', eventType);
+      console.log('📅 Metrics dump for date:', today, 'Campaign:', campaignId, 'Placement:', placement);
       
       const serviceRoleClient = getSupabaseAdmin();
       

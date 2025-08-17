@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRoute } from 'wouter';
 import { motion } from 'framer-motion';
-import { BarChart3, TrendingUp, Eye, MousePointer, Calendar, Download, AlertCircle, Award, ExternalLink, Rocket } from 'lucide-react';
+import { BarChart3, TrendingUp, Eye, MousePointer, Calendar, Download, AlertCircle, Award, ExternalLink, Rocket, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -292,49 +292,32 @@ export default function SponsorPortal() {
           >
             <h2 className="font-fraunces text-2xl font-bold text-white mb-8">Overview</h2>
             
-            <div className="grid md:grid-cols-4 gap-6 mb-12">
-              {/* Billable Impressions */}
-              <Card className="p-6 bg-white/5 border-white/10" title="Billable impressions are views that count toward your campaign billing, respecting frequency capping rules."
-                data-testid="billable-impressions-card">
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
+              {/* Impressions - Simplified single metric */}
+              <Card className="p-6 bg-white/5 border-white/10" title="Total number of times your campaign was displayed to users."
+                data-testid="impressions-card">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
                     <Eye className="w-6 h-6 text-blue-400" />
                   </div>
                   <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-                    Billable
+                    Views
                   </Badge>
                 </div>
                 <div className="text-3xl font-bold text-white mb-2">
-                  {totals?.billable_impressions.toLocaleString() || '0'}
+                  {(totals?.billable_impressions || totals?.raw_views || 0).toLocaleString()}
                 </div>
-                <p className="text-muted text-sm">Billable Impressions</p>
-              </Card>
-
-              {/* Raw Views */}
-              <Card className="p-6 bg-white/5 border-white/10" title="Raw views include all impressions, including those beyond frequency caps."
-                data-testid="raw-views-card">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
-                    <BarChart3 className="w-6 h-6 text-purple-400" />
-                  </div>
-                  <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
-                    Total
-                  </Badge>
-                </div>
-                <div className="text-3xl font-bold text-white mb-2">
-                  {totals?.raw_views.toLocaleString() || '0'}
-                </div>
-                <p className="text-muted text-sm">Raw Views</p>
+                <p className="text-muted text-sm">Impressions</p>
               </Card>
 
               {/* Reach (Unique Users) */}
               <Card className="p-6 bg-white/5 border-white/10" title="Estimated number of unique users who viewed your campaign."
                 data-testid="unique-users-card">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
-                    <Calendar className="w-6 h-6 text-orange-400" />
+                  <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                    <Users className="w-6 h-6 text-purple-400" />
                   </div>
-                  <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">
+                  <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
                     Reach
                   </Badge>
                 </div>
