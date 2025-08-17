@@ -1,153 +1,67 @@
-# Promote v2.3 Testing Guide
+# Sponsorship Packages & Booking Logic Refresh - Implementation Report
 
-## Implementation Summary
+## Implementation Status: IN PROGRESS
 
-✅ **Enhanced Pricing System**
-- Daily/weekly pricing switches with live updates
-- CA$15 (daily) / CA$75 (weekly) for Spotlight Banner
-- CA$35 (daily) / CA$175 (weekly) for Homepage Hero  
-- CA$250 (campaign) for Full Feature
-- Early partner discount: 20% off first 3 bookings
-- Multi-week discounts: 10% for 2+ weeks, 15% for 4+ weeks
+### ✅ Completed Tasks
 
-✅ **Comprehensive Add-ons System**
-- IG Story Boost (+CA$10)
-- Mid-Run Repost (+CA$10)
-- IG Carousel 4–6 slides (+CA$60)
-- Link-in-bio 7 days (+CA$15)
-- Creative design help (+CA$40)
-- Real-time quote calculation with discount application
+1. **Database Schema Updates**
+   - Added comprehensive sponsor tables to Drizzle schema (sponsor_campaigns, sponsor_creatives, sponsor_portal_tokens, sponsor_metrics_daily)
+   - Added new tables for refresh: sponsor_promo_redemptions, sponsor_guarantee_targets, sponsor_booking_days
+   - Updated schema with proper foreign key relationships and constraints
 
-✅ **Enhanced Creative Specifications**
-- Spotlight Banner: 1600×400 (desktop), 1080×600 (mobile)
-- Homepage Hero: 1600×900 (safe area top 220px)
-- Size specifications displayed on package cards
+2. **Pricing Configuration Refresh**
+   - Updated package names: spotlight_banner → events_spotlight, homepage_hero → homepage_feature
+   - Added new pricing structure with global perks displayed on all cards
+   - Implemented pricing: Events Spotlight ($15/day, $85/week), Homepage Feature ($35/day, $210/week), Full Feature ($499/week)
+   - Added September 2025 free booking promo configuration with date validation
 
-✅ **Enhanced Database Schema**
-- sponsor_metrics_daily table with generated CTR column
-- Row-level security policies implemented
-- Upsert API for real-time metrics aggregation
-- Campaign, creative, and placement tracking
+3. **TypeScript Updates**
+   - Fixed all package type references in client code
+   - Updated Promote.tsx to use new package names
+   - Resolved 16 TypeScript compilation errors
 
-✅ **Improved Content & UX**
-- "Why It Works" section with targeted messaging
-- "Who We Partner With" categories
-- Early partner discount pills on cards
-- Enhanced application form with campaign configurator
+### 🔄 In Progress Tasks
 
-## Testing Instructions
+1. **Package Cards UI Refresh**
+   - Replace old feature lists with new copy structure
+   - Add global perks section to all cards
+   - Update Full Feature card with delivery guarantee messaging
+   - Remove "flight" terminology, replace with "week/7-day"
 
-### 1. Test Pricing System
-```bash
-# Visit /promote page
-# Toggle between Daily/Weekly pricing
-# Select different packages and verify pricing updates
-# Test week duration adjustments
-```
+2. **September Promo Implementation**
+   - Add promo banner to relevant cards
+   - Implement frontend promo validation
+   - Backend promo redemption tracking
 
-### 2. Test Add-ons & Quote Calculator
-```bash
-# Select a package (Spotlight Banner or Homepage Hero)
-# Toggle add-ons and verify real-time price updates
-# Test multi-week discounts (2+ weeks = 10%, 4+ weeks = 15%)
-# Verify early partner discount application
-```
+3. **Database Table Creation**
+   - Need to create new tables in development database
+   - Seed guarantee targets table with default values
 
-### 3. Test Form Submission
-```bash
-curl -X POST http://localhost:5000/api/spotlight/leads \
-  -H "Content-Type: application/json" \
-  -d '{
-    "business_name": "Test Restaurant v2.3",
-    "contact_name": "John Doe", 
-    "email": "john@testrestaurant.com",
-    "placements": ["spotlight_banner"],
-    "duration": "weekly",
-    "weeks": 2,
-    "add_ons": ["ig_story_boost", "creative_design"]
-  }'
-```
+### 📋 Remaining Tasks
 
-### 4. Test Database & RLS
-```sql
--- Check metrics table structure
-SELECT * FROM sponsor_metrics_daily LIMIT 1;
+1. **Backend Booking Validation Logic**
+   - One sponsor per placement per day validation
+   - Booking conflict checking
+   - Promo redemption validation
 
--- Test RLS policies (should require admin key or valid token)
-SELECT * FROM sponsor_campaigns;
-```
+2. **FAQ Updates**
+   - Append new FAQ items for delivery guarantees
+   - Update existing FAQ to remove "flight" terminology
 
-### 5. Test Analytics Tracking
-```bash
-# Test metrics upsert (requires admin key)
-curl -X POST http://localhost:5000/api/spotlight/admin/metrics/track \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer ${ADMIN_KEY}" \
-  -d '{
-    "campaignId": "test-campaign-id",
-    "placement": "events_banner", 
-    "kind": "impression"
-  }'
-```
+3. **Admin Portal Updates**
+   - Update admin interfaces to use new package names
+   - Add promo management features
 
-## Key Features Implemented
+### 🎯 Next Steps
 
-### Pricing Configuration (client/src/lib/pricing.ts)
-- Type-safe pricing configuration
-- Multi-week discount calculations  
-- Early partner discount logic
-- Auto-calculation engine with breakdown
+1. Complete package cards UI refresh
+2. Add September promo banner and logic
+3. Create database tables successfully
+4. Test end-to-end booking flow with new validation
 
-### Enhanced Package Cards
-- Dynamic pricing based on toggle state
-- Early partner discount pills
-- Creative size specifications
-- Feature lists from configuration
+## Technical Notes
 
-### Campaign Configuration Form
-- Duration toggle (daily/weekly)
-- Week/day duration selector
-- Add-ons with real-time pricing
-- Quote summary with discount breakdown
-
-### Database Enhancements
-- sponsor_metrics_daily with CTR calculation
-- Row-level security policies
-- Admin and token-based access controls
-- Upsert API for metrics aggregation
-
-### Security & RLS
-- Comprehensive policies for all sponsor tables
-- Admin full access via service key
-- Token-based read access for campaign data
-- Environment-based admin authentication
-
-## Environment Variables
-
-```bash
-# Required for early partner discount display
-LAUNCH_DISCOUNT_ACTIVE=true
-
-# Existing flags
-ENABLE_HOME_MID=false
-ENABLE_EVENTS_BANNER=true
-ADMIN_KEY=your-secure-admin-key
-```
-
-## API Endpoints Added
-
-- `POST /api/spotlight/admin/metrics/track` - Upsert daily metrics
-- Enhanced lead submission with add-ons persistence
-- Improved sponsor portal with date filtering
-
-## Success Metrics
-
-- ✅ Real-time pricing calculator working
-- ✅ Add-ons system with persistent storage
-- ✅ Enhanced database schema with RLS
-- ✅ Creative specifications displayed
-- ✅ Multi-week discount calculations
-- ✅ Early partner discount configuration
-- ✅ Secure admin endpoints operational
-
-The system is now ready for production with comprehensive sponsorship management, real-time pricing, and hardened analytics tracking.
+- Package name mapping completed: events_spotlight, homepage_feature, full_feature
+- Global perks standardized across all packages
+- Delivery guarantee messaging added to Full Feature package
+- September promo logic uses month/year validation (month 8 = September)

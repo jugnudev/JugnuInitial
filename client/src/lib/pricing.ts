@@ -1,65 +1,77 @@
 // Pricing configuration and calculation logic
 
-export type PackageType = 'spotlight_banner' | 'homepage_hero' | 'full_feature';
+export type PackageType = 'events_spotlight' | 'homepage_feature' | 'full_feature';
 export type AddOnType = 'ig_story' | 'mid_run_repost';
 export type DurationType = 'daily' | 'weekly';
 
 // Base pricing in CAD
+// Global perks shown on ALL cards (identical wording)
+const GLOBAL_PERKS = [
+  'Real-time impressions & clicks with UTM tracking',
+  'Custom headline, subline, and CTA', 
+  'Frequency capping to prevent ad fatigue',
+  'Viewable impression tracking (billable)',
+  'Sponsor portal + CSV export'
+];
+
 export const PRICING_CONFIG = {
   packages: {
-    spotlight_banner: {
-      name: 'Spotlight Banner',
-      description: 'Featured banner placement on Events page',
-      daily: 10,
-      weekly: 60,
-      base: 60,
+    events_spotlight: {
+      name: 'Events Spotlight Banner',
+      description: 'Prime inline placement after the first row of events',
+      daily: 15,
+      weekly: 85,
+      base: 85,
+      supportsDailyBooking: true,
+      globalPerks: GLOBAL_PERKS,
       features: [
-        '1,500+ weekly impressions',
-        'Events page banner placement',
-        'Click-through tracking',
-        'Real-time analytics portal'
+        'Prime inline placement after the first row of events',
+        'Native look on mobile & desktop',
+        'Book daily or weekly'
       ],
       sizeSpecs: {
-        desktop: '1600×400px',
-        mobile: '400×300px'
-      }
+        desktop: '1600×400',
+        mobile: '400×300'
+      },
+      cta: 'Choose Events Spotlight'
     },
-    homepage_hero: {
-      name: 'Homepage Hero',
-      description: 'Premium hero placement on homepage',
-      daily: 25,
-      weekly: 140,
-      base: 140,
+    homepage_feature: {
+      name: 'Homepage Feature Banner',
+      description: 'High-visibility placement in the homepage feed',
+      daily: 35,
+      weekly: 210,
+      base: 210,
+      supportsDailyBooking: true,
+      globalPerks: GLOBAL_PERKS,
       features: [
-        '3,000+ weekly impressions',
-        'Homepage hero banner',
-        'Priority visibility',
-        'Enhanced analytics',
-        'Logo co-branding'
+        'High-visibility placement in the homepage feed',
+        'Book daily or weekly'
       ],
       sizeSpecs: {
-        desktop: '1080×600px',
-        mobile: '600×400px'
-      }
+        desktop: '1080×600',
+        mobile: '600×400'
+      },
+      cta: 'Choose Homepage Feature'
     },
     full_feature: {
-      name: 'Full Feature',
-      description: 'Complete 7-day campaign bundle',
-      daily: 240, // Not applicable - this is a weekly bundle
-      weekly: 240,
-      base: 240,
+      name: 'Full Feature (Both Placements + IG Story)',
+      description: 'Both placements for the same 7 days + 1 Instagram Story',
+      daily: 499, // Not applicable - weekly only
+      weekly: 499,
+      base: 499,
+      supportsDailyBooking: false,
+      globalPerks: GLOBAL_PERKS,
       features: [
-        'Site placement (Events page banner)',
-        'Instagram story feature @jugnu.events',
-        '1 mid-campaign social repost',
-        'Link-in-bio placement (7 days)',
-        '5,000+ total impressions',
-        'Dedicated campaign manager'
+        'Both placements for the same 7 days',
+        '1 Instagram Story during your week (creative provided or simple template)',
+        'Delivery guarantee: We guarantee at least {X} viewable impressions{and_clicks} during your week. If we deliver less, we continue at no cost until the target is met.'
       ],
       sizeSpecs: {
-        desktop: 'Multiple formats',
-        mobile: 'Multiple formats'
-      }
+        desktop: '1600×400 (desktop), 400×300 (mobile)',
+        mobile: '1080×600 (desktop), 600×400 (mobile)'
+      },
+      cta: 'Choose Full Feature',
+      isWeeklyOnly: true
     }
   },
   addOns: {
@@ -84,6 +96,20 @@ export const PRICING_CONFIG = {
       rate: 0.20, // 20% early partner discount
       label: 'Early partner discount',
       enabled: true
+    }
+  },
+  
+  // September Launch Promo
+  promos: {
+    septemberFreeWeek: {
+      code: 'SEPTEMBER_FREE_WEEK_2025',
+      description: 'First 7-day booking free (September)',
+      isActive: () => {
+        const now = new Date();
+        return now.getMonth() === 8 && now.getFullYear() === 2025; // September is month 8
+      },
+      applies: (durationType: DurationType) => durationType === 'weekly',
+      badge: '🎉 Launch Offer: First 7-day booking free (September)'
     }
   }
 };

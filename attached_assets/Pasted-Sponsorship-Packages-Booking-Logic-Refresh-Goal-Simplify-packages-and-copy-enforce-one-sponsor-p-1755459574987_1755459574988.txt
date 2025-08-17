@@ -1,0 +1,290 @@
+Sponsorship Packages & Booking Logic Refresh
+
+Goal
+Simplify packages and copy; enforce one sponsor per placement per day; support Daily and 7-Day bookings; add a clear delivery guarantee (configurable); launch promo: one free 7-day booking per brand in September; unify perk wording across tiers; remove “flight” terminology from UI.
+
+0) Tech context (assume current stack)
+
+React 18 + TS (Vite, Tailwind + shadcn/ui, TanStack Query)
+Express + TS + Drizzle ORM (Neon Postgres)
+Existing tables: sponsor_campaigns, sponsor_creatives, sponsor_metrics_daily, sponsor_portal_tokens, etc.
+
+1) Copy & Package Cards (UI)
+
+Replace existing three cards with the following (keep layout).
+Do NOT repeat “Vancouver/Metro Vancouver” in the titles; it’s implied elsewhere.
+
+Global perks to show on ALL cards (identical wording):
+
+Real-time impressions & clicks with UTM tracking
+
+Custom headline, subline, and CTA
+
+Frequency capping to prevent ad fatigue
+
+Viewable impression tracking (billable)
+
+Sponsor portal + CSV export
+
+Card A — Events Spotlight Banner
+
+Price: $10/day · $60 / 7-day week
+
+Creative: 1600×400 (desktop), 400×300 (mobile)
+
+Short bullets under the global perks:
+
+Prime inline placement after the first row of events
+
+Native look on mobile & desktop
+
+Book daily or weekly
+
+CTA: Choose Events Spotlight
+
+Card B — Homepage Feature Banner
+
+Price: $25/day · $140 / 7-day week
+
+Creative: 1080×600 (desktop), 600×400 (mobile)
+
+Short bullets:
+
+High-visibility placement in the homepage feed
+
+Book daily or weekly
+
+CTA: Choose Homepage Feature
+
+Card C — Full Feature (Both Placements + IG Story)
+
+Price: $240 / 7-day week (weekly only)
+
+Creative: same as above + 1 Instagram Story during the week
+
+Short bullets:
+
+Both placements for the same 7 days
+
+1 Instagram Story during your week (creative provided or simple template)
+
+Delivery guarantee: We guarantee at least {X} viewable impressions{and_clicks} during your week. If we deliver less, we continue at no cost until the target is met.
+
+Render {and_clicks} as: “ and {Y} clicks” only if a clicks target is configured (see Section 3).
+Remove any “2–3 day turnaround” copy.
+Keep existing FAQ; append items (Section 6).
+
+CTA: Choose Full Feature
+
+2) September Launch Promo (UI + Logic)
+
+Badge on all three cards (top-left ribbon):
+🎉 Launch Offer: First 7-day booking free (September)
+
+Fine print under the cards (small, muted):
+One free 7-day booking per brand in September. Weekly bookings only. Subject to availability. Creative due 24h before start. Social add-ons excluded unless noted. Category exclusivity available as an add-on.
+
+Implementation:
+
+Add table sponsor_promo_redemptions:
+
+id uuid pk, sponsor_email text not null, promo_code text not null, redeemed_at timestamptz not null, notes text null
+
+Add unique index on (lower(sponsor_email), promo_code)
+
+Recognize “brand” by sponsor email (from booking form); case-insensitive.
+
+Promo code constant: SEPTEMBER_FREE_WEEK_2025
+
+Rule: if booking is a 7-day week in September and the email hasn’t redeemed the code, set price = $0 and insert redemption row. Show UI chip “Free Trial Applied”.
+
+Daily bookings do not qualify.
+
+3) Delivery Guarantee (Config + UI)
+
+We need configurable targets (per placement; per week; optional clicks).
+
+New table: sponsor_guarantee_targets
+
+id uuid pk
+
+placement text not null check (placement in ('events_spotlight','home_feature','full_feature'))
+
+week_viewable_impressions_target integer not null default 0
+
+week_clicks_target integer null -- optional; if null, clicks are not guaranteed
+
+effective_from date not null default now()
+
+unique index on (placement, effective_from)
+
+Seed with conservative defaults (editable in admin):
+
+events_spotlight: week_viewable_impressions_target = 1200, week_clicks_target = 12
+
+home_feature: 1800, 18
+
+full_feature: 3000, 30 // across both placements combined
+
+Backend evaluation logic:
+
+Each night, compute week-to-date viewable impressions and clicks per campaign + placement from sponsor_metrics_daily.
+
+On the last booked day of a weekly campaign:
+
+Compare totals against the active target for the relevant placement(s):
+
+For Full Feature, sum both placements.
+
+If impressions < target OR (clicks target present AND clicks < target), mark the campaign needs_makegood=true.
+
+If AUTO_EXTEND_MAKEGOOD=true (env), auto-extend by 1 day at a time on the next available open days (same placements) until the deficits are met; stop at +7 days cap. Otherwise, just flag for admin.
+
+UI:
+
+On Card C, interpolate X (and Y if present) from targets.
+
+On Cards A & B, add a small info tooltip “Delivery targets published after September; make-good applies to guaranteed packages only.” (We’ll keep guarantees mainly on Full Feature for now.)
+
+4) Booking & Inventory Rules (Backend)
+
+One sponsor per placement per day (no rotation).
+
+Add check in Admin/booking API:
+
+For each day between start_at and end_at (inclusive), ensure no other active campaign includes that placement on the same date window.
+
+Add partial unique index to enforce at DB level (date bucketing):
+
+Create a generated column start_date date = date(start_at) and end_date date = date(end_at).
+
+Create helper table sponsor_booking_days populated by trigger on insert/update to expand into rows (campaign_id, placement, day date).
+
+Unique index on (placement, day) where campaign is active. (This keeps exclusivity per day robust.)
+
+Daily vs Weekly:
+
+Cards A & B support both daily and weekly in the booking form (toggle).
+
+Card C (Full Feature) is weekly only.
+
+5) Wording Consistency & UI Polish
+
+Replace every “flight” string in UI with “week” or “7-day week”.
+
+On the pricing toggle text, show “Daily” and “7-Day”.
+
+Under the header, add a small trust row:
+Viewable impressions · Frequency capping · Live portal · CSV export
+
+Keep the existing FAQ. Append items (Section 6).
+
+Ensure the two consistent perks are verbatim identical on all cards:
+
+“Real-time impressions & clicks with UTM tracking”
+
+“Custom headline, subline, and CTA”
+
+6) FAQ: Append Only (do not remove existing)
+
+Add these accordion items after the current set:
+
+Do you use frequency capping?
+Yes—every package includes frequency capping so users don’t see the same sponsor too often.
+
+What is the delivery guarantee?
+For guaranteed packages, we guarantee a minimum number of viewable impressions (and clicks if specified). If we under-deliver, we continue your campaign at no cost until the target is met.
+
+Can I book single days or a full week?
+Yes. Events Spotlight and Homepage Feature can be booked daily or weekly. Full Feature is weekly only.
+
+How do I get the September free week?
+Your first 7-day booking in September is automatically free at checkout (one per brand, subject to availability).
+
+(Keep all existing FAQ items exactly as they are.)
+
+7) Database Migrations (Drizzle)
+
+sponsor_promo_redemptions (see Section 2)
+
+sponsor_guarantee_targets (see Section 3)
+
+sponsor_booking_days helper (campaign_id uuid, placement text, day date, is_active boolean; unique (placement, day) where is_active = true).
+
+Add triggers (or server jobs) to expand campaign date ranges into booking days on create/update/delete. Ensure sync on cancel.
+
+8) Backend Updates (Express)
+
+Booking API
+
+Validate September free week eligibility and price to $0 when applicable.
+
+Enforce one sponsor per placement per day using sponsor_booking_days.
+
+Guarantee evaluation job
+
+Nightly cron (e.g., 0 3 * * * PT) to compute deficits and set needs_makegood or auto-extend days as configured.
+
+Admin endpoints
+
+CRUD for sponsor_guarantee_targets.
+
+Read-only view of promo redemptions.
+
+9) Frontend Updates (React)
+
+Pricing cards content + badges + consistent perk bullets.
+
+Daily/7-Day toggle for Cards A & B (updates the visible price labels only; booking form passes selected duration).
+
+Interpolate guarantee numbers on Card C using /api/admin/guarantee-targets?placement=... (public, read-only; no secrets).
+
+Ensure no “flight” wording is present; use “week” / “7-day week”.
+
+Keep existing FAQ and append new items.
+
+10) Tests
+
+Unit/Integration
+
+Booking validator rejects overlapping bookings for same placement/day.
+
+September promo applies once per sponsor email; second attempt is billed normally.
+
+Guarantee job flags needs_makegood when totals < targets.
+
+E2E (Cypress)
+
+Cards show consistent perks and correct prices in both Daily and 7-Day toggle states.
+
+Badge: “First 7-day booking free (September)” visible in September only.
+
+Full Feature shows guarantee copy with X (and Y if configured).
+
+FAQ includes new items; existing items remain intact.
+
+11) Acceptance Criteria
+
+Cards A–C render with updated copy; consistent perks exact-match across all tiers.
+
+Daily/7-Day toggle affects A & B pricing labels; C stays weekly.
+
+One sponsor per placement per day is enforced (API + DB).
+
+September free week works once per sponsor email, weekly only.
+
+Full Feature card shows a specific guarantee (X impressions; Y clicks if configured).
+
+Sponsor portal exposes CSV export (button visible) and real-time metrics.
+
+No “flight” wording remains in UI.
+
+FAQ preserves all existing items and appends the new ones.
+
+Notes
+
+Use conservative seeded targets; Prad will adjust in Admin once baseline data emerges.
+
+For Full Feature guarantee, sum both placements’ deliveries during the same week.
+
+If AUTO_EXTEND_MAKEGOOD=false, surface a clear admin banner: “Make-good required: {campaign} deficit {N} imps / {M} clicks.”

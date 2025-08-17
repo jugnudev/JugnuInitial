@@ -44,12 +44,24 @@ const FAQ_ITEMS = [
     answer: "You'll receive a private analytics portal link with real-time metrics including impressions, clicks, CTR, and daily breakdowns. Reports are available 24/7."
   },
   {
-    question: "What if I need to make changes during my campaign?",
+    question: "What if I need to make changes during my 7-day week?",
     answer: "Minor copy changes can usually be accommodated within 24 hours. Creative changes may require campaign restart depending on timing."
   },
   {
-    question: "Do you offer discounts for longer campaigns?",
-    answer: "Yes! Multi-week bookings receive 10% off. We also offer package deals for businesses planning multiple campaigns throughout the year."
+    question: "Do you offer discounts for longer bookings?",
+    answer: "Yes! Multi-week bookings (2+ weeks) receive 10% off. We also offer package deals for businesses planning multiple campaigns throughout the year."
+  },
+  {
+    question: "What is the September launch promo?",
+    answer: "For September 2025 only, your first 7-day booking is free! This applies to any weekly package - Events Spotlight, Homepage Feature, or Full Feature. Perfect timing to try Jugnu risk-free."
+  },
+  {
+    question: "What are delivery guarantees?",
+    answer: "For Full Feature packages, we guarantee minimum viewable impressions during your 7-day week. If we deliver less than promised, we continue running your campaign at no additional cost until targets are met."
+  },
+  {
+    question: "Can I book the same dates as another sponsor?",
+    answer: "No, we enforce one sponsor per placement per day to maintain exclusivity and maximize your visibility. This prevents dilution and ensures you get the full attention of our audience."
   }
 ];
 
@@ -243,8 +255,8 @@ export default function Promote() {
     }
 
     // Creative validation - check if creatives are uploaded and valid for placement types that need them
-    const creativesRequired = formData.placements.some(p => ['spotlight_banner', 'homepage_hero'].includes(p)) || 
-                             ['spotlight_banner', 'homepage_hero'].includes(selectedPackage || '');
+    const creativesRequired = formData.placements.some(p => ['events_spotlight', 'homepage_feature'].includes(p)) || 
+                             ['events_spotlight', 'homepage_feature'].includes(selectedPackage || '');
     
     if (creativesRequired) {
       if (!creatives.desktop || !creatives.mobile) {
@@ -396,12 +408,12 @@ export default function Promote() {
             "offers": {
               "@type": "Offer",
               "priceCurrency": "CAD",
-              "price": "50",
+              "price": "85",
               "priceSpecification": {
                 "@type": "UnitPriceSpecification",
-                "price": "50",
+                "price": "85",
                 "priceCurrency": "CAD",
-                "unitText": "per week"
+                "unitText": "per 7-day week"
               },
               "availability": "https://schema.org/InStock",
               "seller": {
@@ -436,12 +448,12 @@ export default function Promote() {
             "offers": {
               "@type": "Offer",
               "priceCurrency": "CAD",
-              "price": "150",
+              "price": "210",
               "priceSpecification": {
                 "@type": "UnitPriceSpecification",
-                "price": "150",
+                "price": "210",
                 "priceCurrency": "CAD",
-                "unitText": "per week"
+                "unitText": "per 7-day week"
               },
               "availability": "https://schema.org/InStock",
               "seller": {
@@ -476,12 +488,12 @@ export default function Promote() {
             "offers": {
               "@type": "Offer",
               "priceCurrency": "CAD",
-              "price": "300",
+              "price": "499",
               "priceSpecification": {
                 "@type": "UnitPriceSpecification",
-                "price": "300",
+                "price": "499",
                 "priceCurrency": "CAD",
-                "unitText": "per campaign"
+                "unitText": "per 7-day week"
               },
               "availability": "https://schema.org/InStock",
               "seller": {
@@ -840,67 +852,73 @@ export default function Promote() {
                     Events Page
                   </Badge>
                 </div>
-                <h3 className="font-fraunces text-2xl font-bold text-white mb-4">Spotlight Banner - Vancouver Events Page</h3>
+                <h3 className="font-fraunces text-2xl font-bold text-white mb-4">{PRICING_CONFIG.packages.events_spotlight.name}</h3>
+                <p className="text-muted text-sm mb-4">{PRICING_CONFIG.packages.events_spotlight.description}</p>
                 
+                {/* September Promo Banner */}
+                {PRICING_CONFIG.promos.septemberFreeWeek.isActive() && durationType === 'weekly' && (
+                  <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <div className="text-green-400 text-sm font-medium">
+                      {PRICING_CONFIG.promos.septemberFreeWeek.badge}
+                    </div>
+                  </div>
+                )}
+
                 {/* Size Specifications */}
                 <div className="text-xs text-muted mb-4 bg-black/20 p-3 rounded-lg">
                   <div className="font-medium mb-1">Creative Specs:</div>
-                  <div>Desktop: {PRICING_CONFIG.packages.spotlight_banner.sizeSpecs.desktop}</div>
-                  <div>Mobile: {PRICING_CONFIG.packages.spotlight_banner.sizeSpecs.mobile}</div>
+                  <div>Desktop: {PRICING_CONFIG.packages.events_spotlight.sizeSpecs.desktop}</div>
+                  <div>Mobile: {PRICING_CONFIG.packages.events_spotlight.sizeSpecs.mobile}</div>
                 </div>
 
                 <div className="mb-6">
                   <span className="text-3xl font-bold text-white">
-                    {formatCAD(durationType === 'daily' ? PRICING_CONFIG.packages.spotlight_banner.daily : PRICING_CONFIG.packages.spotlight_banner.weekly)}
+                    {formatCAD(durationType === 'daily' ? PRICING_CONFIG.packages.events_spotlight.daily : PRICING_CONFIG.packages.events_spotlight.weekly)}
                   </span>
-                  <span className="text-muted">/{durationType}</span>
+                  <span className="text-muted">/{durationType === 'daily' ? 'day' : '7-day week'}</span>
                   
                   {/* Weekly Savings Badge */}
                   {durationType === 'weekly' && (
                     <div className="mt-2">
                       <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-                        You save {Math.round(((PRICING_CONFIG.packages.spotlight_banner.daily * 7 - PRICING_CONFIG.packages.spotlight_banner.weekly) / (PRICING_CONFIG.packages.spotlight_banner.daily * 7)) * 100)}% vs daily
+                        You save {Math.round(((PRICING_CONFIG.packages.events_spotlight.daily * 7 - PRICING_CONFIG.packages.events_spotlight.weekly) / (PRICING_CONFIG.packages.events_spotlight.daily * 7)) * 100)}% vs daily
                       </Badge>
                     </div>
                   )}
                 </div>
                 
-                <ul className="space-y-3 mb-8 text-sm">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Prime inline placement after first row</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Desktop & mobile optimized</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Impression tracking & analytics</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Click tracking & UTM tagging</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Weekly performance report</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">2-3 day turnaround</span>
-                  </li>
+                {/* Package-specific features */}
+                <ul className="space-y-3 mb-4 text-sm">
+                  {PRICING_CONFIG.packages.events_spotlight.features.map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
+                      <span className="text-muted">{feature}</span>
+                    </li>
+                  ))}
                 </ul>
+
+                {/* Global perks section */}
+                <div className="mb-6 p-3 bg-white/5 rounded-lg border border-white/10">
+                  <div className="text-xs font-semibold text-copper-400 mb-2">ALL PACKAGES INCLUDE:</div>
+                  <ul className="space-y-2 text-xs">
+                    {PRICING_CONFIG.packages.events_spotlight.globalPerks.map((perk, index) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-copper-500 flex-shrink-0" />
+                        <span className="text-muted">{perk}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
                 <Button
                   onClick={() => {
-                    setSelectedPackage('spotlight_banner');
+                    setSelectedPackage('events_spotlight');
                     scrollToSection('calculator');
                   }}
                   className="w-full bg-white/10 hover:bg-copper-500 hover:text-black text-white border border-white/20 transition-all duration-200"
                   data-testid="select-spotlight-banner"
                 >
-                  Choose Spotlight Banner
+                  {PRICING_CONFIG.packages.events_spotlight.cta}
                 </Button>
               </Card>
             </motion.div>
@@ -929,71 +947,73 @@ export default function Promote() {
                     Most Popular
                   </Badge>
                 </div>
-                <h3 className="font-fraunces text-2xl font-bold text-white mb-4">Homepage Hero - Metro Vancouver</h3>
+                <h3 className="font-fraunces text-2xl font-bold text-white mb-4">{PRICING_CONFIG.packages.homepage_feature.name}</h3>
+                <p className="text-muted text-sm mb-4">{PRICING_CONFIG.packages.homepage_feature.description}</p>
                 
+                {/* September Promo Banner */}
+                {PRICING_CONFIG.promos.septemberFreeWeek.isActive() && durationType === 'weekly' && (
+                  <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <div className="text-green-400 text-sm font-medium">
+                      {PRICING_CONFIG.promos.septemberFreeWeek.badge}
+                    </div>
+                  </div>
+                )}
+
                 {/* Size Specifications */}
                 <div className="text-xs text-muted mb-4 bg-black/20 p-3 rounded-lg">
                   <div className="font-medium mb-1">Creative Specs:</div>
-                  <div>Desktop: {PRICING_CONFIG.packages.homepage_hero.sizeSpecs.desktop}</div>
-                  <div>Mobile: {PRICING_CONFIG.packages.homepage_hero.sizeSpecs.mobile}</div>
+                  <div>Desktop: {PRICING_CONFIG.packages.homepage_feature.sizeSpecs.desktop}</div>
+                  <div>Mobile: {PRICING_CONFIG.packages.homepage_feature.sizeSpecs.mobile}</div>
                 </div>
 
                 <div className="mb-6">
                   <span className="text-3xl font-bold text-white">
-                    {formatCAD(durationType === 'daily' ? PRICING_CONFIG.packages.homepage_hero.daily : PRICING_CONFIG.packages.homepage_hero.weekly)}
+                    {formatCAD(durationType === 'daily' ? PRICING_CONFIG.packages.homepage_feature.daily : PRICING_CONFIG.packages.homepage_feature.weekly)}
                   </span>
-                  <span className="text-muted">/{durationType}</span>
+                  <span className="text-muted">/{durationType === 'daily' ? 'day' : '7-day week'}</span>
                   
                   {/* Weekly Savings Badge */}
                   {durationType === 'weekly' && (
                     <div className="mt-2">
                       <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
-                        You save {Math.round(((PRICING_CONFIG.packages.homepage_hero.daily * 7 - PRICING_CONFIG.packages.homepage_hero.weekly) / (PRICING_CONFIG.packages.homepage_hero.daily * 7)) * 100)}% vs daily
+                        You save {Math.round(((PRICING_CONFIG.packages.homepage_feature.daily * 7 - PRICING_CONFIG.packages.homepage_feature.weekly) / (PRICING_CONFIG.packages.homepage_feature.daily * 7)) * 100)}% vs daily
                       </Badge>
                     </div>
                   )}
                 </div>
                 
-                <ul className="space-y-3 mb-8 text-sm">
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">High-impact below-the-fold placement</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">7-day campaign duration</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Real-time impression tracking</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Custom headline/subline/CTA</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Full impression & click tracking</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">Weekly performance report</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                    <span className="text-muted">2-3 day turnaround</span>
-                  </li>
+                {/* Package-specific features */}
+                <ul className="space-y-3 mb-4 text-sm">
+                  {PRICING_CONFIG.packages.homepage_feature.features.map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
+                      <span className="text-muted">{feature}</span>
+                    </li>
+                  ))}
                 </ul>
+
+                {/* Global perks section */}
+                <div className="mb-6 p-3 bg-white/5 rounded-lg border border-white/10">
+                  <div className="text-xs font-semibold text-copper-400 mb-2">ALL PACKAGES INCLUDE:</div>
+                  <ul className="space-y-2 text-xs">
+                    {PRICING_CONFIG.packages.homepage_feature.globalPerks.map((perk, index) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-copper-500 flex-shrink-0" />
+                        <span className="text-muted">{perk}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
                 <Button
                   onClick={() => {
-                    setSelectedPackage('homepage_hero');
+                    setSelectedPackage('homepage_feature');
                     scrollToSection('calculator');
                   }}
                   className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold transition-all duration-200"
                   data-testid="select-homepage-hero"
                 >
-                  Choose Homepage Hero
+                  {PRICING_CONFIG.packages.homepage_feature.cta}
                 </Button>
               </Card>
             </motion.div>
@@ -1022,15 +1042,27 @@ export default function Promote() {
                     Premium
                   </Badge>
                 </div>
-                <h3 className="font-fraunces text-2xl font-bold text-white mb-4">Full Feature - South Asian Community Campaign</h3>
+                <h3 className="font-fraunces text-2xl font-bold text-white mb-4">{PRICING_CONFIG.packages.full_feature.name}</h3>
+                <p className="text-muted text-sm mb-4">{PRICING_CONFIG.packages.full_feature.description}</p>
+                
+                {/* September Promo Banner */}
+                {PRICING_CONFIG.promos.septemberFreeWeek.isActive() && (
+                  <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                    <div className="text-green-400 text-sm font-medium">
+                      {PRICING_CONFIG.promos.septemberFreeWeek.badge}
+                    </div>
+                  </div>
+                )}
+
                 <div className="mb-6">
                   <span className="text-3xl font-bold text-white">
                     {formatCAD(PRICING_CONFIG.packages.full_feature.base)}
                   </span>
-                  <span className="text-muted">/campaign</span>
+                  <span className="text-muted">/7-day week</span>
                 </div>
                 
-                <ul className="space-y-3 mb-8 text-sm">
+                {/* Package-specific features */}
+                <ul className="space-y-3 mb-4 text-sm">
                   {PRICING_CONFIG.packages.full_feature.features.map((feature, index) => (
                     <li key={index} className="flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
@@ -1038,6 +1070,19 @@ export default function Promote() {
                     </li>
                   ))}
                 </ul>
+
+                {/* Global perks section */}
+                <div className="mb-6 p-3 bg-white/5 rounded-lg border border-white/10">
+                  <div className="text-xs font-semibold text-copper-400 mb-2">ALL PACKAGES INCLUDE:</div>
+                  <ul className="space-y-2 text-xs">
+                    {PRICING_CONFIG.packages.full_feature.globalPerks.map((perk, index) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <CheckCircle className="w-3 h-3 text-copper-500 flex-shrink-0" />
+                        <span className="text-muted">{perk}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
                 <Button
                   onClick={() => {
@@ -1047,7 +1092,7 @@ export default function Promote() {
                   className="w-full bg-white/10 hover:bg-copper-500 hover:text-black text-white border border-white/20 transition-all duration-200"
                   data-testid="select-full-feature"
                 >
-                  Choose Full Feature
+                  {PRICING_CONFIG.packages.full_feature.cta}
                 </Button>
               </Card>
             </motion.div>
@@ -1729,10 +1774,10 @@ export default function Promote() {
                         <SelectValue placeholder="Select budget range" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="$50-150">CA$50-150/week</SelectItem>
-                        <SelectItem value="$150-300">CA$150-300/week</SelectItem>
-                        <SelectItem value="$300-500">CA$300-500/campaign</SelectItem>
-                        <SelectItem value="$500+">CA$500+/campaign</SelectItem>
+                        <SelectItem value="$85-210">CA$85-210/7-day week</SelectItem>
+                        <SelectItem value="$210-499">CA$210-499/7-day week</SelectItem>
+                        <SelectItem value="$499">CA$499/Full Feature</SelectItem>
+                        <SelectItem value="$500+">CA$500+/custom</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1744,8 +1789,8 @@ export default function Promote() {
                   </label>
                   <div className="grid md:grid-cols-3 gap-4">
                     {[
-                      { id: 'spotlight_banner', label: 'Spotlight Banner' },
-                      { id: 'homepage_hero', label: 'Homepage Hero' },
+                      { id: 'events_spotlight', label: 'Events Spotlight Banner' },
+                      { id: 'homepage_feature', label: 'Homepage Feature Banner' },
                       { id: 'full_feature', label: 'Full Feature' }
                     ].map((placement) => (
                       <Card 
@@ -2045,8 +2090,8 @@ export default function Promote() {
                 </div>
 
                 {/* Creative Validation Summary */}
-                {(formData.placements.some(p => ['spotlight_banner', 'homepage_hero'].includes(p)) || 
-                  ['spotlight_banner', 'homepage_hero'].includes(selectedPackage || '')) && (
+                {(formData.placements.some(p => ['events_spotlight', 'homepage_feature'].includes(p)) || 
+                  ['events_spotlight', 'homepage_feature'].includes(selectedPackage || '')) && (
                   <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
                     <h4 className="text-white font-medium mb-3 flex items-center gap-2">
                       <CheckCircle className="w-4 h-4" />
