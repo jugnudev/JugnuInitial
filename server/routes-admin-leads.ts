@@ -60,8 +60,85 @@ function generateCSV(leads: any[], singleLead: boolean = false): string {
 }
 
 export function addAdminLeadsRoutes(app: Express) {
-  // GET /admin/leads - List leads with filtering
-  app.get('/admin/leads', requireAdminSession, async (req, res) => {
+  // GET /admin/leads - Show login page or leads management UI
+  app.get('/admin/leads', async (req, res) => {
+    // Check if user is authenticated
+    const adminSession = req.session?.isAdmin;
+    const loginTime = req.session?.loginTime;
+    const isAuthenticated = adminSession && loginTime && (Date.now() - loginTime) < 24 * 60 * 60 * 1000;
+
+    if (!isAuthenticated) {
+      // Show login page
+      res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login - Sponsor Leads</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+  <div class="max-w-md w-full p-8">
+    <h1 class="text-3xl font-bold mb-8 text-center">Admin Login</h1>
+    <div id="login-form" class="bg-gray-800 p-6 rounded-lg">
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-2">Admin Key</label>
+        <input type="password" id="admin-key" class="w-full px-3 py-2 bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter admin key">
+      </div>
+      <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-medium">Login</button>
+      <div id="error-msg" class="mt-4 text-red-400 hidden"></div>
+    </div>
+  </div>
+  
+  <script>
+    async function login() {
+      const key = document.getElementById('admin-key').value;
+      const errorMsg = document.getElementById('error-msg');
+      
+      if (!key) {
+        errorMsg.textContent = 'Please enter an admin key';
+        errorMsg.classList.remove('hidden');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: key })
+        });
+        
+        const result = await response.json();
+        
+        if (result.ok) {
+          window.location.reload();
+        } else {
+          errorMsg.textContent = result.error || 'Invalid admin key';
+          errorMsg.classList.remove('hidden');
+        }
+      } catch (error) {
+        errorMsg.textContent = 'Login failed. Please try again.';
+        errorMsg.classList.remove('hidden');
+      }
+    }
+    
+    document.getElementById('admin-key').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') login();
+    });
+  </script>
+</body>
+</html>
+      `);
+      return;
+    }
+
+    // User is authenticated, show leads management UI
+    // This continues to the actual leads API handling
+  });
+
+  // GET /admin/leads/api - API endpoint for fetching leads (protected)
+  app.get('/admin/leads/api', requireAdminSession, async (req, res) => {
     try {
       const { status, package_code, search, date_from, date_to, limit = 50, offset = 0, export: exportMode } = req.query;
       

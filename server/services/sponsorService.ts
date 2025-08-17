@@ -318,7 +318,7 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
     subtotal_cents: pricing.subtotalCents,
     addons_cents: pricing.addonsCents,
     total_cents: pricing.totalCents,
-    placement: data.placement || data.packageCode, // Use placement if provided, fallback to packageCode
+    // placement column doesn't exist, using package_code only
     objective: data.objective || null,
     ack_exclusive: data.ackExclusive,
     ack_guarantee: data.ackGuarantee,
@@ -327,7 +327,7 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
     creative_links: data.creativeLinks || null,
     comments: data.comments || null,
     status: 'new',
-    raw_payload: rawPayload
+    payload: rawPayload || {} // payload column is required
   };
   
   const supabase = getSupabaseAdmin();

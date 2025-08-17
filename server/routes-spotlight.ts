@@ -2252,8 +2252,8 @@ jugnu.events`;
         });
       }
 
-      // Use the createLead function from sponsorService
-      const { createLead } = await import('./services/sponsorService');
+      // Use the createApplication function from sponsorService
+      const { createApplication } = await import('./services/sponsorService.js');
       
       const leadData = {
         businessName: payload.business_name,
@@ -2279,7 +2279,7 @@ jugnu.events`;
         mobileAssetUrl: payload.mobile_asset_url || ''
       };
 
-      const leadId = await createLead(leadData, payload);
+      const leadId = await createApplication(leadData, payload);
 
       res.json({
         ok: true,
