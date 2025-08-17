@@ -29,7 +29,7 @@ import { Eye, Download, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
 import { useAdminAuth } from '@/lib/AdminAuthProvider';
-import { useAdminFetch } from '@/lib/fetchAdmin';
+import { useAdminFetch } from '@/lib/useAdminFetch';
 
 interface Lead {
   id: string;
@@ -63,7 +63,7 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const queryClient = useQueryClient();
   
-  // Fetch leads with filters
+  // Fetch leads with filters using dual path support
   const { data: leads = [], isLoading, error } = useQuery({
     queryKey: ['admin-leads', filters],
     queryFn: async () => {
@@ -72,29 +72,36 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
         if (value) params.append(key, value);
       });
       
-      const response = await adminFetch(`/admin/leads/api?${params}`);
+      // Try canonical first; fall back to legacy path if needed
+      const tryPaths = [`/api/admin/leads?${params}`, `/admin/leads/api?${params}`];
       
-      if (response.status === 401 || response.status === 403) {
-        throw new Error('UNAUTH');
+      for (const path of tryPaths) {
+        try {
+          const response = await adminFetch(path);
+          
+          if (response.status === 401 || response.status === 403) {
+            throw new Error('UNAUTH');
+          }
+          
+          if (response.ok) {
+            const result = await response.json();
+            return result.leads || [];
+          }
+        } catch (err) {
+          if (err instanceof Error && err.message === 'UNAUTH') {
+            throw err; // Re-throw auth errors immediately
+          }
+          // Continue to next path for other errors
+          continue;
+        }
       }
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch leads');
-      }
-      
-      const result = await response.json();
-      return result.leads || [];
+      throw new Error('FETCH_FAILED');
     },
     enabled: isAuthed,
     retry: false,
     refetchOnWindowFocus: false
   });
-  
-  // Handle auth errors
-  if (error instanceof Error && error.message === 'UNAUTH') {
-    logout();
-    return null;
-  }
   
   // Update lead status mutation
   const updateStatusMutation = useMutation({
@@ -135,6 +142,27 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
     homepage_feature: 'Homepage Feature',
     full_feature: 'Full Feature'
   };
+
+  // Handle authentication errors
+  if (error instanceof Error && error.message === 'UNAUTH') {
+    logout();
+    return null;
+  }
+
+  // Handle other errors with explicit messaging
+  if (error instanceof Error && error.message !== 'UNAUTH') {
+    return (
+      <div className="p-4 text-sm text-red-300 bg-red-900/30 rounded">
+        <div className="font-semibold">Admin Leads failed to load</div>
+        <div>Error: {error.message}</div>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (isLoading) {
+    return <div className="p-4 text-sm opacity-80">Loading leads…</div>;
+  }
   
   return (
     <div className="space-y-6" data-testid="admin-leads-list">
