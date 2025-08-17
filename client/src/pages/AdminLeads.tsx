@@ -8,6 +8,8 @@ import AdminLeadsList from '@/components/AdminLeadsList';
 import { Shield, Users, DollarSign, TrendingUp } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { ENDPOINTS } from '@/lib/endpoints';
+import { getAdminKey, setAdminKey, clearAdminKey } from '@/lib/adminAuth';
+import { fetchAdmin } from '@/lib/fetchAdmin';
 
 interface AdminSession {
   isAdmin: boolean;
@@ -19,7 +21,7 @@ export default function AdminLeads() {
   const [loading, setLoading] = useState(true);
   const [showLoginForm, setShowLoginForm] = useState(false);
   const [loginPassword, setLoginPassword] = useState('');
-  const [adminKey, setAdminKey] = useState(localStorage.getItem('adminKey') || '');
+  const [adminKey, setAdminKeyState] = useState(getAdminKey());
   
   // Check admin session on load
   useEffect(() => {
@@ -28,16 +30,11 @@ export default function AdminLeads() {
 
   const checkSession = async () => {
     try {
-      const response = await fetch(ENDPOINTS.ADMIN.SESSION);
-      const data = await response.json();
-      
-      if (data.ok && data.isAdmin) {
-        // Session is already valid, restore admin key if it exists
-        const existingKey = localStorage.getItem('adminKey');
-        if (existingKey) {
-          setAdminKey(existingKey);
-        }
-        setSession({ isAdmin: true, loginTime: data.loginTime });
+      // Simply check if we have an admin key stored
+      const existingKey = getAdminKey();
+      if (existingKey) {
+        setAdminKeyState(existingKey);
+        setSession({ isAdmin: true, loginTime: Date.now() });
       } else {
         setShowLoginForm(true);
       }
@@ -61,8 +58,8 @@ export default function AdminLeads() {
       
       if (data.ok) {
         // Store the correct admin key for API authentication
-        localStorage.setItem('adminKey', 'jugnu-admin-dev-2025');
         setAdminKey('jugnu-admin-dev-2025');
+        setAdminKeyState('jugnu-admin-dev-2025');
         setSession({ isAdmin: true, loginTime: Date.now() });
         setShowLoginForm(false);
         setLoginPassword('');
@@ -78,9 +75,8 @@ export default function AdminLeads() {
 
   const logout = async () => {
     try {
-      await fetch(ENDPOINTS.ADMIN.LOGOUT, { method: 'POST' });
-      localStorage.removeItem('adminKey');
-      setAdminKey('');
+      clearAdminKey();
+      setAdminKeyState('');
       setSession(null);
       setShowLoginForm(true);
       toast({ title: "Logged out successfully" });
@@ -92,7 +88,7 @@ export default function AdminLeads() {
   // Load data function
   const loadData = async () => {
     try {
-      const response = await fetch('/admin/leads/api');
+      const response = await fetchAdmin('/admin/leads/api');
       
       if (!response.ok) {
         throw new Error('Failed to fetch stats');

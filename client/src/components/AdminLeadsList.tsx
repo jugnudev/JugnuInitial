@@ -28,6 +28,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, Download, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
+import { fetchAdmin } from '@/lib/fetchAdmin';
 
 interface Lead {
   id: string;
@@ -68,7 +69,7 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
         if (value) params.append(key, value);
       });
       
-      const response = await fetch(`/admin/leads/api?${params}`);
+      const response = await fetchAdmin(`/admin/leads/api?${params}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch leads');

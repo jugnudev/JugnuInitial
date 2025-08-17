@@ -40,7 +40,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
-import { ENDPOINTS, adminFetch } from '@/lib/endpoints';
+import { ENDPOINTS } from '@/lib/endpoints';
+import { getAdminKey, setAdminKey, clearAdminKey } from '@/lib/adminAuth';
+import { fetchAdmin } from '@/lib/fetchAdmin';
 
 interface Campaign {
   id: string;
@@ -108,7 +110,7 @@ export default function AdminPromote() {
 
   // Form state
   const [loginPassword, setLoginPassword] = useState('');
-  const [adminKey, setAdminKey] = useState(localStorage.getItem('adminKey') || '');
+  const [adminKey, setAdminKeyState] = useState(getAdminKey());
   const [campaignForm, setCampaignForm] = useState({
     name: '',
     sponsor_name: '',
@@ -150,9 +152,9 @@ export default function AdminPromote() {
       
       if (data.ok && data.isAdmin) {
         // Session is already valid, restore admin key if it exists
-        const existingKey = localStorage.getItem('adminKey');
+        const existingKey = getAdminKey();
         if (existingKey) {
-          setAdminKey(existingKey);
+          setAdminKeyState(existingKey);
         }
         setSession({ isAdmin: true, loginTime: data.loginTime });
         loadData();
@@ -179,8 +181,8 @@ export default function AdminPromote() {
       
       if (data.ok) {
         // Store the correct admin key for API authentication
-        localStorage.setItem('adminKey', 'jugnu-admin-dev-2025');
         setAdminKey('jugnu-admin-dev-2025');
+        setAdminKeyState('jugnu-admin-dev-2025');
         setSession({ isAdmin: true, loginTime: Date.now() });
         setShowLoginForm(false);
         setLoginPassword('');
@@ -198,10 +200,12 @@ export default function AdminPromote() {
   const logout = async () => {
     try {
       await fetch(ENDPOINTS.ADMIN.LOGOUT, { method: 'POST' });
-      localStorage.removeItem('adminKey');
-      setAdminKey('');
+      clearAdminKey();
+      setAdminKeyState('');
       setSession(null);
       setShowLoginForm(true);
+      setCampaigns([]);
+      setPortalTokens([]);
       toast({ title: "Logged out successfully" });
     } catch (error) {
       console.error('Logout error:', error);
@@ -211,8 +215,8 @@ export default function AdminPromote() {
   const loadData = async () => {
     try {
       const [campaignsRes, tokensRes] = await Promise.all([
-        adminFetch(ENDPOINTS.ADMIN.CAMPAIGNS),
-        adminFetch(ENDPOINTS.ADMIN.PORTAL_TOKENS)
+        fetchAdmin(ENDPOINTS.ADMIN.CAMPAIGNS),
+        fetchAdmin(ENDPOINTS.ADMIN.PORTAL_TOKENS)
       ]);
 
       if (campaignsRes.ok) {
@@ -248,7 +252,7 @@ export default function AdminPromote() {
       // Remove the raw freq_cap_per_user_per_day from payload
       delete payload.freq_cap_per_user_per_day;
 
-      const response = await adminFetch(ENDPOINTS.ADMIN.CAMPAIGNS, {
+      const response = await fetchAdmin(ENDPOINTS.ADMIN.CAMPAIGNS, {
         method: 'POST',
         body: JSON.stringify(payload)
       });
@@ -272,7 +276,7 @@ export default function AdminPromote() {
 
   const toggleCampaign = async (id: string, is_active: boolean) => {
     try {
-      const response = await adminFetch(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}/toggle`, {
+      const response = await fetchAdmin(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}/toggle`, {
         method: 'PATCH',
         body: JSON.stringify({ is_active })
       });
@@ -289,7 +293,7 @@ export default function AdminPromote() {
 
   const duplicateCampaign = async (id: string) => {
     try {
-      const response = await adminFetch(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}/duplicate`, {
+      const response = await fetchAdmin(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}/duplicate`, {
         method: 'POST'
       });
 
@@ -311,7 +315,7 @@ export default function AdminPromote() {
     if (!confirm('Are you sure you want to delete this campaign?')) return;
 
     try {
-      const response = await adminFetch(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}`, {
+      const response = await fetchAdmin(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}`, {
         method: 'DELETE'
       });
 
@@ -327,7 +331,7 @@ export default function AdminPromote() {
 
   const createPortalToken = async () => {
     try {
-      const response = await adminFetch(ENDPOINTS.ADMIN.PORTAL_TOKENS, {
+      const response = await fetchAdmin(ENDPOINTS.ADMIN.PORTAL_TOKENS, {
         method: 'POST',
         body: JSON.stringify(tokenForm)
       });
@@ -356,7 +360,7 @@ export default function AdminPromote() {
     if (!confirm('Are you sure you want to revoke this portal token?')) return;
 
     try {
-      const response = await adminFetch(`${ENDPOINTS.ADMIN.PORTAL_TOKENS}/${id}`, {
+      const response = await fetchAdmin(`${ENDPOINTS.ADMIN.PORTAL_TOKENS}/${id}`, {
         method: 'DELETE'
       });
 
@@ -389,7 +393,7 @@ export default function AdminPromote() {
     if (!selectedToken) return;
 
     try {
-      const response = await adminFetch('/api/admin/portal-tokens/email', {
+      const response = await fetchAdmin('/api/admin/portal-tokens/email', {
         method: 'POST',
         body: JSON.stringify({
           token: selectedToken.token,
@@ -455,7 +459,7 @@ export default function AdminPromote() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-key': localStorage.getItem('adminKey') || ''
+          'x-admin-key': getAdminKey()
         },
         body: JSON.stringify(requestBody)
       });

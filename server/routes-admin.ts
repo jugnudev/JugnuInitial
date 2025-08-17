@@ -16,7 +16,10 @@ declare module 'express-session' {
   }
 }
 
-// Admin session middleware
+// Import the unified middleware
+import { requireAdminKey } from './middleware/requireAdminKey';
+
+// Admin session middleware (kept for backward compatibility)
 const requireAdminSession = (req: Request, res: Response, next: Function) => {
   const adminSession = req.session?.isAdmin;
   const loginTime = req.session?.loginTime;
@@ -110,21 +113,7 @@ const auditLog = async (action: string, details: any, userId?: string) => {
   }
 };
 
-// Admin key middleware for API endpoints
-const requireAdminKey = (req: Request, res: Response, next: Function) => {
-  const adminKey = req.headers['x-admin-key'];
-  const expectedKey = process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
-  
-  if (!expectedKey) {
-    return res.status(500).json({ ok: false, error: 'Admin system not configured' });
-  }
-  
-  if (!adminKey || adminKey !== expectedKey) {
-    return res.status(401).json({ ok: false, error: 'Admin key required' });
-  }
-  
-  next();
-};
+// Admin key middleware for API endpoints (removed - using imported version)
 
 export function addAdminRoutes(app: Express) {
   // Environment check
@@ -145,6 +134,15 @@ export function addAdminRoutes(app: Express) {
   // Admin routes use session authentication and direct database access
 
   // All admin routes now use session authentication
+
+  // Echo auth endpoint for testing authentication
+  app.get('/api/admin/echo-auth', requireAdminKey, async (req: Request, res: Response) => {
+    res.json({ 
+      ok: true, 
+      message: 'Admin authentication successful',
+      timestamp: Date.now()
+    });
+  });
 
   // Selftest endpoint - forward to spotlight admin route
   app.get('/api/admin/selftest', requireAdminKey, async (req: Request, res: Response) => {
