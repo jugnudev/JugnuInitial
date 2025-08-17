@@ -2212,5 +2212,89 @@ jugnu.events`;
     }
   }
 
+  // POST /api/spotlight/leads (for /promote form submissions)
+  app.post('/api/spotlight/leads', async (req, res) => {
+    try {
+      const payload = req.body;
+
+      // Basic validation
+      if (!payload.business_name || !payload.contact_name || !payload.email || !payload.placement) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Missing required fields: business_name, contact_name, email, placement'
+        });
+      }
+
+      // Date validation
+      if (!payload.start_date || !payload.end_date) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Missing required date fields: start_date, end_date'
+        });
+      }
+
+      const startDate = new Date(payload.start_date);
+      const endDate = new Date(payload.end_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (startDate < today) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Campaign start date cannot be in the past'
+        });
+      }
+
+      if (endDate <= startDate) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Campaign end date must be after the start date'
+        });
+      }
+
+      // Use the createLead function from sponsorService
+      const { createLead } = await import('./services/sponsorService');
+      
+      const leadData = {
+        businessName: payload.business_name,
+        contactName: payload.contact_name,
+        email: payload.email,
+        instagram: payload.instagram,
+        website: payload.website,
+        placement: payload.placement,
+        objective: payload.objective,
+        creativeLinks: payload.creative_links,
+        comments: payload.comments,
+        quoteId: payload.quote_id,
+        packageCode: payload.selected_package || payload.placement,
+        duration: payload.duration_type || 'weekly',
+        numWeeks: payload.week_duration || 1,
+        selectedDates: [],
+        startDate: payload.start_date,
+        endDate: payload.end_date,
+        addOns: payload.selected_add_ons || [],
+        ackExclusive: payload.ack_exclusive || false,
+        ackGuarantee: payload.ack_guarantee || false,
+        desktopAssetUrl: payload.desktop_asset_url || '',
+        mobileAssetUrl: payload.mobile_asset_url || ''
+      };
+
+      const leadId = await createLead(leadData, payload);
+
+      res.json({
+        ok: true,
+        leadId,
+        message: 'Lead created successfully'
+      });
+
+    } catch (error) {
+      console.error('Create lead error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error instanceof Error ? error.message : 'Failed to create lead'
+      });
+    }
+  });
+
   console.log('✓ Spotlight routes added');
 }

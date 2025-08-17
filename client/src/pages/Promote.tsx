@@ -111,7 +111,8 @@ export default function Promote() {
     email: '',
     instagram: '',
     website: '',
-    desired_dates: '',
+    start_date: '',
+    end_date: '',
     placement: '' as string, // Changed to single selection
     objective: '',
     creative_links: '',
@@ -396,7 +397,8 @@ export default function Promote() {
           email: '',
           instagram: '',
           website: '',
-          desired_dates: '',
+          start_date: '',
+          end_date: '',
           placement: '',
           objective: '',
           creative_links: '',
@@ -1442,7 +1444,7 @@ export default function Promote() {
                           )}
 
                           {/* Weekly Savings vs Daily */}
-                          {durationType === 'weekly' && currentPricing.weeklySavingsPercent > 0 && (
+                          {durationType === 'weekly' && currentPricing.weeklySavingsPercent > 0 && selectedPackage !== 'full_feature' && (
                             <div className="text-center p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                               <div className="text-blue-400 font-medium">
                                 Weekly saves {currentPricing.weeklySavingsPercent}% vs daily pricing
@@ -1933,15 +1935,37 @@ export default function Promote() {
 
                 <div>
                   <label className="block text-white font-medium mb-2">
-                    Desired Dates
+                    Desired Campaign Dates *
                   </label>
-                  <Input
-                    value={formData.desired_dates}
-                    onChange={(e) => setFormData({...formData, desired_dates: e.target.value})}
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                    placeholder="e.g. Feb 15-22, 2025"
-                    data-testid="input-desired-dates"
-                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-muted text-sm mb-1">Start Date</label>
+                      <Input
+                        type="date"
+                        required
+                        value={formData.start_date || ''}
+                        onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        min={new Date().toISOString().split('T')[0]}
+                        data-testid="input-start-date"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-muted text-sm mb-1">End Date</label>
+                      <Input
+                        type="date"
+                        required
+                        value={formData.end_date || ''}
+                        onChange={(e) => setFormData({...formData, end_date: e.target.value})}
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                        min={formData.start_date || new Date().toISOString().split('T')[0]}
+                        data-testid="input-end-date"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-muted text-sm mt-2">
+                    Select your preferred campaign start and end dates. We'll confirm availability during review.
+                  </p>
                 </div>
 
                 {/* Checkout Summary */}
@@ -2218,8 +2242,31 @@ export default function Promote() {
                   <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                     <h4 className="text-white font-medium mb-3 flex items-center gap-2">
                       <Eye className="w-4 h-4" />
-                      Creative Guidelines
+                      Creative Requirements
                     </h4>
+                    
+                    {/* Dynamic requirements based on package selection */}
+                    {formData.placement === 'full_feature' || selectedPackage === 'full_feature' ? (
+                      <div className="space-y-3 mb-4">
+                        <div className="p-3 bg-copper-500/10 border border-copper-500/20 rounded">
+                          <div className="text-copper-400 font-medium text-sm mb-2">Full Feature Package Requirements</div>
+                          <div className="text-sm text-muted">
+                            You'll need creatives for <strong>both placements</strong>:
+                            <ul className="mt-2 ml-4 space-y-1">
+                              <li>• Events Spotlight Banner (desktop & mobile)</li>
+                              <li>• Homepage Feature Banner (desktop & mobile)</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 mb-4">
+                        <div className="text-sm text-muted">
+                          You'll need desktop and mobile creatives for your selected placement.
+                        </div>
+                      </div>
+                    )}
+                    
                     <ul className="space-y-2 text-sm text-muted">
                       <li className="flex items-center gap-2">
                         <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" />

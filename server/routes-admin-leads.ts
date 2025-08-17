@@ -1,19 +1,16 @@
-import type { Express } from 'express';
+import type { Express, Request, Response } from 'express';
 import { getLeads, getLead, updateLeadStatus } from './services/sponsorService';
 import { getQuote } from './services/sponsorService';
 import { z } from 'zod';
 
-// Admin key middleware
-const requireAdminKey = (req: any, res: any, next: any) => {
-  const adminKey = req.headers['x-admin-key'];
-  const expectedKey = process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+// Admin session middleware (same as admin/promote)
+const requireAdminSession = (req: Request, res: Response, next: Function) => {
+  const adminSession = req.session?.isAdmin;
+  const loginTime = req.session?.loginTime;
   
-  if (!expectedKey) {
-    return res.status(500).json({ ok: false, error: 'Admin system not configured' });
-  }
-  
-  if (!adminKey || adminKey !== expectedKey) {
-    return res.status(401).json({ ok: false, error: 'Admin key required' });
+  // Check if session exists and is not expired (24 hours)
+  if (!adminSession || !loginTime || (Date.now() - loginTime) > 24 * 60 * 60 * 1000) {
+    return res.status(401).json({ ok: false, error: 'Admin authentication required' });
   }
   
   next();
@@ -64,7 +61,7 @@ function generateCSV(leads: any[], singleLead: boolean = false): string {
 
 export function addAdminLeadsRoutes(app: Express) {
   // GET /admin/leads - List leads with filtering
-  app.get('/admin/leads', requireAdminKey, async (req, res) => {
+  app.get('/admin/leads', requireAdminSession, async (req, res) => {
     try {
       const { status, package_code, search, date_from, date_to, limit = 50, offset = 0, export: exportMode } = req.query;
       
@@ -95,7 +92,7 @@ export function addAdminLeadsRoutes(app: Express) {
   });
 
   // GET /admin/leads/:id - Get single lead with quote details
-  app.get('/admin/leads/:id', requireAdminKey, async (req, res) => {
+  app.get('/admin/leads/:id', requireAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const { export: exportMode } = req.query;
@@ -131,7 +128,7 @@ export function addAdminLeadsRoutes(app: Express) {
   });
 
   // POST /admin/leads/:id/status - Update lead status
-  app.post('/admin/leads/:id/status', requireAdminKey, async (req, res) => {
+  app.post('/admin/leads/:id/status', requireAdminSession, async (req, res) => {
     try {
       const { id } = req.params;
       const body = updateStatusSchema.parse(req.body);
