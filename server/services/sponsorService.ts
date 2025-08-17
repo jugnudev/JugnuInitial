@@ -318,7 +318,7 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
     subtotal_cents: pricing.subtotalCents,
     addons_cents: pricing.addonsCents,
     total_cents: pricing.totalCents,
-    budget_range: data.budgetRange || null,
+    placement: data.placement || data.packageCode, // Use placement if provided, fallback to packageCode
     objective: data.objective || null,
     ack_exclusive: data.ackExclusive,
     ack_guarantee: data.ackGuarantee,

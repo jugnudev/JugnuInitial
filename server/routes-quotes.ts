@@ -124,7 +124,7 @@ export function addQuotesRoutes(app: Express) {
   app.post('/api/spotlight/quotes', async (req, res) => {
     try {
       // Rate limiting
-      if (!checkRateLimit(req.ip, quotesHits)) {
+      if (!checkRateLimit(req.ip || 'unknown', quotesHits)) {
         return res.status(429).json({ 
           ok: false,
           error: 'Too many quote requests. Please try again later.' 
@@ -202,7 +202,7 @@ export function addQuotesRoutes(app: Express) {
   app.post('/api/spotlight/applications', async (req, res) => {
     try {
       // Rate limiting
-      if (!checkRateLimit(req.ip, quotesHits)) {
+      if (!checkRateLimit(req.ip || 'unknown', quotesHits)) {
         return res.status(429).json({ 
           ok: false,
           error: 'Too many application requests. Please try again later.' 

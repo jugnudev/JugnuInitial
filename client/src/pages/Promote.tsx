@@ -112,8 +112,7 @@ export default function Promote() {
     instagram: '',
     website: '',
     desired_dates: '',
-    budget_range: '',
-    placements: [] as string[],
+    placement: '' as string, // Changed to single selection
     objective: '',
     creative_links: '',
     comments: '',
@@ -136,7 +135,8 @@ export default function Promote() {
     
     // Load quote if present
     if (quoteId) {
-      loadQuoteData(quoteId);
+      // Use the prefill hook to load quote data
+      // The hook will automatically handle the quote loading
     }
     
     const prefillData: any = {};
@@ -152,7 +152,10 @@ export default function Promote() {
       const value = urlParams.get(field);
       if (value) {
         hasParams = true;
-        if (field === 'placements' || field === 'campaign_objectives') {
+        if (field === 'placements') {
+          // Take first placement for single-select
+          prefillData['placement'] = value.split(',').filter(Boolean)[0];
+        } else if (field === 'campaign_objectives') {
           prefillData[field] = value.split(',').filter(Boolean);
         } else if (field === 'website_url') {
           prefillData['website'] = value;
@@ -170,7 +173,7 @@ export default function Promote() {
         ...prev,
         business_name: prefillData.business_name || prev.business_name,
         website: prefillData.website || prev.website,
-        placements: prefillData.placements || prev.placements,
+        placement: prefillData.placement || prev.placement,
         comments: prefillData.comments || prev.comments
       }));
       setIsPrefilled(true);
@@ -315,7 +318,7 @@ export default function Promote() {
     }
 
     // Creative validation - check if creatives are uploaded and valid for placement types that need them
-    const creativesRequired = formData.placements.some(p => ['events_spotlight', 'homepage_feature'].includes(p)) || 
+    const creativesRequired = ['events_spotlight', 'homepage_feature'].includes(formData.placement) || 
                              ['events_spotlight', 'homepage_feature'].includes(selectedPackage || '');
     
     if (creativesRequired) {
@@ -394,8 +397,7 @@ export default function Promote() {
           instagram: '',
           website: '',
           desired_dates: '',
-          budget_range: '',
-          placements: [],
+          placement: '',
           objective: '',
           creative_links: '',
           comments: '',
@@ -1305,19 +1307,36 @@ export default function Promote() {
                     {/* Add-ons Selection */}
                     <div>
                       <h4 className="font-semibold text-white mb-3">Add-ons</h4>
-                      <p className="text-muted text-sm mb-3">
-                        Add-ons billed separately. Launch promo applies to base package only.
-                      </p>
+                      {selectedPackage === 'full_feature' ? (
+                        <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg mb-3">
+                          <div className="text-purple-400 text-sm font-medium mb-2">
+                            All add-ons included with Full Feature
+                          </div>
+                          <div className="text-xs text-muted">
+                            IG Story placement and Email Feature are automatically included at no extra cost.
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-muted text-sm mb-3">
+                          Add-ons billed separately. Launch promo applies to base package only.
+                        </p>
+                      )}
                       <div className="space-y-3">
                         {(Object.keys(PRICING_CONFIG.addOns) as AddOnType[]).map((addOnKey) => {
                           const addOn = PRICING_CONFIG.addOns[addOnKey];
                           const isSelected = selectedAddOns.includes(addOnKey);
+                          const isIncludedInFullFeature = selectedPackage === 'full_feature';
                           
                           return (
                             <div
                               key={addOnKey}
-                              className="flex items-center space-x-3 p-3 bg-white/5 border border-white/10 rounded-lg cursor-pointer hover:border-copper-500/30 transition-colors"
+                              className={`flex items-center space-x-3 p-3 border rounded-lg transition-colors ${
+                                isIncludedInFullFeature 
+                                  ? 'bg-white/5 border-white/10 opacity-50 cursor-not-allowed' 
+                                  : 'bg-white/5 border-white/10 cursor-pointer hover:border-copper-500/30'
+                              }`}
                               onClick={() => {
+                                if (isIncludedInFullFeature) return;
                                 if (isSelected) {
                                   setSelectedAddOns(selectedAddOns.filter(id => id !== addOnKey));
                                 } else {
@@ -1447,10 +1466,7 @@ export default function Promote() {
                             selectedDates: [],
                             startDate: null,
                             endDate: null,
-                            addOns: selectedAddOns.map(code => ({
-                              code,
-                              price: PRICING_CONFIG.addOns[code].price
-                            })),
+                            addOns: selectedAddOns,
                             basePriceCents: Math.round(currentPricing.basePrice * 100),
                             promoApplied: currentPricing.breakdown.discounts.some(d => d.name.includes('September')),
                             promoCode: currentPricing.breakdown.discounts.some(d => d.name.includes('September')) ? 'SEPTEMBER2025' : null,
@@ -1915,81 +1931,80 @@ export default function Promote() {
                   />
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-white font-medium mb-2">
-                      Desired Dates
-                    </label>
-                    <Input
-                      value={formData.desired_dates}
-                      onChange={(e) => setFormData({...formData, desired_dates: e.target.value})}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                      placeholder="e.g. Feb 15-22, 2025"
-                      data-testid="input-desired-dates"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-white font-medium mb-2">
-                      Budget Range
-                    </label>
-                    <Select 
-                      value={formData.budget_range} 
-                      onValueChange={(value) => setFormData({...formData, budget_range: value})}
-                    >
-                      <SelectTrigger className="bg-white/10 border-white/20 text-white" data-testid="select-budget-range">
-                        <SelectValue placeholder="Select budget range" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="$60-140">CA$60-140/7-day week</SelectItem>
-                        <SelectItem value="$140-350">CA$140-350/7-day week</SelectItem>
-                        <SelectItem value="$350">CA$350/Full Feature</SelectItem>
-                        <SelectItem value="$350+">CA$350+/custom</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div>
+                  <label className="block text-white font-medium mb-2">
+                    Desired Dates
+                  </label>
+                  <Input
+                    value={formData.desired_dates}
+                    onChange={(e) => setFormData({...formData, desired_dates: e.target.value})}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    placeholder="e.g. Feb 15-22, 2025"
+                    data-testid="input-desired-dates"
+                  />
                 </div>
+
+                {/* Checkout Summary */}
+                {selectedPackage && currentPricing && (
+                  <Card className="p-6 bg-copper-500/10 border-copper-500/20">
+                    <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5 text-copper-500" />
+                      Your Selected Package
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted">Package:</span>
+                        <span className="text-white font-medium">
+                          {PRICING_CONFIG.packages[selectedPackage].name}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted">Duration:</span>
+                        <span className="text-white font-medium">
+                          {selectedPackage === 'full_feature' ? 'Weekly' : durationType} 
+                          ({durationType === 'weekly' ? `${weekDuration} week${weekDuration > 1 ? 's' : ''}` : `${dayDuration} day${dayDuration > 1 ? 's' : ''}`})
+                        </span>
+                      </div>
+                      {selectedAddOns.length > 0 && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted">Add-ons:</span>
+                          <span className="text-white font-medium">
+                            {selectedAddOns.map(code => PRICING_CONFIG.addOns[code].name).join(', ')}
+                          </span>
+                        </div>
+                      )}
+                      <div className="border-t border-white/10 pt-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-white font-semibold">Total:</span>
+                          <span className="text-copper-400 font-bold">
+                            {formatCAD(currentPricing.total)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                )}
 
                 <div>
                   <label className="block text-white font-medium mb-2">
-                    Interested Placements
+                    Preferred Placement *
                   </label>
-                  <div className="grid md:grid-cols-3 gap-4">
-                    {[
-                      { id: 'events_spotlight', label: 'Events Spotlight Banner' },
-                      { id: 'homepage_feature', label: 'Homepage Feature Banner' },
-                      { id: 'full_feature', label: 'Full Feature' }
-                    ].map((placement) => (
-                      <Card 
-                        key={placement.id}
-                        className={`p-4 cursor-pointer transition-all ${
-                          formData.placements.includes(placement.id) || selectedPackage === placement.id
-                            ? 'bg-copper-500/20 border-copper-500/50' 
-                            : 'bg-white/5 border-white/10 hover:border-white/20'
-                        }`}
-                        onClick={() => {
-                          const placements = formData.placements.includes(placement.id)
-                            ? formData.placements.filter(p => p !== placement.id)
-                            : [...formData.placements, placement.id];
-                          setFormData({...formData, placements});
-                        }}
-                        data-testid={`placement-${placement.id}`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                            formData.placements.includes(placement.id) || selectedPackage === placement.id
-                              ? 'bg-copper-500 border-copper-500' 
-                              : 'border-white/30'
-                          }`}>
-                            {(formData.placements.includes(placement.id) || selectedPackage === placement.id) && (
-                              <CheckCircle className="w-3 h-3 text-black" />
-                            )}
-                          </div>
-                          <span className="text-white text-sm font-medium">{placement.label}</span>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
+                  <Select 
+                    value={formData.placement || selectedPackage || ''} 
+                    onValueChange={(value) => setFormData({...formData, placement: value})}
+                  >
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white" data-testid="select-placement">
+                      <SelectValue placeholder="Choose your preferred placement" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="events_spotlight">Events Spotlight Banner</SelectItem>
+                      <SelectItem value="homepage_feature">Homepage Feature Banner</SelectItem>
+                      <SelectItem value="full_feature">Full Feature Package</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-muted text-sm mt-2">
+                    Select one placement type. Full Feature includes all placements plus add-ons.
+                  </p>
                 </div>
 
                 <div>
@@ -2257,7 +2272,7 @@ export default function Promote() {
                 </div>
 
                 {/* Creative Validation Summary */}
-                {(formData.placements.some(p => ['events_spotlight', 'homepage_feature'].includes(p)) || 
+                {(['events_spotlight', 'homepage_feature'].includes(formData.placement) || 
                   ['events_spotlight', 'homepage_feature'].includes(selectedPackage || '')) && (
                   <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
                     <h4 className="text-white font-medium mb-3 flex items-center gap-2">

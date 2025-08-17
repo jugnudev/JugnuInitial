@@ -172,7 +172,7 @@ export const sponsorLeads = pgTable("sponsor_leads", {
   addonsCents: integer("addons_cents").notNull(),
   totalCents: integer("total_cents").notNull(),
   // Campaign
-  budgetRange: text("budget_range"),
+  placement: text("placement").notNull(), // Single placement selection
   objective: text("objective"),
   ackExclusive: boolean("ack_exclusive").notNull().default(false),
   ackGuarantee: boolean("ack_guarantee").notNull().default(false),
