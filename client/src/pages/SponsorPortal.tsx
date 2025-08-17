@@ -168,11 +168,19 @@ export default function SponsorPortal() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    try {
+      if (!dateString) return 'N/A';
+      // Fix timezone issue by explicitly parsing as local date
+      const [year, month, day] = dateString.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'N/A';
+    }
   };
 
   if (loading) {
@@ -388,7 +396,11 @@ export default function SponsorPortal() {
                         fontSize={12}
                         tickFormatter={(value) => {
                           try {
-                            return value ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A';
+                            if (!value) return 'N/A';
+                            // Fix timezone issue by explicitly parsing as local date
+                            const [year, month, day] = value.split('-');
+                            const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                           } catch {
                             return 'N/A';
                           }
@@ -430,7 +442,11 @@ export default function SponsorPortal() {
                         fontSize={12}
                         tickFormatter={(value) => {
                           try {
-                            return value ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A';
+                            if (!value) return 'N/A';
+                            // Fix timezone issue by explicitly parsing as local date
+                            const [year, month, day] = value.split('-');
+                            const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                           } catch {
                             return 'N/A';
                           }
