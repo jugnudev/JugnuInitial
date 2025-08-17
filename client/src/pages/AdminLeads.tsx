@@ -59,6 +59,7 @@ export default function AdminLeads() {
       if (data.ok) {
         setSession({ isAdmin: true, loginTime: Date.now() });
         setShowLoginForm(false);
+        setLoading(false); // Clear loading state after successful login
         setLoginPassword('');
         toast({ title: "Logged in successfully" });
       } else {
@@ -110,15 +111,15 @@ export default function AdminLeads() {
     }
   };
 
-  // Stats query for authenticated users - disabled during loading/login
+  // Stats query for authenticated users - only when authenticated
   const { data: stats } = useQuery({
     queryKey: ['admin-leads-stats'],
     queryFn: loadData,
-    enabled: !!session?.isAdmin && !loading && !showLoginForm,
+    enabled: !!session?.isAdmin,
     retry: false
   });
   
-  if (loading) {
+  if (loading && !showLoginForm) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center">
         <div className="text-center">
