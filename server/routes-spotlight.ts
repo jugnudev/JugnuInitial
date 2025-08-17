@@ -1381,23 +1381,24 @@ jugnu.events`;
         firstRow: metrics?.[0]
       });
 
-      // Build CSV content
-      const csvRows = ['date,placement,billable_impressions,raw_views,clicks,unique_users,ctr'];
+      // Build CSV content - Updated to show simplified "impressions" instead of separate raw_views/billable_impressions
+      const csvRows = ['date,placement,impressions,clicks,unique_users,ctr'];
       
       if (metrics && metrics.length > 0) {
         metrics.forEach(row => {
-          const ctr = row.billable_impressions > 0 
-            ? ((row.clicks || 0) / row.billable_impressions * 100).toFixed(2)
+          const impressions = row.billable_impressions || 0;
+          const ctr = impressions > 0 
+            ? ((row.clicks || 0) / impressions * 100).toFixed(2)
             : '0.00';
           
           csvRows.push(
-            `${row.day},${row.placement || ''},${row.billable_impressions || 0},${row.raw_views || 0},${row.clicks || 0},${row.unique_users || 0},${ctr}`
+            `${row.day},${row.placement || ''},${impressions},${row.clicks || 0},${row.unique_users || 0},${ctr}`
           );
         });
       } else {
         // Add at least one row with today's date and zeros
         const today = new Date().toISOString().split('T')[0];
-        csvRows.push(`${today},events_banner,0,0,0,0,0.00`);
+        csvRows.push(`${today},events_banner,0,0,0,0.00`);
       }
 
       // Set CSV headers and send

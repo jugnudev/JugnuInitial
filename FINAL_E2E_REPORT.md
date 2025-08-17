@@ -32,8 +32,8 @@ Date: 2025-08-16
 - **Endpoint**: `/api/spotlight/portal/:tokenId/export.csv`
 - **Output Format**:
 ```csv
-date,placement,billable_impressions,raw_views,clicks,unique_users,ctr
-2025-08-16,events_banner,0,0,0,0,0.00
+date,placement,impressions,clicks,unique_users,ctr
+2025-08-16,events_banner,0,0,0,0.00
 ```
 
 ## ⚠️ Known Issues
