@@ -1170,13 +1170,40 @@ jugnu.events`;
       // Process metrics data
       const metrics = metricsData || [];
       
-      // Calculate totals
-      const totals = metrics.reduce(
-        (acc, row) => ({
-          billable_impressions: acc.billable_impressions + (row.billable_impressions || 0),
-          raw_views: acc.raw_views + (row.raw_views || 0),
-          unique_users: acc.unique_users + (row.unique_users || 0),
-          clicks: acc.clicks + (row.clicks || 0),
+      // Group metrics by day to avoid duplicate dates on charts
+      const groupedByDay: { [key: string]: any } = {};
+      
+      metrics.forEach((row: any) => {
+        const day = row.day;
+        if (!day) return; // Skip rows without a day
+        
+        if (!groupedByDay[day]) {
+          groupedByDay[day] = {
+            day: day,
+            billable_impressions: 0,
+            raw_views: 0,
+            unique_users: 0,
+            clicks: 0,
+          };
+        }
+        groupedByDay[day].billable_impressions += row.billable_impressions || 0;
+        groupedByDay[day].raw_views += row.raw_views || 0;
+        groupedByDay[day].clicks += row.clicks || 0;
+        groupedByDay[day].unique_users += row.unique_users || 0;
+      });
+
+      // Convert grouped object to array and sort by date
+      const aggregatedMetrics = Object.values(groupedByDay).sort((a: any, b: any) => 
+        new Date(a.day).getTime() - new Date(b.day).getTime()
+      );
+      
+      // Calculate totals from aggregated data
+      const totals = aggregatedMetrics.reduce(
+        (acc: any, row: any) => ({
+          billable_impressions: acc.billable_impressions + row.billable_impressions,
+          raw_views: acc.raw_views + row.raw_views,
+          unique_users: acc.unique_users + row.unique_users,
+          clicks: acc.clicks + row.clicks,
         }),
         { billable_impressions: 0, raw_views: 0, unique_users: 0, clicks: 0 }
       );
@@ -1240,15 +1267,15 @@ jugnu.events`;
         }
       }
 
-      // Prepare chart data - use 'day' column, not 'date'
-      const chartData = metrics.map(row => ({
-        date: row.day, // Fixed: use 'day' column from database
-        billable_impressions: row.billable_impressions || 0,
-        raw_views: row.raw_views || 0,
-        unique_users: row.unique_users || 0,
-        clicks: row.clicks || 0,
+      // Prepare chart data from aggregated metrics
+      const chartData = aggregatedMetrics.map((row: any) => ({
+        date: row.day,
+        billable_impressions: row.billable_impressions,
+        raw_views: row.raw_views,
+        unique_users: row.unique_users,
+        clicks: row.clicks,
         ctr: row.billable_impressions > 0 
-          ? ((row.clicks || 0) / row.billable_impressions * 100).toFixed(2)
+          ? (row.clicks / row.billable_impressions * 100).toFixed(2)
           : '0.00'
       }));
 

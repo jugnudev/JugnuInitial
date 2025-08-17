@@ -376,7 +376,7 @@ export default function SponsorPortal() {
               <Card className="p-6 bg-white/5 border-white/10">
                 <h3 className="font-medium text-white mb-6 flex items-center gap-2">
                   <Eye className="w-5 h-5 text-blue-400" />
-                  Daily Billable Impressions
+                  Daily Impressions
                 </h3>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
