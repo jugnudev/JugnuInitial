@@ -61,7 +61,7 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
   
   // Fetch leads with filters
   const { data: leads = [], isLoading } = useQuery({
-    queryKey: ['admin-leads', filters],
+    queryKey: ['admin-leads', filters, sessionBased],
     queryFn: async () => {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
@@ -77,8 +77,10 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
       }
       
       const result = await response.json();
-      return result.leads;
-    }
+      return result.leads || [];
+    },
+    enabled: sessionBased ? true : false, // Only fetch when properly authenticated
+    retry: false
   });
   
   // Update lead status mutation

@@ -78,10 +78,9 @@ export default function AdminLeads() {
     }
   };
   
-  // Stats query for authenticated users
-  const { data: stats } = useQuery({
-    queryKey: ['admin-leads-stats'],
-    queryFn: async () => {
+  // Load data function
+  const loadData = async () => {
+    try {
       const response = await fetch('/admin/leads/api', {
         credentials: 'include'  // Include session cookies
       });
@@ -99,8 +98,18 @@ export default function AdminLeads() {
         totalRevenue: leads.reduce((sum: number, lead: any) => sum + (lead.total_cents || 0), 0),
         promoUsage: leads.filter((l: any) => l.promo_applied).length
       };
-    },
-    enabled: !!session?.isAdmin
+    } catch (error) {
+      console.error('Failed to load stats:', error);
+      return null;
+    }
+  };
+
+  // Stats query for authenticated users - disabled during loading/login
+  const { data: stats } = useQuery({
+    queryKey: ['admin-leads-stats'],
+    queryFn: loadData,
+    enabled: !!session?.isAdmin && !loading && !showLoginForm,
+    retry: false
   });
   
   if (loading) {
