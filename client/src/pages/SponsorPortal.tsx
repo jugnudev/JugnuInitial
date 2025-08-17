@@ -386,7 +386,13 @@ export default function SponsorPortal() {
                         dataKey="date" 
                         stroke="rgba(255,255,255,0.5)"
                         fontSize={12}
-                        tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        tickFormatter={(value) => {
+                          try {
+                            return value ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A';
+                          } catch {
+                            return 'N/A';
+                          }
+                        }}
                       />
                       <YAxis stroke="rgba(255,255,255,0.5)" fontSize={12} />
                       <Tooltip 
@@ -422,7 +428,13 @@ export default function SponsorPortal() {
                         dataKey="date" 
                         stroke="rgba(255,255,255,0.5)"
                         fontSize={12}
-                        tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        tickFormatter={(value) => {
+                          try {
+                            return value ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'N/A';
+                          } catch {
+                            return 'N/A';
+                          }
+                        }}
                       />
                       <YAxis stroke="rgba(255,255,255,0.5)" fontSize={12} />
                       <Tooltip 
@@ -474,8 +486,8 @@ export default function SponsorPortal() {
                       {last7Days.map((day, index) => (
                         <tr key={index} className="border-b border-white/5">
                           <td className="py-3 text-muted">{formatDate(day.date)}</td>
-                          <td className="py-3 text-right text-white">{day.impressions.toLocaleString()}</td>
-                          <td className="py-3 text-right text-white">{day.clicks.toLocaleString()}</td>
+                          <td className="py-3 text-right text-white">{(day.billable_impressions || 0).toLocaleString()}</td>
+                          <td className="py-3 text-right text-white">{(day.clicks || 0).toLocaleString()}</td>
                           <td className="py-3 text-right">
                             <Badge className={`${
                               parseFloat(day.ctr) >= 8 

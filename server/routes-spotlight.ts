@@ -1160,7 +1160,7 @@ jugnu.events`;
         .from('sponsor_metrics_daily')
         .select('*')
         .eq('campaign_id', campaign.id)
-        .order('day', { ascending: true }); // C) Use day column only
+        .order('day', { ascending: true }); // Using day column (consistent with tracking)
 
       if (metricsError) {
         console.error('Metrics query error:', metricsError);
@@ -1240,9 +1240,9 @@ jugnu.events`;
         }
       }
 
-      // Prepare chart data
+      // Prepare chart data - use 'day' column, not 'date'
       const chartData = metrics.map(row => ({
-        date: row.date,
+        date: row.day, // Fixed: use 'day' column from database
         billable_impressions: row.billable_impressions || 0,
         raw_views: row.raw_views || 0,
         unique_users: row.unique_users || 0,
@@ -1255,7 +1255,7 @@ jugnu.events`;
       // Get last 7 days data
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const last7Days = chartData.filter(row => new Date(row.date) >= sevenDaysAgo);
+      const last7Days = chartData.filter(row => row.date && new Date(row.date) >= sevenDaysAgo);
 
       res.json({
         ok: true,
