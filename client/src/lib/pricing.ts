@@ -26,7 +26,6 @@ export const PRICING_CONFIG = {
       globalPerks: GLOBAL_PERKS,
       features: [
         'Prime inline placement after the first row of events',
-        'Native look on mobile & desktop',
         'Book daily or weekly'
       ],
       sizeSpecs: {
@@ -96,7 +95,7 @@ export const PRICING_CONFIG = {
     earlyPartner: {
       rate: 0.20, // 20% early partner discount
       label: 'Early partner discount',
-      enabled: true
+      enabled: false // Disabled for v4
     }
   },
   
@@ -133,18 +132,46 @@ export interface PricingCalculation {
   };
 }
 
+// Enhanced function to handle both daily and weekly booking with smart conversion
 export function calculatePricing(
   packageType: PackageType,
   durationType: DurationType,
   weekDuration: number,
+  dayDuration: number = 1,
   addOns: AddOnType[]
 ): PricingCalculation {
   const pkg = PRICING_CONFIG.packages[packageType];
   
-  // Calculate base price
-  const basePrice = durationType === 'daily' 
-    ? pkg.daily * 7 * weekDuration // Convert daily to weekly
-    : pkg.weekly * weekDuration;
+  // Smart daily to weekly conversion logic
+  let basePrice: number;
+  let actualWeeks: number;
+  let remainingDays: number;
+  let breakdown: { package: string; duration: string };
+  
+  if (durationType === 'daily') {
+    actualWeeks = Math.floor(dayDuration / 7);
+    remainingDays = dayDuration % 7;
+    
+    // Calculate optimized pricing: full weeks at weekly rate, remaining days at daily rate
+    basePrice = (actualWeeks * pkg.weekly) + (remainingDays * pkg.daily);
+    
+    breakdown = {
+      package: pkg.name,
+      duration: actualWeeks > 0 
+        ? `${actualWeeks} week${actualWeeks > 1 ? 's' : ''} + ${remainingDays} day${remainingDays !== 1 ? 's' : ''}`
+        : `${dayDuration} day${dayDuration > 1 ? 's' : ''}`
+    };
+  } else {
+    // Weekly booking
+    actualWeeks = weekDuration;
+    remainingDays = 0;
+    basePrice = pkg.weekly * weekDuration;
+    
+    breakdown = {
+      package: pkg.name,
+      duration: `${weekDuration} week${weekDuration > 1 ? 's' : ''}`
+    };
+  }
   
   // Calculate weekly savings percentage vs daily
   const dailyEquivalent = pkg.daily * 7;
@@ -152,38 +179,27 @@ export function calculatePricing(
     ? Math.round(((dailyEquivalent - pkg.weekly) / dailyEquivalent) * 100)
     : 0;
   
-  // Calculate add-ons
+  // Calculate discounts on base price only (before add-ons)
+  let multiWeekDiscount = 0;
+  if (actualWeeks >= PRICING_CONFIG.discounts.multiWeek.threshold) {
+    multiWeekDiscount = basePrice * PRICING_CONFIG.discounts.multiWeek.rate;
+  }
+  
+  let earlyPartnerDiscount = 0;
+  if (PRICING_CONFIG.discounts.earlyPartner.enabled) {
+    earlyPartnerDiscount = (basePrice - multiWeekDiscount) * PRICING_CONFIG.discounts.earlyPartner.rate;
+  }
+  
+  const discountedBasePrice = basePrice - multiWeekDiscount - earlyPartnerDiscount;
+  
+  // Add-ons are added after discounts (no discounts apply to add-ons)
   const addOnsTotal = addOns.reduce((sum, addOn) => {
     return sum + PRICING_CONFIG.addOns[addOn].price;
   }, 0);
   
   const subtotal = basePrice + addOnsTotal;
-  
-  // Calculate discounts with 30% cap
-  let multiWeekDiscount = 0;
-  if (weekDuration >= PRICING_CONFIG.discounts.multiWeek.threshold) {
-    multiWeekDiscount = subtotal * PRICING_CONFIG.discounts.multiWeek.rate;
-  }
-  
-  let earlyPartnerDiscount = 0;
-  if (PRICING_CONFIG.discounts.earlyPartner.enabled) {
-    earlyPartnerDiscount = (subtotal - multiWeekDiscount) * PRICING_CONFIG.discounts.earlyPartner.rate;
-  }
-  
-  // Cap total discounts at 30%
-  const totalDiscountsUncapped = multiWeekDiscount + earlyPartnerDiscount;
-  const maxDiscount = subtotal * 0.30; // 30% cap
-  const totalDiscounts = Math.min(totalDiscountsUncapped, maxDiscount);
-  
-  // If we hit the cap, proportionally reduce discounts
-  if (totalDiscountsUncapped > maxDiscount) {
-    const ratio = maxDiscount / totalDiscountsUncapped;
-    multiWeekDiscount = multiWeekDiscount * ratio;
-    earlyPartnerDiscount = earlyPartnerDiscount * ratio;
-  }
-  
-  const total = subtotal - totalDiscounts;
-  const savings = totalDiscounts;
+  const total = discountedBasePrice + addOnsTotal;
+  const savings = multiWeekDiscount + earlyPartnerDiscount;
   
   return {
     basePrice,
@@ -196,8 +212,7 @@ export function calculatePricing(
     savings,
     weeklySavingsPercent,
     breakdown: {
-      package: `${pkg.name} (${weekDuration} week${weekDuration > 1 ? 's' : ''})`,
-      duration: durationType === 'daily' ? `${weekDuration * 7} days` : `${weekDuration} week${weekDuration > 1 ? 's' : ''}`,
+      ...breakdown,
       addOns: addOns.map(addOn => ({
         name: PRICING_CONFIG.addOns[addOn].name,
         price: PRICING_CONFIG.addOns[addOn].price

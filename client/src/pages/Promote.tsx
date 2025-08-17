@@ -71,6 +71,7 @@ export default function Promote() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [durationType, setDurationType] = useState<DurationType>('weekly');
   const [weekDuration, setWeekDuration] = useState(1);
+  const [dayDuration, setDayDuration] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnType[]>([]);
   
   // Force Full Feature to weekly
@@ -95,6 +96,7 @@ export default function Promote() {
     selectedPackage,
     durationType,
     weekDuration,
+    dayDuration,
     selectedAddOns
   ) : null;
   
@@ -1206,6 +1208,41 @@ export default function Promote() {
                         </div>
                       )}
 
+                      {/* Daily Duration Selector */}
+                      {durationType === 'daily' && (
+                        <div className="space-y-3">
+                          <label className="text-sm font-medium text-muted">Number of days</label>
+                          <div className="flex items-center gap-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDayDuration(Math.max(1, dayDuration - 1))}
+                              disabled={dayDuration <= 1}
+                              data-testid="decrease-days"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </Button>
+                            <span className="text-white font-semibold min-w-[2rem] text-center">
+                              {dayDuration}
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDayDuration(dayDuration + 1)}
+                              data-testid="increase-days"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          {dayDuration >= 7 && Math.floor(dayDuration / 7) >= 2 && (
+                            <div className="text-sm text-green-400 flex items-center gap-2">
+                              <Star className="w-4 h-4" />
+                              Smart pricing: {Math.floor(dayDuration / 7)} weeks + {dayDuration % 7} days with multi-week discount
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {/* Week Duration Selector */}
                       {durationType === 'weekly' && (
                         <div className="space-y-3">
@@ -1729,9 +1766,9 @@ export default function Promote() {
             </Card>
 
             <Card className="p-6 bg-white/5 border-white/10 text-center">
-              <Plus className="w-8 h-8 text-copper-500 mx-auto mb-3" />
+              <Star className="w-8 h-8 text-purple-500 mx-auto mb-3" />
               <h4 className="font-medium text-white mb-2">Custom Campaign</h4>
-              <p className="text-muted text-sm mb-3">Tailored multi-platform</p>
+              <p className="text-muted text-sm mb-3">Email us for custom quotes</p>
               <Badge className="bg-purple-500/20 text-purple-400">Quote</Badge>
             </Card>
 
