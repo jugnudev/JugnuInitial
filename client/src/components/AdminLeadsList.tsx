@@ -64,7 +64,7 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
   const queryClient = useQueryClient();
   
   // Fetch leads with filters
-  const { data: leads = [], isLoading } = useQuery({
+  const { data: leads = [], isLoading, error } = useQuery({
     queryKey: ['admin-leads', filters],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -75,7 +75,6 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
       const response = await adminFetch(`/admin/leads/api?${params}`);
       
       if (response.status === 401 || response.status === 403) {
-        logout();
         throw new Error('UNAUTH');
       }
       
@@ -87,8 +86,15 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
       return result.leads || [];
     },
     enabled: isAuthed,
-    retry: false
+    retry: false,
+    refetchOnWindowFocus: false
   });
+  
+  // Handle auth errors
+  if (error instanceof Error && error.message === 'UNAUTH') {
+    logout();
+    return null;
+  }
   
   // Update lead status mutation
   const updateStatusMutation = useMutation({

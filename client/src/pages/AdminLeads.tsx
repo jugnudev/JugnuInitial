@@ -78,7 +78,8 @@ export default function AdminLeads() {
     queryKey: ['admin-leads-stats'],
     queryFn: loadData,
     enabled: isAuthed,
-    retry: false
+    retry: false,
+    refetchOnWindowFocus: false
   });
   
   // Show login form if not authenticated
