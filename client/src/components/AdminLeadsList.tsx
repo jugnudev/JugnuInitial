@@ -28,7 +28,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, Download, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
-import { fetchAdmin } from '@/lib/fetchAdmin';
+import { useAdminAuth } from '@/lib/AdminAuthProvider';
+import { useAdminFetch } from '@/lib/fetchAdmin';
 
 interface Lead {
   id: string;
@@ -49,6 +50,8 @@ interface AdminLeadsListProps {
 }
 
 export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListProps) {
+  const { isAuthed, logout } = useAdminAuth();
+  const adminFetch = useAdminFetch();
   const [filters, setFilters] = useState({
     status: '',
     package_code: '',
@@ -69,7 +72,12 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
         if (value) params.append(key, value);
       });
       
-      const response = await fetchAdmin(`/admin/leads/api?${params}`);
+      const response = await adminFetch(`/admin/leads/api?${params}`);
+      
+      if (response.status === 401 || response.status === 403) {
+        logout();
+        throw new Error('UNAUTH');
+      }
       
       if (!response.ok) {
         throw new Error('Failed to fetch leads');
@@ -78,7 +86,7 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
       const result = await response.json();
       return result.leads || [];
     },
-    enabled: true,
+    enabled: isAuthed,
     retry: false
   });
   
@@ -89,13 +97,11 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
       status: string; 
       adminNotes?: string;
     }) => {
-      const response = await fetch(sessionBased ? `/admin/leads/api/${leadId}/status` : `/admin/leads/${leadId}/status`, {
+      const response = await adminFetch(`/admin/leads/${leadId}/status`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          ...(sessionBased ? {} : { 'x-admin-key': '' })
+          'Content-Type': 'application/json'
         },
-        ...(sessionBased ? { credentials: 'include' } : {}),
         body: JSON.stringify({ status, adminNotes })
       });
       

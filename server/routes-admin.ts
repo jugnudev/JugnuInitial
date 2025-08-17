@@ -137,7 +137,7 @@ export function addAdminRoutes(app: Express) {
 
   // Echo auth endpoint for testing authentication
   app.get('/api/admin/echo-auth', requireAdminKey, (req: Request, res: Response) => {
-    res.json({ ok: true });
+    res.json({ ok: true, ts: new Date().toISOString() });
   });
 
   // Selftest endpoint - forward to spotlight admin route

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,21 +12,44 @@ import { useAdminAuth } from '@/lib/AdminAuthProvider';
 import { useAdminFetch } from '@/lib/fetchAdmin';
 import AdminLogin from '@/components/admin/AdminLogin';
 
-interface AdminSession {
-  isAdmin: boolean;
-  loginTime?: number;
+
+
+// Debug banner component
+function AdminDebugBanner() {
+  const { adminKey, isAuthed } = useAdminAuth();
+  const adminFetch = useAdminFetch();
+  
+  if (new URLSearchParams(location.search).get('debug') !== '1') return null;
+  
+  const test = async () => {
+    try {
+      const r = await adminFetch('/api/admin/echo-auth');
+      console.log('echo-auth', r.status, await r.text());
+    } catch (error) {
+      console.error('echo-auth error:', error);
+    }
+  };
+  
+  return (
+    <div className="p-2 text-xs bg-amber-900/40 rounded mb-2">
+      <div>isAuthed: {String(isAuthed)} | keyLen: {adminKey ? adminKey.length : 0}</div>
+      <button onClick={test} className="underline">Test echo-auth</button>
+    </div>
+  );
 }
 
 export default function AdminLeads() {
   const { isAuthed, logout } = useAdminAuth();
   const adminFetch = useAdminFetch();
   
-
-  
   // Load data function
   const loadData = async () => {
     try {
       const response = await adminFetch('/admin/leads/api');
+      
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('UNAUTH');
+      }
       
       if (!response.ok) {
         throw new Error('Failed to fetch stats');
@@ -43,12 +66,15 @@ export default function AdminLeads() {
       };
     } catch (error) {
       console.error('Failed to load stats:', error);
+      if (error instanceof Error && error.message === 'UNAUTH') {
+        logout();
+      }
       return null;
     }
   };
 
   // Stats query for authenticated users - only when authenticated
-  const { data: stats } = useQuery({
+  const { data: stats, error } = useQuery({
     queryKey: ['admin-leads-stats'],
     queryFn: loadData,
     enabled: isAuthed,
@@ -59,10 +85,18 @@ export default function AdminLeads() {
   if (!isAuthed) {
     return <AdminLogin />;
   }
+
+  // If authentication error, show login
+  if (error instanceof Error && error.message === 'UNAUTH') {
+    return <AdminLogin />;
+  }
   
   return (
     <div className="min-h-screen bg-bg">
       <div className="max-w-7xl mx-auto p-6">
+        {/* Debug banner */}
+        <AdminDebugBanner />
+        
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">

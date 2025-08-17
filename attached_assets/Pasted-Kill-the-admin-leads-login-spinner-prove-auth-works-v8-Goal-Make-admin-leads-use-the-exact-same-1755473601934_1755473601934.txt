@@ -1,0 +1,171 @@
+Kill the admin/leads login spinner, prove auth works (v8)
+
+Goal
+Make /admin/leads use the exact same auth and UI as /admin/promote, and prevent any fetch from running until auth is verified. Add a tiny echo endpoint and a toggleable debug banner so we can see what’s happening. No more infinite loading.
+
+0) Non-negotiables
+
+One auth source: localStorage key jugnu-admin-dev-2025 containing the exact string process.env.ADMIN_PASSWORD (currently jugnu1401).
+
+One header on every admin request: x-admin-key with that value.
+
+No cookies/sessions/credentials:'include' anywhere on admin routes.
+
+1) Backend: add a cheap echo + hard fail on bad keys
+
+File: server/middleware/requireAdminKey.ts (reuse if exists)
+
+Add route:
+
+app.get('/api/admin/echo-auth', requireAdminKey, (req, res) => {
+  res.json({ ok: true, ts: new Date().toISOString() });
+});
+
+
+Ensure all leads admin routes (/api/admin/leads*, CSV, etc.) are behind requireAdminKey.
+
+2) Frontend: shared provider + fetch (single source of truth)
+
+Ensure we have (or create) these and use them:
+
+src/lib/adminAuth.ts
+
+export const ADMIN_LOCAL_KEY = 'jugnu-admin-dev-2025';
+export const getAdminKey = () => localStorage.getItem(ADMIN_LOCAL_KEY) || '';
+export const setAdminKey = (v: string) => { localStorage.setItem(ADMIN_LOCAL_KEY, v); window.dispatchEvent(new Event('jugnu-admin-key')); };
+export const clearAdminKey = () => { localStorage.removeItem(ADMIN_LOCAL_KEY); window.dispatchEvent(new Event('jugnu-admin-key')); };
+
+
+src/lib/AdminAuthProvider.tsx
+
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { getAdminKey, setAdminKey as save, clearAdminKey } from './adminAuth';
+
+type Ctx = { key: string; isAuthed: boolean; login: (k:string)=>void; logout: ()=>void; };
+const C = createContext<Ctx | null>(null);
+
+export function AdminAuthProvider({ children }: { children: React.ReactNode }) {
+  const [key, setKey] = useState(getAdminKey());
+  useEffect(() => {
+    const fn = () => setKey(getAdminKey());
+    window.addEventListener('jugnu-admin-key', fn);
+    window.addEventListener('storage', fn);
+    return () => { window.removeEventListener('jugnu-admin-key', fn); window.removeEventListener('storage', fn); };
+  }, []);
+  const value = useMemo(() => ({
+    key, isAuthed: !!key,
+    login: (k:string)=>{ save(k); setKey(k); },
+    logout: ()=>{ clearAdminKey(); setKey(''); }
+  }), [key]);
+  return <C.Provider value={value}>{children}</C.Provider>;
+}
+export const useAdminAuth = () => {
+  const v = useContext(C); if (!v) throw new Error('wrap with AdminAuthProvider'); return v;
+};
+
+
+src/lib/useAdminFetch.ts
+
+import { useAdminAuth } from './AdminAuthProvider';
+export function useAdminFetch() {
+  const { key } = useAdminAuth();
+  return (input: RequestInfo, init: RequestInit = {}) => {
+    const headers = new Headers(init.headers || {});
+    if (key) headers.set('x-admin-key', key);
+    return fetch(input, { ...init, headers });
+  };
+}
+
+
+Wrap the admin routes subtree in <AdminAuthProvider> (e.g., in your router layout for /admin/*).
+
+3) Use the same login component as /admin/promote
+
+Extract the exact login UI/logic from admin/promote into src/components/admin/AdminLogin.tsx.
+
+Both /admin/promote and /admin/leads must import this component.
+
+On submit, call login(passwordInputValue) from useAdminAuth() (no API needed if promote doesn’t use one).
+
+After login(), redirect/reload the current route so queries can start.
+
+4) Gate every leads query with isAuthed and fail fast on 401/403
+
+In AdminLeads and AdminLeadsList:
+
+const { isAuthed } = useAdminAuth();
+
+TanStack Query options:
+
+useQuery({
+  queryKey: ['admin-leads', params],
+  queryFn: () => adminFetch('/api/admin/leads?...').then(r => {
+    if (r.status === 401 || r.status === 403) throw new Error('UNAUTH');
+    return r.json();
+  }),
+  enabled: isAuthed,
+  retry: false, // do NOT spin forever on auth failures
+});
+
+
+If !isAuthed → render <AdminLogin /> instead of the table.
+
+If error is 'UNAUTH' → force logout() and show <AdminLogin />.
+
+5) Add a tiny debug banner (only with ?debug=1)
+
+Component at top of /admin/leads render tree:
+
+function AdminDebugBanner() {
+  const { key, isAuthed } = useAdminAuth();
+  const adminFetch = useAdminFetch();
+  if (new URLSearchParams(location.search).get('debug') !== '1') return null;
+  const test = async () => {
+    const r = await adminFetch('/api/admin/echo-auth');
+    console.log('echo-auth', r.status, await r.text());
+  };
+  return (
+    <div className="p-2 text-xs bg-amber-900/40 rounded mb-2">
+      <div>isAuthed: {String(isAuthed)} | keyLen: {key.length}</div>
+      <button onClick={test} className="underline">Test echo-auth</button>
+    </div>
+  );
+}
+
+
+Insert <AdminDebugBanner /> just above the table. You can remove later; for now it gives us immediate proof.
+
+6) Remove any leftover conflicting code
+
+Delete credentials:'include' calls under admin/leads.
+
+Delete session/cookie checks in admin/leads routes.
+
+Ensure every admin/leads fetch goes through useAdminFetch.
+
+7) Acceptance tests (run these now)
+
+Go to /admin/promote, enter jugnu1401.
+→ localStorage['jugnu-admin-dev-2025'] should exist.
+
+Open /admin/leads?debug=1.
+
+You should not see the login; you should see the leads table.
+
+In the debug banner, click “Test echo-auth”; console should show 200 {"ok":true,...}.
+
+Network tab: every /api/admin/leads* request has header x-admin-key: jugnu1401.
+
+Hard refresh /admin/leads → still authed.
+
+Clear localStorage key → /admin/leads shows the login immediately, not a spinner.
+
+8) Keep previously requested UI fixes
+
+Full Feature checkout preview: remove “Weekly saves …” ribbon.
+
+Form: required start/end date pickers; dynamic creative fields (4 for Full Feature, 2 for single placement).
+
+Everything continues to write to sponsor_quotes and sponsor_leads correctly.
+
+If anything in /admin/promote is different, mirror it byte-for-byte. The spinner only happens when the key isn’t in the header or queries start before isAuthed flips. The provider + gated queries + echo check make that impossible.
