@@ -44,10 +44,10 @@ interface Lead {
 }
 
 interface AdminLeadsListProps {
-  adminKey: string;
+  sessionBased?: boolean;
 }
 
-export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
+export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListProps) {
   const [filters, setFilters] = useState({
     status: '',
     package_code: '',
@@ -68,8 +68,8 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
         if (value) params.append(key, value);
       });
       
-      const response = await fetch(`/admin/leads?${params}`, {
-        headers: { 'x-admin-key': adminKey }
+      const response = await fetch(sessionBased ? `/admin/leads/api?${params}` : `/admin/leads?${params}`, {
+        ...(sessionBased ? { credentials: 'include' } : { headers: { 'x-admin-key': '' } })
       });
       
       if (!response.ok) {
@@ -88,12 +88,13 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
       status: string; 
       adminNotes?: string;
     }) => {
-      const response = await fetch(`/admin/leads/${leadId}/status`, {
+      const response = await fetch(sessionBased ? `/admin/leads/api/${leadId}/status` : `/admin/leads/${leadId}/status`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-key': adminKey
+          ...(sessionBased ? {} : { 'x-admin-key': '' })
         },
+        ...(sessionBased ? { credentials: 'include' } : {}),
         body: JSON.stringify({ status, adminNotes })
       });
       

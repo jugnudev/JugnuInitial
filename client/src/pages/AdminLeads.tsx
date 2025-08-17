@@ -3,46 +3,87 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
 import AdminLeadsList from '@/components/AdminLeadsList';
 import { Shield, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+import { ENDPOINTS } from '@/lib/endpoints';
+
+interface AdminSession {
+  isAdmin: boolean;
+  loginTime?: number;
+}
 
 export default function AdminLeads() {
-  const [adminKey, setAdminKey] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [session, setSession] = useState<AdminSession | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showLoginForm, setShowLoginForm] = useState(false);
+  const [loginPassword, setLoginPassword] = useState('');
   
-  // Check if admin key is valid
-  const { data: authCheck, error: authError } = useQuery({
-    queryKey: ['admin-auth-check', adminKey],
-    queryFn: async () => {
-      if (!adminKey) return null;
+  // Check admin session on load
+  useEffect(() => {
+    checkSession();
+  }, []);
+
+  const checkSession = async () => {
+    try {
+      const response = await fetch(ENDPOINTS.ADMIN.SESSION);
+      const data = await response.json();
       
-      const response = await fetch('/admin/leads?limit=1', {
-        headers: { 'x-admin-key': adminKey }
+      if (data.ok && data.isAdmin) {
+        setSession({ isAdmin: true, loginTime: data.loginTime });
+      } else {
+        setShowLoginForm(true);
+      }
+    } catch (error) {
+      console.error('Session check error:', error);
+      setShowLoginForm(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async () => {
+    try {
+      const response = await fetch(ENDPOINTS.ADMIN.LOGIN, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: loginPassword })
       });
       
-      if (!response.ok) {
-        throw new Error('Invalid admin key');
-      }
+      const data = await response.json();
       
-      return true;
-    },
-    enabled: !!adminKey,
-    retry: false
-  });
-  
-  useEffect(() => {
-    if (authCheck) {
-      setIsAuthenticated(true);
+      if (data.ok) {
+        setSession({ isAdmin: true, loginTime: Date.now() });
+        setShowLoginForm(false);
+        setLoginPassword('');
+        toast({ title: "Logged in successfully" });
+      } else {
+        toast({ title: "Login failed", description: data.error, variant: "destructive" });
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast({ title: "Login error", description: "Failed to authenticate", variant: "destructive" });
     }
-  }, [authCheck]);
+  };
+
+  const logout = async () => {
+    try {
+      await fetch(ENDPOINTS.ADMIN.LOGOUT, { method: 'POST' });
+      setSession(null);
+      setShowLoginForm(true);
+      toast({ title: "Logged out successfully" });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
   
   // Stats query for authenticated users
   const { data: stats } = useQuery({
     queryKey: ['admin-leads-stats'],
     queryFn: async () => {
-      const response = await fetch('/admin/leads', {
-        headers: { 'x-admin-key': adminKey }
+      const response = await fetch('/admin/leads/api', {
+        credentials: 'include'  // Include session cookies
       });
       
       if (!response.ok) {
@@ -59,70 +100,75 @@ export default function AdminLeads() {
         promoUsage: leads.filter((l: any) => l.promo_applied).length
       };
     },
-    enabled: isAuthenticated
+    enabled: !!session?.isAdmin
   });
   
-  if (!isAuthenticated) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 p-6">
-        <div className="max-w-md mx-auto mt-20">
-          <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center">
-                <Shield className="h-8 w-8 text-purple-600" />
-              </div>
-              <CardTitle className="text-2xl">Admin Access</CardTitle>
-              <p className="text-gray-600">Enter admin key to access leads management</p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Input
-                type="password"
-                placeholder="Admin key"
-                value={adminKey}
-                onChange={(e) => setAdminKey(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && adminKey && setIsAuthenticated(true)}
-                data-testid="input-admin-key"
-              />
-              
-              {authError && (
-                <Alert variant="destructive">
-                  <AlertDescription>
-                    Invalid admin key. Please check and try again.
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              <Button
-                onClick={() => adminKey && setIsAuthenticated(true)}
-                className="w-full"
-                disabled={!adminKey}
-                data-testid="button-login"
-              >
-                Access Admin Panel
-              </Button>
-            </CardContent>
-          </Card>
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-copper-500/30 border-t-copper-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted">Loading admin console...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (showLoginForm) {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <Card className="w-full max-w-md p-8 bg-white/5 border-white/10">
+          <div className="text-center mb-8">
+            <Shield className="w-16 h-16 text-copper-500 mx-auto mb-4" />
+            <h1 className="font-fraunces text-2xl font-bold text-white mb-2">
+              Admin Login - Sponsor Leads
+            </h1>
+            <p className="text-muted">Enter admin password to continue</p>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="password" className="text-white">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && login()}
+                className="bg-white/10 border-white/20 text-white"
+                data-testid="admin-password-input"
+              />
+            </div>
+            <Button
+              onClick={login}
+              className="w-full bg-copper-500 hover:bg-copper-600 text-black"
+              data-testid="admin-login-button"
+            >
+              Login
+            </Button>
+          </div>
+        </Card>
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+    <div className="min-h-screen bg-bg">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Sponsor Leads Management</h1>
-              <p className="text-gray-600 mt-1">Manage sponsor applications and track conversions</p>
+            <div className="flex items-center gap-4">
+              <Shield className="w-8 h-8 text-copper-500" />
+              <div>
+                <h1 className="font-fraunces text-3xl font-bold text-white">Sponsor Leads Management</h1>
+                <p className="text-muted mt-1">Manage sponsor applications and track conversions</p>
+              </div>
             </div>
             <Button
               variant="outline"
-              onClick={() => {
-                setAdminKey('');
-                setIsAuthenticated(false);
-              }}
+              onClick={logout}
+              className="border-white/20 text-white hover:bg-white/10"
               data-testid="button-logout"
             >
               Logout
@@ -133,49 +179,49 @@ export default function AdminLeads() {
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card>
+            <Card className="bg-white/5 border-white/10">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Leads</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-white">Total Leads</CardTitle>
+                <Users className="h-4 w-4 text-copper-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold" data-testid="stat-total-leads">
+                <div className="text-2xl font-bold text-white" data-testid="stat-total-leads">
                   {stats.totalLeads}
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="bg-white/5 border-white/10">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">New Leads</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-white">New Leads</CardTitle>
+                <TrendingUp className="h-4 w-4 text-copper-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600" data-testid="stat-new-leads">
+                <div className="text-2xl font-bold text-blue-400" data-testid="stat-new-leads">
                   {stats.newLeads}
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="bg-white/5 border-white/10">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-white">Total Revenue</CardTitle>
+                <DollarSign className="h-4 w-4 text-copper-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600" data-testid="stat-revenue">
+                <div className="text-2xl font-bold text-green-400" data-testid="stat-revenue">
                   CA${(stats.totalRevenue / 100).toLocaleString()}
                 </div>
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="bg-white/5 border-white/10">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Promo Usage</CardTitle>
-                <Shield className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-white">Promo Usage</CardTitle>
+                <Shield className="h-4 w-4 text-copper-500" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-purple-600" data-testid="stat-promo-usage">
+                <div className="text-2xl font-bold text-purple-400" data-testid="stat-promo-usage">
                   {stats.promoUsage}
                 </div>
               </CardContent>
@@ -184,7 +230,7 @@ export default function AdminLeads() {
         )}
         
         {/* Leads List */}
-        <AdminLeadsList adminKey={adminKey} />
+        <AdminLeadsList sessionBased={true} />
       </div>
     </div>
   );
