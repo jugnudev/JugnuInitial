@@ -420,7 +420,7 @@ export async function getLead(id: string) {
 // Update lead status
 export async function updateLeadStatus(id: string, status: string, adminNotes?: string) {
   const supabase = getSupabaseAdmin();
-  const updateData: any = { status, updated_at: new Date().toISOString() };
+  const updateData: any = { status };
   
   if (adminNotes !== undefined) {
     updateData.admin_notes = adminNotes;

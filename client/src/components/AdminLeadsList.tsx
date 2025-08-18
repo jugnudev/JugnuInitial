@@ -125,10 +125,10 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
   return (
     <div className="space-y-6" data-testid="admin-leads-list">
       {/* Filters */}
-      <Card>
+      <Card className="border-0 shadow-lg bg-white/70 backdrop-blur">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-gray-800">
+            <Filter className="h-5 w-5 text-orange-500" />
             Filters
           </CardTitle>
         </CardHeader>
@@ -225,9 +225,12 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
       </Card>
       
       {/* Leads Table */}
-      <Card>
+      <Card className="border-0 shadow-lg bg-white/70 backdrop-blur">
         <CardHeader>
-          <CardTitle>Sponsor Leads ({leads.length})</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-gray-800">
+            <Users className="h-5 w-5 text-orange-500" />
+            Sponsor Leads ({leads.length})
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
