@@ -1261,14 +1261,22 @@ export default function Promote() {
                           
                           {/* Smart pricing message for exactly 7 days */}
                           {dayDuration === 7 && (
-                            <div className="text-sm text-amber-400 flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                            <div className="text-sm text-green-400 flex items-center gap-2">
                               <Star className="w-4 h-4" />
-                              Smart pricing tip: Switch to weekly mode to save {Math.round(((PRICING_CONFIG.packages[selectedPackage].daily * 7 - PRICING_CONFIG.packages[selectedPackage].weekly) / (PRICING_CONFIG.packages[selectedPackage].daily * 7)) * 100)}% on your 7-day campaign
+                              Smart pricing applied: Weekly rate automatically used (saves {Math.round(((PRICING_CONFIG.packages[selectedPackage].daily * 7 - PRICING_CONFIG.packages[selectedPackage].weekly) / (PRICING_CONFIG.packages[selectedPackage].daily * 7)) * 100)}%)
+                            </div>
+                          )}
+                          
+                          {/* Smart pricing for 8-13 days */}
+                          {dayDuration >= 8 && dayDuration <= 13 && (
+                            <div className="text-sm text-green-400 flex items-center gap-2">
+                              <Star className="w-4 h-4" />
+                              Smart pricing: {Math.floor(dayDuration / 7)} week + {dayDuration % 7} day{dayDuration % 7 > 1 ? 's' : ''} (optimized rate)
                             </div>
                           )}
                           
                           {/* Multi-week discount message for 14+ days */}
-                          {dayDuration >= 7 && Math.floor(dayDuration / 7) >= 2 && (
+                          {dayDuration >= 14 && Math.floor(dayDuration / 7) >= 2 && (
                             <div className="text-sm text-green-400 flex items-center gap-2">
                               <Star className="w-4 h-4" />
                               Smart pricing: {Math.floor(dayDuration / 7)} weeks + {dayDuration % 7} days with multi-week discount
