@@ -25,7 +25,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, Download, Search, Filter } from 'lucide-react';
+import { Eye, Download, Search, Filter, Users } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -198,21 +198,35 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
               Clear Filters
             </Button>
             <Button
-              onClick={() => {
+              onClick={async () => {
                 const params = new URLSearchParams();
                 Object.entries(filters).forEach(([key, value]) => {
                   if (value && value !== 'all') params.append(key, value);
                 });
                 params.append('export', 'csv');
                 
-                const url = `/api/admin/leads?${params}`;
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `sponsor-leads-${new Date().toISOString().split('T')[0]}.csv`;
-                link.target = '_blank';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                try {
+                  const response = await fetch(`/api/admin/leads?${params}`, {
+                    headers: { 'x-admin-key': adminKey }
+                  });
+                  
+                  if (!response.ok) {
+                    throw new Error('Failed to export CSV');
+                  }
+                  
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const link = document.createElement('a');
+                  link.href = url;
+                  link.download = `sponsor-leads-${new Date().toISOString().split('T')[0]}.csv`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                  window.URL.revokeObjectURL(url);
+                } catch (error) {
+                  console.error('CSV export failed:', error);
+                  alert('Failed to export CSV. Please try again.');
+                }
               }}
               variant="outline"
               data-testid="button-export-csv"
