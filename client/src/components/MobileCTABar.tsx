@@ -90,16 +90,7 @@ export default function MobileCTABar() {
           </a>
         )}
         
-        {/* Single CTA - Waitlist mode OR no events */}
-        {(isWaitlistMode || events.length === 0) && (
-          <a
-            href="/waitlist"
-            className="flex-1 inline-flex items-center justify-center py-3 text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 transition-all duration-200 bg-[#c05a0e]"
-            data-testid="mobile-cta-waitlist"
-          >
-            Join Waitlist
-          </a>
-        )}
+
       </div>
     </div>
   );
