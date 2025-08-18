@@ -8,17 +8,23 @@ import AdminLeadsList from '@/components/AdminLeadsList';
 import { Shield, Users, DollarSign, TrendingUp } from 'lucide-react';
 
 export default function AdminLeads() {
-  const [adminKey, setAdminKey] = useState('');
+  const [adminKey, setAdminKey] = useState(() => {
+    try {
+      return localStorage.getItem('adminKey') || '';
+    } catch {
+      return '';
+    }
+  });
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
-  // Check if admin key is valid
-  const { data: authCheck, error: authError } = useQuery({
+  // Check if admin key is valid  
+  const { data: authCheck, error: authError, refetch: checkAuth } = useQuery({
     queryKey: ['admin-auth-check', adminKey],
     queryFn: async () => {
-      if (!adminKey) return null;
+      if (!adminKey.trim()) return null;
       
-      const response = await fetch('/admin/leads?limit=1', {
-        headers: { 'x-admin-key': adminKey }
+      const response = await fetch('/api/admin/leads?limit=1', {
+        headers: { 'x-admin-key': adminKey.trim() }
       });
       
       if (!response.ok) {
@@ -27,22 +33,27 @@ export default function AdminLeads() {
       
       return true;
     },
-    enabled: !!adminKey,
+    enabled: false, // Don't auto-run, we'll trigger manually
     retry: false
   });
   
   useEffect(() => {
     if (authCheck) {
+      try {
+        localStorage.setItem('adminKey', adminKey);
+      } catch (e) {
+        console.warn('Failed to save admin key to localStorage:', e);
+      }
       setIsAuthenticated(true);
     }
-  }, [authCheck]);
+  }, [authCheck, adminKey]);
   
   // Stats query for authenticated users
   const { data: stats } = useQuery({
-    queryKey: ['admin-leads-stats'],
+    queryKey: ['admin-leads-stats', adminKey],
     queryFn: async () => {
-      const response = await fetch('/admin/leads', {
-        headers: { 'x-admin-key': adminKey }
+      const response = await fetch('/api/admin/leads', {
+        headers: { 'x-admin-key': adminKey.trim() }
       });
       
       if (!response.ok) {
@@ -59,7 +70,7 @@ export default function AdminLeads() {
         promoUsage: leads.filter((l: any) => l.promo_applied).length
       };
     },
-    enabled: isAuthenticated
+    enabled: isAuthenticated && !!adminKey.trim()
   });
   
   if (!isAuthenticated) {
@@ -80,7 +91,7 @@ export default function AdminLeads() {
                 placeholder="Admin key"
                 value={adminKey}
                 onChange={(e) => setAdminKey(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && adminKey && setIsAuthenticated(true)}
+                onKeyDown={(e) => e.key === 'Enter' && adminKey.trim() && checkAuth()}
                 data-testid="input-admin-key"
               />
               
@@ -93,9 +104,14 @@ export default function AdminLeads() {
               )}
               
               <Button
-                onClick={() => adminKey && setIsAuthenticated(true)}
+                onClick={async () => {
+                  if (adminKey.trim()) {
+                    // Trigger the auth check manually
+                    checkAuth();
+                  }
+                }}
                 className="w-full"
-                disabled={!adminKey}
+                disabled={!adminKey.trim()}
                 data-testid="button-login"
               >
                 Access Admin Panel

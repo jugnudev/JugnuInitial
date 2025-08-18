@@ -68,7 +68,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
         if (value) params.append(key, value);
       });
       
-      const response = await fetch(`/admin/leads?${params}`, {
+      const response = await fetch(`/api/admin/leads?${params}`, {
         headers: { 'x-admin-key': adminKey }
       });
       
@@ -88,7 +88,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
       status: string; 
       adminNotes?: string;
     }) => {
-      const response = await fetch(`/admin/leads/${leadId}/status`, {
+      const response = await fetch(`/api/admin/leads/${leadId}/status`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -63,8 +63,8 @@ function generateCSV(leads: any[], singleLead: boolean = false): string {
 }
 
 export function addAdminLeadsRoutes(app: Express) {
-  // GET /admin/leads - List leads with filtering
-  app.get('/admin/leads', requireAdminKey, async (req, res) => {
+  // GET /api/admin/leads - List leads with filtering
+  app.get('/api/admin/leads', requireAdminKey, async (req, res) => {
     try {
       const { status, package_code, search, date_from, date_to, limit = 50, offset = 0, export: exportMode } = req.query;
       
@@ -94,8 +94,8 @@ export function addAdminLeadsRoutes(app: Express) {
     }
   });
 
-  // GET /admin/leads/:id - Get single lead with quote details
-  app.get('/admin/leads/:id', requireAdminKey, async (req, res) => {
+  // GET /api/admin/leads/:id - Get single lead with quote details
+  app.get('/api/admin/leads/:id', requireAdminKey, async (req, res) => {
     try {
       const { id } = req.params;
       const { export: exportMode } = req.query;
@@ -130,8 +130,8 @@ export function addAdminLeadsRoutes(app: Express) {
     }
   });
 
-  // POST /admin/leads/:id/status - Update lead status
-  app.post('/admin/leads/:id/status', requireAdminKey, async (req, res) => {
+  // POST /api/admin/leads/:id/status - Update lead status
+  app.post('/api/admin/leads/:id/status', requireAdminKey, async (req, res) => {
     try {
       const { id } = req.params;
       const body = updateStatusSchema.parse(req.body);
