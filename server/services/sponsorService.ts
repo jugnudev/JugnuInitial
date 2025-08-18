@@ -309,8 +309,8 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
     duration: finalDuration,
     num_weeks: finalNumWeeks,
     selected_dates: finalSelectedDates,
-    start_date: finalStartDate,
-    end_date: finalEndDate,
+    start_date: data.startDate || finalStartDate,
+    end_date: data.endDate || finalEndDate,
     add_ons: finalAddOns,
     promo_applied: promoApplied,
     promo_code: promoApplied ? 'SEPTEMBER_FREE_WEEK_2025' : null,
@@ -318,7 +318,9 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
     subtotal_cents: pricing.subtotalCents,
     addons_cents: pricing.addonsCents,
     total_cents: pricing.totalCents,
-    placement: data.placement || data.packageCode, // Use placement if provided, fallback to packageCode
+    placement: finalPackageCode === 'events_spotlight' ? 'events_banner' : 
+               finalPackageCode === 'homepage_feature' ? 'home_hero' : 
+               'full_feature', // Derive placement from package code
     objective: data.objective || null,
     ack_exclusive: data.ackExclusive,
     ack_guarantee: data.ackGuarantee,

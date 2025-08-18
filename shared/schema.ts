@@ -171,8 +171,8 @@ export const sponsorLeads = pgTable("sponsor_leads", {
   subtotalCents: integer("subtotal_cents").notNull(),
   addonsCents: integer("addons_cents").notNull(),
   totalCents: integer("total_cents").notNull(),
-  // Campaign
-  placement: text("placement").notNull(), // Single placement selection
+  // Campaign  
+  placement: text("placement").notNull(), // Single placement selection - derived from package
   objective: text("objective"),
   ackExclusive: boolean("ack_exclusive").notNull().default(false),
   ackGuarantee: boolean("ack_guarantee").notNull().default(false),

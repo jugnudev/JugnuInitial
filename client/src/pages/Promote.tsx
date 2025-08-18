@@ -111,8 +111,8 @@ export default function Promote() {
     email: '',
     instagram: '',
     website: '',
-    desired_dates: '',
-    placement: '' as string, // Changed to single selection
+    start_date: '',
+    end_date: '',
     objective: '',
     creative_links: '',
     comments: '',
@@ -318,8 +318,7 @@ export default function Promote() {
     }
 
     // Creative validation - check if creatives are uploaded and valid for placement types that need them
-    const creativesRequired = ['events_spotlight', 'homepage_feature'].includes(formData.placement) || 
-                             ['events_spotlight', 'homepage_feature'].includes(selectedPackage || '');
+    const creativesRequired = ['events_spotlight', 'homepage_feature', 'full_feature'].includes(selectedPackage || '');
     
     if (creativesRequired) {
       if (!creatives.desktop || !creatives.mobile) {
@@ -396,8 +395,8 @@ export default function Promote() {
           email: '',
           instagram: '',
           website: '',
-          desired_dates: '',
-          placement: '',
+          start_date: '',
+          end_date: '',
           objective: '',
           creative_links: '',
           comments: '',
@@ -1441,8 +1440,8 @@ export default function Promote() {
                             </div>
                           )}
 
-                          {/* Weekly Savings vs Daily */}
-                          {durationType === 'weekly' && currentPricing.weeklySavingsPercent > 0 && (
+                          {/* Weekly Savings vs Daily - Only show for non-full-feature packages */}
+                          {selectedPackage !== 'full_feature' && durationType === 'weekly' && currentPricing.weeklySavingsPercent > 0 && (
                             <div className="text-center p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                               <div className="text-blue-400 font-medium">
                                 Weekly saves {currentPricing.weeklySavingsPercent}% vs daily pricing
@@ -1931,17 +1930,34 @@ export default function Promote() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-white font-medium mb-2">
-                    Desired Dates
-                  </label>
-                  <Input
-                    value={formData.desired_dates}
-                    onChange={(e) => setFormData({...formData, desired_dates: e.target.value})}
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                    placeholder="e.g. Feb 15-22, 2025"
-                    data-testid="input-desired-dates"
-                  />
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-white font-medium mb-2">
+                      Start Date *
+                    </label>
+                    <Input
+                      type="date"
+                      required
+                      value={formData.start_date}
+                      onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      data-testid="input-start-date"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-white font-medium mb-2">
+                      End Date *
+                    </label>
+                    <Input
+                      type="date"
+                      required
+                      value={formData.end_date}
+                      onChange={(e) => setFormData({...formData, end_date: e.target.value})}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      data-testid="input-end-date"
+                    />
+                  </div>
                 </div>
 
                 {/* Checkout Summary */}
@@ -1985,27 +2001,7 @@ export default function Promote() {
                   </Card>
                 )}
 
-                <div>
-                  <label className="block text-white font-medium mb-2">
-                    Preferred Placement *
-                  </label>
-                  <Select 
-                    value={formData.placement || selectedPackage || ''} 
-                    onValueChange={(value) => setFormData({...formData, placement: value})}
-                  >
-                    <SelectTrigger className="bg-white/10 border-white/20 text-white" data-testid="select-placement">
-                      <SelectValue placeholder="Choose your preferred placement" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="events_spotlight">Events Spotlight Banner</SelectItem>
-                      <SelectItem value="homepage_feature">Homepage Feature Banner</SelectItem>
-                      <SelectItem value="full_feature">Full Feature Package</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-muted text-sm mt-2">
-                    Select one placement type. Full Feature includes all placements plus add-ons.
-                  </p>
-                </div>
+
 
                 <div>
                   <label className="block text-white font-medium mb-2">
@@ -2036,7 +2032,10 @@ export default function Promote() {
                       Creative Assets
                     </h3>
                     <p className="text-muted text-sm mb-6">
-                      Upload your campaign creatives. We'll validate sizes and formats to ensure optimal display.
+                      Upload your campaign creatives. Requirements vary by package:
+                      {selectedPackage === 'events_spotlight' && ' Events Banner (Desktop + Mobile)'}
+                      {selectedPackage === 'homepage_feature' && ' Homepage Banner (Desktop + Mobile)'}
+                      {selectedPackage === 'full_feature' && ' Both Events Banner + Homepage Banner (4 total assets: Desktop + Mobile for each placement)'}
                     </p>
                   </div>
 
