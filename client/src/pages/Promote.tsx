@@ -1974,17 +1974,25 @@ export default function Promote() {
                   <label className="block text-white font-medium mb-2">
                     Website
                   </label>
-                  <Input
-                    type="url"
-                    value={formData.website}
-                    onChange={(e) => setFormData({...formData, website: e.target.value})}
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                    placeholder="https://yourwebsite.com"
-                    data-testid="input-website"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/70 text-sm">
+                      https://
+                    </span>
+                    <Input
+                      type="text"
+                      value={formData.website.replace(/^https?:\/\//, '')}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/^https?:\/\//, '');
+                        setFormData({...formData, website: value ? `https://${value}` : ''});
+                      }}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50 pl-16"
+                      placeholder="yourwebsite.com"
+                      data-testid="input-website"
+                    />
+                  </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-white font-medium mb-2">
                       Start Date *
@@ -2003,8 +2011,8 @@ export default function Promote() {
                   <div>
                     <label className="block text-white font-medium mb-2">
                       End Date *
-                      <span className="text-muted text-sm font-normal ml-2">
-                        (Auto-calculated from start date + campaign duration)
+                      <span className="text-muted text-sm font-normal block sm:inline sm:ml-2">
+                        (Auto-calculated)
                       </span>
                     </label>
                     <Input
