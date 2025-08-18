@@ -1258,6 +1258,16 @@ export default function Promote() {
                               <Plus className="w-4 h-4" />
                             </Button>
                           </div>
+                          
+                          {/* Smart pricing message for exactly 7 days */}
+                          {dayDuration === 7 && (
+                            <div className="text-sm text-amber-400 flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                              <Star className="w-4 h-4" />
+                              Smart pricing tip: Switch to weekly mode to save {Math.round(((PRICING_CONFIG.packages[selectedPackage].daily * 7 - PRICING_CONFIG.packages[selectedPackage].weekly) / (PRICING_CONFIG.packages[selectedPackage].daily * 7)) * 100)}% on your 7-day campaign
+                            </div>
+                          )}
+                          
+                          {/* Multi-week discount message for 14+ days */}
                           {dayDuration >= 7 && Math.floor(dayDuration / 7) >= 2 && (
                             <div className="text-sm text-green-400 flex items-center gap-2">
                               <Star className="w-4 h-4" />
