@@ -89,15 +89,11 @@ export default function Promote() {
   // Creative validation state
   const [creatives, setCreatives] = useState({
     desktop: null as File | null,
-    mobile: null as File | null,
-    desktopHome: null as File | null,
-    mobileHome: null as File | null
+    mobile: null as File | null
   });
   const [creativeValidation, setCreativeValidation] = useState({
     desktop: { valid: false, issues: [] as string[], dimensions: null as {width: number, height: number} | null },
-    mobile: { valid: false, issues: [] as string[], dimensions: null as {width: number, height: number} | null },
-    desktopHome: { valid: false, issues: [] as string[], dimensions: null as {width: number, height: number} | null },
-    mobileHome: { valid: false, issues: [] as string[], dimensions: null as {width: number, height: number} | null }
+    mobile: { valid: false, issues: [] as string[], dimensions: null as {width: number, height: number} | null }
   });
   
   // Calculate current pricing
@@ -115,8 +111,7 @@ export default function Promote() {
     email: '',
     instagram: '',
     website: '',
-    start_date: '',
-    end_date: '',
+    desired_dates: '',
     placement: '' as string, // Changed to single selection
     objective: '',
     creative_links: '',
@@ -303,12 +298,10 @@ export default function Promote() {
     });
   };
 
-  const handleCreativeUpload = async (file: File, type: 'desktop' | 'mobile' | 'desktopHome' | 'mobileHome') => {
+  const handleCreativeUpload = async (file: File, type: 'desktop' | 'mobile') => {
     setCreatives(prev => ({ ...prev, [type]: file }));
     
-    // For home variants, use the same validation as desktop/mobile
-    const validationType = type.includes('Home') ? type.replace('Home', '') as 'desktop' | 'mobile' : type as 'desktop' | 'mobile';
-    const validation = await validateCreative(file, validationType);
+    const validation = await validateCreative(file, type);
     setCreativeValidation(prev => ({
       ...prev,
       [type]: validation
@@ -324,74 +317,34 @@ export default function Promote() {
       return;
     }
 
-    // Creative validation - check if creatives are uploaded and valid based on selected package
-    const packageToUse = selectedPackage || 'events_spotlight';
-    const isFullFeature = packageToUse === 'full_feature';
-    const creativesRequired = ['events_spotlight', 'homepage_feature', 'full_feature'].includes(packageToUse);
+    // Creative validation - check if creatives are uploaded and valid for placement types that need them
+    const creativesRequired = ['events_spotlight', 'homepage_feature'].includes(formData.placement) || 
+                             ['events_spotlight', 'homepage_feature'].includes(selectedPackage || '');
     
     if (creativesRequired) {
-      // For full feature, we need 4 assets (2 for each placement)
-      // For single placements, we need 2 assets (desktop + mobile)
-      if (isFullFeature) {
-        // Full feature requires all 4 creative assets
-        if (!creatives.desktop || !creatives.mobile || !creatives.desktopHome || !creatives.mobileHome) {
-          toast({
-            title: "Creative Assets Required",
-            description: "Full Feature package requires 4 creatives: Desktop & Mobile for both Events page and Homepage placements.",
-            variant: "destructive",
-            duration: 5000,
-          });
-          return;
-        }
+      if (!creatives.desktop || !creatives.mobile) {
+        toast({
+          title: "Creative Assets Required",
+          description: "Please upload both desktop and mobile creatives for your selected placements.",
+          variant: "destructive",
+          duration: 5000,
+        });
+        return;
+      }
 
-        // Validate all 4 creatives
-        const allValid = creativeValidation.desktop.valid && 
-                        creativeValidation.mobile.valid && 
-                        creativeValidation.desktopHome.valid && 
-                        creativeValidation.mobileHome.valid;
+      if (!creativeValidation.desktop.valid || !creativeValidation.mobile.valid) {
+        const issues = [
+          ...(!creativeValidation.desktop.valid ? creativeValidation.desktop.issues.map(i => `Desktop: ${i}`) : []),
+          ...(!creativeValidation.mobile.valid ? creativeValidation.mobile.issues.map(i => `Mobile: ${i}`) : [])
+        ];
         
-        if (!allValid) {
-          const issues = [
-            ...(!creativeValidation.desktop.valid ? creativeValidation.desktop.issues.map(i => `Events Desktop: ${i}`) : []),
-            ...(!creativeValidation.mobile.valid ? creativeValidation.mobile.issues.map(i => `Events Mobile: ${i}`) : []),
-            ...(!creativeValidation.desktopHome.valid ? creativeValidation.desktopHome.issues.map(i => `Homepage Desktop: ${i}`) : []),
-            ...(!creativeValidation.mobileHome.valid ? creativeValidation.mobileHome.issues.map(i => `Homepage Mobile: ${i}`) : [])
-          ];
-          
-          toast({
-            title: "Creative Validation Failed",
-            description: `Please fix: ${issues.slice(0, 2).join('. ')}${issues.length > 2 ? '...' : ''}`,
-            variant: "destructive",
-            duration: 8000,
-          });
-          return;
-        }
-      } else {
-        // Single placement requires 2 creatives
-        if (!creatives.desktop || !creatives.mobile) {
-          toast({
-            title: "Creative Assets Required",
-            description: "Please upload both desktop and mobile creatives for your selected placement.",
-            variant: "destructive",
-            duration: 5000,
-          });
-          return;
-        }
-
-        if (!creativeValidation.desktop.valid || !creativeValidation.mobile.valid) {
-          const issues = [
-            ...(!creativeValidation.desktop.valid ? creativeValidation.desktop.issues.map(i => `Desktop: ${i}`) : []),
-            ...(!creativeValidation.mobile.valid ? creativeValidation.mobile.issues.map(i => `Mobile: ${i}`) : [])
-          ];
-          
-          toast({
-            title: "Creative Validation Failed",
-            description: `Please fix: ${issues.slice(0, 2).join('. ')}${issues.length > 2 ? '...' : ''}`,
-            variant: "destructive",
-            duration: 8000,
-          });
-          return;
-        }
+        toast({
+          title: "Creative Validation Failed",
+          description: `Please fix: ${issues.slice(0, 2).join('. ')}${issues.length > 2 ? '...' : ''}`,
+          variant: "destructive",
+          duration: 8000,
+        });
+        return;
       }
     }
 
@@ -406,7 +359,6 @@ export default function Promote() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...formData,
-          placement: selectedPackage, // Use selectedPackage as placement
           quote_id: quoteId,
           selected_package: selectedPackage,
           duration_type: selectedPackage === 'full_feature' ? 'weekly' : durationType,
@@ -444,8 +396,7 @@ export default function Promote() {
           email: '',
           instagram: '',
           website: '',
-          start_date: '',
-          end_date: '',
+          desired_dates: '',
           placement: '',
           objective: '',
           creative_links: '',
@@ -462,15 +413,11 @@ export default function Promote() {
         // Reset creatives
         setCreatives({
           desktop: null,
-          mobile: null,
-          desktopHome: null,
-          mobileHome: null
+          mobile: null
         });
         setCreativeValidation({
           desktop: { valid: false, issues: [], dimensions: null },
-          mobile: { valid: false, issues: [], dimensions: null },
-          desktopHome: { valid: false, issues: [], dimensions: null },
-          mobileHome: { valid: false, issues: [], dimensions: null }
+          mobile: { valid: false, issues: [], dimensions: null }
         });
       } else {
         throw new Error(result.error || 'Failed to submit application');
@@ -1495,7 +1442,7 @@ export default function Promote() {
                           )}
 
                           {/* Weekly Savings vs Daily */}
-                          {durationType === 'weekly' && currentPricing.weeklySavingsPercent > 0 && selectedPackage !== 'full_feature' && (
+                          {durationType === 'weekly' && currentPricing.weeklySavingsPercent > 0 && (
                             <div className="text-center p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                               <div className="text-blue-400 font-medium">
                                 Weekly saves {currentPricing.weeklySavingsPercent}% vs daily pricing
@@ -1986,37 +1933,15 @@ export default function Promote() {
 
                 <div>
                   <label className="block text-white font-medium mb-2">
-                    Desired Campaign Dates *
+                    Desired Dates
                   </label>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-muted text-sm mb-1">Start Date</label>
-                      <Input
-                        type="date"
-                        required
-                        value={formData.start_date || ''}
-                        onChange={(e) => setFormData({...formData, start_date: e.target.value})}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                        min={new Date().toISOString().split('T')[0]}
-                        data-testid="input-start-date"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-muted text-sm mb-1">End Date</label>
-                      <Input
-                        type="date"
-                        required
-                        value={formData.end_date || ''}
-                        onChange={(e) => setFormData({...formData, end_date: e.target.value})}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                        min={formData.start_date || new Date().toISOString().split('T')[0]}
-                        data-testid="input-end-date"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-muted text-sm mt-2">
-                    Select your preferred campaign start and end dates. We'll confirm availability during review.
-                  </p>
+                  <Input
+                    value={formData.desired_dates}
+                    onChange={(e) => setFormData({...formData, desired_dates: e.target.value})}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    placeholder="e.g. Feb 15-22, 2025"
+                    data-testid="input-desired-dates"
+                  />
                 </div>
 
                 {/* Checkout Summary */}
@@ -2059,6 +1984,28 @@ export default function Promote() {
                     </div>
                   </Card>
                 )}
+
+                <div>
+                  <label className="block text-white font-medium mb-2">
+                    Preferred Placement *
+                  </label>
+                  <Select 
+                    value={formData.placement || selectedPackage || ''} 
+                    onValueChange={(value) => setFormData({...formData, placement: value})}
+                  >
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white" data-testid="select-placement">
+                      <SelectValue placeholder="Choose your preferred placement" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="events_spotlight">Events Spotlight Banner</SelectItem>
+                      <SelectItem value="homepage_feature">Homepage Feature Banner</SelectItem>
+                      <SelectItem value="full_feature">Full Feature Package</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-muted text-sm mt-2">
+                    Select one placement type. Full Feature includes all placements plus add-ons.
+                  </p>
+                </div>
 
                 <div>
                   <label className="block text-white font-medium mb-2">
@@ -2180,189 +2127,10 @@ export default function Promote() {
                     </div>
                   </div>
 
-                  {/* Show additional creatives for Full Feature package */}
-                  {selectedPackage === 'full_feature' && (
-                    <>
-                      {/* Homepage Desktop Creative */}
-                      <div className="space-y-3">
-                        <label className="block text-white font-medium">
-                          Homepage Desktop Creative *
-                          <span className="text-muted text-sm font-normal ml-2">
-                            (Min: 1600×400px, ~4:1 ratio, JPG/PNG/WebP)
-                          </span>
-                        </label>
-                        
-                        <div className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
-                          creatives.desktopHome ? 
-                            (creativeValidation.desktopHome.valid ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10') :
-                            'border-white/20 hover:border-white/40'
-                        }`}>
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleCreativeUpload(file, 'desktopHome');
-                            }}
-                            className="hidden"
-                            id="desktop-home-creative"
-                            data-testid="upload-desktop-home-creative"
-                          />
-                          
-                          {!creatives.desktopHome ? (
-                            <label htmlFor="desktop-home-creative" className="cursor-pointer flex flex-col items-center gap-3">
-                              <Upload className="w-8 h-8 text-muted" />
-                              <div className="text-center">
-                                <div className="text-white font-medium">Upload Homepage Desktop Creative</div>
-                                <div className="text-muted text-sm">Click to browse or drag & drop</div>
-                              </div>
-                            </label>
-                          ) : (
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-3 h-3 rounded-full ${
-                                    creativeValidation.desktopHome.valid ? 'bg-green-500' : 'bg-red-500'
-                                  }`}></div>
-                                  <span className="text-white font-medium">{creatives.desktopHome.name}</span>
-                                  {creativeValidation.desktopHome.valid && (
-                                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                                      <CheckCircle className="w-3 h-3 mr-1" />
-                                      Ready
-                                    </Badge>
-                                  )}
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setCreatives(prev => ({ ...prev, desktopHome: null }));
-                                    setCreativeValidation(prev => ({ 
-                                      ...prev, 
-                                      desktopHome: { valid: false, issues: [], dimensions: null }
-                                    }));
-                                  }}
-                                  className="text-white border-white/20"
-                                >
-                                  Remove
-                                </Button>
-                              </div>
-                              
-                              {creativeValidation.desktopHome.dimensions && (
-                                <div className="text-sm text-muted">
-                                  Dimensions: {creativeValidation.desktopHome.dimensions.width}×{creativeValidation.desktopHome.dimensions.height}px
-                                </div>
-                              )}
-                              
-                              {creativeValidation.desktopHome.issues.length > 0 && (
-                                <div className="space-y-1">
-                                  {creativeValidation.desktopHome.issues.map((issue, index) => (
-                                    <div key={index} className="text-red-400 text-sm flex items-center gap-2">
-                                      <div className="w-1 h-1 bg-red-400 rounded-full"></div>
-                                      {issue}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Homepage Mobile Creative */}
-                      <div className="space-y-3">
-                        <label className="block text-white font-medium">
-                          Homepage Mobile Creative *
-                          <span className="text-muted text-sm font-normal ml-2">
-                            (Min: 1080×1080px, 1:1 ratio, JPG/PNG/WebP)
-                          </span>
-                        </label>
-                        
-                        <div className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
-                          creatives.mobileHome ? 
-                            (creativeValidation.mobileHome.valid ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10') :
-                            'border-white/20 hover:border-white/40'
-                        }`}>
-                          <input
-                            type="file"
-                            accept="image/jpeg,image/png,image/webp"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleCreativeUpload(file, 'mobileHome');
-                            }}
-                            className="hidden"
-                            id="mobile-home-creative"
-                            data-testid="upload-mobile-home-creative"
-                          />
-                          
-                          {!creatives.mobileHome ? (
-                            <label htmlFor="mobile-home-creative" className="cursor-pointer flex flex-col items-center gap-3">
-                              <Upload className="w-8 h-8 text-muted" />
-                              <div className="text-center">
-                                <div className="text-white font-medium">Upload Homepage Mobile Creative</div>
-                                <div className="text-muted text-sm">Click to browse or drag & drop</div>
-                              </div>
-                            </label>
-                          ) : (
-                            <div className="space-y-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-3 h-3 rounded-full ${
-                                    creativeValidation.mobileHome.valid ? 'bg-green-500' : 'bg-red-500'
-                                  }`}></div>
-                                  <span className="text-white font-medium">{creatives.mobileHome.name}</span>
-                                  {creativeValidation.mobileHome.valid && (
-                                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                                      <CheckCircle className="w-3 h-3 mr-1" />
-                                      Ready
-                                    </Badge>
-                                  )}
-                                </div>
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setCreatives(prev => ({ ...prev, mobileHome: null }));
-                                    setCreativeValidation(prev => ({ 
-                                      ...prev, 
-                                      mobileHome: { valid: false, issues: [], dimensions: null }
-                                    }));
-                                  }}
-                                  className="text-white border-white/20"
-                                >
-                                  Remove
-                                </Button>
-                              </div>
-                              
-                              {creativeValidation.mobileHome.dimensions && (
-                                <div className="text-sm text-muted">
-                                  Dimensions: {creativeValidation.mobileHome.dimensions.width}×{creativeValidation.mobileHome.dimensions.height}px
-                                </div>
-                              )}
-                              
-                              {creativeValidation.mobileHome.issues.length > 0 && (
-                                <div className="space-y-1">
-                                  {creativeValidation.mobileHome.issues.map((issue, index) => (
-                                    <div key={index} className="text-red-400 text-sm flex items-center gap-2">
-                                      <div className="w-1 h-1 bg-red-400 rounded-full"></div>
-                                      {issue}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  )}
-
                   {/* Mobile Creative */}
                   <div className="space-y-3">
                     <label className="block text-white font-medium">
-                      {selectedPackage === 'full_feature' ? 'Events Page ' : ''}Mobile Creative *
+                      Mobile Creative *
                       <span className="text-muted text-sm font-normal ml-2">
                         (Min: 1080×1080px, 1:1 ratio, JPG/PNG/WebP)
                       </span>
@@ -2450,31 +2218,8 @@ export default function Promote() {
                   <div className="bg-white/5 border border-white/10 rounded-lg p-4">
                     <h4 className="text-white font-medium mb-3 flex items-center gap-2">
                       <Eye className="w-4 h-4" />
-                      Creative Requirements
+                      Creative Guidelines
                     </h4>
-                    
-                    {/* Dynamic requirements based on package selection */}
-                    {formData.placement === 'full_feature' || selectedPackage === 'full_feature' ? (
-                      <div className="space-y-3 mb-4">
-                        <div className="p-3 bg-copper-500/10 border border-copper-500/20 rounded">
-                          <div className="text-copper-400 font-medium text-sm mb-2">Full Feature Package Requirements</div>
-                          <div className="text-sm text-muted">
-                            You'll need creatives for <strong>both placements</strong>:
-                            <ul className="mt-2 ml-4 space-y-1">
-                              <li>• Events Spotlight Banner (desktop & mobile)</li>
-                              <li>• Homepage Feature Banner (desktop & mobile)</li>
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 mb-4">
-                        <div className="text-sm text-muted">
-                          You'll need desktop and mobile creatives for your selected placement.
-                        </div>
-                      </div>
-                    )}
-                    
                     <ul className="space-y-2 text-sm text-muted">
                       <li className="flex items-center gap-2">
                         <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" />

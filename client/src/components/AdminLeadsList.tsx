@@ -28,8 +28,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, Download, Search, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
-import { useAdminAuth } from '@/lib/AdminAuthProvider';
-import { useAdminFetch } from '@/lib/useAdminFetch';
 
 interface Lead {
   id: string;
@@ -46,12 +44,10 @@ interface Lead {
 }
 
 interface AdminLeadsListProps {
-  sessionBased?: boolean;
+  adminKey: string;
 }
 
-export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListProps) {
-  const { isAuthed, logout } = useAdminAuth();
-  const adminFetch = useAdminFetch();
+export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
   const [filters, setFilters] = useState({
     status: '',
     package_code: '',
@@ -63,8 +59,8 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const queryClient = useQueryClient();
   
-  // Fetch leads with filters using dual path support
-  const { data: leads = [], isLoading, error } = useQuery({
+  // Fetch leads with filters
+  const { data: leads = [], isLoading } = useQuery({
     queryKey: ['admin-leads', filters],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -72,35 +68,17 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
         if (value) params.append(key, value);
       });
       
-      // Try canonical first; fall back to legacy path if needed
-      const tryPaths = [`/api/admin/leads?${params}`, `/admin/leads/api?${params}`];
+      const response = await fetch(`/admin/leads?${params}`, {
+        headers: { 'x-admin-key': adminKey }
+      });
       
-      for (const path of tryPaths) {
-        try {
-          const response = await adminFetch(path);
-          
-          if (response.status === 401 || response.status === 403) {
-            throw new Error('UNAUTH');
-          }
-          
-          if (response.ok) {
-            const result = await response.json();
-            return result.leads || [];
-          }
-        } catch (err) {
-          if (err instanceof Error && err.message === 'UNAUTH') {
-            throw err; // Re-throw auth errors immediately
-          }
-          // Continue to next path for other errors
-          continue;
-        }
+      if (!response.ok) {
+        throw new Error('Failed to fetch leads');
       }
       
-      throw new Error('FETCH_FAILED');
-    },
-    enabled: isAuthed,
-    retry: false,
-    refetchOnWindowFocus: false
+      const result = await response.json();
+      return result.leads;
+    }
   });
   
   // Update lead status mutation
@@ -110,10 +88,11 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
       status: string; 
       adminNotes?: string;
     }) => {
-      const response = await adminFetch(`/admin/leads/${leadId}/status`, {
+      const response = await fetch(`/admin/leads/${leadId}/status`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'x-admin-key': adminKey
         },
         body: JSON.stringify({ status, adminNotes })
       });
@@ -142,27 +121,6 @@ export default function AdminLeadsList({ sessionBased = false }: AdminLeadsListP
     homepage_feature: 'Homepage Feature',
     full_feature: 'Full Feature'
   };
-
-  // Handle authentication errors
-  if (error instanceof Error && error.message === 'UNAUTH') {
-    logout();
-    return null;
-  }
-
-  // Handle other errors with explicit messaging
-  if (error instanceof Error && error.message !== 'UNAUTH') {
-    return (
-      <div className="p-4 text-sm text-red-300 bg-red-900/30 rounded">
-        <div className="font-semibold">Admin Leads failed to load</div>
-        <div>Error: {error.message}</div>
-      </div>
-    );
-  }
-
-  // Loading state
-  if (isLoading) {
-    return <div className="p-4 text-sm opacity-80">Loading leads…</div>;
-  }
   
   return (
     <div className="space-y-6" data-testid="admin-leads-list">
