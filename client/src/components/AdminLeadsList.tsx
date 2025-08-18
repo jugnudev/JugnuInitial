@@ -110,10 +110,10 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
   });
   
   const statusColors = {
-    new: 'bg-blue-100 text-blue-800',
-    reviewing: 'bg-yellow-100 text-yellow-800', 
-    approved: 'bg-green-100 text-green-800',
-    rejected: 'bg-red-100 text-red-800'
+    new: 'bg-blue-600 text-blue-100',
+    reviewing: 'bg-yellow-600 text-yellow-100', 
+    approved: 'bg-green-600 text-green-100',
+    rejected: 'bg-red-600 text-red-100'
   };
   
   const packageNames = {
@@ -125,10 +125,10 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
   return (
     <div className="space-y-6" data-testid="admin-leads-list">
       {/* Filters */}
-      <Card className="border-0 shadow-lg bg-white/70 backdrop-blur">
+      <Card className="border border-gray-800 bg-gray-900/50 backdrop-blur shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-gray-800">
-            <Filter className="h-5 w-5 text-orange-500" />
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Filter className="h-5 w-5 text-orange-400" />
             Filters
           </CardTitle>
         </CardHeader>
@@ -138,15 +138,15 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
               value={filters.status} 
               onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
             >
-              <SelectTrigger data-testid="filter-status">
+              <SelectTrigger className="bg-gray-800 border-gray-700 text-white" data-testid="filter-status">
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="new">New</SelectItem>
-                <SelectItem value="reviewing">Reviewing</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectContent className="bg-gray-800 border-gray-700">
+                <SelectItem value="all" className="text-white focus:bg-gray-700">All Statuses</SelectItem>
+                <SelectItem value="new" className="text-white focus:bg-gray-700">New</SelectItem>
+                <SelectItem value="reviewing" className="text-white focus:bg-gray-700">Reviewing</SelectItem>
+                <SelectItem value="approved" className="text-white focus:bg-gray-700">Approved</SelectItem>
+                <SelectItem value="rejected" className="text-white focus:bg-gray-700">Rejected</SelectItem>
               </SelectContent>
             </Select>
             
@@ -154,14 +154,14 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
               value={filters.package_code}
               onValueChange={(value) => setFilters(prev => ({ ...prev, package_code: value }))}
             >
-              <SelectTrigger data-testid="filter-package">
+              <SelectTrigger className="bg-gray-800 border-gray-700 text-white" data-testid="filter-package">
                 <SelectValue placeholder="All Packages" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Packages</SelectItem>
-                <SelectItem value="events_spotlight">Events Spotlight</SelectItem>
-                <SelectItem value="homepage_feature">Homepage Feature</SelectItem>
-                <SelectItem value="full_feature">Full Feature</SelectItem>
+              <SelectContent className="bg-gray-800 border-gray-700">
+                <SelectItem value="all" className="text-white focus:bg-gray-700">All Packages</SelectItem>
+                <SelectItem value="events_spotlight" className="text-white focus:bg-gray-700">Events Spotlight</SelectItem>
+                <SelectItem value="homepage_feature" className="text-white focus:bg-gray-700">Homepage Feature</SelectItem>
+                <SelectItem value="full_feature" className="text-white focus:bg-gray-700">Full Feature</SelectItem>
               </SelectContent>
             </Select>
             
@@ -169,6 +169,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
               placeholder="Search business, contact, email..."
               value={filters.search}
               onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+              className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-400"
               data-testid="filter-search"
             />
             
@@ -177,6 +178,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
               placeholder="From date"
               value={filters.date_from}
               onChange={(e) => setFilters(prev => ({ ...prev, date_from: e.target.value }))}
+              className="bg-gray-800 border-gray-700 text-white"
               data-testid="filter-date-from"
             />
             
@@ -185,6 +187,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
               placeholder="To date"
               value={filters.date_to}
               onChange={(e) => setFilters(prev => ({ ...prev, date_to: e.target.value }))}
+              className="bg-gray-800 border-gray-700 text-white"
               data-testid="filter-date-to"
             />
           </div>
@@ -193,6 +196,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
             <Button 
               onClick={() => setFilters({ status: 'all', package_code: 'all', search: '', date_from: '', date_to: '' })}
               variant="outline"
+              className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
               data-testid="button-clear-filters"
             >
               Clear Filters
@@ -229,6 +233,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                 }
               }}
               variant="outline"
+              className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
               data-testid="button-export-csv"
             >
               <Download className="h-4 w-4 mr-2" />
@@ -239,66 +244,66 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
       </Card>
       
       {/* Leads Table */}
-      <Card className="border-0 shadow-lg bg-white/70 backdrop-blur">
+      <Card className="border border-gray-800 bg-gray-900/50 backdrop-blur shadow-lg">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-gray-800">
-            <Users className="h-5 w-5 text-orange-500" />
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Users className="h-5 w-5 text-orange-400" />
             Sponsor Leads ({leads.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8">Loading leads...</div>
+            <div className="text-center py-8 text-white">Loading leads...</div>
           ) : leads.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">No leads found</div>
+            <div className="text-center py-8 text-gray-400">No leads found</div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Business</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Package</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Actions</TableHead>
+                  <TableRow className="border-gray-700">
+                    <TableHead className="text-gray-300">Created</TableHead>
+                    <TableHead className="text-gray-300">Business</TableHead>
+                    <TableHead className="text-gray-300">Contact</TableHead>
+                    <TableHead className="text-gray-300">Package</TableHead>
+                    <TableHead className="text-gray-300">Total</TableHead>
+                    <TableHead className="text-gray-300">Status</TableHead>
+                    <TableHead className="text-gray-300">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {leads.map((lead: Lead) => (
-                    <TableRow key={lead.id} data-testid={`lead-row-${lead.id}`}>
-                      <TableCell className="text-sm">
+                    <TableRow key={lead.id} className="border-gray-700 hover:bg-gray-800/50" data-testid={`lead-row-${lead.id}`}>
+                      <TableCell className="text-sm text-gray-300">
                         {format(new Date(lead.created_at), 'MMM d, HH:mm')}
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{lead.business_name}</div>
-                          <div className="text-sm text-gray-500">{lead.email}</div>
+                          <div className="font-medium text-white">{lead.business_name}</div>
+                          <div className="text-sm text-gray-400">{lead.email}</div>
                         </div>
                       </TableCell>
-                      <TableCell>{lead.contact_name}</TableCell>
+                      <TableCell className="text-white">{lead.contact_name}</TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">
+                          <div className="font-medium text-white">
                             {packageNames[lead.package_code as keyof typeof packageNames]}
                           </div>
-                          <div className="text-sm text-gray-500 capitalize">
+                          <div className="text-sm text-gray-400 capitalize">
                             {lead.duration}
                             {lead.promo_applied && (
-                              <Badge variant="secondary" className="ml-2 text-xs">
+                              <Badge variant="secondary" className="ml-2 text-xs bg-green-600 text-green-100">
                                 PROMO
                               </Badge>
                             )}
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-medium text-white">
                         CA${(lead.total_cents / 100).toFixed(2)}
                       </TableCell>
                       <TableCell>
                         <Badge 
-                          className={statusColors[lead.status]}
+                          className={`${statusColors[lead.status]} border-0`}
                           data-testid={`status-${lead.status}`}
                         >
                           {lead.status}
@@ -308,6 +313,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                         <Button
                           variant="outline"
                           size="sm"
+                          className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
                           onClick={() => setSelectedLead(lead)}
                           data-testid={`button-view-${lead.id}`}
                         >
@@ -327,26 +333,26 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
       {/* Lead Detail Dialog */}
       {selectedLead && (
         <Dialog open={!!selectedLead} onOpenChange={() => setSelectedLead(null)}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-gray-900 border-gray-700 text-white">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-white">
                 Lead Details: {selectedLead.business_name}
               </DialogTitle>
             </DialogHeader>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
+              <Card className="border-gray-700 bg-gray-800/50">
                 <CardHeader>
-                  <CardTitle className="text-lg">Business Information</CardTitle>
+                  <CardTitle className="text-lg text-white">Business Information</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Business Name</label>
-                    <div className="font-medium">{selectedLead.business_name}</div>
+                    <label className="text-sm font-medium text-gray-400">Business Name</label>
+                    <div className="font-medium text-white">{selectedLead.business_name}</div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Contact Person</label>
-                    <div className="font-medium">{selectedLead.contact_name}</div>
+                    <label className="text-sm font-medium text-gray-400">Contact Person</label>
+                    <div className="font-medium text-white">{selectedLead.contact_name}</div>
                   </div>
                   <div>
                     <label className="text-sm font-medium text-gray-600">Email</label>

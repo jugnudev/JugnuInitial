@@ -75,15 +75,15 @@ export default function AdminLeads() {
   
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50 p-6">
+      <div className="min-h-screen bg-black p-6">
         <div className="max-w-md mx-auto mt-20">
-          <Card className="border-0 shadow-2xl">
+          <Card className="border border-gray-800 bg-gray-900/50 backdrop-blur shadow-2xl">
             <CardHeader className="text-center pb-8">
               <div className="mx-auto mb-6 w-20 h-20 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center shadow-lg">
                 <Shield className="h-10 w-10 text-white" />
               </div>
-              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">Admin Access</CardTitle>
-              <p className="text-gray-600 mt-2">Enter admin key to access sponsor leads management</p>
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">Admin Access</CardTitle>
+              <p className="text-gray-300 mt-2">Enter admin key to access sponsor leads management</p>
             </CardHeader>
             <CardContent className="space-y-6 pt-4">
               <Input
@@ -92,13 +92,13 @@ export default function AdminLeads() {
                 value={adminKey}
                 onChange={(e) => setAdminKey(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && adminKey.trim() && checkAuth()}
-                className="h-12 text-center text-lg border-2 focus:border-orange-500"
+                className="h-12 text-center text-lg border-2 border-gray-700 bg-gray-800 text-white placeholder:text-gray-400 focus:border-orange-500"
                 data-testid="input-admin-key"
               />
               
               {authError && (
-                <Alert variant="destructive" className="border-red-200 bg-red-50">
-                  <AlertDescription className="text-red-800">
+                <Alert variant="destructive" className="border-red-600 bg-red-900/50">
+                  <AlertDescription className="text-red-200">
                     Invalid admin key. Please check and try again.
                   </AlertDescription>
                 </Alert>
@@ -111,7 +111,7 @@ export default function AdminLeads() {
                     checkAuth();
                   }
                 }}
-                className="w-full h-12 text-lg bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg"
+                className="w-full h-12 text-lg bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg text-white"
                 disabled={!adminKey.trim()}
                 data-testid="button-login"
               >
@@ -125,17 +125,18 @@ export default function AdminLeads() {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-pink-50">
+    <div className="min-h-screen bg-black">
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">Sponsor Leads Management</h1>
-              <p className="text-gray-700 mt-2 text-lg">Manage sponsor applications and track conversions</p>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">Sponsor Leads Management</h1>
+              <p className="text-gray-300 mt-2 text-lg">Manage sponsor applications and track conversions</p>
             </div>
             <Button
               variant="outline"
+              className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
               onClick={() => {
                 setAdminKey('');
                 setIsAuthenticated(false);
@@ -150,19 +151,19 @@ export default function AdminLeads() {
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card className="border-0 shadow-lg bg-white/70 backdrop-blur">
+            <Card className="border border-gray-800 bg-gray-900/50 backdrop-blur shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Leads</CardTitle>
-                <Users className="h-5 w-5 text-orange-500" />
+                <CardTitle className="text-sm font-medium text-gray-300">Total Leads</CardTitle>
+                <Users className="h-5 w-5 text-orange-400" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-gray-900" data-testid="stat-total-leads">
+                <div className="text-3xl font-bold text-white" data-testid="stat-total-leads">
                   {stats.totalLeads}
                 </div>
               </CardContent>
             </Card>
             
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-orange-500 to-red-600 text-white">
+            <Card className="border border-gray-800 bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-orange-100">New Leads</CardTitle>
                 <TrendingUp className="h-5 w-5 text-orange-200" />
@@ -174,7 +175,7 @@ export default function AdminLeads() {
               </CardContent>
             </Card>
             
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-green-500 to-emerald-600 text-white">
+            <Card className="border border-gray-800 bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-green-100">Approved Revenue</CardTitle>
                 <DollarSign className="h-5 w-5 text-green-200" />
@@ -186,7 +187,7 @@ export default function AdminLeads() {
               </CardContent>
             </Card>
             
-            <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-500 to-pink-600 text-white">
+            <Card className="border border-gray-800 bg-gradient-to-br from-purple-500 to-pink-600 text-white shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-purple-100">Promo Usage</CardTitle>
                 <Shield className="h-5 w-5 text-purple-200" />
