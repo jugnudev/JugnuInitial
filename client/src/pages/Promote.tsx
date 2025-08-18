@@ -224,6 +224,42 @@ export default function Promote() {
     }
   }, [prefillError]);
 
+  // Auto-calculate end date based on start date and campaign duration
+  useEffect(() => {
+    if (formData.start_date && selectedPackage) {
+      const startDate = new Date(formData.start_date);
+      let totalDays = 0;
+
+      // Calculate total days based on package and duration
+      if (selectedPackage === 'full_feature') {
+        totalDays = weekDuration * 7;
+      } else if (durationType === 'weekly') {
+        totalDays = weekDuration * 7;
+      } else {
+        totalDays = dayDuration;
+      }
+
+      // Calculate end date (campaign duration - 1 day since start date is included)
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + totalDays - 1);
+
+      // Format as YYYY-MM-DD for date input
+      const endDateString = endDate.toISOString().split('T')[0];
+      
+      setFormData(prev => ({
+        ...prev,
+        end_date: endDateString
+      }));
+    }
+  }, [formData.start_date, durationType, weekDuration, dayDuration, selectedPackage]);
+
+  // Get tomorrow's date as minimum start date
+  const getTomorrowDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  };
+
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -1956,6 +1992,7 @@ export default function Promote() {
                     <Input
                       type="date"
                       required
+                      min={getTomorrowDate()}
                       value={formData.start_date}
                       onChange={(e) => setFormData({...formData, start_date: e.target.value})}
                       className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
@@ -1966,13 +2003,16 @@ export default function Promote() {
                   <div>
                     <label className="block text-white font-medium mb-2">
                       End Date *
+                      <span className="text-muted text-sm font-normal ml-2">
+                        (Auto-calculated from start date + campaign duration)
+                      </span>
                     </label>
                     <Input
                       type="date"
                       required
                       value={formData.end_date}
-                      onChange={(e) => setFormData({...formData, end_date: e.target.value})}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      disabled
+                      className="bg-white/5 border-white/10 text-white/70 placeholder:text-white/30 cursor-not-allowed"
                       data-testid="input-end-date"
                     />
                   </div>
