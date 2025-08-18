@@ -49,8 +49,8 @@ interface AdminLeadsListProps {
 
 export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
   const [filters, setFilters] = useState({
-    status: '',
-    package_code: '',
+    status: 'all',
+    package_code: 'all',
     search: '',
     date_from: '',
     date_to: ''
@@ -65,7 +65,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
     queryFn: async () => {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
-        if (value) params.append(key, value);
+        if (value && value !== 'all') params.append(key, value);
       });
       
       const response = await fetch(`/api/admin/leads?${params}`, {
@@ -142,7 +142,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                 <SelectValue placeholder="All Statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Statuses</SelectItem>
+                <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="new">New</SelectItem>
                 <SelectItem value="reviewing">Reviewing</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
@@ -158,7 +158,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                 <SelectValue placeholder="All Packages" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Packages</SelectItem>
+                <SelectItem value="all">All Packages</SelectItem>
                 <SelectItem value="events_spotlight">Events Spotlight</SelectItem>
                 <SelectItem value="homepage_feature">Homepage Feature</SelectItem>
                 <SelectItem value="full_feature">Full Feature</SelectItem>
@@ -191,7 +191,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
           
           <div className="mt-4 flex gap-2">
             <Button 
-              onClick={() => setFilters({ status: '', package_code: '', search: '', date_from: '', date_to: '' })}
+              onClick={() => setFilters({ status: 'all', package_code: 'all', search: '', date_from: '', date_to: '' })}
               variant="outline"
               data-testid="button-clear-filters"
             >
@@ -201,11 +201,11 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
               onClick={() => {
                 const params = new URLSearchParams();
                 Object.entries(filters).forEach(([key, value]) => {
-                  if (value) params.append(key, value);
+                  if (value && value !== 'all') params.append(key, value);
                 });
                 params.append('export', 'csv');
                 
-                const url = `/admin/leads?${params}`;
+                const url = `/api/admin/leads?${params}`;
                 const link = document.createElement('a');
                 link.href = url;
                 link.download = `sponsor-leads-${new Date().toISOString().split('T')[0]}.csv`;
