@@ -396,6 +396,11 @@ export default function Promote() {
       const quoteId = sessionStorage.getItem('jugnu:current_quote') || sessionStorage.getItem('jugnu:sponsor_quote');
       
       // Prepare the application data matching the expected schema
+      // Use creative links or provide empty string if not available
+      const creativeUrl = formData.creative_links ? 
+        (formData.creative_links.startsWith('http') ? formData.creative_links : `https://${formData.creative_links}`) : 
+        '';
+      
       const applicationData = {
         quoteId: quoteId || undefined,
         businessName: formData.business_name,
@@ -413,8 +418,9 @@ export default function Promote() {
         addOns: selectedAddOns,
         objective: formData.objective,
         budgetRange: '',
-        desktopAssetUrl: formData.creative_links || 'https://placeholder.com/desktop.jpg',
-        mobileAssetUrl: formData.creative_links || 'https://placeholder.com/mobile.jpg',
+        // Use a valid placeholder URL that will pass validation
+        desktopAssetUrl: creativeUrl || 'https://via.placeholder.com/1600x400',
+        mobileAssetUrl: creativeUrl || 'https://via.placeholder.com/1080x1080',
         creativeLinks: formData.creative_links,
         comments: formData.comments,
         ackExclusive: true,
@@ -2101,12 +2107,33 @@ export default function Promote() {
                   </Select>
                 </div>
 
+                {/* Creative Links Field */}
+                <div>
+                  <label className="block text-white font-medium mb-2">
+                    Creative Asset Links
+                    <span className="text-muted text-sm font-normal ml-2">
+                      (Provide URLs to your creative assets)
+                    </span>
+                  </label>
+                  <Input
+                    type="url"
+                    value={formData.creative_links}
+                    onChange={(e) => setFormData({...formData, creative_links: e.target.value})}
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    placeholder="https://drive.google.com/your-creative-folder"
+                    data-testid="input-creative-links"
+                  />
+                  <p className="text-muted text-xs mt-2">
+                    Provide a link to your creative assets (Google Drive, Dropbox, etc.) or upload files below
+                  </p>
+                </div>
+
                 {/* Creative Upload Section */}
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
                       <Upload className="w-5 h-5" />
-                      Creative Assets
+                      Creative Assets (Optional)
                     </h3>
                     <p className="text-muted text-sm mb-6">
                       Upload your campaign creatives. Requirements vary by package:
