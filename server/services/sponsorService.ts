@@ -318,7 +318,6 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
     subtotal_cents: pricing.subtotalCents,
     addons_cents: pricing.addonsCents,
     total_cents: pricing.totalCents,
-    // placement field removed - not in database schema
     objective: data.objective || null,
     ack_exclusive: data.ackExclusive,
     ack_guarantee: data.ackGuarantee,
@@ -326,8 +325,8 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
     mobile_asset_url: data.mobileAssetUrl,
     creative_links: data.creativeLinks || null,
     comments: data.comments || null,
-    status: 'new'
-    // raw_payload field removed - not in database schema
+    status: 'new',
+    payload: rawPayload || {} // Add payload field with raw data or empty object
   };
   
   const supabase = getSupabaseAdmin();
