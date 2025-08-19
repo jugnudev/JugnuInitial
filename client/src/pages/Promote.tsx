@@ -411,8 +411,8 @@ export default function Promote() {
         mobileUrl = creativeUrl;
       } else if (hasUploadedFiles) {
         // Files are uploaded, use placeholder URLs since actual files will be handled separately
-        desktopUrl = `https://uploaded-file.placeholder/${creatives.desktop?.name || 'desktop.jpg'}`;
-        mobileUrl = `https://uploaded-file.placeholder/${creatives.mobile?.name || 'mobile.jpg'}`;
+        desktopUrl = `https://files.placeholder.com/${creatives.desktop?.name || 'desktop.jpg'}`;
+        mobileUrl = `https://files.placeholder.com/${creatives.mobile?.name || 'mobile.jpg'}`;
       }
       
       const applicationData = {

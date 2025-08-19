@@ -27,7 +27,7 @@ function checkRateLimit(ip: string, hitMap: Map<string, { count: number; ts: num
 // Validate creative assets
 function validateCreativeAssets(desktopUrl: string, mobileUrl: string): { valid: boolean; error?: string } {
   // Skip validation for placeholder URLs (when files are uploaded directly)
-  if (desktopUrl.includes('placeholder') || mobileUrl.includes('placeholder')) {
+  if (desktopUrl.includes('placeholder.com') || mobileUrl.includes('placeholder.com')) {
     return { valid: true };
   }
   
