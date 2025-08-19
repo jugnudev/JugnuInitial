@@ -389,31 +389,36 @@ export default function Promote() {
       // Get quote ID from session storage
       const quoteId = sessionStorage.getItem('jugnu:current_quote') || sessionStorage.getItem('jugnu:sponsor_quote');
       
-      const response = await fetch('/api/spotlight/leads', {
+      // Prepare the application data matching the expected schema
+      const applicationData = {
+        quoteId: quoteId || undefined,
+        businessName: formData.business_name,
+        contactName: formData.contact_name,
+        email: formData.email,
+        instagram: formData.instagram,
+        website: formData.website,
+        packageCode: selectedPackage,
+        duration: selectedPackage === 'full_feature' ? 'weekly' : durationType,
+        numWeeks: durationType === 'weekly' ? weekDuration : 1,
+        numDays: durationType === 'daily' ? dayDuration : 0,
+        selectedDates: [],
+        startDate: formData.start_date,
+        endDate: formData.end_date,
+        addOns: selectedAddOns,
+        objective: formData.objective,
+        budgetRange: '',
+        desktopAssetUrl: formData.creative_links || 'https://placeholder.com/desktop.jpg',
+        mobileAssetUrl: formData.creative_links || 'https://placeholder.com/mobile.jpg',
+        creativeLinks: formData.creative_links,
+        comments: formData.comments,
+        ackExclusive: true,
+        ackGuarantee: true
+      };
+
+      const response = await fetch('/api/spotlight/applications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          quote_id: quoteId,
-          selected_package: selectedPackage,
-          duration_type: selectedPackage === 'full_feature' ? 'weekly' : durationType,
-          week_duration: weekDuration,
-          selected_add_ons: selectedAddOns,
-          pricing_breakdown: currentPricing,
-          creative_validation: creativesRequired ? {
-            desktop_valid: creativeValidation.desktop.valid,
-            mobile_valid: creativeValidation.mobile.valid,
-            desktop_dimensions: creativeValidation.desktop.dimensions,
-            mobile_dimensions: creativeValidation.mobile.dimensions,
-            desktop_filename: creatives.desktop?.name,
-            mobile_filename: creatives.mobile?.name
-          } : null,
-          // Add tracking fields
-          utm_source: new URLSearchParams(window.location.search).get('utm_source'),
-          utm_medium: new URLSearchParams(window.location.search).get('utm_medium'),
-          utm_campaign: new URLSearchParams(window.location.search).get('utm_campaign'),
-          referrer: document.referrer
-        })
+        body: JSON.stringify(applicationData)
       });
 
       const result = await response.json();
