@@ -440,6 +440,17 @@ export default function Promote() {
         ackGuarantee: true
       };
 
+      // Debug logging
+      console.log('Submitting application with URLs:', {
+        desktopUrl,
+        mobileUrl,
+        hasUploadedFiles,
+        creativeFiles: {
+          desktop: creatives.desktop?.name,
+          mobile: creatives.mobile?.name
+        }
+      });
+
       const response = await fetch('/api/spotlight/applications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

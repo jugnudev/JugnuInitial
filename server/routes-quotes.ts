@@ -26,8 +26,11 @@ function checkRateLimit(ip: string, hitMap: Map<string, { count: number; ts: num
 
 // Validate creative assets
 function validateCreativeAssets(desktopUrl: string, mobileUrl: string): { valid: boolean; error?: string } {
+  console.log('Validating creative assets:', { desktopUrl, mobileUrl });
+  
   // Skip validation for placeholder URLs (when files are uploaded directly)
   if (desktopUrl.includes('placeholder.com') || mobileUrl.includes('placeholder.com')) {
+    console.log('Skipping validation - placeholder URLs detected');
     return { valid: true };
   }
   
@@ -36,15 +39,25 @@ function validateCreativeAssets(desktopUrl: string, mobileUrl: string): { valid:
     const desktopUrlObj = new URL(desktopUrl);
     const mobileUrlObj = new URL(mobileUrl);
     
+    console.log('Parsed URLs:', {
+      desktopHost: desktopUrlObj.hostname,
+      mobileHost: mobileUrlObj.hostname,
+      desktopPath: desktopUrlObj.pathname,
+      mobilePath: mobileUrlObj.pathname
+    });
+    
     // Allow Google Drive, Dropbox, and other common file sharing services
     const trustedHosts = ['drive.google.com', 'dropbox.com', 'wetransfer.com', 'imgur.com'];
     if (trustedHosts.some(host => desktopUrlObj.hostname.includes(host) || mobileUrlObj.hostname.includes(host))) {
+      console.log('Trusted host detected, skipping validation');
       return { valid: true };
     }
     
     // Check if URLs look like image URLs (skip for placeholder domains)
     const desktopExt = desktopUrlObj.pathname.split('.').pop()?.toLowerCase();
     const mobileExt = mobileUrlObj.pathname.split('.').pop()?.toLowerCase();
+    
+    console.log('File extensions:', { desktopExt, mobileExt });
     
     const validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
     
@@ -53,16 +66,22 @@ function validateCreativeAssets(desktopUrl: string, mobileUrl: string): { valid:
     const skipDesktopValidation = desktopUrlObj.hostname === 'files.placeholder.com';
     const skipMobileValidation = mobileUrlObj.hostname === 'files.placeholder.com';
     
+    console.log('Skip validation flags:', { skipDesktopValidation, skipMobileValidation });
+    
     if (!skipDesktopValidation && desktopExt && desktopExt.length <= 4 && !validExtensions.includes(desktopExt)) {
+      console.log('Desktop validation failed:', { desktopExt, validExtensions });
       return { valid: false, error: 'Desktop asset must be a valid image (JPG, PNG, WebP)' };
     }
     
     if (!skipMobileValidation && mobileExt && mobileExt.length <= 4 && !validExtensions.includes(mobileExt)) {
+      console.log('Mobile validation failed:', { mobileExt, validExtensions });
       return { valid: false, error: 'Mobile asset must be a valid image (JPG, PNG, WebP)' };
     }
     
+    console.log('Validation passed');
     return { valid: true };
-  } catch {
+  } catch (error) {
+    console.log('URL parsing error:', error);
     return { valid: false, error: 'Invalid creative asset URLs' };
   }
 }
@@ -225,9 +244,17 @@ export function addQuotesRoutes(app: Express) {
 
       const body = createApplicationSchema.parse(req.body);
       
+      // Debug logging
+      console.log('Application received with assets:', {
+        desktopUrl: body.desktopAssetUrl,
+        mobileUrl: body.mobileAssetUrl,
+        creativeLinks: body.creativeLinks
+      });
+      
       // Validate creative assets
       const assetValidation = validateCreativeAssets(body.desktopAssetUrl, body.mobileAssetUrl);
       if (!assetValidation.valid) {
+        console.log('Asset validation failed:', assetValidation.error);
         return res.status(400).json({ 
           ok: false,
           error: assetValidation.error 
