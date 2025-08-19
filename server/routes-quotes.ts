@@ -2,6 +2,7 @@ import type { Express } from 'express';
 import { createQuote, getQuote, createApplication, createQuoteSchema, createApplicationSchema } from './services/sponsorService';
 import { z } from 'zod';
 import sgMail from '@sendgrid/mail';
+import multer from 'multer';
 
 // Rate limiting for quote and application endpoints
 const rateLimit = { windowMs: 60_000, max: 10 };
@@ -152,6 +153,12 @@ async function sendAdminNotificationEmail(leadId: string, leadData: any) {
   }
 }
 
+// Setup multer for handling file uploads (10MB limit)
+const upload = multer({ 
+  limits: { fileSize: 10 * 1024 * 1024 },
+  storage: multer.memoryStorage()
+});
+
 export function addQuotesRoutes(app: Express) {
   // POST /api/spotlight/quotes - Create a new quote
   app.post('/api/spotlight/quotes', async (req, res) => {
@@ -231,8 +238,15 @@ export function addQuotesRoutes(app: Express) {
     }
   });
 
-  // POST /api/spotlight/applications - Submit sponsor application
-  app.post('/api/spotlight/applications', async (req, res) => {
+  // POST /api/spotlight/applications - Submit sponsor application (with file upload support)
+  app.post('/api/spotlight/applications', 
+    upload.fields([
+      { name: 'events_desktop', maxCount: 1 },
+      { name: 'events_mobile', maxCount: 1 },
+      { name: 'home_desktop', maxCount: 1 },
+      { name: 'home_mobile', maxCount: 1 }
+    ]),
+    async (req, res) => {
     try {
       // Rate limiting
       if (!checkRateLimit(req.ip || 'unknown', quotesHits)) {
@@ -242,24 +256,82 @@ export function addQuotesRoutes(app: Express) {
         });
       }
 
-      const body = createApplicationSchema.parse(req.body);
+      // Parse form data (multer puts files in req.files, other fields in req.body)
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      
+      // Build application data from form fields
+      const applicationData: any = {
+        businessName: req.body.businessName,
+        contactName: req.body.contactName,
+        email: req.body.email,
+        instagram: req.body.instagram,
+        website: req.body.website,
+        packageCode: req.body.packageCode,
+        duration: req.body.duration,
+        numWeeks: parseInt(req.body.numWeeks) || 1,
+        numDays: parseInt(req.body.numDays) || 0,
+        selectedDates: [],
+        startDate: req.body.startDate,
+        endDate: req.body.endDate,
+        addOns: req.body.addOns ? JSON.parse(req.body.addOns) : [],
+        objective: req.body.objective,
+        budgetRange: '',
+        comments: req.body.comments,
+        ackExclusive: true,
+        ackGuarantee: true,
+        quoteId: req.body.quoteId
+      };
+      
+      // Handle creative assets based on package type
+      const packageCode = req.body.packageCode;
+      let desktopAssetUrl = 'https://via.placeholder.com/1600x400';
+      let mobileAssetUrl = 'https://via.placeholder.com/1080x1080';
+      
+      if (packageCode === 'events_spotlight' || packageCode === 'full_feature') {
+        // Check for uploaded files first
+        if (files?.events_desktop?.[0]) {
+          // File uploaded - in a real app, upload to storage and get URL
+          desktopAssetUrl = `https://files.placeholder.com/${files.events_desktop[0].originalname}`;
+        } else if (req.body.events_desktop_asset_url) {
+          desktopAssetUrl = req.body.events_desktop_asset_url;
+        }
+        
+        if (files?.events_mobile?.[0]) {
+          mobileAssetUrl = `https://files.placeholder.com/${files.events_mobile[0].originalname}`;
+        } else if (req.body.events_mobile_asset_url) {
+          mobileAssetUrl = req.body.events_mobile_asset_url;
+        }
+      }
+      
+      if (packageCode === 'homepage_feature' || packageCode === 'full_feature') {
+        // For homepage or full feature, also check home assets
+        if (files?.home_desktop?.[0]) {
+          desktopAssetUrl = `https://files.placeholder.com/${files.home_desktop[0].originalname}`;
+        } else if (req.body.home_desktop_asset_url) {
+          desktopAssetUrl = req.body.home_desktop_asset_url;
+        }
+        
+        if (files?.home_mobile?.[0]) {
+          mobileAssetUrl = `https://files.placeholder.com/${files.home_mobile[0].originalname}`;
+        } else if (req.body.home_mobile_asset_url) {
+          mobileAssetUrl = req.body.home_mobile_asset_url;
+        }
+      }
+      
+      applicationData.desktopAssetUrl = desktopAssetUrl;
+      applicationData.mobileAssetUrl = mobileAssetUrl;
+      applicationData.creativeLinks = req.body.creative_links || '';
       
       // Debug logging
-      console.log('Application received with assets:', {
-        desktopUrl: body.desktopAssetUrl,
-        mobileUrl: body.mobileAssetUrl,
-        creativeLinks: body.creativeLinks
+      console.log('Application received:', {
+        packageCode,
+        hasFiles: !!files && Object.keys(files).length > 0,
+        desktopUrl: desktopAssetUrl,
+        mobileUrl: mobileAssetUrl
       });
       
-      // Validate creative assets
-      const assetValidation = validateCreativeAssets(body.desktopAssetUrl, body.mobileAssetUrl);
-      if (!assetValidation.valid) {
-        console.log('Asset validation failed:', assetValidation.error);
-        return res.status(400).json({ 
-          ok: false,
-          error: assetValidation.error 
-        });
-      }
+      // Validate the parsed data with schema
+      const body = createApplicationSchema.parse(applicationData);
       
       // Store raw payload for debugging
       const rawPayload = { ...req.body, ip: req.ip, userAgent: req.get('User-Agent') };

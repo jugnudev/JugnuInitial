@@ -362,11 +362,11 @@ export default function Promote() {
     // Creative validation - check if creatives are uploaded and valid for placement types that need them
     const creativesRequired = ['events_spotlight', 'homepage_feature', 'full_feature'].includes(selectedPackage || '');
     
-    if (creativesRequired) {
+    if (creativesRequired && !formData.creative_links) {
       if (!creatives.desktop || !creatives.mobile) {
         toast({
           title: "Creative Assets Required",
-          description: "Please upload both desktop and mobile creatives for your selected placements.",
+          description: "Please upload both desktop and mobile creatives or provide creative links.",
           variant: "destructive",
           duration: 5000,
         });
@@ -395,66 +395,72 @@ export default function Promote() {
       // Get quote ID from session storage
       const quoteId = sessionStorage.getItem('jugnu:current_quote') || sessionStorage.getItem('jugnu:sponsor_quote');
       
-      // Prepare the application data matching the expected schema
-      // Determine if we have uploaded files or need to use links
-      const hasUploadedFiles = creatives.desktop && creatives.mobile;
+      // Create FormData for multipart upload
+      const formDataToSend = new FormData();
       
-      // Use creative links or placeholder if files are uploaded
-      let desktopUrl = 'https://via.placeholder.com/1600x400';
-      let mobileUrl = 'https://via.placeholder.com/1080x1080';
+      // Add basic fields
+      formDataToSend.append('businessName', formData.business_name);
+      formDataToSend.append('contactName', formData.contact_name);
+      formDataToSend.append('email', formData.email);
+      if (formData.instagram) formDataToSend.append('instagram', formData.instagram);
+      if (formData.website) formDataToSend.append('website', formData.website);
+      formDataToSend.append('packageCode', selectedPackage || '');
+      formDataToSend.append('duration', selectedPackage === 'full_feature' ? 'weekly' : durationType);
+      formDataToSend.append('numWeeks', String(durationType === 'weekly' ? weekDuration : 1));
+      formDataToSend.append('numDays', String(durationType === 'daily' ? dayDuration : 0));
+      formDataToSend.append('startDate', formData.start_date);
+      formDataToSend.append('endDate', formData.end_date);
+      formDataToSend.append('addOns', JSON.stringify(selectedAddOns));
+      formDataToSend.append('objective', formData.objective);
+      if (formData.comments) formDataToSend.append('comments', formData.comments);
+      if (quoteId) formDataToSend.append('quoteId', quoteId);
       
-      if (formData.creative_links) {
-        const creativeUrl = formData.creative_links.startsWith('http') ? 
-          formData.creative_links : 
-          `https://${formData.creative_links}`;
-        desktopUrl = creativeUrl;
-        mobileUrl = creativeUrl;
-      } else if (hasUploadedFiles) {
-        // Files are uploaded, use placeholder URLs since actual files will be handled separately
-        desktopUrl = `https://files.placeholder.com/${creatives.desktop?.name || 'desktop.jpg'}`;
-        mobileUrl = `https://files.placeholder.com/${creatives.mobile?.name || 'mobile.jpg'}`;
+      // Add creative assets based on package type
+      if (creatives.desktop || creatives.mobile || formData.creative_links) {
+        if (formData.creative_links) {
+          // User provided links instead of files
+          const creativeUrl = formData.creative_links.startsWith('http') ? 
+            formData.creative_links : 
+            `https://${formData.creative_links}`;
+          
+          if (selectedPackage === 'events_spotlight' || selectedPackage === 'full_feature') {
+            formDataToSend.append('events_desktop_asset_url', creativeUrl);
+            formDataToSend.append('events_mobile_asset_url', creativeUrl);
+          }
+          if (selectedPackage === 'homepage_feature' || selectedPackage === 'full_feature') {
+            formDataToSend.append('home_desktop_asset_url', creativeUrl);
+            formDataToSend.append('home_mobile_asset_url', creativeUrl);
+          }
+        } else {
+          // User uploaded files
+          if (selectedPackage === 'events_spotlight' || selectedPackage === 'full_feature') {
+            if (creatives.desktop) formDataToSend.append('events_desktop', creatives.desktop, creatives.desktop.name);
+            if (creatives.mobile) formDataToSend.append('events_mobile', creatives.mobile, creatives.mobile.name);
+          }
+          if (selectedPackage === 'homepage_feature') {
+            if (creatives.desktop) formDataToSend.append('home_desktop', creatives.desktop, creatives.desktop.name);
+            if (creatives.mobile) formDataToSend.append('home_mobile', creatives.mobile, creatives.mobile.name);
+          }
+          if (selectedPackage === 'full_feature') {
+            // For full feature, we need both events and home creatives
+            // Using the same files for both placements for now
+            if (creatives.desktop) formDataToSend.append('home_desktop', creatives.desktop, creatives.desktop.name);
+            if (creatives.mobile) formDataToSend.append('home_mobile', creatives.mobile, creatives.mobile.name);
+          }
+        }
       }
-      
-      const applicationData = {
-        quoteId: quoteId || undefined,
-        businessName: formData.business_name,
-        contactName: formData.contact_name,
-        email: formData.email,
-        instagram: formData.instagram,
-        website: formData.website,
-        packageCode: selectedPackage,
-        duration: selectedPackage === 'full_feature' ? 'weekly' : durationType,
-        numWeeks: durationType === 'weekly' ? weekDuration : 1,
-        numDays: durationType === 'daily' ? dayDuration : 0,
-        selectedDates: [],
-        startDate: formData.start_date,
-        endDate: formData.end_date,
-        addOns: selectedAddOns,
-        objective: formData.objective,
-        budgetRange: '',
-        desktopAssetUrl: desktopUrl,
-        mobileAssetUrl: mobileUrl,
-        creativeLinks: formData.creative_links || (hasUploadedFiles ? `Files uploaded: ${creatives.desktop?.name}, ${creatives.mobile?.name}` : ''),
-        comments: formData.comments,
-        ackExclusive: true,
-        ackGuarantee: true
-      };
 
       // Debug logging
-      console.log('Submitting application with URLs:', {
-        desktopUrl,
-        mobileUrl,
-        hasUploadedFiles,
-        creativeFiles: {
-          desktop: creatives.desktop?.name,
-          mobile: creatives.mobile?.name
-        }
+      console.log('Submitting form with files:', {
+        hasFiles: !!creatives.desktop || !!creatives.mobile,
+        hasLinks: !!formData.creative_links,
+        packageCode: selectedPackage
       });
 
+      // DO NOT set Content-Type header - let browser set it automatically for multipart/form-data
       const response = await fetch('/api/spotlight/applications', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(applicationData)
+        body: formDataToSend
       });
 
       const result = await response.json();

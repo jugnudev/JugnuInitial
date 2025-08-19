@@ -1,0 +1,168 @@
+Creative Upload 400 fix (v12)
+
+Goal
+Fix 400 Desktop asset must be a valid image when submitting the sponsorship application by:
+
+Ensuring the client sends actual File blobs (not metadata) via FormData with no manual Content-Type header.
+
+Aligning the field names with what the API expects.
+
+Making the server accept either multipart files or pre-uploaded URLs, then store and validate.
+
+1) Canonical request shape (client → server)
+
+A) Single-placement packages
+
+events_spotlight must send:
+
+events_desktop (File or events_desktop_asset_url as string)
+
+events_mobile (File or events_mobile_asset_url as string)
+
+home_feature must send:
+
+home_desktop (File or home_desktop_asset_url)
+
+home_mobile (File or home_mobile_asset_url)
+
+B) Full Feature
+
+Send all four (File or URL per field):
+
+events_desktop, events_mobile, home_desktop, home_mobile
+
+(or the _asset_url variants)
+
+Other fields (strings/JSON): package_code, start_date, end_date, add_ons (JSON string array), contact info, etc.
+
+2) Frontend: always use FormData for file flow
+
+In handleFormSubmit:
+
+const fd = new FormData();
+
+// basic fields (strings)
+fd.append('package_code', values.package_code);
+fd.append('start_date', values.start_date);  // YYYY-MM-DD
+fd.append('end_date', values.end_date);
+fd.append('add_ons', JSON.stringify(values.add_ons || []));
+
+// helper to append either file or url
+function appendAsset(key: string, file?: File, url?: string) {
+  if (file instanceof File) fd.append(key, file, file.name);
+  else if (url) fd.append(`${key}_asset_url`, url);
+}
+
+// IMPORTANT: use the actual File object from dropzone/input
+// Ensure your dropzone state preserves both preview + the File
+// e.g. { file: File, width: number, height: number, ... }
+
+if (values.package_code === 'events_spotlight') {
+  appendAsset('events_desktop', state.eventsDesktop?.file, state.eventsDesktopUrl);
+  appendAsset('events_mobile',  state.eventsMobile?.file,  state.eventsMobileUrl);
+} else if (values.package_code === 'home_feature') {
+  appendAsset('home_desktop',   state.homeDesktop?.file,   state.homeDesktopUrl);
+  appendAsset('home_mobile',    state.homeMobile?.file,    state.homeMobileUrl);
+} else { // full_feature
+  appendAsset('events_desktop', state.eventsDesktop?.file, state.eventsDesktopUrl);
+  appendAsset('events_mobile',  state.eventsMobile?.file,  state.eventsMobileUrl);
+  appendAsset('home_desktop',   state.homeDesktop?.file,   state.homeDesktopUrl);
+  appendAsset('home_mobile',    state.homeMobile?.file,    state.homeMobileUrl);
+}
+
+// DO NOT set Content-Type manually; let the browser set the multipart boundary
+const res = await fetch('/api/spotlight/applications', { method: 'POST', body: fd });
+if (!res.ok) throw new Error(await res.text());
+
+
+Dropzone fix: make sure each dropzone stores the File:
+onDrop={(files) => setState(s => ({...s, eventsDesktop: { file: files[0], width, height, name: files[0].name }}))}
+Avoid sending { name, width, height } alone—server needs the File.
+
+3) Backend: accept file or URL, validate & store
+
+Use multer (or busboy) to parse multipart. Expected field names:
+
+events_desktop, events_mobile, home_desktop, home_mobile
+
+For each asset, logic:
+
+If file present → validate MIME (image/jpeg|png|webp), size limits, optional min dimensions (with sharp().metadata()), then upload to your storage (Supabase/S3) and produce a URL.
+
+Else if *_asset_url present → accept and (optionally) HEAD check content-type starts with image/.
+
+Else → 400 with clear field name.
+
+Example (Express, pseudo):
+
+const upload = multer({ limits:{ fileSize: 10*1024*1024 } }); // 10MB
+
+app.post('/api/spotlight/applications',
+  upload.fields([
+    { name: 'events_desktop', maxCount: 1 },
+    { name: 'events_mobile',  maxCount: 1 },
+    { name: 'home_desktop',   maxCount: 1 },
+    { name: 'home_mobile',    maxCount: 1 },
+  ]),
+  async (req, res) => {
+    const { package_code } = req.body;
+    const need = package_code === 'full_feature'
+      ? ['events_desktop','events_mobile','home_desktop','home_mobile']
+      : package_code === 'home_feature'
+        ? ['home_desktop','home_mobile']
+        : ['events_desktop','events_mobile'];
+
+    const out: Record<string,string|null> = {
+      events_desktop_asset_url: null,
+      events_mobile_asset_url:  null,
+      home_desktop_asset_url:   null,
+      home_mobile_asset_url:    null,
+    };
+
+    for (const key of need) {
+      const file = req.files?.[key]?.[0];
+      const url  = req.body[`${key}_asset_url`];
+
+      if (file) {
+        const okMime = ['image/jpeg','image/png','image/webp'].includes(file.mimetype);
+        if (!okMime) return res.status(400).send(`${key} must be JPG, PNG, or WebP`);
+
+        // optional: validate dimensions
+        // const meta = await sharp(file.buffer).metadata();
+        // if (key==='events_desktop' && (meta.width! < 1600 || meta.height! < 400)) ...
+
+        // upload to storage → get public URL
+        const publicUrl = await uploadToStorage(`creatives/${uuid()}-${file.originalname}`, file.buffer, file.mimetype);
+        out[`${key}_asset_url`] = publicUrl;
+      } else if (typeof url === 'string' && url.trim()) {
+        out[`${key}_asset_url`] = url.trim();
+      } else {
+        return res.status(400).send(`${key} is required (file or *_asset_url)`);
+      }
+    }
+
+    // … proceed to create sponsor_leads with the URLs in `out`
+    // and other form fields (start_date/end_date etc.)
+    return res.json({ ok: true, assets: out });
+  }
+);
+
+4) Quick debug you can run immediately (no code change)
+
+Open DevTools → Network tab on submit:
+
+Request headers should show Content-Type: multipart/form-data; boundary=... (you must not set this manually).
+
+Request payload should show file parts with filename="Untitled design (3).png" and Content-Type: image/png.
+
+If you don’t see file parts, the client isn’t appending the File, it’s appending metadata or JSON → fix step 2.
+
+5) Acceptance criteria
+
+Submitting with your PNGs no longer 400s; server returns { ok: true } and the lead row contains the correct asset URL columns.
+
+Single-placement packages: only 2 assets required; Full Feature: all 4 required; the others stored as NULL.
+
+If user provides asset links instead of files, submission still works (server accepts URLs).
+
+Error messages are field-specific (e.g., events_desktop must be JPG, PNG, or WebP), not a generic “Desktop asset…” message.
