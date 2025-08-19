@@ -42,18 +42,22 @@ function validateCreativeAssets(desktopUrl: string, mobileUrl: string): { valid:
       return { valid: true };
     }
     
-    // Check if URLs look like image URLs
+    // Check if URLs look like image URLs (skip for placeholder domains)
     const desktopExt = desktopUrlObj.pathname.split('.').pop()?.toLowerCase();
     const mobileExt = mobileUrlObj.pathname.split('.').pop()?.toLowerCase();
     
     const validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
     
-    // Only validate extensions if they exist (some sharing links don't have extensions)
-    if (desktopExt && desktopExt.length <= 4 && !validExtensions.includes(desktopExt)) {
+    // Only validate extensions if they exist and are not from placeholder domains
+    // Skip validation for files.placeholder.com which indicates uploaded files
+    const skipDesktopValidation = desktopUrlObj.hostname === 'files.placeholder.com';
+    const skipMobileValidation = mobileUrlObj.hostname === 'files.placeholder.com';
+    
+    if (!skipDesktopValidation && desktopExt && desktopExt.length <= 4 && !validExtensions.includes(desktopExt)) {
       return { valid: false, error: 'Desktop asset must be a valid image (JPG, PNG, WebP)' };
     }
     
-    if (mobileExt && mobileExt.length <= 4 && !validExtensions.includes(mobileExt)) {
+    if (!skipMobileValidation && mobileExt && mobileExt.length <= 4 && !validExtensions.includes(mobileExt)) {
       return { valid: false, error: 'Mobile asset must be a valid image (JPG, PNG, WebP)' };
     }
     
