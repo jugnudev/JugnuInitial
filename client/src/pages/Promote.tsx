@@ -398,16 +398,19 @@ export default function Promote() {
       // Create FormData for multipart upload
       const formDataToSend = new FormData();
       
+      // Ensure we have a valid package selected
+      const packageToSubmit = selectedPackage || 'events_spotlight';
+      
       // Add basic fields
       formDataToSend.append('businessName', formData.business_name);
       formDataToSend.append('contactName', formData.contact_name);
       formDataToSend.append('email', formData.email);
       if (formData.instagram) formDataToSend.append('instagram', formData.instagram);
       if (formData.website) formDataToSend.append('website', formData.website);
-      formDataToSend.append('packageCode', selectedPackage || '');
-      formDataToSend.append('duration', selectedPackage === 'full_feature' ? 'weekly' : durationType);
+      formDataToSend.append('packageCode', packageToSubmit);
+      formDataToSend.append('duration', packageToSubmit === 'full_feature' ? 'weekly' : durationType);
       formDataToSend.append('numWeeks', String(durationType === 'weekly' ? weekDuration : 1));
-      formDataToSend.append('numDays', String(durationType === 'daily' ? dayDuration : 0));
+      formDataToSend.append('numDays', String(durationType === 'daily' ? dayDuration : 1)); // Minimum 1 day
       formDataToSend.append('startDate', formData.start_date);
       formDataToSend.append('endDate', formData.end_date);
       formDataToSend.append('addOns', JSON.stringify(selectedAddOns));
@@ -423,25 +426,25 @@ export default function Promote() {
             formData.creative_links : 
             `https://${formData.creative_links}`;
           
-          if (selectedPackage === 'events_spotlight' || selectedPackage === 'full_feature') {
+          if (packageToSubmit === 'events_spotlight' || packageToSubmit === 'full_feature') {
             formDataToSend.append('events_desktop_asset_url', creativeUrl);
             formDataToSend.append('events_mobile_asset_url', creativeUrl);
           }
-          if (selectedPackage === 'homepage_feature' || selectedPackage === 'full_feature') {
+          if (packageToSubmit === 'homepage_feature' || packageToSubmit === 'full_feature') {
             formDataToSend.append('home_desktop_asset_url', creativeUrl);
             formDataToSend.append('home_mobile_asset_url', creativeUrl);
           }
         } else {
           // User uploaded files
-          if (selectedPackage === 'events_spotlight' || selectedPackage === 'full_feature') {
+          if (packageToSubmit === 'events_spotlight' || packageToSubmit === 'full_feature') {
             if (creatives.desktop) formDataToSend.append('events_desktop', creatives.desktop, creatives.desktop.name);
             if (creatives.mobile) formDataToSend.append('events_mobile', creatives.mobile, creatives.mobile.name);
           }
-          if (selectedPackage === 'homepage_feature') {
+          if (packageToSubmit === 'homepage_feature') {
             if (creatives.desktop) formDataToSend.append('home_desktop', creatives.desktop, creatives.desktop.name);
             if (creatives.mobile) formDataToSend.append('home_mobile', creatives.mobile, creatives.mobile.name);
           }
-          if (selectedPackage === 'full_feature') {
+          if (packageToSubmit === 'full_feature') {
             // For full feature, we need both events and home creatives
             // Using the same files for both placements for now
             if (creatives.desktop) formDataToSend.append('home_desktop', creatives.desktop, creatives.desktop.name);
@@ -454,7 +457,7 @@ export default function Promote() {
       console.log('Submitting form with files:', {
         hasFiles: !!creatives.desktop || !!creatives.mobile,
         hasLinks: !!formData.creative_links,
-        packageCode: selectedPackage
+        packageCode: packageToSubmit
       });
 
       // DO NOT set Content-Type header - let browser set it automatically for multipart/form-data
