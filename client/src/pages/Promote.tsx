@@ -96,6 +96,12 @@ export default function Promote() {
     mobile: { valid: false, issues: [] as string[], dimensions: null as {width: number, height: number} | null }
   });
   
+  // Drag state for visual feedback
+  const [dragActive, setDragActive] = useState({
+    desktop: false,
+    mobile: false
+  });
+  
   // Calculate current pricing
   const currentPricing = selectedPackage ? calculatePricing(
     selectedPackage,
@@ -2119,11 +2125,48 @@ export default function Promote() {
                       </span>
                     </label>
                     
-                    <div className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
-                      creatives.desktop ? 
-                        (creativeValidation.desktop.valid ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10') :
-                        'border-white/20 hover:border-white/40'
-                    }`}>
+                    <div 
+                      className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
+                        dragActive.desktop ? 'border-copper-500 bg-copper-500/20' :
+                        creatives.desktop ? 
+                          (creativeValidation.desktop.valid ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10') :
+                          'border-white/20 hover:border-white/40'
+                      }`}
+                      onDragEnter={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragActive(prev => ({ ...prev, desktop: true }));
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (e.currentTarget === e.target) {
+                          setDragActive(prev => ({ ...prev, desktop: false }));
+                        }
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragActive(prev => ({ ...prev, desktop: false }));
+                        
+                        const files = Array.from(e.dataTransfer.files);
+                        const imageFile = files.find(file => file.type.startsWith('image/'));
+                        
+                        if (imageFile) {
+                          handleCreativeUpload(imageFile, 'desktop');
+                        } else {
+                          toast({
+                            title: "Invalid file",
+                            description: "Please drop an image file (JPG, PNG, or WebP)",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
@@ -2138,9 +2181,11 @@ export default function Promote() {
                       
                       {!creatives.desktop ? (
                         <label htmlFor="desktop-creative" className="cursor-pointer flex flex-col items-center gap-3">
-                          <Upload className="w-8 h-8 text-muted" />
+                          <Upload className={`w-8 h-8 ${dragActive.desktop ? 'text-copper-500' : 'text-muted'} transition-colors`} />
                           <div className="text-center">
-                            <div className="text-white font-medium">Upload Desktop Creative</div>
+                            <div className="text-white font-medium">
+                              {dragActive.desktop ? 'Drop your image here' : 'Upload Desktop Creative'}
+                            </div>
                             <div className="text-muted text-sm">Click to browse or drag & drop</div>
                           </div>
                         </label>
@@ -2206,11 +2251,48 @@ export default function Promote() {
                       </span>
                     </label>
                     
-                    <div className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
-                      creatives.mobile ? 
-                        (creativeValidation.mobile.valid ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10') :
-                        'border-white/20 hover:border-white/40'
-                    }`}>
+                    <div 
+                      className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
+                        dragActive.mobile ? 'border-copper-500 bg-copper-500/20' :
+                        creatives.mobile ? 
+                          (creativeValidation.mobile.valid ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10') :
+                          'border-white/20 hover:border-white/40'
+                      }`}
+                      onDragEnter={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragActive(prev => ({ ...prev, mobile: true }));
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (e.currentTarget === e.target) {
+                          setDragActive(prev => ({ ...prev, mobile: false }));
+                        }
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragActive(prev => ({ ...prev, mobile: false }));
+                        
+                        const files = Array.from(e.dataTransfer.files);
+                        const imageFile = files.find(file => file.type.startsWith('image/'));
+                        
+                        if (imageFile) {
+                          handleCreativeUpload(imageFile, 'mobile');
+                        } else {
+                          toast({
+                            title: "Invalid file",
+                            description: "Please drop an image file (JPG, PNG, or WebP)",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                    >
                       <input
                         type="file"
                         accept="image/jpeg,image/png,image/webp"
@@ -2225,9 +2307,11 @@ export default function Promote() {
                       
                       {!creatives.mobile ? (
                         <label htmlFor="mobile-creative" className="cursor-pointer flex flex-col items-center gap-3">
-                          <Upload className="w-8 h-8 text-muted" />
+                          <Upload className={`w-8 h-8 ${dragActive.mobile ? 'text-copper-500' : 'text-muted'} transition-colors`} />
                           <div className="text-center">
-                            <div className="text-white font-medium">Upload Mobile Creative</div>
+                            <div className="text-white font-medium">
+                              {dragActive.mobile ? 'Drop your image here' : 'Upload Mobile Creative'}
+                            </div>
                             <div className="text-muted text-sm">Click to browse or drag & drop</div>
                           </div>
                         </label>
