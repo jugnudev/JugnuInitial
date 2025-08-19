@@ -318,9 +318,7 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
     subtotal_cents: pricing.subtotalCents,
     addons_cents: pricing.addonsCents,
     total_cents: pricing.totalCents,
-    placement: finalPackageCode === 'events_spotlight' ? 'events_banner' : 
-               finalPackageCode === 'homepage_feature' ? 'home_hero' : 
-               'full_feature', // Derive placement from package code
+    // placement field removed - not in database schema
     objective: data.objective || null,
     ack_exclusive: data.ackExclusive,
     ack_guarantee: data.ackGuarantee,

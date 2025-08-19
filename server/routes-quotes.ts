@@ -303,8 +303,8 @@ export function addQuotesRoutes(app: Express) {
         }
       }
       
-      if (packageCode === 'homepage_feature' || packageCode === 'full_feature') {
-        // For homepage or full feature, also check home assets
+      if (packageCode === 'homepage_feature') {
+        // For homepage, check home assets
         if (files?.home_desktop?.[0]) {
           desktopAssetUrl = `https://files.placeholder.com/${files.home_desktop[0].originalname}`;
         } else if (req.body.home_desktop_asset_url) {
@@ -315,6 +315,29 @@ export function addQuotesRoutes(app: Express) {
           mobileAssetUrl = `https://files.placeholder.com/${files.home_mobile[0].originalname}`;
         } else if (req.body.home_mobile_asset_url) {
           mobileAssetUrl = req.body.home_mobile_asset_url;
+        }
+      }
+      
+      if (packageCode === 'full_feature') {
+        // For full feature, check both events and home assets (prioritize home if both exist)
+        if (files?.home_desktop?.[0]) {
+          desktopAssetUrl = `https://files.placeholder.com/${files.home_desktop[0].originalname}`;
+        } else if (files?.events_desktop?.[0]) {
+          desktopAssetUrl = `https://files.placeholder.com/${files.events_desktop[0].originalname}`;
+        } else if (req.body.home_desktop_asset_url) {
+          desktopAssetUrl = req.body.home_desktop_asset_url;
+        } else if (req.body.events_desktop_asset_url) {
+          desktopAssetUrl = req.body.events_desktop_asset_url;
+        }
+        
+        if (files?.home_mobile?.[0]) {
+          mobileAssetUrl = `https://files.placeholder.com/${files.home_mobile[0].originalname}`;
+        } else if (files?.events_mobile?.[0]) {
+          mobileAssetUrl = `https://files.placeholder.com/${files.events_mobile[0].originalname}`;
+        } else if (req.body.home_mobile_asset_url) {
+          mobileAssetUrl = req.body.home_mobile_asset_url;
+        } else if (req.body.events_mobile_asset_url) {
+          mobileAssetUrl = req.body.events_mobile_asset_url;
         }
       }
       

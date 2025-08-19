@@ -419,37 +419,36 @@ export default function Promote() {
       if (quoteId) formDataToSend.append('quoteId', quoteId);
       
       // Add creative assets based on package type
-      if (creatives.desktop || creatives.mobile || formData.creative_links) {
-        if (formData.creative_links) {
-          // User provided links instead of files
-          const creativeUrl = formData.creative_links.startsWith('http') ? 
-            formData.creative_links : 
-            `https://${formData.creative_links}`;
-          
-          if (packageToSubmit === 'events_spotlight' || packageToSubmit === 'full_feature') {
-            formDataToSend.append('events_desktop_asset_url', creativeUrl);
-            formDataToSend.append('events_mobile_asset_url', creativeUrl);
-          }
-          if (packageToSubmit === 'homepage_feature' || packageToSubmit === 'full_feature') {
-            formDataToSend.append('home_desktop_asset_url', creativeUrl);
-            formDataToSend.append('home_mobile_asset_url', creativeUrl);
-          }
-        } else {
-          // User uploaded files
-          if (packageToSubmit === 'events_spotlight' || packageToSubmit === 'full_feature') {
-            if (creatives.desktop) formDataToSend.append('events_desktop', creatives.desktop, creatives.desktop.name);
-            if (creatives.mobile) formDataToSend.append('events_mobile', creatives.mobile, creatives.mobile.name);
-          }
-          if (packageToSubmit === 'homepage_feature') {
-            if (creatives.desktop) formDataToSend.append('home_desktop', creatives.desktop, creatives.desktop.name);
-            if (creatives.mobile) formDataToSend.append('home_mobile', creatives.mobile, creatives.mobile.name);
-          }
-          if (packageToSubmit === 'full_feature') {
-            // For full feature, we need both events and home creatives
-            // Using the same files for both placements for now
-            if (creatives.desktop) formDataToSend.append('home_desktop', creatives.desktop, creatives.desktop.name);
-            if (creatives.mobile) formDataToSend.append('home_mobile', creatives.mobile, creatives.mobile.name);
-          }
+      // Priority: uploaded files first, then links if no files
+      if (creatives.desktop || creatives.mobile) {
+        // User uploaded files - these take priority
+        if (packageToSubmit === 'events_spotlight' || packageToSubmit === 'full_feature') {
+          if (creatives.desktop) formDataToSend.append('events_desktop', creatives.desktop, creatives.desktop.name);
+          if (creatives.mobile) formDataToSend.append('events_mobile', creatives.mobile, creatives.mobile.name);
+        }
+        if (packageToSubmit === 'homepage_feature') {
+          if (creatives.desktop) formDataToSend.append('home_desktop', creatives.desktop, creatives.desktop.name);
+          if (creatives.mobile) formDataToSend.append('home_mobile', creatives.mobile, creatives.mobile.name);
+        }
+        if (packageToSubmit === 'full_feature') {
+          // For full feature, we need both events and home creatives
+          // Using the same files for both placements
+          if (creatives.desktop) formDataToSend.append('home_desktop', creatives.desktop, creatives.desktop.name);
+          if (creatives.mobile) formDataToSend.append('home_mobile', creatives.mobile, creatives.mobile.name);
+        }
+      } else if (formData.creative_links && formData.creative_links.trim()) {
+        // Only use links if no files were uploaded and links are provided
+        const creativeUrl = formData.creative_links.startsWith('http') ? 
+          formData.creative_links : 
+          `https://${formData.creative_links}`;
+        
+        if (packageToSubmit === 'events_spotlight' || packageToSubmit === 'full_feature') {
+          formDataToSend.append('events_desktop_asset_url', creativeUrl);
+          formDataToSend.append('events_mobile_asset_url', creativeUrl);
+        }
+        if (packageToSubmit === 'homepage_feature' || packageToSubmit === 'full_feature') {
+          formDataToSend.append('home_desktop_asset_url', creativeUrl);
+          formDataToSend.append('home_mobile_asset_url', creativeUrl);
         }
       }
 
