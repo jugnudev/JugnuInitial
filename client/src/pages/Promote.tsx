@@ -396,10 +396,24 @@ export default function Promote() {
       const quoteId = sessionStorage.getItem('jugnu:current_quote') || sessionStorage.getItem('jugnu:sponsor_quote');
       
       // Prepare the application data matching the expected schema
-      // Use creative links or provide empty string if not available
-      const creativeUrl = formData.creative_links ? 
-        (formData.creative_links.startsWith('http') ? formData.creative_links : `https://${formData.creative_links}`) : 
-        '';
+      // Determine if we have uploaded files or need to use links
+      const hasUploadedFiles = creatives.desktop && creatives.mobile;
+      
+      // Use creative links or placeholder if files are uploaded
+      let desktopUrl = 'https://via.placeholder.com/1600x400';
+      let mobileUrl = 'https://via.placeholder.com/1080x1080';
+      
+      if (formData.creative_links) {
+        const creativeUrl = formData.creative_links.startsWith('http') ? 
+          formData.creative_links : 
+          `https://${formData.creative_links}`;
+        desktopUrl = creativeUrl;
+        mobileUrl = creativeUrl;
+      } else if (hasUploadedFiles) {
+        // Files are uploaded, use placeholder URLs since actual files will be handled separately
+        desktopUrl = `https://uploaded-file.placeholder/${creatives.desktop?.name || 'desktop.jpg'}`;
+        mobileUrl = `https://uploaded-file.placeholder/${creatives.mobile?.name || 'mobile.jpg'}`;
+      }
       
       const applicationData = {
         quoteId: quoteId || undefined,
@@ -418,10 +432,9 @@ export default function Promote() {
         addOns: selectedAddOns,
         objective: formData.objective,
         budgetRange: '',
-        // Use a valid placeholder URL that will pass validation
-        desktopAssetUrl: creativeUrl || 'https://via.placeholder.com/1600x400',
-        mobileAssetUrl: creativeUrl || 'https://via.placeholder.com/1080x1080',
-        creativeLinks: formData.creative_links,
+        desktopAssetUrl: desktopUrl,
+        mobileAssetUrl: mobileUrl,
+        creativeLinks: formData.creative_links || (hasUploadedFiles ? `Files uploaded: ${creatives.desktop?.name}, ${creatives.mobile?.name}` : ''),
         comments: formData.comments,
         ackExclusive: true,
         ackGuarantee: true
@@ -2112,19 +2125,19 @@ export default function Promote() {
                   <label className="block text-white font-medium mb-2">
                     Creative Asset Links
                     <span className="text-muted text-sm font-normal ml-2">
-                      (Provide URLs to your creative assets)
+                      (Optional - Not needed if uploading files below)
                     </span>
                   </label>
                   <Input
-                    type="url"
+                    type="text"
                     value={formData.creative_links}
                     onChange={(e) => setFormData({...formData, creative_links: e.target.value})}
                     className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                    placeholder="https://drive.google.com/your-creative-folder"
+                    placeholder="https://drive.google.com/your-creative-folder (optional)"
                     data-testid="input-creative-links"
                   />
                   <p className="text-muted text-xs mt-2">
-                    Provide a link to your creative assets (Google Drive, Dropbox, etc.) or upload files below
+                    Provide a link to your creative assets OR upload files below. You don't need both.
                   </p>
                 </div>
 

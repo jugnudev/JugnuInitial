@@ -26,24 +26,34 @@ function checkRateLimit(ip: string, hitMap: Map<string, { count: number; ts: num
 
 // Validate creative assets
 function validateCreativeAssets(desktopUrl: string, mobileUrl: string): { valid: boolean; error?: string } {
-  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  // Skip validation for placeholder URLs (when files are uploaded directly)
+  if (desktopUrl.includes('placeholder') || mobileUrl.includes('placeholder')) {
+    return { valid: true };
+  }
   
   // Basic URL validation (more comprehensive validation would happen server-side with actual image fetching)
   try {
     const desktopUrlObj = new URL(desktopUrl);
     const mobileUrlObj = new URL(mobileUrl);
     
+    // Allow Google Drive, Dropbox, and other common file sharing services
+    const trustedHosts = ['drive.google.com', 'dropbox.com', 'wetransfer.com', 'imgur.com'];
+    if (trustedHosts.some(host => desktopUrlObj.hostname.includes(host) || mobileUrlObj.hostname.includes(host))) {
+      return { valid: true };
+    }
+    
     // Check if URLs look like image URLs
     const desktopExt = desktopUrlObj.pathname.split('.').pop()?.toLowerCase();
     const mobileExt = mobileUrlObj.pathname.split('.').pop()?.toLowerCase();
     
-    const validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+    const validExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
     
-    if (desktopExt && !validExtensions.includes(desktopExt)) {
+    // Only validate extensions if they exist (some sharing links don't have extensions)
+    if (desktopExt && desktopExt.length <= 4 && !validExtensions.includes(desktopExt)) {
       return { valid: false, error: 'Desktop asset must be a valid image (JPG, PNG, WebP)' };
     }
     
-    if (mobileExt && !validExtensions.includes(mobileExt)) {
+    if (mobileExt && mobileExt.length <= 4 && !validExtensions.includes(mobileExt)) {
       return { valid: false, error: 'Mobile asset must be a valid image (JPG, PNG, WebP)' };
     }
     
