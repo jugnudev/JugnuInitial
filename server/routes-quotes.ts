@@ -1,8 +1,11 @@
 import type { Express } from 'express';
 import { createQuote, getQuote, createApplication, createQuoteSchema, createApplicationSchema } from './services/sponsorService';
+import { uploadSponsorCreatives } from './services/storageService';
 import { z } from 'zod';
 import sgMail from '@sendgrid/mail';
 import multer from 'multer';
+import { v4 as uuidv4 } from 'uuid';
+
 
 // Rate limiting for quote and application endpoints
 const rateLimit = { windowMs: 60_000, max: 10 };
@@ -29,13 +32,7 @@ function checkRateLimit(ip: string, hitMap: Map<string, { count: number; ts: num
 function validateCreativeAssets(desktopUrl: string, mobileUrl: string): { valid: boolean; error?: string } {
   console.log('Validating creative assets:', { desktopUrl, mobileUrl });
   
-  // Skip validation for placeholder URLs (when files are uploaded directly)
-  if (desktopUrl.includes('placeholder.com') || mobileUrl.includes('placeholder.com')) {
-    console.log('Skipping validation - placeholder URLs detected');
-    return { valid: true };
-  }
-  
-  // Basic URL validation (more comprehensive validation would happen server-side with actual image fetching)
+  // Basic URL validation
   try {
     const desktopUrlObj = new URL(desktopUrl);
     const mobileUrlObj = new URL(mobileUrl);
@@ -48,9 +45,9 @@ function validateCreativeAssets(desktopUrl: string, mobileUrl: string): { valid:
     });
     
     // Allow Google Drive, Dropbox, and other common file sharing services
-    const trustedHosts = ['drive.google.com', 'dropbox.com', 'wetransfer.com', 'imgur.com'];
+    const trustedHosts = ['drive.google.com', 'dropbox.com', 'wetransfer.com', 'imgur.com', 'supabase.co', 'supabase.in'];
     if (trustedHosts.some(host => desktopUrlObj.hostname.includes(host) || mobileUrlObj.hostname.includes(host))) {
-      console.log('Trusted host detected, skipping validation');
+      console.log('Trusted host detected');
       return { valid: true };
     }
     
@@ -269,7 +266,7 @@ export function addQuotesRoutes(app: Express) {
         packageCode: req.body.packageCode,
         duration: req.body.duration,
         numWeeks: parseInt(req.body.numWeeks) || 1,
-        numDays: parseInt(req.body.numDays) || 0,
+        numDays: parseInt(req.body.numDays) || 1,  // Default to 1 if not provided
         selectedDates: [],
         startDate: req.body.startDate,
         endDate: req.body.endDate,
@@ -284,61 +281,57 @@ export function addQuotesRoutes(app: Express) {
       
       // Handle creative assets based on package type
       const packageCode = req.body.packageCode;
-      let desktopAssetUrl = 'https://via.placeholder.com/1600x400';
-      let mobileAssetUrl = 'https://via.placeholder.com/1080x1080';
+      
+      // Generate a temporary lead ID for file uploads
+      const tempLeadId = uuidv4();
+      
+      // Upload files to Supabase Storage if provided
+      let uploadedUrls: any = {};
+      if (files && Object.keys(files).length > 0) {
+        try {
+          uploadedUrls = await uploadSponsorCreatives(files, tempLeadId, packageCode);
+        } catch (uploadError) {
+          console.error('File upload failed:', uploadError);
+          return res.status(500).json({
+            ok: false,
+            error: `Failed to upload creative assets: ${uploadError instanceof Error ? uploadError.message : 'Unknown error'}`
+          });
+        }
+      }
+      
+      // Determine final asset URLs based on package type
+      let desktopAssetUrl: string | undefined;
+      let mobileAssetUrl: string | undefined;
       
       if (packageCode === 'events_spotlight' || packageCode === 'full_feature') {
-        // Check for uploaded files first
-        if (files?.events_desktop?.[0]) {
-          // File uploaded - in a real app, upload to storage and get URL
-          desktopAssetUrl = `https://files.placeholder.com/${files.events_desktop[0].originalname}`;
-        } else if (req.body.events_desktop_asset_url) {
-          desktopAssetUrl = req.body.events_desktop_asset_url;
-        }
-        
-        if (files?.events_mobile?.[0]) {
-          mobileAssetUrl = `https://files.placeholder.com/${files.events_mobile[0].originalname}`;
-        } else if (req.body.events_mobile_asset_url) {
-          mobileAssetUrl = req.body.events_mobile_asset_url;
-        }
+        desktopAssetUrl = uploadedUrls.events_desktop_asset_url || req.body.events_desktop_asset_url;
+        mobileAssetUrl = uploadedUrls.events_mobile_asset_url || req.body.events_mobile_asset_url;
       }
       
       if (packageCode === 'homepage_feature') {
-        // For homepage, check home assets
-        if (files?.home_desktop?.[0]) {
-          desktopAssetUrl = `https://files.placeholder.com/${files.home_desktop[0].originalname}`;
-        } else if (req.body.home_desktop_asset_url) {
-          desktopAssetUrl = req.body.home_desktop_asset_url;
-        }
-        
-        if (files?.home_mobile?.[0]) {
-          mobileAssetUrl = `https://files.placeholder.com/${files.home_mobile[0].originalname}`;
-        } else if (req.body.home_mobile_asset_url) {
-          mobileAssetUrl = req.body.home_mobile_asset_url;
-        }
+        desktopAssetUrl = uploadedUrls.home_desktop_asset_url || req.body.home_desktop_asset_url;
+        mobileAssetUrl = uploadedUrls.home_mobile_asset_url || req.body.home_mobile_asset_url;
       }
       
       if (packageCode === 'full_feature') {
-        // For full feature, check both events and home assets (prioritize home if both exist)
-        if (files?.home_desktop?.[0]) {
-          desktopAssetUrl = `https://files.placeholder.com/${files.home_desktop[0].originalname}`;
-        } else if (files?.events_desktop?.[0]) {
-          desktopAssetUrl = `https://files.placeholder.com/${files.events_desktop[0].originalname}`;
-        } else if (req.body.home_desktop_asset_url) {
-          desktopAssetUrl = req.body.home_desktop_asset_url;
-        } else if (req.body.events_desktop_asset_url) {
-          desktopAssetUrl = req.body.events_desktop_asset_url;
-        }
+        // For full feature, prioritize home assets if both exist
+        desktopAssetUrl = uploadedUrls.home_desktop_asset_url || 
+                         uploadedUrls.events_desktop_asset_url ||
+                         req.body.home_desktop_asset_url ||
+                         req.body.events_desktop_asset_url;
         
-        if (files?.home_mobile?.[0]) {
-          mobileAssetUrl = `https://files.placeholder.com/${files.home_mobile[0].originalname}`;
-        } else if (files?.events_mobile?.[0]) {
-          mobileAssetUrl = `https://files.placeholder.com/${files.events_mobile[0].originalname}`;
-        } else if (req.body.home_mobile_asset_url) {
-          mobileAssetUrl = req.body.home_mobile_asset_url;
-        } else if (req.body.events_mobile_asset_url) {
-          mobileAssetUrl = req.body.events_mobile_asset_url;
-        }
+        mobileAssetUrl = uploadedUrls.home_mobile_asset_url ||
+                        uploadedUrls.events_mobile_asset_url ||
+                        req.body.home_mobile_asset_url ||
+                        req.body.events_mobile_asset_url;
+      }
+      
+      // Validate that we have required assets
+      if (!desktopAssetUrl || !mobileAssetUrl) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Missing required creative assets. Please upload both desktop and mobile creatives or provide URLs.'
+        });
       }
       
       applicationData.desktopAssetUrl = desktopAssetUrl;
@@ -349,6 +342,7 @@ export function addQuotesRoutes(app: Express) {
       console.log('Application received:', {
         packageCode,
         hasFiles: !!files && Object.keys(files).length > 0,
+        uploadedUrls,
         desktopUrl: desktopAssetUrl,
         mobileUrl: mobileAssetUrl
       });

@@ -1,0 +1,85 @@
+Goal: Replace all placeholder URLs with real uploads to Storage, and store the returned public (or signed) URLs in the lead row.
+
+Delete any placeholder fallbacks
+
+Search the repo for placeholder.com, files.placeholder, mockUrl, or placeholderUrl.
+
+Remove those branches entirely. If upload fails or env is missing, respond 500 with a clear message; don’t fabricate a URL.
+
+Parse multipart and upload actual Files
+
+In POST /api/spotlight/applications, use multer (or busboy) with upload.fields([{ name:'events_desktop' }, { name:'events_mobile' }, { name:'home_desktop' }, { name:'home_mobile' }]).
+
+For each required key (based on package_code), do:
+
+Validate mime: image/jpeg|png|webp.
+
+Upload buffer to Supabase Storage bucket, e.g. sponsor-creatives:
+
+const path = `leads/${leadId}/${Date.now()}-${slug(file.originalname)}`;
+const { data, error } = await supabase.storage
+  .from(process.env.SB_BUCKET_SPONSOR_CREATIVES || 'sponsor-creatives')
+  .upload(path, file.buffer, { contentType: file.mimetype, upsert:false });
+if (error) throw error;
+const { publicUrl } = supabase.storage
+  .from(process.env.SB_BUCKET_SPONSOR_CREATIVES || 'sponsor-creatives')
+  .getPublicUrl(data.path).data;
+
+
+Save publicUrl into the DB column for that asset.
+
+If no file but *_asset_url string is provided, accept that (optional HEAD check that it’s an image).
+
+Env required:
+
+SUPABASE_URL
+
+SUPABASE_SERVICE_KEY (server-side)
+
+SB_BUCKET_SPONSOR_CREATIVES (optional; default sponsor-creatives)
+
+Make the bucket public (simplest), or use signed URLs (then generate per-view in admin).
+
+Write to consistent columns
+
+If your schema has the specific columns, use them:
+
+events_desktop_asset_url, events_mobile_asset_url,
+
+home_desktop_asset_url, home_mobile_asset_url.
+
+If you only have generic columns (from earlier rollout) for single-placement:
+
+desktop_asset_url, mobile_asset_url for events_spotlight and home_feature.
+
+For full_feature either (a) add the 4 specific columns, or (b) store a JSON creative_assets map. (I recommend adding the 4 specific columns; it matches the UI.)
+
+Client: ensure you’re sending real Files
+
+Build a FormData, append File objects (not metadata), and do not set Content-Type manually:
+
+const fd = new FormData();
+fd.append('package_code', values.package_code);
+fd.append('start_date', values.start_date);
+fd.append('end_date', values.end_date);
+fd.append('events_desktop', state.eventsDesktop.file, state.eventsDesktop.file.name);
+// … append others as needed
+await fetch('/api/spotlight/applications', { method:'POST', body: fd });
+
+
+In DevTools → Network, the request should show file parts with filename=... and Content-Type: image/png (or jpg/webp). If you don’t see that, you’re not appending the File.
+
+Admin access
+
+In lead detail, show the stored URLs as clickable links or thumbnails. If you keep the bucket private, add GET /api/admin/leads/:id/assets to generate signed URLs for 5 minutes and display those.
+
+How you’ll access files after the fix
+
+In Supabase → Storage → your bucket you’ll see folders like:
+
+sponsor-creatives/leads/<leadId>/<timestamp>-<filename>.png
+
+
+In sponsor_leads the relevant columns will contain real HTTPS URLs (public links if the bucket is public).
+
+From the admin/leads page, click the URL (or “View”) to open the file.

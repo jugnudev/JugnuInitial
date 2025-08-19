@@ -25,7 +25,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, Download, Search, Filter, Users } from 'lucide-react';
+import { Eye, Download, Search, Filter, Users, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -34,6 +34,8 @@ interface Lead {
   business_name: string;
   contact_name: string;
   email: string;
+  instagram?: string;
+  website?: string;
   package_code: string;
   duration: string;
   total_cents: number;
@@ -41,6 +43,9 @@ interface Lead {
   created_at: string;
   promo_applied: boolean;
   promo_code: string | null;
+  desktop_asset_url?: string;
+  mobile_asset_url?: string;
+  creative_links?: string;
 }
 
 interface AdminLeadsListProps {
@@ -355,33 +360,49 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                     <div className="font-medium text-white">{selectedLead.contact_name}</div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Email</label>
-                    <div className="font-medium">{selectedLead.email}</div>
+                    <label className="text-sm font-medium text-gray-400">Email</label>
+                    <div className="font-medium text-white">{selectedLead.email}</div>
                   </div>
+                  {selectedLead.website && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Website</label>
+                      <div className="font-medium text-white">
+                        <a href={selectedLead.website} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                          {selectedLead.website}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {selectedLead.instagram && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Instagram</label>
+                      <div className="font-medium text-white">{selectedLead.instagram}</div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
               
-              <Card>
+              <Card className="border-gray-700 bg-gray-800/50">
                 <CardHeader>
-                  <CardTitle className="text-lg">Package Details</CardTitle>
+                  <CardTitle className="text-lg text-white">Package Details</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Package</label>
-                    <div className="font-medium">
+                    <label className="text-sm font-medium text-gray-400">Package</label>
+                    <div className="font-medium text-white">
                       {packageNames[selectedLead.package_code as keyof typeof packageNames]}
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Duration</label>
-                    <div className="font-medium capitalize">{selectedLead.duration}</div>
+                    <label className="text-sm font-medium text-gray-400">Duration</label>
+                    <div className="font-medium capitalize text-white">{selectedLead.duration}</div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-600">Total Amount</label>
-                    <div className="font-medium text-lg">
+                    <label className="text-sm font-medium text-gray-400">Total Amount</label>
+                    <div className="font-medium text-lg text-white">
                       CA${(selectedLead.total_cents / 100).toFixed(2)}
                       {selectedLead.promo_applied && (
-                        <Badge variant="secondary" className="ml-2">
+                        <Badge variant="secondary" className="ml-2 bg-green-600 text-green-100">
                           {selectedLead.promo_code}
                         </Badge>
                       )}
@@ -390,6 +411,84 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                 </CardContent>
               </Card>
             </div>
+            
+            {/* Creative Assets Section */}
+            {(selectedLead.desktop_asset_url || selectedLead.mobile_asset_url) && (
+              <Card className="border-gray-700 bg-gray-800/50 mt-6">
+                <CardHeader>
+                  <CardTitle className="text-lg text-white">Creative Assets</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {selectedLead.desktop_asset_url && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Desktop Creative</label>
+                      <div className="mt-2">
+                        <a 
+                          href={selectedLead.desktop_asset_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-blue-400 hover:underline"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          View Desktop Asset
+                        </a>
+                        {selectedLead.desktop_asset_url.includes('supabase') && (
+                          <div className="mt-2">
+                            <img 
+                              src={selectedLead.desktop_asset_url} 
+                              alt="Desktop Creative"
+                              className="max-w-md rounded border border-gray-700"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedLead.mobile_asset_url && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Mobile Creative</label>
+                      <div className="mt-2">
+                        <a 
+                          href={selectedLead.mobile_asset_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-blue-400 hover:underline"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          View Mobile Asset
+                        </a>
+                        {selectedLead.mobile_asset_url.includes('supabase') && (
+                          <div className="mt-2">
+                            <img 
+                              src={selectedLead.mobile_asset_url} 
+                              alt="Mobile Creative"
+                              className="max-w-xs rounded border border-gray-700"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {selectedLead.creative_links && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Additional Creative Links</label>
+                      <div className="mt-1">
+                        <a 
+                          href={`https://${selectedLead.creative_links}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:underline"
+                        >
+                          {selectedLead.creative_links}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
             
             <div className="mt-6 flex gap-2">
               <Select 
