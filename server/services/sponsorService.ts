@@ -326,8 +326,8 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
     mobile_asset_url: data.mobileAssetUrl,
     creative_links: data.creativeLinks || null,
     comments: data.comments || null,
-    status: 'new',
-    raw_payload: rawPayload
+    status: 'new'
+    // raw_payload field removed - not in database schema
   };
   
   const supabase = getSupabaseAdmin();

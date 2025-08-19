@@ -179,7 +179,7 @@ export default function Promote() {
         ...prev,
         business_name: prefillData.business_name || prev.business_name,
         website: prefillData.website || prev.website,
-        placement: prefillData.placement || prev.placement,
+
         comments: prefillData.comments || prev.comments
       }));
       setIsPrefilled(true);
@@ -438,9 +438,8 @@ export default function Promote() {
         }
       } else if (formData.creative_links && formData.creative_links.trim()) {
         // Only use links if no files were uploaded and links are provided
-        const creativeUrl = formData.creative_links.startsWith('http') ? 
-          formData.creative_links : 
-          `https://${formData.creative_links}`;
+        // Always prepend https:// since the field doesn't store it
+        const creativeUrl = `https://${formData.creative_links}`;
         
         if (packageToSubmit === 'events_spotlight' || packageToSubmit === 'full_feature') {
           formDataToSend.append('events_desktop_asset_url', creativeUrl);
@@ -2459,14 +2458,20 @@ export default function Promote() {
                       Additional Creative Links
                       <span className="text-muted text-sm font-normal ml-2">(Optional - Figma, brand assets, etc.)</span>
                     </label>
-                    <Textarea
-                      value={formData.creative_links}
-                      onChange={(e) => setFormData({...formData, creative_links: e.target.value})}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                      placeholder="Share links to Figma files, brand guidelines, or additional assets..."
-                      rows={2}
-                      data-testid="textarea-creative-links"
-                    />
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 text-muted z-10 pointer-events-none">https://</span>
+                      <Textarea
+                        value={formData.creative_links.replace(/^https?:\/\//, '')}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/^https?:\/\//, '');
+                          setFormData({...formData, creative_links: value});
+                        }}
+                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 pl-16"
+                        placeholder="figma.com/file/... or drive.google.com/..."
+                        rows={2}
+                        data-testid="textarea-creative-links"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -2485,8 +2490,7 @@ export default function Promote() {
                 </div>
 
                 {/* Creative Validation Summary */}
-                {(['events_spotlight', 'homepage_feature'].includes(formData.placement) || 
-                  ['events_spotlight', 'homepage_feature'].includes(selectedPackage || '')) && (
+                {['events_spotlight', 'homepage_feature', 'full_feature'].includes(selectedPackage || '') && (
                   <div className="p-4 bg-white/5 border border-white/10 rounded-lg">
                     <h4 className="text-white font-medium mb-3 flex items-center gap-2">
                       <CheckCircle className="w-4 h-4" />
