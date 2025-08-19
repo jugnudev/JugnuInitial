@@ -2146,14 +2146,20 @@ export default function Promote() {
                       (Optional - Not needed if uploading files below)
                     </span>
                   </label>
-                  <Input
-                    type="text"
-                    value={formData.creative_links}
-                    onChange={(e) => setFormData({...formData, creative_links: e.target.value})}
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-                    placeholder="https://drive.google.com/your-creative-folder (optional)"
-                    data-testid="input-creative-links"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-3 text-muted z-10 pointer-events-none">https://</span>
+                    <Input
+                      type="text"
+                      value={formData.creative_links.replace(/^https?:\/\//, '')}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/^https?:\/\//, '');
+                        setFormData({...formData, creative_links: value});
+                      }}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50 pl-16"
+                      placeholder="drive.google.com/your-creative-folder (optional)"
+                      data-testid="input-creative-links"
+                    />
+                  </div>
                   <p className="text-muted text-xs mt-2">
                     Provide a link to your creative assets OR upload files below. You don't need both.
                   </p>
@@ -2459,8 +2465,9 @@ export default function Promote() {
                       <span className="text-muted text-sm font-normal ml-2">(Optional - Figma, brand assets, etc.)</span>
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-2 text-muted z-10 pointer-events-none">https://</span>
-                      <Textarea
+                      <span className="absolute left-3 top-3 text-muted z-10 pointer-events-none">https://</span>
+                      <Input
+                        type="text"
                         value={formData.creative_links.replace(/^https?:\/\//, '')}
                         onChange={(e) => {
                           const value = e.target.value.replace(/^https?:\/\//, '');
@@ -2468,8 +2475,7 @@ export default function Promote() {
                         }}
                         className="bg-white/10 border-white/20 text-white placeholder:text-white/50 pl-16"
                         placeholder="figma.com/file/... or drive.google.com/..."
-                        rows={2}
-                        data-testid="textarea-creative-links"
+                        data-testid="input-additional-creative-links"
                       />
                     </div>
                   </div>
