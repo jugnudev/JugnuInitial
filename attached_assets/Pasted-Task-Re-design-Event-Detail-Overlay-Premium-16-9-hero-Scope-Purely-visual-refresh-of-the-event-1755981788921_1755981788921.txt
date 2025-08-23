@@ -1,0 +1,140 @@
+Task: Re-design Event Detail Overlay (Premium, 16:9 hero)
+
+Scope
+
+Purely visual refresh of the event detail overlay (modal/drawer) opened from the Events page.
+
+Do not change data, handlers, analytics, routing, or copy elsewhere.
+
+Only text changes inside this overlay:
+
+“Organizer?” → “Don’t see your event”
+
+“Request to be featured” → “Request to have it listed”
+
+Design goals
+
+Premium, airy, editorial feel (think Apple/Notion): generous spacing, clean hierarchy, subtle glass blur.
+
+Image is always 16:9, crisp, and the visual hero of the layout.
+
+Consistent dark theme with Jugnu’s amber accent.
+
+1) Layout (top-hero pattern)
+
+Desktop (≥1024px)
+
+Full-width hero at top (inside modal), 16:9 with rounded corners.
+
+Below hero, a two-column content section centered in a max-width container:
+
+Left (2/3): title, category pill, date/time, venue & address, “Open in Maps”.
+
+Right (1/3): action card with “Get Tickets”, “Add to Google”, “Download .ics”, “Share”.
+
+Sticky page footer is not required; actions live in the right card.
+
+Mobile (<1024px)
+
+Top hero 16:9.
+
+Content stacks vertically: title/meta, then action buttons as a full-width group at the bottom of content.
+
+Modal chrome
+
+Use shadcn/ui Dialog. Backdrop: backdrop-blur-sm bg-black/60.
+
+Dialog content: max-w-5xl w-[min(92vw,1120px)] rounded-3xl border border-white/10 bg-neutral-950/85 shadow-2xl.
+
+2) 16:9 hero image (no plugin)
+<div className="relative rounded-2xl overflow-hidden ring-1 ring-white/10">
+  <div className="relative pb-[56.25%] bg-neutral-900">
+    <img
+      src={event.imageUrl}
+      alt={event.title}
+      className="absolute inset-0 h-full w-full object-cover"
+      loading="lazy"
+      decoding="async"
+    />
+    {/* subtle gradient for readability */}
+    <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/50 to-transparent" />
+  </div>
+</div>
+
+
+Add a skeleton while loading: same wrapper with animated gradient blocks.
+
+3) Typography & components
+
+Title: text-3xl sm:text-4xl font-extrabold tracking-tight
+
+Category chip: shadcn Badge with class bg-white/10 text-white
+
+Meta rows (icon + text):
+
+CalendarDays → formatted long date
+
+Clock → time range
+
+MapPin → venue, city, address
+“Open in Maps” link with ExternalLink icon; underline on hover
+
+Divider: border-t border-white/10 my-6
+
+“Don’t see your event?” row (small):
+text-sm text-white/70 then Request to have it listed as amber link
+
+Action card (right column on desktop)
+
+Card: rounded-2xl p-5 bg-white/5 ring-1 ring-white/10 sticky top-6
+
+Buttons:
+
+Primary: Get Tickets — shadcn Button with className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"; wraps <a href=tickets_url target=_blank rel=noopener>
+
+Secondary: Add to Google, Download .ics — variant="outline"
+
+Ghost: Share with Share2 icon
+
+Use consistent gaps (space-y-3) and full-width buttons on mobile.
+
+4) Motion (subtle)
+
+On modal open, content fades + rises:
+
+<motion.div initial={{opacity:0, y:8}} animate={{opacity:1, y:0}} transition={{duration:0.22, ease:"easeOut"}}>
+  …
+</motion.div>
+
+
+Buttons: whileTap={{ scale: 0.98 }}.
+
+5) Accessibility
+
+Dialog has aria-labelledby bound to the title ID.
+
+Icons have aria-hidden. Buttons have accessible labels.
+
+External links use rel="noopener noreferrer".
+
+6) Implementation notes
+
+Component: replace internals of the existing event overlay component (keep the same prop API and handlers), or create src/components/events/EventOverlay.tsx and wire it where the old modal is used. No prop name changes.
+
+Utilities: reuse existing date/time formatting and existing click handlers (share, calendar, ics, maps, tickets).
+
+Copy: Replace the two strings exactly within this overlay and keep the existing submission link/href.
+
+7) Acceptance criteria
+
+Hero image is always 16:9, rounded, sharp, with a subtle bottom gradient; no layout shift.
+
+Desktop: two sections below hero—left info, right action card; action card stays visible (sticky top spacing).
+
+Mobile: stacked layout with full-width buttons; no overflow or overlapping.
+
+Actions (Get Tickets, Add to Google, Download .ics, Share, Open in Maps) work exactly as before.
+
+Copy reads: “Don’t see your event? Request to have it listed.”
+
+No console errors; overlay meets basic a11y (focus trap, ESC to close).
