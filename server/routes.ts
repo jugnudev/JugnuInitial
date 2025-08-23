@@ -614,10 +614,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
 
             let upsertResult;
+            let useManualUpsert = false;
 
+            // Try to use constraint-based upsert if we have the columns
             if (hasNewColumns && sourceUid) {
-              // Use new deduplication strategy with source_uid and canonical_key
-              // Step 1: If we have a source_uid, upsert by that first
+              // Try upsert with source_uid constraint
               const { error: sourceUidError, data: sourceUidData } = await supabase
                 .from('community_events')
                 .upsert(basePayload, { 
@@ -626,14 +627,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 })
                 .select();
               
-              if (sourceUidError) {
-                console.error(`Failed to upsert by source_uid for "${title}":`, sourceUidError);
-              } else {
+              if (!sourceUidError) {
                 upsertResult = sourceUidData;
                 console.log(`Upserted by source_uid: ${title}`);
+              } else if (sourceUidError.code === '42P10') {
+                // No unique constraint on source_uid, need manual upsert
+                console.log(`No source_uid constraint, will use manual upsert for "${title}"`);
+                useManualUpsert = true;
+              } else {
+                console.error(`Failed to upsert by source_uid for "${title}":`, sourceUidError);
               }
-              
-              // Step 2: Also try canonical key for deduplication
+            }
+            
+            // Try canonical_key if source_uid didn't work and we have canonical_key
+            if (!upsertResult && hasNewColumns && canonicalKey && !useManualUpsert) {
               const { error: canonicalError, data: canonicalData } = await supabase
                 .from('community_events')
                 .upsert(basePayload, { 
@@ -642,33 +649,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 })
                 .select();
               
-              if (canonicalError) {
-                console.error(`Failed to upsert by canonical_key for "${title}":`, canonicalError);
-              } else if (!upsertResult) {
+              if (!canonicalError) {
                 upsertResult = canonicalData;
+                console.log(`Upserted by canonical_key: ${title}`);
+              } else if (canonicalError.code === '42P10') {
+                // No unique constraint on canonical_key either
+                console.log(`No canonical_key constraint, will use manual upsert for "${title}"`);
+                useManualUpsert = true;
+              } else {
+                console.error(`Failed to upsert by canonical_key for "${title}":`, canonicalError);
+              }
+            }
+            
+            // If constraint-based upsert failed or we need manual upsert
+            if (!upsertResult || useManualUpsert) {
+              // Manual upsert: check by source_uid, canonical_key, or title+start_at
+              let existing = null;
+              
+              // Try to find existing by source_uid first
+              if (hasNewColumns && sourceUid) {
+                const { data: bySourceUid } = await supabase
+                  .from('community_events')
+                  .select('id')
+                  .eq('source_uid', sourceUid)
+                  .single();
+                existing = bySourceUid;
               }
               
-              // Track stats
-              if (upsertResult && upsertResult.length > 0) {
-                const event = upsertResult[0];
-                if (new Date(event.created_at).getTime() === new Date(event.updated_at).getTime()) {
-                  imported++;
-                  console.log(`Inserted new event: ${title}`);
-                } else {
-                  updated++;
-                  console.log(`Updated existing event: ${title}`);
-                }
+              // Try canonical_key if no match by source_uid
+              if (!existing && hasNewColumns && canonicalKey) {
+                const { data: byCanonicalKey } = await supabase
+                  .from('community_events')
+                  .select('id')
+                  .eq('canonical_key', canonicalKey)
+                  .single();
+                existing = byCanonicalKey;
               }
-            } else {
-              // Fallback: Use title and start_at for deduplication (legacy mode)
-              // Check if event already exists
-              const { data: existing } = await supabase
-                .from('community_events')
-                .select('id')
-                .eq('title', eventData.title)
-                .eq('start_at', eventData.startAt)
-                .single();
-
+              
+              // Fall back to title + start_at
+              if (!existing) {
+                const { data: byTitleAndTime } = await supabase
+                  .from('community_events')
+                  .select('id')
+                  .eq('title', eventData.title)
+                  .eq('start_at', eventData.startAt)
+                  .single();
+                existing = byTitleAndTime;
+              }
+              
               if (existing) {
                 // Update existing event
                 const { error: updateError, data: updateData } = await supabase
@@ -677,12 +705,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   .eq('id', existing.id)
                   .select();
                 
-                if (updateError) {
-                  console.error(`Failed to update event "${title}":`, updateError);
-                } else {
+                if (!updateError) {
                   upsertResult = updateData;
-                  console.log(`Updated existing event: ${title}`);
                   updated++;
+                  console.log(`Updated existing event: ${title}`);
+                } else {
+                  console.error(`Failed to update event "${title}":`, updateError);
                 }
               } else {
                 // Insert new event
@@ -691,13 +719,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   .insert(basePayload)
                   .select();
                 
-                if (insertError) {
-                  console.error(`Failed to insert event "${title}":`, insertError);
-                } else {
+                if (!insertError) {
                   upsertResult = insertData;
-                  console.log(`Imported new event: ${title}`);
                   imported++;
+                  console.log(`Imported new event: ${title}`);
+                } else {
+                  console.error(`Failed to insert event "${title}":`, insertError);
                 }
+              }
+            } else if (upsertResult && upsertResult.length > 0) {
+              // Track stats for successful constraint-based upsert
+              const event = upsertResult[0];
+              if (new Date(event.created_at).getTime() === new Date(event.updated_at).getTime()) {
+                imported++;
+                console.log(`Inserted new event: ${title}`);
+              } else {
+                updated++;
+                console.log(`Updated existing event: ${title}`);
               }
             }
           }

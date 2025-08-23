@@ -1,0 +1,83 @@
+make event import actually upsert
+
+Goal: /api/community/import should import Google Calendar events and upsert into community_events using source_uid (ICS UID) or canonical_key as the conflict target. No functional changes to the Events UI.
+
+What to change
+
+Importer upsert logic
+
+In the import service/route (server/routes/community.ts or wherever):
+
+If an event has source_uid, upsert on source_uid.
+
+Else if it has canonical_key, upsert on canonical_key.
+
+Else insert with a fallback dedupe key (title, start_time).
+
+Drizzle example (TypeScript)
+
+import { communityEvents } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+
+async function upsertEvent(ev: NewCommunityEvent) {
+  const now = new Date();
+  const set = {
+    title: ev.title,
+    description: ev.description ?? null,
+    start_time: ev.start_time,
+    end_time: ev.end_time,
+    location: ev.location ?? null,
+    tickets_url: ev.tickets_url ?? null,
+    image_url: ev.image_url ?? null,
+    category: ev.category ?? null,
+    canonical_key: ev.canonical_key ?? null,
+    source_uid: ev.source_uid ?? null,
+    updated_at: now,
+  };
+
+  if (ev.source_uid) {
+    // upsert on source_uid
+    await db.insert(communityEvents).values({ ...set, created_at: now })
+      .onConflictDoUpdate({
+        target: [communityEvents.source_uid],
+        set,
+      });
+    return;
+  }
+
+  if (ev.canonical_key) {
+    await db.insert(communityEvents).values({ ...set, created_at: now })
+      .onConflictDoUpdate({
+        target: [communityEvents.canonical_key],
+        set,
+      });
+    return;
+  }
+
+  // conservative fallback: treat (title,start_time) as identity
+  const existing = await db.query.communityEvents.findFirst({
+    where: (t, { and, eq: _eq }) => and(_eq(t.title, ev.title), _eq(t.start_time, ev.start_time)),
+    columns: { id: true },
+  });
+
+  if (existing) {
+    await db.update(communityEvents).set(set).where(eq(communityEvents.id, existing.id));
+  } else {
+    await db.insert(communityEvents).values({ ...set, created_at: now });
+  }
+}
+
+
+Keep existing parsing/dedupe behavior
+
+Leave the current Google ICS parsing, URL/image extraction, and category mapping intact.
+
+No changes to filters/labels besides what’s already merged.
+
+Acceptance
+
+POST /api/community/import (and ?force=1) completes 200 without DB errors.
+
+New/updated events appear on /events after refresh.
+
+Re-running the import is idempotent (no dupes created).
