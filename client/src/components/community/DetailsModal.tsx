@@ -321,8 +321,6 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
                     <CalendarDays className="w-16 h-16 text-amber-500/80" />
                   </div>
                 )}
-                {/* Subtle gradient for readability */}
-                <div className="pointer-events-none relative -mt-[28%] h-[28%] bg-gradient-to-t from-black/50 to-transparent" />
               </div>
             </div>
 
