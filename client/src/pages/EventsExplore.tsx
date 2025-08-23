@@ -29,7 +29,7 @@ const CATEGORIES = [
 export default function EventsExplore() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
-  const [filters, setFilters] = useState<Record<string, any>>({ range: 'month' });
+  const [filters, setFilters] = useState<Record<string, any>>({ range: 'all' });
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   // Filter drawer removed
   const [showSavedOnly, setShowSavedOnly] = useState(false);
@@ -46,7 +46,7 @@ export default function EventsExplore() {
     queryKey: ['/api/community/weekly', filters.range || 'month', categoryFilter === 'All' ? undefined : categoryFilter.toLowerCase(), searchQuery || undefined],
     queryFn: async () => {
       const params = new URLSearchParams({
-        range: filters.range || 'month',
+        range: filters.range || 'all',
         ...(categoryFilter !== 'All' && { 
           // Map frontend category names to backend category values
           category: categoryFilter.toLowerCase()
@@ -164,7 +164,7 @@ export default function EventsExplore() {
   const clearFilters = () => {
     setSearchQuery('');
     setCategoryFilter('All');
-    setFilters({ range: 'month' });
+    setFilters({ range: 'all' });
     setShowSavedOnly(false);
     // Update URL to remove saved parameter
     const url = new URL(window.location.href);

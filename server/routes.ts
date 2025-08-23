@@ -1307,6 +1307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let daysAhead = 180; // Default to 6 months
       if (range === 'week') daysAhead = 7;
       else if (range === 'month') daysAhead = 30;
+      // 'all' or no range = show 6 months
       const endDateTz = new Date(nowTz.getTime() + daysAhead * 24 * 60 * 60 * 1000);
       
       // Convert back to UTC for database filtering
