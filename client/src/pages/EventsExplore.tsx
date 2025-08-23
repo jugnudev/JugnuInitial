@@ -21,7 +21,7 @@ import { useSavedEventIds } from "@/hooks/useSavedEvents";
 const CATEGORIES = [
   { value: 'All', label: 'All Events' },
   { value: 'Concerts', label: 'Concerts' }, 
-  { value: 'Club Nights', label: 'Club Nights' },
+  { value: 'Parties', label: 'Parties' },
   { value: 'Comedy', label: 'Comedy' },
   { value: 'Festivals', label: 'Festivals' },
 ];
@@ -50,7 +50,7 @@ export default function EventsExplore() {
         ...(categoryFilter !== 'All' && { 
           // Map frontend category names to backend category values
           category: categoryFilter.toLowerCase()
-            .replace(' nights', '')  // "Club Nights" -> "club"
+            .replace('parties', 'club')  // "Parties" -> "club"
             .replace('concerts', 'concert')  // "Concerts" -> "concert"
             .replace('festivals', 'festival')  // "Festivals" -> "festival"
         }),
