@@ -130,25 +130,34 @@ export default function Toolbar({
           )}
         </div>
 
-        {/* Segmented Control + Saved + Filters */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 overflow-x-auto">
-            <SegmentedControl
-              options={segmentOptions}
-              value={segmentValue}
-              onChange={onSegmentChange}
-              className="min-w-max"
-            />
+        {/* Category Filters */}
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {segmentOptions.map((option) => (
+              <button
+                key={option}
+                onClick={() => onSegmentChange(option)}
+                className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+                  segmentValue === option
+                    ? "bg-primary text-black"
+                    : "bg-white/5 text-white/70 hover:text-white/90 hover:bg-white/10 border border-white/20"
+                }`}
+                data-testid={`mobile-filter-${option.toLowerCase().replace(/\s+/g, '-')}`}
+              >
+                {option}
+              </button>
+            ))}
           </div>
           
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between gap-2">
             {/* Saved Toggle */}
             {onSavedToggle && (
               <Button
                 variant={showSavedOnly ? "default" : "ghost"}
                 size="sm"
                 onClick={onSavedToggle}
-                className={`flex items-center justify-center w-10 h-10 rounded-2xl transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-2xl transition-all ${
                   showSavedOnly 
                     ? 'bg-copper-500 hover:bg-copper-600 text-black' 
                     : 'bg-white/5 hover:bg-white/10 border border-white/20 text-white'
@@ -160,15 +169,22 @@ export default function Toolbar({
                 <Heart 
                   className={`w-4 h-4 ${showSavedOnly ? 'fill-current' : 'fill-transparent'}`} 
                 />
+                <span className="text-sm">Saved</span>
+                {savedCount > 0 && (
+                  <span className="bg-black/20 text-xs rounded-full px-1.5 py-0.5 min-w-5 h-5 flex items-center justify-center font-medium">
+                    {savedCount}
+                  </span>
+                )}
               </Button>
             )}
             
             <button
               onClick={onFiltersClick}
-              className="relative flex items-center justify-center w-10 h-10 bg-white/5 hover:bg-white/10 border border-white/20 text-white rounded-2xl transition-colors"
+              className="relative flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/20 text-white rounded-2xl transition-colors"
               data-testid="filters-button-mobile"
             >
               <Filter className="w-4 h-4" />
+              <span className="text-sm">Filters</span>
               {activeFiltersCount > 0 && (
                 <span className="absolute -top-2 -right-2 bg-primary text-black text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
                   {activeFiltersCount}
