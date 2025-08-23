@@ -194,8 +194,8 @@ export default function Card({ item, onClick, index = 0, showFavorite = false, o
           </div>
         )}
         
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+        {/* Gradient overlay - darker on bottom half for better text readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
         
         {/* Top badges */}
         <div className="absolute top-3 left-3 right-3 flex justify-between items-start">

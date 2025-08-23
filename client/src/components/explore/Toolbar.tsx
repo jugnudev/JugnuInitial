@@ -9,7 +9,7 @@ interface ToolbarProps {
   segmentOptions: readonly string[];
   segmentValue: string;
   onSegmentChange: (value: string) => void;
-  onFiltersClick: () => void;
+  onFiltersClick?: () => void;
   activeFiltersCount?: number;
   showSavedOnly?: boolean;
   onSavedToggle?: () => void;
@@ -90,20 +90,7 @@ export default function Toolbar({
           </Button>
         )}
 
-        {/* Filters Button */}
-        <button
-          onClick={onFiltersClick}
-          className="relative inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/20 text-white rounded-2xl transition-colors"
-          data-testid="filters-button"
-        >
-          <Filter className="w-4 h-4" />
-          <span className="hidden sm:inline">Filters</span>
-          {activeFiltersCount > 0 && (
-            <span className="absolute -top-2 -right-2 bg-primary text-black text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
-              {activeFiltersCount}
-            </span>
-          )}
-        </button>
+        {/* Filters Button - removed */}
       </div>
 
       {/* Mobile Layout */}
@@ -130,14 +117,14 @@ export default function Toolbar({
           )}
         </div>
 
-        {/* Category Filters */}
+        {/* Category Filters - single row with horizontal scroll */}
         <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide" style={{WebkitOverflowScrolling: 'touch'}}>
             {segmentOptions.map((option) => (
               <button
                 key={option}
                 onClick={() => onSegmentChange(option)}
-                className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+                className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors flex-shrink-0 ${
                   segmentValue === option
                     ? "bg-primary text-black"
                     : "bg-white/5 text-white/70 hover:text-white/90 hover:bg-white/10 border border-white/20"
@@ -178,19 +165,7 @@ export default function Toolbar({
               </Button>
             )}
             
-            <button
-              onClick={onFiltersClick}
-              className="relative flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/20 text-white rounded-2xl transition-colors"
-              data-testid="filters-button-mobile"
-            >
-              <Filter className="w-4 h-4" />
-              <span className="text-sm">Filters</span>
-              {activeFiltersCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-primary text-black text-xs rounded-full w-5 h-5 flex items-center justify-center font-medium">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
+            {/* Filters button removed */}
           </div>
         </div>
       </div>

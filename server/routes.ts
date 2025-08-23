@@ -1338,9 +1338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           .in('status', ['upcoming', 'soldout'])
           .gte('start_at', now.toISOString())
           .lte('start_at', endDate.toISOString())
-          .order('canonical_key')
-          .order('start_at', { ascending: true })
-          .order('updated_at', { ascending: false });
+          .order('start_at', { ascending: true });
       } else {
         // Fallback to regular query
         query = supabase
@@ -1381,6 +1379,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           if (seen.has((event as any).canonical_key)) return false; // Skip duplicates
           seen.add((event as any).canonical_key);
           return true;
+        });
+        // Re-sort by date after deduplication to ensure proper order
+        events.sort((a, b) => {
+          const dateA = new Date((a as any).start_at).getTime();
+          const dateB = new Date((b as any).start_at).getTime();
+          return dateA - dateB;
         });
       }
 

@@ -14,7 +14,7 @@ import PageHero from "@/components/explore/PageHero";
 import Toolbar from "@/components/explore/Toolbar";
 import EmptyState from "@/components/explore/EmptyState";
 import DetailsModal from "@/components/community/DetailsModal";
-import FilterDrawer from "@/components/explore/FilterDrawer";
+// FilterDrawer removed
 import { SponsoredBanner } from "@/components/spotlight/SponsoredBanner";
 import { useSavedEventIds } from "@/hooks/useSavedEvents";
 
@@ -31,7 +31,7 @@ export default function EventsExplore() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [filters, setFilters] = useState<Record<string, any>>({ range: 'month' });
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
-  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  // Filter drawer removed
   const [showSavedOnly, setShowSavedOnly] = useState(false);
 
   // Saved events functionality
@@ -166,7 +166,6 @@ export default function EventsExplore() {
     setCategoryFilter('All');
     setFilters({ range: 'month' });
     setShowSavedOnly(false);
-    setIsFilterDrawerOpen(false);
     // Update URL to remove saved parameter
     const url = new URL(window.location.href);
     url.searchParams.delete('saved');
@@ -191,7 +190,7 @@ export default function EventsExplore() {
           segmentOptions={CATEGORIES.map(c => c.value)}
           segmentValue={categoryFilter}
           onSegmentChange={setCategoryFilter}
-          onFiltersClick={() => setIsFilterDrawerOpen(true)}
+          // onFiltersClick removed
           activeFiltersCount={hasActiveFilters ? 1 : 0}
           showSavedOnly={showSavedOnly}
           onSavedToggle={() => {
@@ -339,14 +338,7 @@ export default function EventsExplore() {
         )}
       </div>
 
-      {/* Filter Drawer */}
-      <FilterDrawer
-        isOpen={isFilterDrawerOpen}
-        onClose={() => setIsFilterDrawerOpen(false)}
-        type="events"
-        filters={filters}
-        onFiltersChange={setFilters}
-      />
+      {/* Filter Drawer removed */}
 
       {/* Event Detail Modal */}
       {selectedEvent && (
