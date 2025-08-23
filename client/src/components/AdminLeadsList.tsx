@@ -49,6 +49,7 @@ interface Lead {
   onboarding_token?: string;
   onboarding_expires_at?: string;
   onboarding_used_at?: string;
+  onboarding_link?: string;
   source_campaign_id?: string;
 }
 
@@ -135,8 +136,17 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['admin-leads'] });
+      // Store the returned onboarding link
+      if (data.onboarding_link && selectedLead) {
+        setSelectedLead({
+          ...selectedLead,
+          onboarding_token: data.onboarding_link.split('/').pop(),
+          onboarding_expires_at: data.expires_at,
+          onboarding_link: data.onboarding_link
+        });
+      }
     }
   });
   
@@ -157,8 +167,18 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
       
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['admin-leads'] });
+      // Update with new onboarding link
+      if (data.onboarding_link && selectedLead) {
+        setSelectedLead({
+          ...selectedLead,
+          onboarding_token: data.onboarding_link.split('/').pop(),
+          onboarding_expires_at: data.expires_at,
+          onboarding_link: data.onboarding_link,
+          status: 'onboarding_sent'
+        });
+      }
     }
   });
   
@@ -611,15 +631,14 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                     <label className="text-sm font-medium text-gray-400">Onboarding Link</label>
                     <div className="mt-1 flex items-center gap-2">
                       <code className="text-xs text-blue-400 break-all">
-                        {window.location.origin}/onboard/{selectedLead.onboarding_token}
+                        {selectedLead.onboarding_link || `${window.location.origin}/onboard/${selectedLead.onboarding_token}`}
                       </code>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => {
-                          navigator.clipboard.writeText(
-                            `${window.location.origin}/onboard/${selectedLead.onboarding_token}`
-                          );
+                          const link = selectedLead.onboarding_link || `${window.location.origin}/onboard/${selectedLead.onboarding_token}`;
+                          navigator.clipboard.writeText(link);
                         }}
                       >
                         <Copy className="h-3 w-3" />

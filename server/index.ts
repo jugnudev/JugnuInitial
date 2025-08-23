@@ -75,7 +75,44 @@ app.use((req, res, next) => {
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {
-    serveStatic(app);
+    // Production: Add HTTPS redirect middleware
+    app.use((req, res, next) => {
+      const proto = String(req.headers['x-forwarded-proto'] || '');
+      if (process.env.NODE_ENV === 'production' && proto && proto !== 'https') {
+        return res.redirect(301, `https://${req.headers.host}${req.url}`);
+      }
+      next();
+    });
+
+    // Production: Serve static files and handle SPA routing
+    // Check for the actual build output location: dist/public
+    const path = await import('path');
+    const fs = await import('fs');
+    const distPublicPath = path.resolve(import.meta.dirname, '..', 'dist', 'public');
+    const publicPath = path.resolve(import.meta.dirname, 'public');
+    
+    const staticPath = fs.existsSync(distPublicPath) ? distPublicPath : publicPath;
+    
+    if (fs.existsSync(staticPath)) {
+      // Serve static assets
+      app.use(express.static(staticPath));
+      
+      // Explicit SPA fallbacks for client-side routes
+      const indexHtml = path.resolve(staticPath, 'index.html');
+      
+      // Handle specific client-side routes that need SPA fallback
+      app.get(['/onboard/*', '/portal/*', '/sponsor/*', '/admin/*', '/waitlist', '/events/*'], (_req, res) => {
+        res.sendFile(indexHtml);
+      });
+      
+      // Final catch-all for any other non-API routes
+      app.get('*', (_req, res) => {
+        res.sendFile(indexHtml);
+      });
+    } else {
+      // Fallback to original serveStatic if our custom setup fails
+      serveStatic(app);
+    }
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT

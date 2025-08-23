@@ -1,0 +1,91 @@
+Replit Agent Prompt — Fix /onboard/:token 404 on thehouseofjugnu.com
+
+Scope (important):
+
+Only fix routing so https://thehouseofjugnu.com/onboard/<token> loads the onboarding page on production.
+
+Do not change pricing, emails, admin auth, or any DNS settings.
+
+Leave click-tracking disabled for the onboarding email (we’ll re-enable later).
+
+1) Confirm client route exists
+
+We already have an onboarding page that works on the dev host. Verify the React/Wouter route is present:
+
+File likely: src/App.tsx (or routes file)
+
+Ensure a route like:
+
+<Route path="/onboard/:token">{(p) => <OnboardPage token={p.token} />}</Route>
+
+
+OnboardPage should call GET /api/onboard/:token and render the form. If the component/file name differs, keep using our existing page; no UI rewrites needed.
+
+2) Add Express SPA fallbacks so production serves the page
+
+In the main server file (e.g., server/index.ts), after mounting all /api routes and before any catch-alls:
+
+Serve the Vite build as static assets:
+
+app.use(express.static(path.join(__dirname, '../dist')));
+
+
+Add explicit SPA fallbacks for client-side routes so a direct request to /onboard/* returns index.html:
+
+const indexHtml = path.join(__dirname, '../dist/index.html');
+
+// API first
+app.use('/api', apiRouter);
+
+// SPA routes that must be handled by the client
+app.get(['/onboard/*', '/portal/*'], (_req, res) => {
+  res.sendFile(indexHtml);
+});
+
+// (optional) final SPA catch-all for other non-API paths
+app.get('*', (_req, res) => res.sendFile(indexHtml));
+
+
+Keep /api mounted before these fallbacks so the onboarding API continues to work.
+
+3) (Optional but safe) Force HTTPS in prod
+
+Add a small middleware to redirect accidental HTTP to HTTPS (Replit usually handles TLS, but this prevents “Not Secure” surprises):
+
+app.use((req, res, next) => {
+  const proto = String(req.headers['x-forwarded-proto'] || '');
+  if (process.env.NODE_ENV === 'production' && proto && proto !== 'https') {
+    return res.redirect(301, `https://${req.headers.host}${req.url}`);
+  }
+  next();
+});
+
+
+Mount this before static/SPA handlers.
+
+4) Build/serve correctness
+
+Ensure production serves from ../dist (Vite build). If our directory differs, adjust the path.
+
+Do not alter API shapes: GET /api/onboard/:token must continue to return the prefill, and POST /api/onboard/:token must create the campaign & consume the token.
+
+5) Admin “Onboarding Link” card (small UX polish)
+
+When Approve or Resend returns a new token, compute and display the updated link using:
+
+`${process.env.APP_BASE_URL}/onboard/${token}`
+
+
+Update the expiry timestamp shown. Ensure the “Copy” button copies the new link immediately.
+
+6) Acceptance checks
+
+Visiting https://thehouseofjugnu.com/onboard/<valid-token> opens the onboarding form (no 404), including on full page refresh and direct navigation.
+
+Invalid/expired token renders the existing friendly error state.
+
+The admin leads page shows the production link (with thehouseofjugnu.com) and updates it after Resend.
+
+API endpoints under /api/onboard/:token remain functional.
+
+Please keep all other behavior untouched.
