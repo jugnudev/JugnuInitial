@@ -611,14 +611,14 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                     <label className="text-sm font-medium text-gray-400">Onboarding Link</label>
                     <div className="mt-1 flex items-center gap-2">
                       <code className="text-xs text-blue-400 break-all">
-                        {process.env.APP_BASE_URL || window.location.origin}/onboard/{selectedLead.onboarding_token}
+                        {window.location.origin}/onboard/{selectedLead.onboarding_token}
                       </code>
                       <Button
                         size="sm"
                         variant="ghost"
                         onClick={() => {
                           navigator.clipboard.writeText(
-                            `${process.env.APP_BASE_URL || window.location.origin}/onboard/${selectedLead.onboarding_token}`
+                            `${window.location.origin}/onboard/${selectedLead.onboarding_token}`
                           );
                         }}
                       >
