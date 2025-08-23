@@ -2147,7 +2147,9 @@ export default function Promote() {
                     </span>
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-3 text-white/50 z-10 pointer-events-none text-sm">https://</span>
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/70 text-sm">
+                      https://
+                    </span>
                     <Input
                       type="text"
                       value={formData.creative_links.replace(/^https?:\/\//, '')}
@@ -2465,7 +2467,9 @@ export default function Promote() {
                       <span className="text-muted text-sm font-normal ml-2">(Optional - Figma, brand assets, etc.)</span>
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-3 text-white/50 z-10 pointer-events-none text-sm">https://</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/70 text-sm">
+                        https://
+                      </span>
                       <Input
                         type="text"
                         value={formData.creative_links.replace(/^https?:\/\//, '')}
