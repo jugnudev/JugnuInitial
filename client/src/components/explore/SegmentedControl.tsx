@@ -7,26 +7,14 @@ interface SegmentedControlProps {
   className?: string;
 }
 
-// Mobile-friendly category abbreviations
-const getMobileLabel = (option: string): string => {
-  const mobileLabels: Record<string, string> = {
-    'All': 'All',
-    'Concerts': 'Music',
-    'Club Nights': 'Clubs', 
-    'Comedy': 'Comedy',
-    'Festivals': 'Events'
-  };
-  return mobileLabels[option] || option;
-};
-
 export default function SegmentedControl({ options, value, onChange, className = "" }: SegmentedControlProps) {
   return (
-    <div className={`relative flex bg-white/5 rounded-2xl p-1 w-full ${className}`}>
+    <div className={`relative inline-flex bg-white/5 rounded-2xl p-1 ${className}`}>
       {options.map((option) => (
         <button
           key={option}
           onClick={() => onChange(option)}
-          className={`relative px-1.5 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-medium rounded-xl transition-colors duration-200 flex-1 min-w-0 ${
+          className={`relative px-4 py-2 text-sm font-medium rounded-xl transition-colors duration-200 whitespace-nowrap ${
             value === option
               ? "text-black z-10"
               : "text-white/70 hover:text-white/90"
@@ -45,8 +33,7 @@ export default function SegmentedControl({ options, value, onChange, className =
               }}
             />
           )}
-          <span className="relative block sm:hidden truncate">{getMobileLabel(option)}</span>
-          <span className="relative hidden sm:block">{option}</span>
+          <span className="relative">{option}</span>
         </button>
       ))}
     </div>
