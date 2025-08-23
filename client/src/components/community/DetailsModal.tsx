@@ -48,6 +48,134 @@ interface DetailsModalProps {
   onClose: () => void;
 }
 
+interface EventInfoProps {
+  event: CommunityEvent;
+  isDescriptionExpanded: boolean;
+  setIsDescriptionExpanded: (expanded: boolean) => void;
+  descriptionParagraphs: string[];
+  needsShowMore: boolean;
+  openInMaps: () => void;
+}
+
+// Reusable EventInfo component for both desktop and mobile
+function EventInfo({ 
+  event, 
+  isDescriptionExpanded, 
+  setIsDescriptionExpanded, 
+  descriptionParagraphs, 
+  needsShowMore, 
+  openInMaps 
+}: EventInfoProps) {
+  return (
+    <div className="space-y-6">
+      {/* Title */}
+      <div>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white mb-3">
+          {event.title}
+        </h1>
+        {/* Category chip */}
+        {event.category && (
+          <Badge className="bg-white/10 text-white border-0 hover:bg-white/15">
+            {event.category}
+          </Badge>
+        )}
+      </div>
+
+      {/* Date row */}
+      <div className="flex items-start gap-3">
+        <CalendarDays className="w-5 h-5 text-amber-500 mt-1" aria-hidden="true" />
+        <div>
+          <p className="text-white font-medium">
+            {formatEventDate(event.start_at, event.timezone)}
+          </p>
+        </div>
+      </div>
+
+      {/* Time row (single row only) */}
+      <div className="flex items-start gap-3">
+        <Clock className="w-5 h-5 text-amber-500 mt-1" aria-hidden="true" />
+        <div>
+          <p className="text-white font-medium">
+            {formatEventTime(event.start_at, event.end_at, event.timezone, event.is_all_day)}
+          </p>
+        </div>
+      </div>
+
+      {/* Venue line */}
+      {event.venue && (
+        <div className="flex items-start gap-3">
+          <MapPin className="w-5 h-5 text-amber-500 mt-1" aria-hidden="true" />
+          <div className="space-y-1">
+            <p className="text-white font-medium">{event.venue}</p>
+            {/* City line */}
+            <p className="text-white/70 text-sm">{event.city}</p>
+            {/* Full street address (on its own line if present) */}
+            {event.address && (
+              <p className="text-white/70 text-sm">{event.address}</p>
+            )}
+            {/* Open in Maps link */}
+            <button
+              onClick={openInMaps}
+              className="text-amber-500 hover:text-amber-400 text-sm inline-flex items-center gap-1 underline decoration-transparent hover:decoration-current transition-colors mt-1"
+              data-testid="button-open-maps"
+            >
+              Open in Maps <ExternalLink className="w-3 h-3" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Description */}
+      {descriptionParagraphs.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="text-white font-semibold text-lg">About this event</h3>
+          <div 
+            className={`text-white/80 space-y-2 leading-relaxed ${
+              needsShowMore && !isDescriptionExpanded ? 'line-clamp-8' : ''
+            }`}
+          >
+            {descriptionParagraphs.map((paragraph, index) => (
+              <p key={index} className="whitespace-pre-line">
+                {paragraph}
+              </p>
+            ))}
+          </div>
+          {needsShowMore && (
+            <button
+              onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+              className="inline-flex items-center gap-1 text-amber-500 hover:text-amber-400 text-sm font-medium transition-colors"
+            >
+              {isDescriptionExpanded ? 'Show less' : 'Show more'}
+              {isDescriptionExpanded ? (
+                <ChevronUp className="w-4 h-4" aria-hidden="true" />
+              ) : (
+                <ChevronDown className="w-4 h-4" aria-hidden="true" />
+              )}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Divider */}
+      <div className="border-t border-white/10 my-6" />
+
+      {/* Helper copy row */}
+      <div>
+        <p className="text-sm text-white/70">
+          Don't see your event?{' '}
+          <a 
+            href="/community/feature" 
+            className="text-amber-500 hover:text-amber-400 transition-colors underline decoration-transparent hover:decoration-current"
+            data-testid="link-organizer-feature"
+          >
+            Request to have it listed
+          </a>
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export default function DetailsModal({ event, isOpen, onClose }: DetailsModalProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [showCopiedToast, setShowCopiedToast] = useState(false);
@@ -158,7 +286,7 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className="max-w-5xl w-[min(92vw,1120px)] h-[90vh] p-0 rounded-3xl border border-white/10 bg-neutral-950/85 shadow-2xl overflow-hidden"
+        className="max-w-6xl w-[min(92vw,1200px)] p-0 rounded-3xl border border-white/10 bg-neutral-950/85 shadow-2xl overflow-hidden"
         style={{ backdropFilter: 'blur(8px)' }}
       >
         <DialogTitle className="sr-only" id={`modal-title-${event.id}`}>
@@ -172,7 +300,7 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
           initial={{ opacity: 0, y: 8 }} 
           animate={{ opacity: 1, y: 0 }} 
           transition={{ duration: 0.22, ease: "easeOut" }}
-          className="h-full flex flex-col"
+          className="max-h-[85vh] overflow-y-auto lg:overflow-y-visible"
         >
           {/* 16:9 Hero Image */}
           <div className="relative rounded-2xl overflow-hidden ring-1 ring-white/10 mx-6 mt-6">
@@ -196,284 +324,24 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
           </div>
 
           {/* Content Section */}
-          <div className="flex-1 overflow-hidden">
-            {/* Desktop: Two-column layout */}
-            <div className="hidden lg:flex h-full">
-              {/* Left Column: Info (2/3) */}
-              <div className="flex-[2] p-8 pr-4 overflow-y-auto">
-                <div className="max-w-2xl space-y-8">
-                  {/* Title and Category */}
-                  <div>
-                    <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-4">
-                      {event.title}
-                    </h1>
-                    {event.category && (
-                      <Badge className="bg-white/10 text-white border-0 hover:bg-white/15">
-                        {event.category}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Meta Information */}
-                  <div className="space-y-6">
-                    {/* Date and Time */}
-                    <div className="flex items-start gap-4">
-                      <CalendarDays className="w-5 h-5 text-amber-500 mt-1" aria-hidden="true" />
-                      <div>
-                        <p className="text-white font-medium">
-                          {formatEventDate(event.start_at, event.timezone)}
-                        </p>
-                        <p className="text-white/70 text-sm">
-                          {formatEventTime(event.start_at, event.end_at, event.timezone, event.is_all_day)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Time */}
-                    <div className="flex items-start gap-4">
-                      <Clock className="w-5 h-5 text-amber-500 mt-1" aria-hidden="true" />
-                      <div>
-                        <p className="text-white font-medium">
-                          {formatEventTime(event.start_at, event.end_at, event.timezone, event.is_all_day)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Venue and Address */}
-                    {event.venue && (
-                      <div className="flex items-start gap-4">
-                        <MapPin className="w-5 h-5 text-amber-500 mt-1" aria-hidden="true" />
-                        <div className="space-y-1">
-                          <p className="text-white font-medium">{event.venue}</p>
-                          <p className="text-white/70 text-sm">{event.city}</p>
-                          {event.address && (
-                            <p className="text-white/70 text-sm">{event.address}</p>
-                          )}
-                          <button
-                            onClick={openInMaps}
-                            className="text-amber-500 hover:text-amber-400 text-sm inline-flex items-center gap-1 underline decoration-transparent hover:decoration-current transition-colors mt-2"
-                            data-testid="button-open-maps"
-                          >
-                            Open in Maps <ExternalLink className="w-3 h-3" aria-hidden="true" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Description */}
-                  {descriptionParagraphs.length > 0 && (
-                    <div className="space-y-4">
-                      <h3 className="text-white font-semibold text-lg">About this event</h3>
-                      <div 
-                        className={`text-white/80 space-y-3 leading-relaxed ${
-                          needsShowMore && !isDescriptionExpanded ? 'line-clamp-8' : ''
-                        }`}
-                      >
-                        {descriptionParagraphs.map((paragraph, index) => (
-                          <p key={index} className="whitespace-pre-line">
-                            {paragraph}
-                          </p>
-                        ))}
-                      </div>
-                      {needsShowMore && (
-                        <button
-                          onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                          className="inline-flex items-center gap-1 text-amber-500 hover:text-amber-400 text-sm font-medium transition-colors"
-                        >
-                          {isDescriptionExpanded ? 'Show less' : 'Show more'}
-                          {isDescriptionExpanded ? (
-                            <ChevronUp className="w-4 h-4" aria-hidden="true" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4" aria-hidden="true" />
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Divider */}
-                  <div className="border-t border-white/10 my-6" />
-
-                  {/* Footer */}
-                  <div>
-                    <p className="text-sm text-white/70">
-                      Don't see your event?{' '}
-                      <a 
-                        href="/community/feature" 
-                        className="text-amber-500 hover:text-amber-400 transition-colors underline decoration-transparent hover:decoration-current"
-                        data-testid="link-organizer-feature"
-                      >
-                        Request to have it listed
-                      </a>
-                    </p>
-                  </div>
-                </div>
+          <div className="px-6 pb-6">
+            {/* Grid Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8 mt-8">
+              {/* Left Column: EventInfo (2fr) */}
+              <div>
+                <EventInfo 
+                  event={event}
+                  isDescriptionExpanded={isDescriptionExpanded}
+                  setIsDescriptionExpanded={setIsDescriptionExpanded}
+                  descriptionParagraphs={descriptionParagraphs}
+                  needsShowMore={needsShowMore}
+                  openInMaps={openInMaps}
+                />
               </div>
 
-              {/* Right Column: Action Card (1/3) */}
-              <div className="flex-1 p-8 pl-4">
-                <div className="sticky top-6">
-                  <div className="rounded-2xl p-5 bg-white/5 ring-1 ring-white/10 space-y-3">
-                    {/* Primary Action */}
-                    {event.tickets_url ? (
-                      <motion.a
-                        href={event.tickets_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full inline-flex items-center justify-center px-6 py-3 bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-xl transition-colors"
-                        data-testid="button-get-tickets"
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        Get Tickets
-                        <ExternalLink className="w-4 h-4 ml-2" aria-hidden="true" />
-                      </motion.a>
-                    ) : (
-                      <div className="w-full inline-flex items-center justify-center px-6 py-3 bg-white/10 text-white/50 font-semibold rounded-xl cursor-not-allowed">
-                        No tickets available
-                      </div>
-                    )}
-
-                    {/* Secondary Actions */}
-                    <motion.button
-                      onClick={() => handleAddToCalendar('google')}
-                      className="w-full inline-flex items-center justify-center px-4 py-2.5 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-colors"
-                      data-testid="button-add-google"
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      Add to Google
-                    </motion.button>
-
-                    <motion.button
-                      onClick={() => handleAddToCalendar('ics')}
-                      className="w-full inline-flex items-center justify-center px-4 py-2.5 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-colors"
-                      data-testid="button-download-ics"
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      Download .ics
-                    </motion.button>
-
-                    <motion.button
-                      onClick={handleShare}
-                      className="w-full inline-flex items-center justify-center px-4 py-2.5 text-white/70 hover:text-white font-medium rounded-xl hover:bg-white/5 transition-colors"
-                      data-testid="button-share"
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Share2 className="w-4 h-4 mr-2" aria-hidden="true" />
-                      Share
-                    </motion.button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile: Stacked layout */}
-            <div className="lg:hidden h-full flex flex-col">
-              {/* Content */}
-              <div className="flex-1 overflow-y-auto p-6 pb-24">
-                <div className="space-y-6">
-                  {/* Title and Category */}
-                  <div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-3">
-                      {event.title}
-                    </h1>
-                    {event.category && (
-                      <Badge className="bg-white/10 text-white border-0 hover:bg-white/15">
-                        {event.category}
-                      </Badge>
-                    )}
-                  </div>
-
-                  {/* Meta Information */}
-                  <div className="space-y-4">
-                    {/* Date and Time */}
-                    <div className="flex items-start gap-3">
-                      <CalendarDays className="w-5 h-5 text-amber-500 mt-1" aria-hidden="true" />
-                      <div>
-                        <p className="text-white font-medium">
-                          {formatEventDate(event.start_at, event.timezone)}
-                        </p>
-                        <p className="text-white/70 text-sm">
-                          {formatEventTime(event.start_at, event.end_at, event.timezone, event.is_all_day)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Venue and Address */}
-                    {event.venue && (
-                      <div className="flex items-start gap-3">
-                        <MapPin className="w-5 h-5 text-amber-500 mt-1" aria-hidden="true" />
-                        <div className="space-y-1">
-                          <p className="text-white font-medium">{event.venue}</p>
-                          <p className="text-white/70 text-sm">{event.city}</p>
-                          {event.address && (
-                            <p className="text-white/70 text-sm">{event.address}</p>
-                          )}
-                          <button
-                            onClick={openInMaps}
-                            className="text-amber-500 hover:text-amber-400 text-sm inline-flex items-center gap-1 underline decoration-transparent hover:decoration-current transition-colors mt-1"
-                            data-testid="button-open-maps"
-                          >
-                            Open in Maps <ExternalLink className="w-3 h-3" aria-hidden="true" />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Description */}
-                  {descriptionParagraphs.length > 0 && (
-                    <div className="space-y-3">
-                      <h3 className="text-white font-semibold text-lg">About this event</h3>
-                      <div 
-                        className={`text-white/80 space-y-2 leading-relaxed ${
-                          needsShowMore && !isDescriptionExpanded ? 'line-clamp-8' : ''
-                        }`}
-                      >
-                        {descriptionParagraphs.map((paragraph, index) => (
-                          <p key={index} className="whitespace-pre-line">
-                            {paragraph}
-                          </p>
-                        ))}
-                      </div>
-                      {needsShowMore && (
-                        <button
-                          onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                          className="inline-flex items-center gap-1 text-amber-500 hover:text-amber-400 text-sm font-medium transition-colors"
-                        >
-                          {isDescriptionExpanded ? 'Show less' : 'Show more'}
-                          {isDescriptionExpanded ? (
-                            <ChevronUp className="w-4 h-4" aria-hidden="true" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4" aria-hidden="true" />
-                          )}
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Divider */}
-                  <div className="border-t border-white/10 my-6" />
-
-                  {/* Footer */}
-                  <div>
-                    <p className="text-sm text-white/70">
-                      Don't see your event?{' '}
-                      <a 
-                        href="/community/feature" 
-                        className="text-amber-500 hover:text-amber-400 transition-colors underline decoration-transparent hover:decoration-current"
-                        data-testid="link-organizer-feature"
-                      >
-                        Request to have it listed
-                      </a>
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mobile Action Bar */}
-              <div className="absolute bottom-0 left-0 right-0 p-4 bg-neutral-950/95 backdrop-blur border-t border-white/10">
-                <div className="space-y-3">
+              {/* Right Column: Action Card (1fr) */}
+              <div className="lg:sticky lg:top-6 lg:self-start">
+                <div className="rounded-2xl p-5 bg-white/5 ring-1 ring-white/10 space-y-3">
                   {/* Primary Action */}
                   {event.tickets_url ? (
                     <motion.a
@@ -494,33 +362,84 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
                   )}
 
                   {/* Secondary Actions */}
-                  <div className="flex gap-2">
-                    <motion.button
-                      onClick={() => handleAddToCalendar('google')}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-colors text-sm"
-                      data-testid="button-add-google"
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      Add to Google
-                    </motion.button>
-                    <motion.button
-                      onClick={() => handleAddToCalendar('ics')}
-                      className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-colors text-sm"
-                      data-testid="button-download-ics"
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      Download .ics
-                    </motion.button>
-                    <motion.button
-                      onClick={handleShare}
-                      className="px-4 py-2 border border-white/20 text-white hover:bg-white/5 rounded-xl transition-colors"
-                      data-testid="button-share"
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Share2 className="w-4 h-4" aria-hidden="true" />
-                    </motion.button>
-                  </div>
+                  <motion.button
+                    onClick={() => handleAddToCalendar('google')}
+                    className="w-full inline-flex items-center justify-center px-4 py-2.5 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-colors"
+                    data-testid="button-add-google"
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Add to Google
+                  </motion.button>
+
+                  <motion.button
+                    onClick={() => handleAddToCalendar('ics')}
+                    className="w-full inline-flex items-center justify-center px-4 py-2.5 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-colors"
+                    data-testid="button-download-ics"
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    Download .ics
+                  </motion.button>
+
+                  <motion.button
+                    onClick={handleShare}
+                    className="w-full inline-flex items-center justify-center px-4 py-2.5 text-white/70 hover:text-white font-medium rounded-xl hover:bg-white/5 transition-colors"
+                    data-testid="button-share"
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Share2 className="w-4 h-4 mr-2" aria-hidden="true" />
+                    Share
+                  </motion.button>
                 </div>
+              </div>
+            </div>
+
+            {/* Mobile: Action Buttons at bottom */}
+            <div className="lg:hidden mt-8 space-y-3">
+              {/* Primary Action */}
+              {event.tickets_url ? (
+                <motion.a
+                  href={event.tickets_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center px-6 py-3 bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-xl transition-colors"
+                  data-testid="button-get-tickets-mobile"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Get Tickets
+                  <ExternalLink className="w-4 h-4 ml-2" aria-hidden="true" />
+                </motion.a>
+              ) : (
+                <div className="w-full inline-flex items-center justify-center px-6 py-3 bg-white/10 text-white/50 font-semibold rounded-xl cursor-not-allowed">
+                  No tickets available
+                </div>
+              )}
+
+              {/* Secondary Actions */}
+              <div className="flex gap-2">
+                <motion.button
+                  onClick={() => handleAddToCalendar('google')}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-colors text-sm"
+                  data-testid="button-add-google-mobile"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Add to Google
+                </motion.button>
+                <motion.button
+                  onClick={() => handleAddToCalendar('ics')}
+                  className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-colors text-sm"
+                  data-testid="button-download-ics-mobile"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Download .ics
+                </motion.button>
+                <motion.button
+                  onClick={handleShare}
+                  className="px-4 py-2 border border-white/20 text-white hover:bg-white/5 rounded-xl transition-colors"
+                  data-testid="button-share-mobile"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Share2 className="w-4 h-4" aria-hidden="true" />
+                </motion.button>
               </div>
             </div>
           </div>

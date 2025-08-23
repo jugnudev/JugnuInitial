@@ -1,0 +1,100 @@
+Fix Event Overlay (Desktop Parity + Layout Polish)
+
+Issue: Desktop overlay is missing several info rows (address, maps link, help text / form link, etc.) that appear on mobile. Image ratio is good — keep it.
+
+Scope: Pure UI. Do not change data fetching, handlers, analytics, or routes.
+
+1) Single source of truth for the info block
+
+Create a reusable <EventInfo /> subcomponent that renders all informational rows, and use it for both desktop and mobile so content can’t diverge.
+
+<EventInfo /> must include, in this exact order:
+
+Title (h1)
+
+Category chip (if present)
+
+Date row (long-form date)
+
+Time row (start–end, one row only — no duplicates)
+
+Venue line (name)
+
+City line (City, Region)
+
+Full street address (on its own line). If not present, omit (no extra spacing).
+
+“Open in Maps” link (if mapsUrl present)
+
+Divider
+
+Helper copy row: “Don’t see your event?” + “Request to have it listed” (links to existing submission URL)
+
+Use existing date/time formatting utilities and existing links.
+
+2) Layout
+
+Keep the 16:9 hero at the top (rounded, gradient overlay).
+
+Below hero, desktop uses a 2-column grid centered in a max-w-6xl container:
+
+Left (2fr): <EventInfo />
+
+Right (1fr): action card (Get Tickets, Add to Google, Download .ics, Share)
+
+Grid: grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8
+
+Right action card is sticky top-6 but must not overlap or hide the left content.
+
+Modal content scrolls if tall: wrap main content in max-h-[85vh] overflow-y-auto lg:overflow-y-visible.
+
+3) 16:9 hero (retain, no plugin)
+<div className="relative rounded-2xl overflow-hidden ring-1 ring-white/10">
+  <div className="relative pb-[56.25%] bg-neutral-900">
+    <img src={event.imageUrl} alt={event.title} className="absolute inset-0 h-full w-full object-cover" />
+    <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/50 to-transparent" />
+  </div>
+</div>
+
+4) Action card (unchanged functionality)
+
+Buttons: Get Tickets (primary amber), Add to Google (outline), Download .ics (outline), Share (ghost).
+
+All existing handlers/links stay identical; open external links with rel="noopener noreferrer".
+
+5) Remove duplicates / missing items
+
+Ensure only one time row on desktop (the screenshot showed duplicates). Use the same logic as mobile.
+
+Ensure full address and “Open in Maps” render on desktop exactly as on mobile.
+
+Ensure helper copy row is present on desktop:
+Don’t see your event? Request to have it listed
+
+6) Accessibility
+
+Dialog keeps focus trap and ESC close.
+
+Title has id bound to aria-labelledby.
+
+Icons are aria-hidden; buttons have labels.
+
+7) Acceptance criteria
+
+Desktop shows all info rows (title, category, date, time, venue, city, address, maps link, helper copy) — identical to mobile content.
+
+No duplicate time rows.
+
+Hero image always 16:9.
+
+Right action card is sticky but never hides the info block; page scrolls gracefully for long content.
+
+No console errors. No changes to data/handlers.
+
+8) Nice-to-have (if quick)
+
+Add a small Skeleton for hero + title while loading (uses same 16:9 wrapper).
+
+Ensure long titles wrap cleanly without layout shift.
+
+If anything blocks parity, mirror whatever the mobile component renders — desktop must show the same fields in the left column.
