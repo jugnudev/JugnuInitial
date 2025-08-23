@@ -50,9 +50,9 @@ export default function EventsExplore() {
         ...(categoryFilter !== 'All' && { 
           // Map frontend category names to backend category values
           category: categoryFilter.toLowerCase()
-            .replace('parties', 'club')  // "Parties" -> "club"
             .replace('concerts', 'concert')  // "Concerts" -> "concert"
             .replace('festivals', 'festival')  // "Festivals" -> "festival"
+            // "parties" stays as "parties" - no transformation needed
         }),
         ...(searchQuery && { q: searchQuery })
       });

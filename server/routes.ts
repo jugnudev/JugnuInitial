@@ -1156,6 +1156,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Community Events - Delete Endpoint
+  app.delete("/api/community/events/:id", async (req, res) => {
+    try {
+      // Require admin key
+      const adminKey = req.headers['x-admin-key'];
+      if (adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: "unauthorized" });
+      }
+
+      const supabase = getSupabaseAdmin();
+      const { id } = req.params;
+
+      const { data, error } = await supabase
+        .from('community_events')
+        .delete()
+        .eq('id', id)
+        .select();
+
+      if (error || !data || data.length === 0) {
+        console.error("Delete error:", error);
+        return res.status(404).json({ ok: false, error: "Not found" });
+      }
+
+      res.json({ ok: true, message: "Event deleted" });
+    } catch (error) {
+      console.error("Delete endpoint error:", error);
+      res.status(500).json({ ok: false, error: "server_error" });
+    }
+  });
+
   // Community Events - Weekly Feed Endpoint
   // Events by-ids endpoint for v3.3 UUID-based favorites
   app.get("/api/events/by-ids", async (req, res) => {
@@ -1205,9 +1235,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate = new Date(yearNum, monthNum - 1, 1); // month is 0-indexed
         endDate = new Date(yearNum, monthNum, 0, 23, 59, 59); // last day of month
       } else {
-        // Default to current month
+        // Default to 6 months ahead
         const now = new Date();
-        const daysAhead = range === 'week' ? 7 : 30;
+        let daysAhead = 180; // Default to 6 months
+        if (range === 'week') daysAhead = 7;
+        else if (range === 'month') daysAhead = 30;
         startDate = now;
         endDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
       }
@@ -1271,8 +1303,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const timezone = process.env.CITY_TZ || 'America/Vancouver';
       const nowTz = new Date(new Date().toLocaleString('en-US', { timeZone: timezone }));
       
-      // Default to month (30 days), allow ?range=week for 7 days
-      const daysAhead = range === 'week' ? 7 : 30;
+      // Default to 180 days (6 months), allow ?range=week for 7 days, ?range=month for 30 days
+      let daysAhead = 180; // Default to 6 months
+      if (range === 'week') daysAhead = 7;
+      else if (range === 'month') daysAhead = 30;
       const endDateTz = new Date(nowTz.getTime() + daysAhead * 24 * 60 * 60 * 1000);
       
       // Convert back to UTC for database filtering
