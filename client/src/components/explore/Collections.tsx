@@ -18,7 +18,7 @@ interface CollectionsProps {
 const EVENT_COLLECTIONS: Collection[] = [
   { id: 'this-week', name: 'This Week', query: 'timeframe=week', color: 'bg-copper-500/90' },
   { id: 'concerts', name: 'Concerts', query: 'category=concert', color: 'bg-purple-500/90' },
-  { id: 'club-nights', name: 'Club Nights', query: 'category=club', color: 'bg-pink-500/90' },
+  { id: 'parties', name: 'Parties', query: 'category=parties', color: 'bg-pink-500/90' },
   { id: 'comedy', name: 'Comedy', query: 'category=comedy', color: 'bg-yellow-500/90' },
   { id: 'festivals', name: 'Festivals', query: 'category=festival', color: 'bg-green-500/90' },
   { id: 'free', name: 'Free Events', query: 'price=free', color: 'bg-blue-500/90' },

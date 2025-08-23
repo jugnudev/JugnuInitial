@@ -529,7 +529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Determine category from tags first, then infer from content
             let category = 'other';
-            const validCategories = ['concert', 'club', 'comedy', 'festival'];
+            const validCategories = ['concert', 'parties', 'comedy', 'festival'];
             const tagCategory = tags.find(tag => validCategories.includes(tag));
             
             if (tagCategory) {
@@ -541,7 +541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               if (/(concert|live|tour|singer|band|diljit|atif|arijit)/i.test(combinedText)) {
                 category = 'concert';
               } else if (/(club|dj|night|party|bollywood night|desi night|bhangra)/i.test(combinedText)) {
-                category = 'club';
+                category = 'parties';
               } else if (/(comedy|comic|stand ?up)/i.test(combinedText)) {
                 category = 'comedy';
               } else if (/(festival|mela|fair)/i.test(combinedText)) {
@@ -775,7 +775,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           // Check tags first
           if (event.tags?.includes('concert')) category = 'concert';
-          else if (event.tags?.includes('club')) category = 'club';
+          else if (event.tags?.includes('parties')) category = 'parties';
           else if (event.tags?.includes('comedy')) category = 'comedy';
           else if (event.tags?.includes('festival')) category = 'festival';
           else {
@@ -785,7 +785,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (/(concert|live|tour|singer|band|atif|arijit|diljit)/i.test(combinedText)) {
               category = 'concert';
             } else if (/(club|dj|night|party|bollywood night|desi night|bhangra)/i.test(combinedText)) {
-              category = 'club';
+              category = 'parties';
             } else if (/(comedy|stand ?up|comic)/i.test(combinedText)) {
               category = 'comedy';
             } else if (/(festival|mela|fair)/i.test(combinedText)) {

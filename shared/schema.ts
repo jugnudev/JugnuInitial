@@ -15,7 +15,7 @@ export const communityEvents = pgTable("community_events", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
   title: text("title").notNull(),
   description: text("description"),
-  category: text("category"), // concert | club | comedy | festival | other
+  category: text("category"), // concert | parties | comedy | festival | other
   startAt: timestamp("start_at", { withTimezone: true }).notNull(),
   endAt: timestamp("end_at", { withTimezone: true }),
   timezone: text("timezone").notNull().default("America/Vancouver"),
