@@ -1,0 +1,251 @@
+Lead → Approval → Self-Serve Campaign (Option A)
+
+Context (do not change):
+
+Keep current pricing/packages/quotes and the existing sponsor application form as-is.
+
+Keep admin/leads auth exactly as it is now.
+
+Transactional email should use SendGrid.
+
+Domain: https://thehouseofjugnu.com
+
+From email: relations@thehouseofjugnu.com
+
+Owner note: I will run the SQL migration below in Supabase myself. Assume the columns exist.
+
+0) Mapping & Timezone (use exactly)
+
+events_spotlight → placements: ["events_banner"]
+
+home_feature → placements: ["home_mid"]
+
+full_feature → placements: ["events_banner","home_mid"]
+
+Use America/Los_Angeles (PT). Convert lead start_date to start_at = 00:00 PT, end_date to end_at = 23:59 PT.
+
+1) Admin Approve Action
+
+Endpoint: POST /api/admin/leads/:id/approve (admin key required)
+
+Behavior:
+
+Validate lead exists and status IN ('new','reviewing').
+
+Set:
+
+status='approved'
+
+approved_at=now()
+
+approved_by=<admin identifier or 'console'>
+
+onboarding_token=uuid_v4()
+
+onboarding_expires_at=now()+interval '14 days'
+
+Send onboarding email to lead’s email with link:
+
+https://thehouseofjugnu.com/onboard/<onboarding_token>
+
+After email send, set status='onboarding_sent'.
+
+Return { ok:true, onboarding_link, expires_at }.
+
+Email (SendGrid):
+
+From: Jugnu <relations@thehouseofjugnu.com>
+
+Subject: You're approved — create your Jugnu campaign
+
+Body CTA button to the link above + note “Link expires in 14 days.” Include support line to relations@thehouseofjugnu.com.
+
+Also provide:
+
+POST /api/admin/leads/:id/resend-onboarding → rotate a fresh token + email (invalidate the old one).
+
+POST /api/admin/leads/:id/revoke-onboarding → null out token/expiry so links stop working.
+
+2) Public Onboarding Page
+
+Route: /onboard/:token (new React page)
+
+GET /api/onboard/:token
+
+Validate: a row in sponsor_leads where:
+
+token matches,
+
+status IN ('approved','onboarding_sent'),
+
+onboarding_used_at IS NULL,
+
+onboarding_expires_at > now().
+
+Return prefill:
+
+business_name, contact_name, email
+
+package_code, start_date, end_date, add_ons
+
+placements (from mapping above)
+
+any creative URLs stored on lead (events/home desktop/mobile)
+
+Onboarding form fields (required unless noted):
+
+Campaign Title (maps to sponsor_campaigns.name)
+
+Headline
+
+Subline (optional)
+
+CTA text
+
+Click URL (server will append UTMs)
+
+Placements (read-only, based on package)
+
+Creatives: show existing uploads from the lead; allow Replace (file or URL). Keep acceptance: JPG/PNG/WebP.
+
+POST /api/onboard/:token
+
+Re-validate token.
+
+Create sponsor_campaigns row:
+
+name, sponsor_name (from lead business_name),
+
+headline, subline, cta_text, click_url (+ append utm_source=jugnu&utm_medium=sponsor&utm_campaign=<slug(name)>),
+
+placements array,
+
+start_at, end_at (PT),
+
+is_active=false,
+
+source_lead_id=lead.id.
+
+Create sponsor_creatives rows:
+
+For events_banner: use events desktop/mobile URLs (existing or replaced).
+
+For home_mid: use home desktop/mobile URLs (existing or replaced).
+
+Update sponsor_leads:
+
+source_campaign_id=<new campaign id>
+
+status='onboarded'
+
+onboarding_used_at=now()
+
+Create sponsor_portal_tokens entry for campaign_id (same system we already use).
+
+Respond { ok:true, campaign_id, portal_link }.
+
+File handling (server):
+
+Endpoint accepts either:
+
+multipart file fields: events_desktop, events_mobile, home_desktop, home_mobile
+
+or string URLs in *_asset_url counterparts.
+
+For files: upload to our Supabase Storage bucket (same bucket currently used for creatives), return the public URL and persist it.
+
+3) Admin UI (Leads detail)
+
+Add to the lead detail:
+
+A primary button “Approve & send onboarding link” (calls /api/admin/leads/:id/approve).
+
+After sending: show link, expiry, and buttons Copy, Resend, Revoke.
+
+When source_campaign_id is present: show Open Campaign and Open Portal links.
+
+4) Validation & Security
+
+Admin endpoints: require x-admin-key: ADMIN_PASSWORD.
+
+Onboarding token: single-use, 14-day expiry.
+
+Click URL normalization + UTM injection on server.
+
+Maintain all existing image validation (mime, min sizes) when replacing creatives.
+
+5) ENV you’ll need
+
+Add/check these in the backend environment:
+
+APP_BASE_URL=https://thehouseofjugnu.com
+
+SENDGRID_API_KEY=<redacted>
+
+EMAIL_FROM_ADDRESS=relations@thehouseofjugnu.com
+
+EMAIL_FROM_NAME=Jugnu
+
+ADMIN_PASSWORD=<existing>
+
+(existing) SUPABASE_URL, SUPABASE_SERVICE_KEY
+
+(existing) SB_BUCKET_SPONSOR_CREATIVES (or whatever the creatives bucket is)
+
+6) QA / Acceptance
+
+Approve flow
+
+Approve a real test lead → email is sent from relations@thehouseofjugnu.com with an onboarding link to thehouseofjugnu.com/onboard/<token>.
+
+Visiting an expired or used link shows a friendly error and contact email.
+
+Onboarding
+
+Prefill shows correct package/dates/creatives.
+
+Replacing a creative uploads to Storage and the campaign’s creative rows use the new URLs.
+
+Full Feature → creates campaign with 2 placements and 2 creative rows (events + home).
+
+Single placements → 1 creative row.
+
+Lead and campaign cross-linked: sponsor_campaigns.source_lead_id set; sponsor_leads.source_campaign_id set.
+
+Portal token created and returned.
+
+Admin UI
+
+Approve/Resend/Revoke are visible and work.
+
+“Open Portal” for the created campaign works.
+
+▶️ SQL the Owner will run in Supabase (already applied / please assume present)
+-- Lead lifecycle + onboarding token + back-link to campaign
+ALTER TABLE sponsor_leads
+  ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'new'
+    CHECK (status IN ('new','reviewing','approved','onboarding_sent','onboarded','rejected')),
+  ADD COLUMN IF NOT EXISTS approved_at timestamptz,
+  ADD COLUMN IF NOT EXISTS approved_by text,
+  ADD COLUMN IF NOT EXISTS onboarding_token uuid,
+  ADD COLUMN IF NOT EXISTS onboarding_expires_at timestamptz,
+  ADD COLUMN IF NOT EXISTS onboarding_used_at timestamptz,
+  ADD COLUMN IF NOT EXISTS source_campaign_id uuid;
+
+CREATE INDEX IF NOT EXISTS idx_sponsor_leads_onboarding_token ON sponsor_leads(onboarding_token);
+CREATE INDEX IF NOT EXISTS idx_sponsor_leads_status ON sponsor_leads(status);
+
+-- Campaign back-link to the originating lead
+ALTER TABLE sponsor_campaigns
+  ADD COLUMN IF NOT EXISTS source_lead_id uuid;
+
+
+(No FK constraints needed for v1; app code will maintain links. You may add FKs later.)
+
+Notes
+
+Keep SendGrid just for these transactional emails. We’ll integrate Klaviyo later for newsletters on thehouseofjugnu.com (separate task).
+
+Please keep changes scoped to the endpoints/pages listed above; do not modify pricing logic, quotes, or admin auth.
+
+Thanks!

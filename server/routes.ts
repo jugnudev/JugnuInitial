@@ -7,6 +7,7 @@ import { addSpotlightRoutes } from './routes-spotlight.js';
 import { addAdminRoutes } from './routes-admin.js';
 import { addQuotesRoutes } from './routes-quotes.js';
 import { addAdminLeadsRoutes } from './routes-admin-leads.js';
+import { registerOnboardingRoutes } from './routes-onboarding.js';
 import { createHash } from "crypto";
 import ical from "node-ical";
 import he from "he";
@@ -2748,6 +2749,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add admin leads routes for v5 sponsor leads system
   addAdminLeadsRoutes(app);
+  
+  // Add onboarding routes for campaign creation
+  registerOnboardingRoutes(app);
 
   // Dev-only routes that call admin endpoints server-side (no client secrets)
   if (process.env.NODE_ENV !== 'production') {

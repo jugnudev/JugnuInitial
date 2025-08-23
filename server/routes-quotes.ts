@@ -1,5 +1,14 @@
 import type { Express } from 'express';
-import { createQuote, getQuote, createApplication, createQuoteSchema, createApplicationSchema } from './services/sponsorService';
+import { 
+  createQuote, 
+  getQuote, 
+  createApplication, 
+  createQuoteSchema, 
+  createApplicationSchema,
+  approveLead,
+  resendOnboardingEmail,
+  revokeOnboardingToken
+} from './services/sponsorService';
 import { uploadSponsorCreatives } from './services/storageService';
 import { z } from 'zod';
 import sgMail from '@sendgrid/mail';
@@ -388,6 +397,69 @@ export function addQuotesRoutes(app: Express) {
       res.status(500).json({ 
         ok: false,
         error: 'Failed to create application' 
+      });
+    }
+  });
+
+  // Admin approval endpoints
+  app.post('/api/admin/leads/:id/approve', async (req, res) => {
+    try {
+      // Check admin auth
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      }
+
+      const { id } = req.params;
+      const approvedBy = req.body.approvedBy || 'console';
+      
+      const result = await approveLead(id, approvedBy);
+      res.json(result);
+    } catch (error) {
+      console.error('Error approving lead:', error);
+      res.status(400).json({ 
+        ok: false, 
+        error: error instanceof Error ? error.message : 'Failed to approve lead' 
+      });
+    }
+  });
+
+  app.post('/api/admin/leads/:id/resend-onboarding', async (req, res) => {
+    try {
+      // Check admin auth
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      }
+
+      const { id } = req.params;
+      const result = await resendOnboardingEmail(id);
+      res.json(result);
+    } catch (error) {
+      console.error('Error resending onboarding:', error);
+      res.status(400).json({ 
+        ok: false, 
+        error: error instanceof Error ? error.message : 'Failed to resend onboarding' 
+      });
+    }
+  });
+
+  app.post('/api/admin/leads/:id/revoke-onboarding', async (req, res) => {
+    try {
+      // Check admin auth
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      }
+
+      const { id } = req.params;
+      const result = await revokeOnboardingToken(id);
+      res.json(result);
+    } catch (error) {
+      console.error('Error revoking onboarding:', error);
+      res.status(400).json({ 
+        ok: false, 
+        error: error instanceof Error ? error.message : 'Failed to revoke onboarding' 
       });
     }
   });

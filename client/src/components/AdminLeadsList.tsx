@@ -25,7 +25,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, Download, Search, Filter, Users, ExternalLink } from 'lucide-react';
+import { Eye, Download, Search, Filter, Users, ExternalLink, Send, RotateCw, X, CheckCircle, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -39,13 +39,17 @@ interface Lead {
   package_code: string;
   duration: string;
   total_cents: number;
-  status: 'new' | 'reviewing' | 'approved' | 'rejected';
+  status: 'new' | 'reviewing' | 'approved' | 'onboarding_sent' | 'onboarded' | 'rejected';
   created_at: string;
   promo_applied: boolean;
   promo_code: string | null;
   desktop_asset_url?: string;
   mobile_asset_url?: string;
   creative_links?: string;
+  onboarding_token?: string;
+  onboarding_expires_at?: string;
+  onboarding_used_at?: string;
+  source_campaign_id?: string;
 }
 
 interface AdminLeadsListProps {
@@ -114,10 +118,78 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
     }
   });
   
+  // Approve lead mutation
+  const approveMutation = useMutation({
+    mutationFn: async (leadId: string) => {
+      const response = await fetch(`/api/admin/leads/${leadId}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': adminKey
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to approve lead');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-leads'] });
+    }
+  });
+  
+  // Resend onboarding mutation
+  const resendOnboardingMutation = useMutation({
+    mutationFn: async (leadId: string) => {
+      const response = await fetch(`/api/admin/leads/${leadId}/resend-onboarding`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': adminKey
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to resend onboarding');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-leads'] });
+    }
+  });
+  
+  // Revoke onboarding mutation
+  const revokeOnboardingMutation = useMutation({
+    mutationFn: async (leadId: string) => {
+      const response = await fetch(`/api/admin/leads/${leadId}/revoke-onboarding`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': adminKey
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to revoke onboarding');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-leads'] });
+    }
+  });
+  
   const statusColors = {
     new: 'bg-blue-600 text-blue-100',
     reviewing: 'bg-yellow-600 text-yellow-100', 
     approved: 'bg-green-600 text-green-100',
+    onboarding_sent: 'bg-purple-600 text-purple-100',
+    onboarded: 'bg-indigo-600 text-indigo-100',
     rejected: 'bg-red-600 text-red-100'
   };
   
@@ -151,6 +223,8 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                 <SelectItem value="new" className="text-white focus:bg-gray-700">New</SelectItem>
                 <SelectItem value="reviewing" className="text-white focus:bg-gray-700">Reviewing</SelectItem>
                 <SelectItem value="approved" className="text-white focus:bg-gray-700">Approved</SelectItem>
+                <SelectItem value="onboarding_sent" className="text-white focus:bg-gray-700">Onboarding Sent</SelectItem>
+                <SelectItem value="onboarded" className="text-white focus:bg-gray-700">Onboarded</SelectItem>
                 <SelectItem value="rejected" className="text-white focus:bg-gray-700">Rejected</SelectItem>
               </SelectContent>
             </Select>
@@ -490,44 +564,163 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
               </Card>
             )}
             
-            <div className="mt-6 flex gap-2">
-              <Select 
-                onValueChange={(status) => {
-                  updateStatusMutation.mutate({
-                    leadId: selectedLead.id,
-                    status,
-                    adminNotes: `Status updated to ${status}`
-                  });
-                }}
-              >
-                <SelectTrigger className="w-48" data-testid="update-status-select">
-                  <SelectValue placeholder="Update Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="new">New</SelectItem>
-                  <SelectItem value="reviewing">Reviewing</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Action Buttons */}
+            <div className="mt-6 space-y-4">
+              {/* Approval Actions */}
+              {['new', 'reviewing'].includes(selectedLead.status) && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="default"
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={() => {
+                      if (confirm('Approve this lead and send onboarding email?')) {
+                        approveMutation.mutate(selectedLead.id);
+                      }
+                    }}
+                    disabled={approveMutation.isPending}
+                    data-testid="button-approve"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Approve & Send Onboarding
+                  </Button>
+                  
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      if (confirm('Reject this lead?')) {
+                        updateStatusMutation.mutate({
+                          leadId: selectedLead.id,
+                          status: 'rejected',
+                          adminNotes: 'Lead rejected'
+                        });
+                      }
+                    }}
+                    disabled={updateStatusMutation.isPending}
+                    data-testid="button-reject"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Reject
+                  </Button>
+                </div>
+              )}
               
-              <Button
-                variant="outline"
-                onClick={() => {
-                  const url = `/admin/leads/${selectedLead.id}?export=csv`;
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = `lead-${selectedLead.id}-${new Date().toISOString().split('T')[0]}.csv`;
-                  link.target = '_blank';
-                  document.body.appendChild(link);
-                  link.click();
-                  document.body.removeChild(link);
-                }}
-                data-testid="button-export-lead"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Export Lead
-              </Button>
+              {/* Onboarding Actions */}
+              {['approved', 'onboarding_sent'].includes(selectedLead.status) && selectedLead.onboarding_token && (
+                <div className="space-y-2">
+                  <div className="p-3 bg-gray-800 rounded-lg">
+                    <label className="text-sm font-medium text-gray-400">Onboarding Link</label>
+                    <div className="mt-1 flex items-center gap-2">
+                      <code className="text-xs text-blue-400 break-all">
+                        {process.env.APP_BASE_URL || window.location.origin}/onboard/{selectedLead.onboarding_token}
+                      </code>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            `${process.env.APP_BASE_URL || window.location.origin}/onboard/${selectedLead.onboarding_token}`
+                          );
+                        }}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    {selectedLead.onboarding_expires_at && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Expires: {format(new Date(selectedLead.onboarding_expires_at), 'MMM d, yyyy')}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (confirm('Resend onboarding email with new token?')) {
+                          resendOnboardingMutation.mutate(selectedLead.id);
+                        }
+                      }}
+                      disabled={resendOnboardingMutation.isPending}
+                      data-testid="button-resend-onboarding"
+                    >
+                      <RotateCw className="h-4 w-4 mr-2" />
+                      Resend Onboarding
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      className="text-red-500 hover:text-red-400"
+                      onClick={() => {
+                        if (confirm('Revoke onboarding token? The link will stop working.')) {
+                          revokeOnboardingMutation.mutate(selectedLead.id);
+                        }
+                      }}
+                      disabled={revokeOnboardingMutation.isPending}
+                      data-testid="button-revoke-onboarding"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Revoke Token
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
+              {/* Campaign Links */}
+              {selectedLead.source_campaign_id && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => window.open(`/admin/campaigns/${selectedLead.source_campaign_id}`, '_blank')}
+                    data-testid="button-open-campaign"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open Campaign
+                  </Button>
+                </div>
+              )}
+              
+              {/* Other Actions */}
+              <div className="flex gap-2">
+                <Select 
+                  onValueChange={(status) => {
+                    updateStatusMutation.mutate({
+                      leadId: selectedLead.id,
+                      status,
+                      adminNotes: `Status updated to ${status}`
+                    });
+                  }}
+                >
+                  <SelectTrigger className="w-48" data-testid="update-status-select">
+                    <SelectValue placeholder="Change Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">New</SelectItem>
+                    <SelectItem value="reviewing">Reviewing</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="onboarding_sent">Onboarding Sent</SelectItem>
+                    <SelectItem value="onboarded">Onboarded</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const url = `/api/admin/leads/${selectedLead.id}?export=csv`;
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `lead-${selectedLead.id}-${new Date().toISOString().split('T')[0]}.csv`;
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  data-testid="button-export-lead"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export Lead
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

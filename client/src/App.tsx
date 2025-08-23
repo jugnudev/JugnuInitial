@@ -22,6 +22,7 @@ import Promote from "@/pages/Promote";
 import SponsorPortal from "@/pages/SponsorPortal";
 import AdminPromote from "@/pages/AdminPromote";
 import AdminLeads from "@/pages/AdminLeads";
+import Onboard from "@/pages/Onboard";
 
 function Router() {
   return (
@@ -36,6 +37,7 @@ function Router() {
         <Route path="/promote" component={Promote} />
         <Route path="/promote/apply" component={Promote} />
         <Route path="/sponsor/:tokenId" component={SponsorPortal} />
+        <Route path="/onboard/:token" component={Onboard} />
         <Route path="/admin/promote" component={AdminPromote} />
         <Route path="/admin/leads" component={AdminLeads} />
         <Route path="/places" component={() => { window.location.href = '/events'; return null; }} />

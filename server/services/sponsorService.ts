@@ -1,5 +1,7 @@
 import { getSupabaseAdmin } from '../supabaseAdmin';
 import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
+import { sendOnboardingEmail } from './emailService';
 
 // Pricing configuration
 const PRICING = {
@@ -438,4 +440,160 @@ export async function updateLeadStatus(id: string, status: string, adminNotes?: 
   }
   
   return result;
+}
+
+// Approve lead and send onboarding email
+export async function approveLead(id: string, approvedBy: string = 'console') {
+  const supabase = getSupabaseAdmin();
+  
+  // First, fetch the lead to validate status
+  const { data: lead, error: fetchError } = await supabase
+    .from('sponsor_leads')
+    .select('*')
+    .eq('id', id)
+    .single();
+  
+  if (fetchError || !lead) {
+    throw new Error('Lead not found');
+  }
+  
+  // Validate status
+  if (!['new', 'reviewing'].includes(lead.status)) {
+    throw new Error(`Cannot approve lead with status: ${lead.status}`);
+  }
+  
+  // Generate onboarding token and expiry
+  const onboardingToken = uuidv4();
+  const onboardingExpiresAt = new Date();
+  onboardingExpiresAt.setDate(onboardingExpiresAt.getDate() + 14); // 14 days from now
+  
+  // Update lead with approval info
+  const { data: updatedLead, error: updateError } = await supabase
+    .from('sponsor_leads')
+    .update({
+      status: 'approved',
+      approved_at: new Date().toISOString(),
+      approved_by: approvedBy,
+      onboarding_token: onboardingToken,
+      onboarding_expires_at: onboardingExpiresAt.toISOString()
+    })
+    .eq('id', id)
+    .select('*')
+    .single();
+  
+  if (updateError) {
+    throw new Error(`Failed to approve lead: ${updateError.message}`);
+  }
+  
+  // Send onboarding email
+  const onboardingLink = `${process.env.APP_BASE_URL || 'https://thehouseofjugnu.com'}/onboard/${onboardingToken}`;
+  
+  try {
+    await sendOnboardingEmail({
+      recipientEmail: updatedLead.email,
+      contactName: updatedLead.contact_name,
+      businessName: updatedLead.business_name,
+      onboardingLink,
+      expiresInDays: 14
+    });
+    
+    // Update status to onboarding_sent after successful email
+    await supabase
+      .from('sponsor_leads')
+      .update({ status: 'onboarding_sent' })
+      .eq('id', id);
+    
+  } catch (emailError) {
+    console.error('Failed to send onboarding email:', emailError);
+    // Don't fail the whole operation if email fails
+    // Admin can resend manually
+  }
+  
+  return {
+    ok: true,
+    onboarding_link: onboardingLink,
+    expires_at: onboardingExpiresAt.toISOString()
+  };
+}
+
+// Resend onboarding email with fresh token
+export async function resendOnboardingEmail(id: string) {
+  const supabase = getSupabaseAdmin();
+  
+  // Fetch the lead
+  const { data: lead, error: fetchError } = await supabase
+    .from('sponsor_leads')
+    .select('*')
+    .eq('id', id)
+    .single();
+  
+  if (fetchError || !lead) {
+    throw new Error('Lead not found');
+  }
+  
+  // Validate status
+  if (!['approved', 'onboarding_sent'].includes(lead.status)) {
+    throw new Error(`Cannot resend onboarding for lead with status: ${lead.status}`);
+  }
+  
+  // Generate new token and expiry
+  const newToken = uuidv4();
+  const newExpiresAt = new Date();
+  newExpiresAt.setDate(newExpiresAt.getDate() + 14);
+  
+  // Update with new token
+  const { error: updateError } = await supabase
+    .from('sponsor_leads')
+    .update({
+      onboarding_token: newToken,
+      onboarding_expires_at: newExpiresAt.toISOString(),
+      onboarding_used_at: null // Reset if it was used
+    })
+    .eq('id', id);
+  
+  if (updateError) {
+    throw new Error(`Failed to update onboarding token: ${updateError.message}`);
+  }
+  
+  // Send new email
+  const onboardingLink = `${process.env.APP_BASE_URL || 'https://thehouseofjugnu.com'}/onboard/${newToken}`;
+  
+  await sendOnboardingEmail({
+    recipientEmail: lead.email,
+    contactName: lead.contact_name,
+    businessName: lead.business_name,
+    onboardingLink,
+    expiresInDays: 14
+  });
+  
+  // Update status to onboarding_sent
+  await supabase
+    .from('sponsor_leads')
+    .update({ status: 'onboarding_sent' })
+    .eq('id', id);
+  
+  return {
+    ok: true,
+    onboarding_link: onboardingLink,
+    expires_at: newExpiresAt.toISOString()
+  };
+}
+
+// Revoke onboarding token
+export async function revokeOnboardingToken(id: string) {
+  const supabase = getSupabaseAdmin();
+  
+  const { error } = await supabase
+    .from('sponsor_leads')
+    .update({
+      onboarding_token: null,
+      onboarding_expires_at: null
+    })
+    .eq('id', id);
+  
+  if (error) {
+    throw new Error(`Failed to revoke onboarding token: ${error.message}`);
+  }
+  
+  return { ok: true };
 }
