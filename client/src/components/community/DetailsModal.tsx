@@ -396,55 +396,6 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
               </div>
             </div>
 
-            {/* Mobile: Action Buttons at bottom */}
-            <div className="lg:hidden mt-8 space-y-3">
-              {/* Primary Action */}
-              {event.tickets_url ? (
-                <motion.a
-                  href={event.tickets_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center px-6 py-3 bg-amber-500 hover:bg-amber-600 text-black font-semibold rounded-xl transition-colors"
-                  data-testid="button-get-tickets-mobile"
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Get Tickets
-                  <ExternalLink className="w-4 h-4 ml-2" aria-hidden="true" />
-                </motion.a>
-              ) : (
-                <div className="w-full inline-flex items-center justify-center px-6 py-3 bg-white/10 text-white/50 font-semibold rounded-xl cursor-not-allowed">
-                  No tickets available
-                </div>
-              )}
-
-              {/* Secondary Actions */}
-              <div className="flex gap-2">
-                <motion.button
-                  onClick={() => handleAddToCalendar('google')}
-                  className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-colors text-sm"
-                  data-testid="button-add-google-mobile"
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Add to Google
-                </motion.button>
-                <motion.button
-                  onClick={() => handleAddToCalendar('ics')}
-                  className="flex-1 inline-flex items-center justify-center px-4 py-2 border border-white/20 text-white font-medium rounded-xl hover:bg-white/5 transition-colors text-sm"
-                  data-testid="button-download-ics-mobile"
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Download .ics
-                </motion.button>
-                <motion.button
-                  onClick={handleShare}
-                  className="px-4 py-2 border border-white/20 text-white hover:bg-white/5 rounded-xl transition-colors"
-                  data-testid="button-share-mobile"
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <Share2 className="w-4 h-4" aria-hidden="true" />
-                </motion.button>
-              </div>
-            </div>
           </div>
           </motion.div>
         </div>
