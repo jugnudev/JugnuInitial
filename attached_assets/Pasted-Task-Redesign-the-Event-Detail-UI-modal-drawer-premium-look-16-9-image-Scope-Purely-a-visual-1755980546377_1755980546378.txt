@@ -1,0 +1,268 @@
+Task: Redesign the Event Detail UI (modal/drawer) — premium look, 16:9 image
+
+Scope
+
+Purely a visual/UI refresh for the event detail overlay (modal/drawer) that opens when an event is clicked.
+
+Do not change any data fetching, analytics, routing, or business logic.
+
+Keep all existing actions (Share, Get Tickets, Add to Google, Download .ics, Open in Maps).
+
+Copy changes only:
+
+Replace “Organizer?” → “Don’t see your event”
+
+Replace “Request to be featured” → “Request to have it listed”
+
+Tech stack to use
+
+React + TypeScript + Tailwind + shadcn/ui + lucide-react + Framer Motion (same as project).
+
+No Tailwind plugin changes; implement 16:9 without adding the aspect-ratio plugin.
+
+1) Files & Component
+
+Create a new component (or refactor the existing one) at:
+
+src/components/events/EventModal.tsx (export default)
+
+If we already have an Event modal/drawer component, keep the prop API the same and replace its internals with the new layout. No prop shape changes.
+
+2) Layout & Styling (desktop & mobile)
+
+Structure
+
+Use shadcn/ui Dialog (or the project’s existing modal) with a max-w-6xl container.
+
+Inside the dialog, build a 2-column grid on lg: screens, stacked on mobile:
+
+Left: Media pane with strict 16:9 poster image.
+
+Right: Details pane with title, meta, location, actions, and footer.
+
+16:9 image (no plugin)
+
+<div className="relative w-full bg-black/40 rounded-2xl overflow-hidden">
+  {/* 16:9 wrapper without plugin: padding-bottom trick */}
+  <div className="relative pb-[56.25%]">
+    <img
+      src={event.imageUrl}
+      alt={event.title}
+      className="absolute inset-0 h-full w-full object-cover"
+      loading="lazy"
+      decoding="async"
+    />
+  </div>
+</div>
+
+
+Details pane
+
+Large, premium title (e.g., text-3xl sm:text-4xl font-extrabold tracking-tight).
+
+Category chip (use shadcn Badge or a small pill).
+
+Meta rows with lucide icons:
+
+CalendarDays + formatted date
+
+Clock + time range
+
+MapPin + venue + city + address with an Open in Maps link (ExternalLink icon)
+
+Divider
+
+Small helper row (copy change):
+
+“Don’t see your event? [Request to have it listed]”
+
+Sticky action bar at the bottom of the details pane (on mobile it’s full-width at the bottom of the dialog content):
+
+Left: Share2 button (same handler you already use)
+
+Right: Primary “Get Tickets” button (opens tickets_url), secondary buttons “Add to Google”, “Download .ics”
+
+Motion
+
+Wrap the dialog content with Framer Motion for a subtle fade+up on open.
+
+Add whileTap / hover micro-interactions to buttons.
+
+Theme & polish
+
+Rounded-2xl cards, soft shadows, subtle borders (border-white/10).
+
+Respect dark theme, high contrast, and readable line-lengths.
+
+No layout shift when loading; use skeletons for the image/title if needed.
+
+3) Accessibility
+
+Dialog is focus-trapped; ESC closes; aria-labelledby bound to the title.
+
+All actionable icons have aria-label.
+
+Image has alt from event.title or provided alt.
+
+“Get Tickets” is a real <a> with rel="noopener noreferrer" when external.
+
+4) Copy changes (only in this overlay)
+
+Under the details section, render:
+
+Don’t see your event? Request to have it listed → link to our existing submission/contact route (keep the same href we currently use for “Request to be featured”).
+
+5) Keep existing handlers / props
+
+Reuse the exact props/handlers currently passed into the modal (share handler, ticket URL, calendar handlers, maps link, close handler).
+
+Do not rename props, change function signatures, or alter analytics.
+
+6) Example JSX (sketch, adapt to our component names)
+import { Dialog, DialogContent, DialogClose } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { CalendarDays, Clock, MapPin, ExternalLink, Share2, X } from "lucide-react";
+import { motion } from "framer-motion";
+
+type Props = {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  event: {
+    title: string;
+    category?: string;
+    imageUrl?: string;
+    start: Date;
+    end: Date;
+    venueName?: string;
+    city?: string;
+    address?: string;
+    mapsUrl?: string;
+    ticketsUrl?: string;
+  };
+  onShare: () => void;
+  onAddToGoogle: () => void;
+  onDownloadIcs: () => void;
+};
+
+export default function EventModal({ open, onOpenChange, event, onShare, onAddToGoogle, onDownloadIcs }: Props) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-6xl p-0 overflow-hidden bg-neutral-900/90 backdrop-blur-xl border border-white/10">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+          className="grid lg:grid-cols-12 gap-0"
+        >
+          {/* Media */}
+          <div className="lg:col-span-6">
+            <div className="relative w-full bg-black/50">
+              <div className="relative pb-[56.25%]">
+                <img
+                  src={event.imageUrl}
+                  alt={event.title}
+                  className="absolute inset-0 h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Details */}
+          <div className="lg:col-span-6 flex flex-col">
+            <div className="p-6 sm:p-8 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <h1 id="event-title" className="text-3xl sm:text-4xl font-extrabold tracking-tight">{event.title}</h1>
+                <DialogClose asChild>
+                  <button aria-label="Close" className="rounded-full p-2 hover:bg-white/10">
+                    <X className="h-5 w-5" />
+                  </button>
+                </DialogClose>
+              </div>
+
+              {event.category && (
+                <div className="mt-3">
+                  <Badge variant="secondary" className="bg-white/10 text-white">{event.category}</Badge>
+                </div>
+              )}
+
+              <div className="mt-6 space-y-4 text-sm leading-6 text-white/90">
+                <div className="flex items-start gap-3">
+                  <CalendarDays className="h-5 w-5 opacity-80 mt-0.5" />
+                  <div>
+                    <div className="font-medium">
+                      {/* format date range with existing util */}
+                    </div>
+                    <div className="flex items-center gap-2 opacity-80">
+                      <Clock className="h-4 w-4" />
+                      {/* format time range */}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-5 w-5 opacity-80 mt-0.5" />
+                  <div>
+                    <div className="font-medium">{event.venueName}</div>
+                    <div className="opacity-80">{event.city}{event.address ? `, ${event.address}` : ""}</div>
+                    {event.mapsUrl && (
+                      <a href={event.mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-amber-400 hover:underline mt-1">
+                        Open in Maps <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 border-t border-white/10 pt-4 text-sm">
+                <span className="opacity-80">Don’t see your event? </span>
+                <a href="/submit" className="text-amber-400 hover:underline">Request to have it listed</a>
+              </div>
+            </div>
+
+            {/* Actions bar */}
+            <div className="px-6 sm:px-8 py-5 bg-black/30 border-t border-white/10 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              <div className="flex gap-3">
+                <Button variant="secondary" onClick={onShare} className="gap-2">
+                  <Share2 className="h-4 w-4" /> Share
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={onAddToGoogle} variant="outline">Add to Google</Button>
+                <Button onClick={onDownloadIcs} variant="outline">Download .ics</Button>
+                {event.ticketsUrl && (
+                  <a href={event.ticketsUrl} target="_blank" rel="noopener noreferrer">
+                    <Button className="bg-amber-500 hover:bg-amber-600">Get Tickets</Button>
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+(Use our existing date/time formatting utilities and click handlers—don’t reimplement.)
+
+7) QA / Acceptance Criteria
+
+Image always renders in a strict 16:9 box (no stretching; object-cover cropping).
+
+Title, category, date/time, venue, address, and Maps link render cleanly on mobile and desktop.
+
+Bottom action bar stays visible without overlapping content; buttons have proper focus/hover states.
+
+Copy reads “Don’t see your event? Request to have it listed” with our existing submission link.
+
+All existing actions work exactly as before (Share, Get Tickets, Add to Google, Download .ics).
+
+Dialog is keyboard accessible and ESC closes it.
+
+No console errors; Lighthouse a11y ≥ 95 on the dialog screen.
+
+Please keep this strictly UI—no prop/handler or API changes.
