@@ -622,7 +622,7 @@ export default function SponsorPortal() {
               </p>
               <div className="flex items-center justify-center gap-4 flex-wrap">
                 <a 
-                  href="mailto:hello@jugnu.app" 
+                  href="mailto:relations@thehouseofjugnu.com" 
                   className="text-copper-400 hover:text-copper-300 transition-colors font-medium"
                 >relations@thehouseofjugnu.com</a>
                 <span className="text-white/30">•</span>

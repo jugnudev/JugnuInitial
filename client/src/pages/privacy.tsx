@@ -47,8 +47,8 @@ export default function Privacy() {
           </h2>
           <p className="text-text leading-relaxed">
             If you have any questions about this Privacy Policy, please contact us at{" "}
-            <a href="mailto:hello@jugnu.events" className="text-accent hover:underline focus-ring">
-              hello@jugnu.events
+            <a href="mailto:relations@thehouseofjugnu.com" className="text-accent hover:underline focus-ring">
+              relations@thehouseofjugnu.com
             </a>.
           </p>
         </div>

@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://jugnu.events/sitemap.xml
+Sitemap: https://thehouseofjugnu.com/sitemap.xml
 
 # Block admin and development routes
 Disallow: /api/

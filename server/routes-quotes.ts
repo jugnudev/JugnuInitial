@@ -148,8 +148,8 @@ async function sendAdminNotificationEmail(leadId: string, leadData: any) {
   
   try {
     await sgMail.send({
-      to: process.env.ADMIN_EMAIL || 'admin@jugnu.events',
-      from: process.env.FROM_EMAIL || 'noreply@jugnu.events',
+      to: process.env.ADMIN_EMAIL || 'relations@thehouseofjugnu.com',
+      from: process.env.FROM_EMAIL || 'noreply@thehouseofjugnu.com',
       subject,
       html
     });

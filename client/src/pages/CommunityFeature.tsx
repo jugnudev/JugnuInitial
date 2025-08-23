@@ -104,7 +104,7 @@ export default function CommunityFeature() {
                 Back to Events
               </Button>
               <p className="text-sm text-muted/80">
-                Questions? Email us at hello@jugnu.events
+                Questions? Email us at relations@thehouseofjugnu.com
               </p>
             </div>
           </div>
@@ -216,7 +216,7 @@ export default function CommunityFeature() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="concert">Concert</SelectItem>
-                    <SelectItem value="club">Club Night</SelectItem>
+                    <SelectItem value="parties">Parties</SelectItem>
                     <SelectItem value="comedy">Comedy</SelectItem>
                     <SelectItem value="festival">Festival</SelectItem>
                     <SelectItem value="other">Other</SelectItem>

@@ -77,13 +77,13 @@ export const PRICING_CONFIG = {
   addOns: {
     ig_story: {
       name: 'IG Story Boost',
-      description: 'Instagram story on @jugnu.events during your run',
+      description: 'Instagram story on @thehouseofjugnu during your run',
       price: 10
     },
     email_feature: {
       name: 'Email Feature (100+ subscribers)',
       description: 'Sponsor mention in our community email during your week',
-      price: 30
+      price: 90
     }
   },
   discounts: {

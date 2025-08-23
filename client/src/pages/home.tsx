@@ -15,8 +15,8 @@ export default function Home() {
             "@context": "https://schema.org",
             "@type": "Organization",
             name: "Jugnu",
-            url: "https://jugnu.events",
-            logo: "https://jugnu.events/logo.svg",
+            url: "https://thehouseofjugnu.com",
+            logo: "https://thehouseofjugnu.com/logo.svg",
             description: "Curated South Asian & global culture—nights, pop-ups, and experiences in Vancouver.",
             sameAs: ["https://instagram.com/thehouseofjugnu"],
             contactPoint: {

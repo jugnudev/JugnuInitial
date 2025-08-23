@@ -520,7 +520,7 @@ export default function Promote() {
   return (
     <div className="min-h-screen bg-bg">
       {/* SEO Meta Tags */}
-      <link rel="canonical" href="https://jugnu.events/promote" />
+      <link rel="canonical" href="https://thehouseofjugnu.com/promote" />
       <meta name="description" content="Promote your business to Vancouver's South Asian community. Reach passionate culture enthusiasts with premium sponsorship packages starting at CA$50/week. Events page placements, homepage heroes, and full feature campaigns available." />
       <meta name="keywords" content="Vancouver South Asian advertising, Metro Vancouver sponsorship, cultural events marketing, South Asian audience, Jugnu sponsorship packages, Vancouver event promotion" />
       
@@ -532,8 +532,8 @@ export default function Promote() {
             "@context": "https://schema.org",
             "@type": "Organization",
             "name": "Jugnu",
-            "url": "https://jugnu.events",
-            "logo": "https://jugnu.events/logo.svg",
+            "url": "https://thehouseofjugnu.com",
+            "logo": "https://thehouseofjugnu.com/logo.svg",
             "description": "Promote your business to South Asian culture enthusiasts in Vancouver",
             "sameAs": ["https://instagram.com/thehouseofjugnu"],
             "address": {
@@ -678,13 +678,13 @@ export default function Promote() {
                 "@type": "ListItem",
                 "position": 1,
                 "name": "Home",
-                "item": "https://jugnu.events"
+                "item": "https://thehouseofjugnu.com"
               },
               {
                 "@type": "ListItem", 
                 "position": 2,
                 "name": "Promote",
-                "item": "https://jugnu.events/promote"
+                "item": "https://thehouseofjugnu.com/promote"
               }
             ]
           })
@@ -1894,7 +1894,7 @@ export default function Promote() {
             <Card className="p-6 bg-white/5 border-white/10 text-center">
               <Plus className="w-8 h-8 text-copper-500 mx-auto mb-3" />
               <h4 className="font-medium text-white mb-2">IG Story Boost</h4>
-              <p className="text-muted text-sm mb-3">Instagram story on @jugnu.events during your run</p>
+              <p className="text-muted text-sm mb-3">Instagram story on @thehouseofjugnu during your run</p>
               <Badge className="bg-copper-500/20 text-copper-400">+CA$10</Badge>
             </Card>
 
@@ -2545,7 +2545,7 @@ export default function Promote() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => window.location.href = 'mailto:hello@jugnu.events?subject=Sponsorship Inquiry'}
+                    onClick={() => window.location.href = 'mailto:relations@thehouseofjugnu.com?subject=Sponsorship Inquiry'}
                     className="border-white/20 text-white hover:bg-white/10 px-8 py-3"
                     data-testid="button-email-direct"
                   >
@@ -2627,7 +2627,7 @@ export default function Promote() {
               </Button>
               
               <Button
-                onClick={() => window.location.href = 'mailto:hello@jugnu.events?subject=Sponsorship Inquiry'}
+                onClick={() => window.location.href = 'mailto:relations@thehouseofjugnu.com?subject=Sponsorship Inquiry'}
                 size="lg"
                 variant="outline"
                 className="border-white/20 text-white hover:bg-white/10 px-8 py-4 text-lg rounded-2xl transition-all duration-200"

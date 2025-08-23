@@ -133,7 +133,7 @@ export default function PlacesSubmit() {
                 Browse Places
               </Button>
               <p className="text-sm text-muted/80">
-                Questions? Email us at hello@jugnu.events
+                Questions? Email us at relations@thehouseofjugnu.com
               </p>
             </div>
           </div>

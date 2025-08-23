@@ -41,7 +41,7 @@ export function addSpotlightRoutes(app: Express) {
     }
     
     // Production: strict domain checking
-    const allowedDomains = (process.env.ALLOWED_PORTAL_DOMAIN || 'jugnu.events')
+    const allowedDomains = (process.env.ALLOWED_PORTAL_DOMAIN || 'thehouseofjugnu.com')
       .split(',')
       .map(domain => domain.trim())
       .filter(Boolean);
@@ -1047,7 +1047,7 @@ Questions? Reply to this email or contact our team.
 
 Best,
 The Jugnu Team
-jugnu.events`;
+thehouseofjugnu.com`;
 
       // TODO: Integrate with actual email service (SendGrid, etc.)
       console.log('Onboarding email content:', { 

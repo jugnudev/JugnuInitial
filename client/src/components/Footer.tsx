@@ -25,7 +25,7 @@ export default function Footer() {
                 <i className="fab fa-instagram text-xl"></i>
               </a>
               <a 
-                href="mailto:thehouseofjugnu@gmail.com" 
+                href="mailto:relations@thehouseofjugnu.com" 
                 className="text-muted hover:text-accent transition-colors duration-200"
                 aria-label="Email us"
                 data-testid="link-email"

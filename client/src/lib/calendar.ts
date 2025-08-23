@@ -34,7 +34,7 @@ export function getCalendarLinks(event: CalendarEvent) {
     'VERSION:2.0',
     'PRODID:-//Jugnu//Events//EN',
     'BEGIN:VEVENT',
-    `UID:${Date.now()}@jugnu.events`,
+    `UID:${Date.now()}@thehouseofjugnu.com`,
     `DTSTART:${formatGoogleDate(startDate)}`,
     `DTEND:${formatGoogleDate(endDate)}`,
     `SUMMARY:${title}`,
