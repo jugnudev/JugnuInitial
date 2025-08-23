@@ -1,0 +1,129 @@
+Replit Agent Prompt — Event Overlay: fix viewport height issues (no logic changes)
+
+Goal: At 100% zoom on common laptop screens, the event overlay should fit and scroll gracefully. The hero must stay 16:9 but not dominate the viewport. Desktop and mobile content must be identical.
+
+Scope: Pure UI. Do not change any data fetching, handlers, analytics, or routing.
+
+1) Make the dialog content scroll within the overlay
+
+In the event modal/dialog component:
+
+On the DialogContent, use:
+
+className="max-w-6xl w-[min(95vw,1120px)] max-h-[90vh] p-0 overflow-hidden rounded-3xl border border-white/10 bg-neutral-950/85 backdrop-blur-sm"
+
+
+Wrap the main content with a scroll container so the overlay (not the page behind) scrolls:
+
+<div className="max-h-[90vh] overflow-y-auto overscroll-contain">
+  {/* hero + content grid go here */}
+</div>
+
+
+Ensure any parents of that scroll container have min-h-0 where needed (e.g., flex min-h-0) so the child can actually scroll.
+
+2) Keep the hero 16:9 but clamp its height
+
+Replace the hero wrapper with an aspect-ratio container that also caps height (no Tailwind plugin required):
+
+<div
+  className="w-full rounded-2xl overflow-hidden ring-1 ring-white/10 bg-neutral-900 mx-auto"
+  style={{ aspectRatio: '16 / 9', maxHeight: '42vh' }} // clamp hero height
+>
+  <img
+    src={event.imageUrl}
+    alt={event.title}
+    className="h-full w-full object-cover"
+    loading="lazy"
+    decoding="async"
+  />
+  <div className="pointer-events-none relative -mt-[28%] h-[28%] bg-gradient-to-t from-black/50 to-transparent" />
+</div>
+
+
+On larger viewports, allow a bit more headroom:
+
+// add a lg: override via inline style in code:
+maxHeight: '50vh' on lg (use a small CSS-in-TS conditional or CSS class with media query)
+
+
+If you prefer utility classes, add lg:[--hero-max:50vh] + style={{ maxHeight: 'var(--hero-max,42vh)' }}.
+
+3) One shared info block (desktop & mobile)
+
+Render one <EventInfo /> for both layouts so content is identical on all breakpoints. It must include, in order:
+
+Title (h1)
+
+Category chip (if present)
+
+Date (long form)
+
+Time (single row, start–end)
+
+Venue name
+
+City/Region line
+
+Full street address (if present)
+
+“Open in Maps” link
+
+Divider
+
+Helper copy: “Don’t see your event?” “Request to have it listed”
+
+4) Desktop grid & action card
+
+Grid under the hero:
+
+<div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8 px-6 sm:px-8 pb-8">
+  {/* left: <EventInfo /> */}
+  {/* right: action card */}
+</div>
+
+
+Action card:
+
+<div className="rounded-2xl p-5 bg-white/5 ring-1 ring-white/10 lg:sticky lg:top-6">
+  {/* Get Tickets (primary), Add to Google, Download .ics, Share */}
+</div>
+
+
+Important: because the overall modal scrolls, the lg:sticky card will stick only while visible; it must not overlap the left column. If it does, drop sticky at lg using a media query class toggle.
+
+5) Mobile actions (no weird fixed bar)
+
+On mobile, do not use a fixed bottom bar that overlaps content. Just place the primary Get Tickets button followed by the two secondary buttons below the info block, full-width with gap-3. (If you want a sticky primary CTA, make it sticky bottom-[env(safe-area-inset-bottom)] inside the scroll container, but only if it doesn’t cover content.)
+
+6) Remove duplicates / keep parity
+
+Ensure there is one time row.
+
+Ensure the full address and Open in Maps show on desktop exactly as on mobile.
+
+Keep the copy change in this overlay:
+
+“Organizer?” → “Don’t see your event”
+
+“Request to be featured” → “Request to have it listed”
+
+7) Accessibility & polish
+
+Dialog still uses focus trap; ESC closes.
+
+aria-labelledby points at the title.
+
+External links rel="noopener noreferrer".
+
+Add simple skeletons for hero/title to prevent layout jank.
+
+8) Acceptance (test at 100% zoom)
+
+MacBook 13” (1280×800 or 1440×900) at 100% zoom: overlay opens, no content cut off; the overlay scrolls internally when tall.
+
+Hero is 16:9 and never taller than ≈ 42–50vh.
+
+Desktop shows all info lines + maps link + helper copy; mobile shows the same content.
+
+No console errors; no functionality changed.

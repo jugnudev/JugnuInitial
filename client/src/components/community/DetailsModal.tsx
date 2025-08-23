@@ -286,8 +286,7 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className="max-w-6xl w-[min(92vw,1200px)] p-0 rounded-3xl border border-white/10 bg-neutral-950/85 shadow-2xl overflow-hidden"
-        style={{ backdropFilter: 'blur(8px)' }}
+        className="max-w-6xl w-[min(95vw,1120px)] max-h-[90vh] p-0 overflow-hidden rounded-3xl border border-white/10 bg-neutral-950/85 backdrop-blur-sm"
       >
         <DialogTitle className="sr-only" id={`modal-title-${event.id}`}>
           {event.title}
@@ -296,32 +295,36 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
           Event details for {event.title}
         </DialogDescription>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 8 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          transition={{ duration: 0.22, ease: "easeOut" }}
-          className="max-h-[85vh] overflow-y-auto lg:overflow-y-visible"
-        >
-          {/* 16:9 Hero Image */}
-          <div className="relative rounded-2xl overflow-hidden ring-1 ring-white/10 mx-6 mt-6">
-            <div className="relative pb-[56.25%] bg-neutral-900">
-              {event.image_url ? (
-                <img
-                  src={event.image_url}
-                  alt={event.title}
-                  className="absolute inset-0 h-full w-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-500/20 via-amber-600/10 to-amber-700/15 flex items-center justify-center">
-                  <CalendarDays className="w-16 h-16 text-amber-500/80" />
-                </div>
-              )}
-              {/* Subtle gradient for readability */}
-              <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-black/50 to-transparent" />
+        <div className="max-h-[90vh] overflow-y-auto overscroll-contain">
+          <motion.div 
+            initial={{ opacity: 0, y: 8 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="min-h-0"
+          >
+            {/* 16:9 Hero Image */}
+            <div className="mx-6 mt-6">
+              <div
+                className="w-full rounded-2xl overflow-hidden ring-1 ring-white/10 bg-neutral-900 mx-auto max-h-[42vh] lg:max-h-[50vh]"
+                style={{ aspectRatio: '16 / 9' }}
+              >
+                {event.image_url ? (
+                  <img
+                    src={event.image_url}
+                    alt={event.title}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                ) : (
+                  <div className="h-full w-full bg-gradient-to-br from-amber-500/20 via-amber-600/10 to-amber-700/15 flex items-center justify-center">
+                    <CalendarDays className="w-16 h-16 text-amber-500/80" />
+                  </div>
+                )}
+                {/* Subtle gradient for readability */}
+                <div className="pointer-events-none relative -mt-[28%] h-[28%] bg-gradient-to-t from-black/50 to-transparent" />
+              </div>
             </div>
-          </div>
 
           {/* Content Section */}
           <div className="px-6 pb-6">
@@ -340,7 +343,7 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
               </div>
 
               {/* Right Column: Action Card (1fr) */}
-              <div className="lg:sticky lg:top-6 lg:self-start">
+              <div>
                 <div className="rounded-2xl p-5 bg-white/5 ring-1 ring-white/10 space-y-3">
                   {/* Primary Action */}
                   {event.tickets_url ? (
@@ -443,7 +446,8 @@ export default function DetailsModal({ event, isOpen, onClose }: DetailsModalPro
               </div>
             </div>
           </div>
-        </motion.div>
+          </motion.div>
+        </div>
       </DialogContent>
 
       {/* Toast notification for copied link */}
