@@ -309,6 +309,25 @@ export default function EventsExplore() {
                 <div className="mt-8">
                   <SponsoredBanner />
                 </div>
+                
+                {/* Don't see your event CTA */}
+                <div className="mt-12 mb-8 text-center">
+                  <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6 md:p-8 max-w-lg mx-auto">
+                    <h3 className="text-xl font-semibold text-white mb-3">
+                      Don't see your event?
+                    </h3>
+                    <p className="text-muted mb-6">
+                      Submit your event for consideration to be featured on our platform
+                    </p>
+                    <button
+                      onClick={() => window.location.href = '/events/feature'}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-copper-500 hover:bg-copper-600 text-black font-medium rounded-xl transition-colors"
+                      data-testid="button-request-listing"
+                    >
+                      Request to have it listed
+                    </button>
+                  </div>
+                </div>
               </>
             ) : (
               <>
