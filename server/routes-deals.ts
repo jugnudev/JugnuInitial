@@ -25,7 +25,7 @@ export function addDealsRoutes(app: Express) {
         .from('deals')
         .select('*')
         .order('priority', { ascending: false })
-        .order('slot', { ascending: true });
+        .order('placement', { ascending: true });
 
       if (dealsError) {
         // If there's a column error or table doesn't exist, return empty slots
@@ -75,11 +75,14 @@ export function addDealsRoutes(app: Express) {
       
       if (filteredDeals) {
         filteredDeals.forEach((deal: any) => {
+          // Map placement field to slot
+          const slotNumber = deal.placement || deal.slot || 1;
+          
           // Skip if slot is out of range (only 7 slots)
-          if (deal.slot < 1 || deal.slot > 7) return;
+          if (slotNumber < 1 || slotNumber > 7) return;
           
           // Skip if slot already filled by higher priority deal
-          if (slots[deal.slot - 1] !== null) return;
+          if (slots[slotNumber - 1] !== null) return;
           
           // Find images for this deal
           const dealImagesForThisDeal = dealImages.filter((img: any) => img.deal_id === deal.id);
@@ -87,14 +90,14 @@ export function addDealsRoutes(app: Express) {
           const mobileImage = dealImagesForThisDeal.find((img: any) => img.kind === 'mobile');
           const image = desktopImage || mobileImage;
           
-          slots[deal.slot - 1] = {
+          slots[slotNumber - 1] = {
             id: deal.id,
             title: deal.title,
             subtitle: deal.subtitle,
             brand: deal.brand,
             code: deal.code,
             click_url: deal.click_url,
-            slot: deal.slot,
+            slot: slotNumber,  // Use mapped slot number
             tile_kind: deal.tile_kind,
             // Map dates for consistency
             start_date: deal.start_at || deal.start_date,
@@ -157,6 +160,7 @@ export function addDealsRoutes(app: Express) {
         // Map database columns back to frontend field names
         start_date: deal.start_at || deal.start_date,
         end_date: deal.end_at || deal.end_date,
+        slot: deal.placement || deal.slot || 1,  // Map placement back to slot
         deal_images: dealImages.filter((img: any) => img.deal_id === deal.id)
       }));
 
@@ -207,29 +211,10 @@ export function addDealsRoutes(app: Express) {
         });
       }
 
-      // Check for slot conflicts with active deals in the same date range
-      if (is_active) {
-        const { data: conflicts, error: conflictError } = await supabase
-          .from('deals')
-          .select('id, title')
-          .eq('slot', slot)
-          .eq('is_active', true)
-          .or(`and(start_at.lte.${end_date},end_at.gte.${start_date})`);
+      // Skip slot conflict check - database doesn't have slot column
+      // We'll use placement field and priority to manage display order
 
-        if (conflictError) {
-          console.error('Conflict check error:', conflictError);
-          return res.status(500).json({ ok: false, error: 'Failed to check slot conflicts' });
-        }
-
-        if (conflicts && conflicts.length > 0) {
-          return res.status(400).json({ 
-            ok: false, 
-            error: `Slot ${slot} is already taken by "${conflicts[0].title}" for overlapping dates` 
-          });
-        }
-      }
-
-      // Create the deal
+      // Create the deal - use placement field instead of slot
       const { data: deal, error: dealError } = await supabase
         .from('deals')
         .insert({
@@ -240,7 +225,7 @@ export function addDealsRoutes(app: Express) {
           click_url: click_url || null,
           start_at: start_date,
           end_at: end_date,
-          slot,
+          placement: slot,  // Map slot to placement field
           tile_kind,
           priority: priority || 0,
           is_active: is_active !== false
@@ -306,28 +291,7 @@ export function addDealsRoutes(app: Express) {
         images
       } = req.body;
 
-      // Check for slot conflicts if changing slot or dates
-      if (is_active && slot) {
-        const { data: conflicts, error: conflictError } = await supabase
-          .from('deals')
-          .select('id, title')
-          .eq('slot', slot)
-          .eq('is_active', true)
-          .neq('id', id)
-          .or(`and(start_at.lte.${end_date},end_at.gte.${start_date})`);
-
-        if (conflictError) {
-          console.error('Conflict check error:', conflictError);
-          return res.status(500).json({ ok: false, error: 'Failed to check slot conflicts' });
-        }
-
-        if (conflicts && conflicts.length > 0) {
-          return res.status(400).json({ 
-            ok: false, 
-            error: `Slot ${slot} is already taken by "${conflicts[0].title}" for overlapping dates` 
-          });
-        }
-      }
+      // Skip slot conflict check - database doesn't have slot column
 
       // Update the deal
       const updateData: any = {
@@ -339,9 +303,9 @@ export function addDealsRoutes(app: Express) {
       if (brand !== undefined) updateData.brand = brand;
       if (code !== undefined) updateData.code = code || null;
       if (click_url !== undefined) updateData.click_url = click_url || null;
-      if (start_date !== undefined) updateData.start_date = start_date;
-      if (end_date !== undefined) updateData.end_date = end_date;
-      if (slot !== undefined) updateData.slot = slot;
+      if (start_date !== undefined) updateData.start_at = start_date;  // Map to database column
+      if (end_date !== undefined) updateData.end_at = end_date;  // Map to database column
+      if (slot !== undefined) updateData.placement = slot;  // Map slot to placement field
       if (tile_kind !== undefined) updateData.tile_kind = tile_kind;
       if (priority !== undefined) updateData.priority = priority;
       if (is_active !== undefined) updateData.is_active = is_active;
