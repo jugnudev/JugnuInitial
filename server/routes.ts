@@ -4,7 +4,6 @@ import { storage } from "./storage";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 import { addPlacesV13Routes } from './routes-places-v13.js';
 import { addSpotlightRoutes } from './routes-spotlight.js';
-import { addDealsRoutes } from './routes-deals.js';
 import { addAdminRoutes } from './routes-admin.js';
 import { addQuotesRoutes } from './routes-quotes.js';
 import { addAdminLeadsRoutes } from './routes-admin-leads.js';
@@ -2818,7 +2817,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add Sponsorship & Spotlight v4.0 routes
   addSpotlightRoutes(app);
-  addDealsRoutes(app);
   
   // Add quotes routes for application flow
   addQuotesRoutes(app);
