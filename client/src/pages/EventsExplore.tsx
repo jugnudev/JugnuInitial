@@ -282,7 +282,10 @@ export default function EventsExplore() {
             {/* Events Grid with Dynamic Banner Placement */}
             {filteredEvents.length > 0 ? (
               <>
-                {/* Sponsored Banner placed after grid */}
+                {/* Sponsored Banner above events grid */}
+                <div className="mb-8">
+                  <SponsoredBanner />
+                </div>
                 
                 <motion.div 
                   className={`grid gap-4 md:gap-6 ${
@@ -313,11 +316,6 @@ export default function EventsExplore() {
                     />
                   ))}
                 </motion.div>
-                
-                {/* Sponsored Banner after events grid */}
-                <div className="mt-8">
-                  <SponsoredBanner />
-                </div>
                 
                 {/* Don't see your event CTA */}
                 <div className="mt-12 mb-8 text-center">
