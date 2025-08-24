@@ -66,9 +66,9 @@ export default function EventsExplore() {
 
   // Filter events
   const filteredEvents = useMemo(() => {
-    if (!data?.events) return [];
+    if (!data?.items) return [];
     
-    let events = data.events;
+    let events = data.items;
     
     // Show only saved events if toggle is on
     if (showSavedOnly) {
