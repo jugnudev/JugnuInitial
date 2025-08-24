@@ -1,0 +1,300 @@
+import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+
+export default function Story() {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gradient-radial from-[#1a1a1a] via-[#0f0f0f] to-[#050505] relative overflow-hidden">
+      {/* Animated background fireflies */}
+      <div className="absolute inset-0">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-1 h-1 bg-amber-400 rounded-full shadow-glow"
+            initial={{ 
+              x: Math.random() * window.innerWidth,
+              y: Math.random() * window.innerHeight,
+              opacity: 0
+            }}
+            animate={{
+              x: [null, Math.random() * window.innerWidth],
+              y: [null, Math.random() * window.innerHeight],
+              opacity: [0, 0.8, 0]
+            }}
+            transition={{
+              duration: 10 + Math.random() * 20,
+              repeat: Infinity,
+              delay: Math.random() * 10,
+              ease: "easeInOut"
+            }}
+            style={{
+              boxShadow: '0 0 10px rgba(251, 191, 36, 0.8)'
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Big flying firefly that follows cursor with delay */}
+      <motion.div
+        className="fixed pointer-events-none z-50"
+        animate={{
+          x: mousePosition.x - 20,
+          y: mousePosition.y - 20
+        }}
+        transition={{
+          type: "spring",
+          damping: 30,
+          stiffness: 200,
+          restDelta: 0.001
+        }}
+      >
+        <motion.div
+          className="relative"
+          animate={{
+            scale: [1, 1.2, 1],
+            rotate: [0, 10, -10, 0]
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
+          {/* Firefly glow */}
+          <div 
+            className="absolute w-10 h-10 bg-amber-300 rounded-full blur-xl opacity-60"
+            style={{
+              boxShadow: '0 0 40px rgba(251, 191, 36, 0.9), 0 0 80px rgba(251, 191, 36, 0.6)'
+            }}
+          />
+          {/* Firefly body */}
+          <div className="relative w-10 h-10 bg-gradient-radial from-amber-200 to-amber-500 rounded-full">
+            <motion.div
+              className="absolute inset-0 bg-white rounded-full"
+              animate={{ opacity: [0.3, 0.8, 0.3] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            />
+          </div>
+        </motion.div>
+      </motion.div>
+
+      {/* Hero Section */}
+      <section className="relative pt-32 pb-16 px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center"
+          >
+            <motion.h1 
+              className="font-fraunces text-6xl lg:text-7xl font-bold tracking-tight mb-8"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, delay: 0.2 }}
+            >
+              <span className="bg-gradient-to-r from-amber-300 via-amber-500 to-orange-500 bg-clip-text text-transparent">
+                The House of Jugnu
+              </span>
+            </motion.h1>
+            
+            <motion.p 
+              className="text-2xl leading-relaxed text-amber-200/80 mb-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1, delay: 0.4 }}
+            >
+              जुगनू • Firefly
+            </motion.p>
+
+            <motion.p 
+              className="text-xl text-muted max-w-2xl mx-auto"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 1, delay: 0.6 }}
+            >
+              A quiet signal in the dark—a living spark that whispers "I'm here"
+            </motion.p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Main Story Content */}
+      <section className="relative py-16 px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1, delay: 0.8 }}
+            className="space-y-12"
+          >
+            {/* The Firefly Philosophy */}
+            <motion.div 
+              className="bg-white/5 backdrop-blur-md rounded-3xl p-8 lg:p-12 border border-amber-500/20"
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <h2 className="font-fraunces text-3xl lg:text-4xl font-bold mb-6 text-amber-400">
+                Why Fireflies?
+              </h2>
+              <p className="text-lg leading-relaxed text-text mb-6">
+                Fireflies aren't the loudest creatures in the night. They don't roar or screech for attention. 
+                Instead, they communicate through light—through frequency—finding each other in the darkness 
+                with gentle, rhythmic pulses.
+              </p>
+              <p className="text-lg leading-relaxed text-text">
+                Some species even synchronize their glow, creating waves of light that ripple through the night. 
+                Not by shouting over each other, but by listening, responding, and finding harmony in the collective rhythm.
+              </p>
+            </motion.div>
+
+            {/* Our Ethos */}
+            <motion.div 
+              className="bg-gradient-to-br from-amber-500/10 to-orange-500/10 backdrop-blur-md rounded-3xl p-8 lg:p-12 border border-amber-500/20"
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <h2 className="font-fraunces text-3xl lg:text-4xl font-bold mb-6 text-amber-400">
+                Our Ethos
+              </h2>
+              <p className="text-lg leading-relaxed text-text mb-6">
+                <span className="text-amber-300 font-semibold">Bring your light, and watch the room respond.</span>
+              </p>
+              <p className="text-lg leading-relaxed text-text">
+                Jugnu is for the ones who glow on their own—and burn brighter together. 
+                For diasporas and dreamers, for classics and new sounds, for culture that doesn't need permission.
+                We curate spaces that feel like home and discovery in the same breath: 
+                Bollywood at the core, the world at the edges, and a city learning to shine.
+              </p>
+            </motion.div>
+
+            {/* The Community */}
+            <motion.div 
+              className="bg-white/5 backdrop-blur-md rounded-3xl p-8 lg:p-12 border border-amber-500/20"
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <h2 className="font-fraunces text-3xl lg:text-4xl font-bold mb-6 text-amber-400">
+                A Living Ecosystem
+              </h2>
+              <p className="text-lg leading-relaxed text-text mb-6">
+                Like fireflies gathering at dusk, our community forms an ecosystem of light. 
+                Each person brings their unique frequency—their story, their culture, their energy—creating 
+                a tapestry of experiences that illuminates Vancouver's cultural landscape.
+              </p>
+              <p className="text-lg leading-relaxed text-text">
+                From intimate gatherings to grand celebrations, from traditional melodies to fusion beats, 
+                we're building bridges between generations and cultures, one spark at a time.
+              </p>
+            </motion.div>
+
+            {/* The Vision */}
+            <motion.div 
+              className="relative"
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <div className="absolute inset-0 bg-gradient-radial from-amber-500/20 via-transparent to-transparent blur-3xl" />
+              <div className="relative bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-md rounded-3xl p-8 lg:p-12 border border-amber-500/30">
+                <h2 className="font-fraunces text-3xl lg:text-4xl font-bold mb-6 text-amber-400">
+                  The Magic We Create
+                </h2>
+                <p className="text-lg leading-relaxed text-text mb-6">
+                  Every event is a moment of bioluminescence—a flash of culture, connection, and celebration. 
+                  We don't just host parties; we cultivate experiences where strangers become friends, 
+                  where memories are forged in rhythm and laughter, where the diaspora finds its frequency.
+                </p>
+                <div className="mt-8 p-6 bg-black/30 rounded-2xl">
+                  <p className="text-2xl font-fraunces text-center text-amber-300 leading-relaxed">
+                    Small sparks. Big nights. Lasting memories.
+                  </p>
+                  <p className="text-xl text-center text-amber-400 mt-4 font-semibold">
+                    Find Your Frequency.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Call to Action */}
+            <motion.div 
+              className="text-center py-12"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1 }}
+            >
+              <p className="text-xl text-muted mb-8">
+                Join us in illuminating the night, one gathering at a time.
+              </p>
+              <motion.a
+                href="/events"
+                className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-black font-semibold rounded-full transition-all transform hover:scale-105"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                data-testid="button-explore-events"
+              >
+                Explore Our Events
+                <span className="text-lg">✨</span>
+              </motion.a>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Floating fireflies animation overlay */}
+      <div className="fixed inset-0 pointer-events-none">
+        {[...Array(5)].map((_, i) => (
+          <motion.div
+            key={`float-${i}`}
+            className="absolute"
+            initial={{ 
+              x: Math.random() * window.innerWidth,
+              y: window.innerHeight + 100
+            }}
+            animate={{
+              y: -100,
+              x: Math.sin(i) * 200 + Math.random() * window.innerWidth
+            }}
+            transition={{
+              duration: 20 + i * 5,
+              repeat: Infinity,
+              delay: i * 3,
+              ease: "linear"
+            }}
+          >
+            <motion.div
+              className="w-2 h-2 bg-amber-300 rounded-full"
+              animate={{
+                opacity: [0.2, 1, 0.2],
+                scale: [0.8, 1.5, 0.8]
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                delay: i * 0.5
+              }}
+              style={{
+                boxShadow: '0 0 20px rgba(251, 191, 36, 0.9)'
+              }}
+            />
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}

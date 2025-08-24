@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Layout from "@/components/Layout";
 import Home from "@/pages/home";
+import Story from "@/pages/Story";
 import Explore from "@/pages/Explore";
 import EventsExplore from "@/pages/EventsExplore";
 import CommunityRedirect from "@/pages/CommunityRedirect";
@@ -29,6 +30,7 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/" component={Home} />
+        <Route path="/story" component={Story} />
         <Route path="/explore" component={() => { window.location.href = '/events'; return null; }} />
         <Route path="/events" component={EventsExplore} />
         <Route path="/community" component={CommunityRedirect} />

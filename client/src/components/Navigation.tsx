@@ -45,13 +45,28 @@ export default function Navigation() {
           {/* Desktop Navigation */}
           <div className="hidden md:block">
             <div className="ml-10 flex h-12 items-center gap-x-6">
-              <a
-                href="/#story"
-                className="text-text hover:text-accent transition-colors duration-200 font-medium"
+              <Link
+                href="/"
+                className={`transition-colors duration-200 font-medium ${
+                  location === '/' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
+                data-testid="nav-home"
+              >
+                Home
+              </Link>
+              <Link
+                href="/story"
+                className={`transition-colors duration-200 font-medium ${
+                  location === '/story' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
                 data-testid="nav-story"
               >
                 Story
-              </a>
+              </Link>
               <Link
                 href="/events"
                 className={`transition-colors duration-200 font-medium ${
@@ -108,14 +123,30 @@ export default function Navigation() {
         {isMobileMenuOpen && (
           <div className="md:hidden bg-bg/95 backdrop-blur-lg border-t border-white/10">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              <a
-                href="/#story"
-                className="block w-full text-left px-3 py-2 text-text hover:text-accent transition-colors duration-200 font-medium"
+              <Link
+                href="/"
+                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
+                  location === '/' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
+                data-testid="nav-mobile-home"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Home
+              </Link>
+              <Link
+                href="/story"
+                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
+                  location === '/story' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
                 data-testid="nav-mobile-story"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Story
-              </a>
+              </Link>
               <Link
                 href="/events"
                 className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
