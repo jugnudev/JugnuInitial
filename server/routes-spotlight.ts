@@ -676,7 +676,9 @@ export function addSpotlightRoutes(app: Express) {
             // Clean up old cache entries (keep only last 7 days)
             if (uniqueUserCache.size > 100) {
               const oldestKey = uniqueUserCache.keys().next().value;
-              uniqueUserCache.delete(oldestKey);
+              if (oldestKey) {
+                uniqueUserCache.delete(oldestKey);
+              }
             }
           }
         }
