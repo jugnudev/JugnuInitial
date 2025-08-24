@@ -624,6 +624,10 @@ export function addSpotlightRoutes(app: Express) {
     }
   });
 
+  // Simple in-memory cache to track unique users per day
+  // This resets when server restarts, but prevents rapid duplicate counting
+  const uniqueUserCache = new Map<string, Set<string>>();
+  
   // Metrics tracking endpoint with enhanced device and duration tracking
   app.post('/api/spotlight/admin/metrics/track', async (req, res) => {
     try {
@@ -650,6 +654,33 @@ export function addSpotlightRoutes(app: Express) {
       const serviceRoleClient = getSupabaseAdmin();
       
       if (eventType === 'impression') {
+        // Track unique users properly using in-memory cache
+        let shouldIncrementUniqueUser = false;
+        
+        if (userId) {
+          // Create a key for this campaign/placement/day combination
+          const cacheKey = `${campaignId}:${placement}:${today}`;
+          
+          // Get or create the set of users for this key
+          if (!uniqueUserCache.has(cacheKey)) {
+            uniqueUserCache.set(cacheKey, new Set<string>());
+          }
+          
+          const userSet = uniqueUserCache.get(cacheKey)!;
+          
+          // Check if this user has already been counted today
+          if (!userSet.has(userId)) {
+            userSet.add(userId);
+            shouldIncrementUniqueUser = true;
+            
+            // Clean up old cache entries (keep only last 7 days)
+            if (uniqueUserCache.size > 100) {
+              const oldestKey = uniqueUserCache.keys().next().value;
+              uniqueUserCache.delete(oldestKey);
+            }
+          }
+        }
+        
         // Insert or update metrics with proper error handling
         const { data: existing, error: selectError } = await serviceRoleClient
           .from('sponsor_metrics_daily')
@@ -666,7 +697,7 @@ export function addSpotlightRoutes(app: Express) {
             const updateData: any = {
               raw_views: (existing.raw_views || 0) + 1,
               billable_impressions: (existing.billable_impressions || 0) + 1,
-              unique_users: (existing.unique_users || 0) + (userId ? 1 : 0)
+              unique_users: (existing.unique_users || 0) + (shouldIncrementUniqueUser ? 1 : 0)
             };
             
             // Try to update enhanced metrics if columns exist
@@ -707,7 +738,7 @@ export function addSpotlightRoutes(app: Express) {
               day: today,
               raw_views: 1,
               billable_impressions: 1,
-              unique_users: userId ? 1 : 0,
+              unique_users: shouldIncrementUniqueUser ? 1 : 0,
               clicks: 0
             };
             
