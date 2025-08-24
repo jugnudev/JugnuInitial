@@ -162,22 +162,22 @@ export function HomeMidSpotlight() {
 
           {/* Sponsored badge with sponsor name */}
           {spotlight.is_sponsored && (
-            <div className="absolute top-6 left-6 flex items-center gap-3">
+            <div className="absolute top-4 left-4 md:top-6 md:left-6 flex items-center gap-2 md:gap-3">
               <Badge 
                 variant="secondary" 
-                className="bg-white/90 text-gray-900 border border-gray-200/50 backdrop-blur-sm"
+                className="bg-white/90 text-gray-900 border border-gray-200/50 backdrop-blur-sm text-xs md:text-sm"
                 data-testid="sponsored-badge"
               >
                 Sponsored
               </Badge>
-              <span className="text-orange-400 font-medium text-sm md:text-base tracking-wide">
+              <span className="text-orange-400 font-medium text-xs md:text-sm tracking-wide">
                 {spotlight.sponsor_name}
               </span>
             </div>
           )}
 
           {/* Content */}
-          <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-12 max-w-4xl">
+          <div className={`absolute inset-0 flex flex-col justify-center px-8 md:px-12 max-w-4xl ${spotlight.is_sponsored ? 'pt-10 md:pt-16' : ''}`}>
             {/* Show sponsor name only if not sponsored (since it's shown next to badge if sponsored) */}
             {!spotlight.is_sponsored && (
               <div className="text-orange-400 font-medium text-sm md:text-base mb-3 tracking-wide">

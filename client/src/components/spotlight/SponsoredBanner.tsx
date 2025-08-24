@@ -194,24 +194,31 @@ export function SponsoredBanner() {
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent" />
 
-      {/* Sponsored badge */}
+      {/* Sponsored badge with sponsor name */}
       {spotlight.is_sponsored && (
-        <Badge 
-          variant="secondary" 
-          className="absolute top-3 left-3 bg-white/90 text-gray-900 border border-gray-200/50 backdrop-blur-sm text-xs"
-          data-testid="sponsored-badge"
-        >
-          Sponsored
-        </Badge>
+        <div className="absolute top-3 left-3 flex items-center gap-2">
+          <Badge 
+            variant="secondary" 
+            className="bg-white/90 text-gray-900 border border-gray-200/50 backdrop-blur-sm text-xs"
+            data-testid="sponsored-badge"
+          >
+            Sponsored
+          </Badge>
+          <span className="text-orange-400 font-medium text-xs tracking-wide">
+            {spotlight.sponsor_name}
+          </span>
+        </div>
       )}
 
       {/* Content */}
-      <div className="absolute inset-0 flex items-center justify-between px-4 md:px-6 lg:px-8">
+      <div className={`absolute inset-0 flex items-center justify-between px-4 md:px-6 lg:px-8 ${spotlight.is_sponsored ? 'pt-8 md:pt-10' : ''}`}>
         <div className="flex-1 min-w-0">
-          {/* Sponsor name - with extra top margin when sponsored badge is present */}
-          <div className={`text-orange-400 font-medium text-xs md:text-sm mb-1 tracking-wide ${spotlight.is_sponsored ? 'mt-6 md:mt-0' : ''}`}>
-            {spotlight.sponsor_name}
-          </div>
+          {/* Show sponsor name only if not sponsored (since it's shown next to badge if sponsored) */}
+          {!spotlight.is_sponsored && (
+            <div className="text-orange-400 font-medium text-xs md:text-sm mb-1 tracking-wide">
+              {spotlight.sponsor_name}
+            </div>
+          )}
 
           {/* Headline */}
           {spotlight.headline && (
