@@ -14,6 +14,7 @@ import PageHero from "@/components/explore/PageHero";
 import Toolbar from "@/components/explore/Toolbar";
 import EmptyState from "@/components/explore/EmptyState";
 import DetailsModal from "@/components/community/DetailsModal";
+// FilterDrawer removed
 import { SponsoredBanner } from "@/components/spotlight/SponsoredBanner";
 import { useSavedEventIds } from "@/hooks/useSavedEvents";
 
@@ -30,6 +31,7 @@ export default function EventsExplore() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [filters, setFilters] = useState<Record<string, any>>({ range: 'all' });
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  // Filter drawer removed
   const [showSavedOnly, setShowSavedOnly] = useState(false);
   const [viewMode, setViewMode] = useState<'normal' | 'compact'>('normal');
 
@@ -51,124 +53,183 @@ export default function EventsExplore() {
           category: categoryFilter.toLowerCase()
             .replace('concerts', 'concert')  // "Concerts" -> "concert"
             .replace('festivals', 'festival')  // "Festivals" -> "festival"
-            .replace('parties', 'party')     // "Parties" -> "party"
+            // "parties" stays as "parties" - no transformation needed
         }),
-        ...(searchQuery && { search: searchQuery })
+        ...(searchQuery && { q: searchQuery })
       });
-      
-      const response = await fetch(`/api/community/weekly?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch events');
+      const response = await fetch(`/api/community/weekly?${params.toString()}`);
       return response.json();
-    },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchInterval: 5 * 60 * 1000, // 5 minutes
+    }
   });
 
-  // Filter events
+  const events = (data as any)?.items || [];
+  const featuredEvent = (data as any)?.featured || null;
+
+  // Filtered events based on search, category, and saved filter
   const filteredEvents = useMemo(() => {
-    if (!data?.items) return [];
+    let filtered = events;
     
-    let events = data.items;
-    
-    // Show only saved events if toggle is on
-    if (showSavedOnly) {
-      events = events.filter((event: any) => savedEventIds.includes(event.id));
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter((event: any) =>
+        event.title?.toLowerCase().includes(query) ||
+        event.venue?.toLowerCase().includes(query) ||
+        event.organizer?.toLowerCase().includes(query) ||
+        event.category?.toLowerCase().includes(query)
+      );
     }
-    
-    return events;
-  }, [data?.events, showSavedOnly, savedEventIds]);
 
-  // Get featured event (first event if exists)
-  const featuredEvent = useMemo(() => {
-    return filteredEvents?.[0] || null;
-  }, [filteredEvents]);
+    // NOTE: The category filtering is already done by the API
+    // We don't need to filter again on the frontend
+    // The API handles the category mapping correctly
 
-  // Check if filters are active
-  const hasActiveFilters = useMemo(() => {
-    return categoryFilter !== 'All' || 
-           searchQuery.length > 0 || 
-           (filters.range && filters.range !== 'all') ||
-           showSavedOnly;
-  }, [categoryFilter, searchQuery, filters.range, showSavedOnly]);
+    // Filter by saved events if enabled
+    if (showSavedOnly) {
+      filtered = filtered.filter((event: any) => 
+        savedEventIds.includes(event.id)
+      );
+    }
 
-  // Deep linking: Auto-open event if URL contains event ID
+    return filtered;
+  }, [events, searchQuery, categoryFilter, showSavedOnly, savedEventIds]);
+
+  // Handle deep linking and saved filter from URL
   useEffect(() => {
-    if (eventIdFromUrl && filteredEvents.length > 0) {
-      const eventToOpen = filteredEvents.find((event: any) => event.id === eventIdFromUrl);
-      if (eventToOpen) {
-        setSelectedEvent(eventToOpen);
+    if (eventIdFromUrl && events.length > 0) {
+      const event = events.find((e: any) => e.id === eventIdFromUrl);
+      if (event) {
+        setSelectedEvent(event);
+        // Clean URL without page reload
+        const url = new URL(window.location.href);
+        url.searchParams.delete('e');
+        window.history.replaceState({}, '', url.toString());
       }
     }
-    
+  }, [eventIdFromUrl, events]);
+
+  // Handle saved filter from URL parameter
+  useEffect(() => {
     if (savedFromUrl) {
       setShowSavedOnly(true);
     }
-  }, [eventIdFromUrl, savedFromUrl, filteredEvents]);
+  }, [savedFromUrl]);
 
   const handleEventClick = (event: any) => {
     setSelectedEvent(event);
-    
-    // Update URL with event ID for deep linking
-    const newUrl = new URL(window.location.href);
-    newUrl.searchParams.set('e', event.id);
-    window.history.pushState({}, '', newUrl.toString());
   };
 
   const handleModalClose = () => {
     setSelectedEvent(null);
-    
-    // Remove event ID from URL
-    const newUrl = new URL(window.location.href);
-    newUrl.searchParams.delete('e');
-    window.history.pushState({}, '', newUrl.toString());
   };
 
-  const handleFiltersChange = (newFilters: Record<string, any>) => {
-    setFilters(newFilters);
+  const handleShare = async () => {
+    const shareData = {
+      title: 'South Asian Events in Vancouver',
+      text: 'Discover amazing South Asian cultural events happening in Vancouver',
+      url: window.location.origin + '/events'
+    };
+
+    if (navigator.share && navigator.canShare?.(shareData)) {
+      try {
+        await navigator.share(shareData);
+        // Screen reader announcement
+        const announcement = document.createElement('div');
+        announcement.setAttribute('aria-live', 'polite');
+        announcement.setAttribute('aria-atomic', 'true');
+        announcement.className = 'sr-only';
+        announcement.textContent = 'Page shared successfully';
+        document.body.appendChild(announcement);
+        setTimeout(() => document.body.removeChild(announcement), 1000);
+      } catch (err) {
+        // User cancelled or error occurred
+      }
+    } else {
+      // Fallback: copy to clipboard
+      try {
+        await navigator.clipboard.writeText(window.location.origin + '/events');
+        toast({
+          title: "Link copied!",
+          description: "The page link has been copied to your clipboard.",
+        });
+      } catch (err) {
+        console.error('Failed to copy link:', err);
+        toast({
+          title: "Share failed",
+          description: "Unable to copy link to clipboard.",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
-  const resetFilters = () => {
+  const clearFilters = () => {
     setSearchQuery('');
     setCategoryFilter('All');
     setFilters({ range: 'all' });
     setShowSavedOnly(false);
+    // Update URL to remove saved parameter
+    const url = new URL(window.location.href);
+    url.searchParams.delete('saved');
+    window.history.replaceState({}, '', url.toString());
   };
 
+  const hasActiveFilters = searchQuery || categoryFilter !== 'All' || filters.range !== 'all' || showSavedOnly;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-slate-900 to-emerald-950 text-white relative">
+    <div className="min-h-screen bg-bg">
       {/* Page Hero */}
-      <PageHero 
-        title="Community Events"
-        subtitle="Discover amazing events happening in your community"
+      <PageHero
+        title="Events"
+        subtitle="Discover concerts, festivals, cultural performances & community gatherings in Vancouver."
+        actions={
+          <button
+            onClick={() => window.location.href = '/events/feature'}
+            className="text-sm text-muted hover:text-primary transition-colors underline underline-offset-4 decoration-1 hover:decoration-primary"
+            data-testid="button-request-listing-hero"
+          >
+            Don't see your event? Request to have it listed
+          </button>
+        }
       />
 
-      {/* Toolbar */}
-      <div className="relative z-10 px-4 md:px-8">
-        <div className="max-w-6xl mx-auto">
-          <Toolbar
-            searchValue={searchQuery}
-            onSearchChange={setSearchQuery}
-            segmentOptions={CATEGORIES.map(cat => cat.label)}
-            segmentValue={categoryFilter}
-            onSegmentChange={setCategoryFilter}
-            showSavedOnly={showSavedOnly}
-            onSavedToggle={() => setShowSavedOnly(!showSavedOnly)}
-            savedCount={savedEventIds.length}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-          />
-        </div>
-      </div>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+        {/* Toolbar */}
+        <Toolbar
+          searchValue={searchQuery}
+          onSearchChange={setSearchQuery}
+          segmentOptions={CATEGORIES.map(c => c.value)}
+          segmentValue={categoryFilter}
+          onSegmentChange={setCategoryFilter}
+          // onFiltersClick removed
+          activeFiltersCount={hasActiveFilters ? 1 : 0}
+          showSavedOnly={showSavedOnly}
+          onSavedToggle={() => {
+            const newShowSaved = !showSavedOnly;
+            setShowSavedOnly(newShowSaved);
+            // Update URL to include/remove saved parameter
+            const url = new URL(window.location.href);
+            if (newShowSaved) {
+              url.searchParams.set('saved', '1');
+            } else {
+              url.searchParams.delete('saved');
+            }
+            window.history.replaceState({}, '', url.toString());
+          }}
+          savedCount={savedEventIds.length}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
 
-      {/* Main Content */}
-      <div className="relative z-10 px-4 md:px-8 pb-20">
-        <div className="max-w-6xl mx-auto">
-          
         {/* Loading State */}
         {isLoading && (
           <div className="mt-10 md:mt-14">
-            <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
-              {Array.from({ length: 6 }).map((_, i) => (
+            {/* Featured Loading */}
+            <div className="mb-10">
+              <div className="w-full aspect-[16/9] bg-white/5 rounded-2xl animate-pulse" />
+            </div>
+            {/* Grid Loading */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
+              {[...Array(6)].map((_, i) => (
                 <div
                   key={i}
                   className="aspect-[16/9] bg-white/5 rounded-2xl animate-pulse"
@@ -201,11 +262,6 @@ export default function EventsExplore() {
         {/* Content */}
         {!isLoading && !error && (
           <div className="mt-10 md:mt-14">
-            {/* Sponsored Banner - positioned above all content */}
-            <div className="mb-8">
-              <SponsoredBanner />
-            </div>
-
             {/* Featured Hero */}
             {featuredEvent && (
               <FeaturedHero
@@ -215,15 +271,19 @@ export default function EventsExplore() {
                   name: featuredEvent.title,
                   venue: featuredEvent.venue || '',
                   date: featuredEvent.start_at || featuredEvent.date,
-                  is_all_day: Boolean(featuredEvent.is_all_day === 'string' ? featuredEvent.is_all_day === 'true' : Boolean(featuredEvent.is_all_day)),
+                  is_all_day: Boolean(featuredEvent.is_all_day === 'true' || featuredEvent.is_all_day === true),
                 }}
                 onViewDetails={() => handleEventClick(featuredEvent)}
               />
             )}
 
-            {/* Events Grid */}
+            {/* Sponsored Banner - placement varies by event count */}
+
+            {/* Events Grid with Dynamic Banner Placement */}
             {filteredEvents.length > 0 ? (
               <>
+                {/* Sponsored Banner placed after grid */}
+                
                 <motion.div 
                   className={`grid gap-4 md:gap-6 ${
                     viewMode === 'compact' 
@@ -243,7 +303,7 @@ export default function EventsExplore() {
                         name: event.title,
                         venue: event.venue || '',
                         date: event.start_at || event.date,
-                        is_all_day: Boolean(event.is_all_day === 'string' ? event.is_all_day === 'true' : Boolean(event.is_all_day)),
+                        is_all_day: Boolean(event.is_all_day === 'true' || event.is_all_day === true),
                       }}
                       onClick={() => handleEventClick(event)}
                       index={index}
@@ -253,6 +313,11 @@ export default function EventsExplore() {
                     />
                   ))}
                 </motion.div>
+                
+                {/* Sponsored Banner after events grid */}
+                <div className="mt-8">
+                  <SponsoredBanner />
+                </div>
                 
                 {/* Don't see your event CTA */}
                 <div className="mt-12 mb-8 text-center">
@@ -275,18 +340,21 @@ export default function EventsExplore() {
               </>
             ) : (
               <>
+                {/* Banner inside empty state */}
                 <EmptyState
                   type="events"
                   hasFilters={hasActiveFilters}
                   showSavedOnly={showSavedOnly}
                   onAddClick={() => window.location.href = '/events/feature'}
                 />
+                <SponsoredBanner />
               </>
             )}
           </div>
         )}
       </div>
-      </div>
+
+      {/* Filter Drawer removed */}
 
       {/* Event Detail Modal */}
       {selectedEvent && (
