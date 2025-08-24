@@ -24,6 +24,7 @@ import SponsorPortal from "@/pages/SponsorPortal";
 import AdminPromote from "@/pages/AdminPromote";
 import AdminLeads from "@/pages/AdminLeads";
 import Onboard from "@/pages/Onboard";
+import Deals from "@/pages/Deals";
 
 function Router() {
   return (
@@ -31,6 +32,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/story" component={Story} />
+        <Route path="/deals" component={Deals} />
         <Route path="/explore" component={() => { window.location.href = '/events'; return null; }} />
         <Route path="/events" component={EventsExplore} />
         <Route path="/community" component={CommunityRedirect} />

@@ -1,0 +1,181 @@
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ExternalLink } from 'lucide-react';
+
+interface DealTileProps {
+  title: string;
+  subtitle: string;
+  brand: string;
+  code?: string;
+  imgUrl?: string;
+  alt?: string;
+  href?: string;
+  tileKind: 'wide' | 'half' | 'square' | 'tall';
+  slot: number;
+  isPlaceholder?: boolean;
+}
+
+// Aspect ratios for each tile kind
+const aspectRatios = {
+  wide: 'aspect-[4/1]',
+  half: 'aspect-[2/1]',
+  square: 'aspect-[1/1]',
+  tall: 'aspect-[2/3]'
+};
+
+// Grid column spans for desktop
+const gridSpans = {
+  wide: 'col-span-12',
+  half: 'col-span-6',
+  square: 'col-span-6',
+  tall: 'col-span-4'
+};
+
+// Gradient variations for placeholders
+const placeholderGradients = [
+  'from-orange-600 to-pink-600',
+  'from-purple-600 to-blue-600',
+  'from-teal-600 to-green-600',
+  'from-rose-600 to-orange-600',
+];
+
+export function DealTile({ 
+  title, 
+  subtitle, 
+  brand, 
+  code, 
+  imgUrl, 
+  alt, 
+  href, 
+  tileKind, 
+  slot,
+  isPlaceholder = false 
+}: DealTileProps) {
+  const handleClick = () => {
+    if (!href) return;
+    
+    // Add UTM parameters if not present
+    let finalUrl = href;
+    if (!href.includes('utm_source')) {
+      const separator = href.includes('?') ? '&' : '?';
+      finalUrl += `${separator}utm_source=jugnu&utm_medium=deals&utm_content=${tileKind}`;
+    }
+    
+    window.open(finalUrl, '_blank', 'noopener,noreferrer,sponsored');
+  };
+
+  // Get gradient for placeholder based on slot
+  const placeholderGradient = placeholderGradients[slot % placeholderGradients.length];
+
+  // Scale text based on tile size
+  const getTextScale = () => {
+    switch (tileKind) {
+      case 'wide':
+        return {
+          title: 'text-lg md:text-xl lg:text-2xl',
+          subtitle: 'text-sm md:text-base lg:text-lg',
+          brand: 'text-sm md:text-base'
+        };
+      case 'tall':
+        return {
+          title: 'text-base md:text-lg lg:text-xl',
+          subtitle: 'text-xs md:text-sm lg:text-base',
+          brand: 'text-xs md:text-sm'
+        };
+      default:
+        return {
+          title: 'text-base md:text-lg',
+          subtitle: 'text-xs md:text-sm',
+          brand: 'text-xs md:text-sm'
+        };
+    }
+  };
+
+  const textScale = getTextScale();
+
+  const content = (
+    <div
+      className={`
+        relative w-full h-full rounded-2xl overflow-hidden group transition-all duration-300
+        ${href ? 'cursor-pointer hover:shadow-xl hover:shadow-orange-200/30' : 'cursor-default'}
+        ${aspectRatios[tileKind]} ${gridSpans[tileKind]}
+      `}
+      style={{
+        backgroundImage: imgUrl && !isPlaceholder ? `url(${imgUrl})` : undefined,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundColor: imgUrl || isPlaceholder ? undefined : '#f97316'
+      }}
+      onClick={href ? handleClick : undefined}
+      data-testid={`deal-tile-${slot}`}
+    >
+      {/* Gradient overlay */}
+      <div className={`absolute inset-0 ${
+        isPlaceholder 
+          ? `bg-gradient-to-br ${placeholderGradient}` 
+          : 'bg-gradient-to-r from-black/70 via-black/50 to-transparent'
+      }`} />
+
+      {/* Sponsored badge and brand */}
+      <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
+        <Badge 
+          variant="secondary" 
+          className="bg-white/90 text-gray-900 border border-gray-200/50 backdrop-blur-sm text-xs"
+          data-testid={`deal-badge-${slot}`}
+        >
+          {isPlaceholder ? 'Jugnu' : 'Sponsored'}
+        </Badge>
+        {!isPlaceholder && (
+          <span className={`text-orange-400 font-medium tracking-wide ${textScale.brand}`}>
+            {brand}
+          </span>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-6">
+        <div className="flex-1 flex flex-col justify-end">
+          {/* Title */}
+          <h3 className={`text-white font-bold leading-tight mb-1 ${textScale.title}`}>
+            {title}
+          </h3>
+
+          {/* Subtitle */}
+          <p className={`text-white/90 leading-snug mb-3 ${textScale.subtitle}`}>
+            {subtitle}
+          </p>
+
+          {/* Code if available */}
+          {code && !isPlaceholder && (
+            <div className="mb-3">
+              <span className="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1">
+                <span className="text-white/70 text-xs mr-2">Code:</span>
+                <span className="text-white font-mono font-bold text-sm">{code}</span>
+              </span>
+            </div>
+          )}
+
+          {/* CTA Button - only show if href exists */}
+          {href && !isPlaceholder && (
+            <div className="flex justify-start">
+              <Button 
+                size="sm"
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 text-sm font-semibold transition-all duration-200 hover:scale-105 group/btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleClick();
+                }}
+                data-testid={`deal-cta-${slot}`}
+              >
+                Shop Now
+                <ExternalLink className="w-4 h-4 ml-1 transition-transform group-hover/btn:translate-x-1" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  return content;
+}

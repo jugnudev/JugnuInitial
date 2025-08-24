@@ -8,6 +8,7 @@ import { addAdminRoutes } from './routes-admin.js';
 import { addQuotesRoutes } from './routes-quotes.js';
 import { addAdminLeadsRoutes } from './routes-admin-leads.js';
 import { registerOnboardingRoutes } from './routes-onboarding.js';
+import { addDealsRoutes } from './routes-deals.js';
 import { createHash } from "crypto";
 import ical from "node-ical";
 import he from "he";
@@ -2817,6 +2818,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Add Sponsorship & Spotlight v4.0 routes
   addSpotlightRoutes(app);
+  
+  // Add deals routes
+  addDealsRoutes(app);
   
   // Add quotes routes for application flow
   addQuotesRoutes(app);

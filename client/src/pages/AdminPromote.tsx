@@ -41,6 +41,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
 import { ENDPOINTS, adminFetch } from '@/lib/endpoints';
+import AdminDeals from '@/pages/AdminDeals';
 
 interface Campaign {
   id: string;
@@ -745,7 +746,7 @@ export default function AdminPromote() {
 
       <div className="container mx-auto px-4 py-4 sm:py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6 sm:space-y-8">
-          <TabsList className="grid w-full grid-cols-3 bg-white/5 h-12">
+          <TabsList className="grid w-full grid-cols-4 bg-white/5 h-12">
             <TabsTrigger value="campaigns" className="data-[state=active]:bg-copper-500 data-[state=active]:text-black text-xs sm:text-sm h-10">
               <Target className="w-4 h-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Campaigns</span>
@@ -760,6 +761,11 @@ export default function AdminPromote() {
               <BarChart3 className="w-4 h-4 mr-1 sm:mr-2" />
               <span className="hidden sm:inline">Analytics</span>
               <span className="sm:hidden">Stats</span>
+            </TabsTrigger>
+            <TabsTrigger value="deals" className="data-[state=active]:bg-copper-500 data-[state=active]:text-black text-xs sm:text-sm h-10">
+              <Settings className="w-4 h-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Deals</span>
+              <span className="sm:hidden">Deals</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1264,6 +1270,11 @@ export default function AdminPromote() {
                 </div>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Deals Tab */}
+          <TabsContent value="deals" className="space-y-4 sm:space-y-6">
+            <AdminDeals />
           </TabsContent>
         </Tabs>
       </div>

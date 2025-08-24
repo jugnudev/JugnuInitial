@@ -1,0 +1,131 @@
+Deals Moodboard (use existing Sponsored Banner styling)
+
+Context
+
+I already created the Supabase tables for deals. Do not change schema. Use them as-is:
+
+public.deals
+
+id uuid pk, title text, subtitle text, brand text, code text,
+click_url text null, start_date date, end_date date,
+slot int not null, tile_kind text check in ('wide','half','square','tall') not null,
+priority int default 0, is_active boolean default true,
+created_at timestamptz default now(), updated_at timestamptz default now()
+
+public.deal_images
+
+id uuid pk, deal_id uuid fk references deals(id) on delete cascade,
+kind text check in ('desktop','mobile'), url text not null,
+width int, height int, alt text
+
+What I want
+
+A new public page at /deals that looks like a premium moodboard.
+
+Tiles must reuse the exact visual language of our sponsored banners (pills, gradient, rounded corners, shadow, typography). Do not invent a new hero/landing style.
+
+Every tile is a “sponsored banner–style card”, but the sizes vary across a fixed grid so the board feels dynamic.
+
+Fixed layout template (12 slots) — show all slots, even if empty:
+
+We will map each row/slot to one of these sizes:
+
+wide = aspect 4:1, spans full width on desktop (col-span-12)
+
+half = aspect 2:1, half width (col-span-6)
+
+square = aspect 1:1 (col-span-6)
+
+tall = aspect 2:3 (col-span-4)
+
+Use CSS Grid with grid-cols-12 gap-6 and Tailwind aspect-[x/y] utilities.
+
+Example desktop template (feel free to tweak for balance but keep variety):
+
+Row 1: wide (span 12)
+
+Row 2: square (6), tall (3), tall (3)
+
+Row 3: half (6), half (6)
+
+Row 4: tall (4), square (4), tall (4)
+
+On mobile, stack tiles 1-column with sensible aspect ratios; keep the sponsored style.
+
+Data binding
+
+Query Supabase for active deals: is_active=true and start_date <= today <= end_date, order by priority desc, slot asc.
+
+For each slot in the fixed template, place the deal whose slot matches; if none, render a placeholder tile (see below).
+
+Choose image: prefer deal_images.kind='desktop'; fallback to 'mobile'; fallback to gradient-only card.
+
+Links are optional: if click_url is null, render a non-clickable tile (pointer disabled) but still show all content. If present, open in new tab with rel="noopener noreferrer sponsored" and append UTM if missing: utm_source=jugnu&utm_medium=deals&utm_content=<tile_kind>.
+
+Tile component
+
+Create components/deals/DealTile.tsx that wraps our existing sponsored banner styling (reuse the same pills/label/button style).
+
+Props: title, subtitle, brand, code, imgUrl, alt, href?, tileKind, slot.
+
+Maintain the “Sponsored / Jugnu” pill style. For non-clickable tiles, button is hidden and the card is not wrapped in <a>.
+
+Placeholder tiles for empty slots
+
+Use the same sponsored-banner look with a Jugnu gradient + copy:
+
+Title: “More deals coming soon”
+
+Subtitle: “New perks drop regularly—check back shortly.”
+
+No link/button.
+
+Alternate gradients across placeholders so the board doesn’t look repetitive.
+
+Admin
+
+Add a new tab in /admin/promote called “Deals”:
+
+List view: all deals (active & inactive), with filters and search.
+
+Create/Edit modal with fields: title, subtitle, brand, code, click_url (optional), start_date, end_date, is_active, priority, slot, tile_kind (select: wide/half/square/tall), and image uploads for desktop & mobile.
+
+Uploads go to the existing storage pipeline you use elsewhere; write rows into deal_images.
+
+Server endpoints under /api/admin/deals (list/create/update/delete) that forward to /api/deals/* handlers using service-role Supabase for RLS-safe writes (JSON only; no HTML). Keep the same admin auth (session or x-admin-key) you implemented for sponsorship.
+
+Validation: require slot unique per active date range; show helpful error if collision.
+
+Public API
+
+/api/deals/list — returns the 12-slot layout hydrated with either a deal or a placeholder per slot, already sorted and filtered by date.
+
+This API is what /deals page uses. Content-Type application/json.
+
+UX polish
+
+Subtle hover parallax on images; soft shadow; rounded-2xl; smooth gradient overlays so text is legible.
+
+Respect all sponsored banner typography sizes; scale text appropriately per tileKind so larger tiles can show bigger headlines.
+
+Lazy-load images; reserve aspect ratio to avoid layout shift.
+
+Do not break existing sponsor components
+
+Reuse styles from our current sponsored banners (Events banner/Home hero style language). Do not replace with the giant hero that was recently added.
+
+No process.env in client code; use import.meta.env.DEV where needed.
+
+Acceptance criteria
+
+/deals shows a cohesive moodboard: same sponsored look, varied tile sizes as specified, all 12 slots visible with placeholders where missing.
+
+Non-clickable deals render without a link but look consistent.
+
+Admin can create/edit deals, assign slots and tile kinds, upload images, and toggle active state.
+
+Page is responsive: elegant on mobile and desktop.
+
+All APIs return JSON, include proper headers, and pass type checks.
+
+If anything in my tables differs, introspect the columns at runtime and adapt, but do not alter the schema. Please post screenshots of the new /deals page (desktop & mobile), the Admin “Deals” tab, and example JSON from /api/deals/list.
