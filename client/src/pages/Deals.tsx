@@ -132,8 +132,8 @@ export default function Deals() {
                         <div className="text-white/20 mb-4 group-hover:text-copper-500/40 transition-colors duration-300">
                           <i className="fas fa-tag text-4xl md:text-5xl"></i>
                         </div>
-                        <p className="text-white/30 text-base md:text-lg font-medium">Premium Slot {config.slot}</p>
-                        <p className="text-white/20 text-sm mt-2">Available for Sponsorship</p>
+                        <p className="text-white/30 text-base md:text-lg font-medium">Coming Soon</p>
+                        <p className="text-white/20 text-sm mt-2">Stay tuned for amazing deals</p>
                       </div>
                     </div>
                   )}
@@ -150,9 +150,9 @@ export default function Deals() {
             className="text-center mt-16"
           >
             <p className="text-white/40 text-sm">
-              Interested in featuring your brand? 
-              <a href="/promote" className="text-copper-500 hover:text-copper-400 ml-2 font-medium transition-colors">
-                Learn about sponsorship opportunities →
+              Do you have some amazing deals for the community? 
+              <a href="mailto:relations@thehouseofjugnu.com" className="text-copper-500 hover:text-copper-400 ml-2 font-medium transition-colors">
+                Email relations@thehouseofjugnu.com
               </a>
             </p>
           </motion.div>

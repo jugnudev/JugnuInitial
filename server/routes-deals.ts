@@ -39,7 +39,11 @@ export function addDealsRoutes(app: Express) {
       
       // Filter deals manually if columns exist
       const filteredDeals = (deals || []).filter((deal: any) => {
-        // Check if date columns exist and filter
+        // Check if date columns exist and filter (using start_at/end_at)
+        if (deal.start_at && deal.end_at) {
+          return deal.start_at <= today && deal.end_at >= today;
+        }
+        // Also check for old column names
         if (deal.start_date && deal.end_date) {
           return deal.start_date <= today && deal.end_date >= today;
         }
@@ -92,6 +96,9 @@ export function addDealsRoutes(app: Express) {
             click_url: deal.click_url,
             slot: deal.slot,
             tile_kind: deal.tile_kind,
+            // Map dates for consistency
+            start_date: deal.start_at || deal.start_date,
+            end_date: deal.end_at || deal.end_date,
             image: image ? {
               url: image.url,
               alt: image.alt || `${deal.brand} ${deal.title}`
@@ -144,9 +151,12 @@ export function addDealsRoutes(app: Express) {
         dealImages = images || [];
       }
 
-      // Combine deals with their images
+      // Combine deals with their images and map column names for frontend
       const dealsWithImages = (deals || []).map((deal: any) => ({
         ...deal,
+        // Map database columns back to frontend field names
+        start_date: deal.start_at || deal.start_date,
+        end_date: deal.end_at || deal.end_date,
         deal_images: dealImages.filter((img: any) => img.deal_id === deal.id)
       }));
 
@@ -190,10 +200,10 @@ export function addDealsRoutes(app: Express) {
       }
 
       // Validate slot range
-      if (slot < 1 || slot > 12) {
+      if (slot < 1 || slot > 7) {
         return res.status(400).json({ 
           ok: false, 
-          error: 'Slot must be between 1 and 12' 
+          error: 'Slot must be between 1 and 7' 
         });
       }
 
@@ -204,7 +214,7 @@ export function addDealsRoutes(app: Express) {
           .select('id, title')
           .eq('slot', slot)
           .eq('is_active', true)
-          .or(`and(start_date.lte.${end_date},end_date.gte.${start_date})`);
+          .or(`and(start_at.lte.${end_date},end_at.gte.${start_date})`);
 
         if (conflictError) {
           console.error('Conflict check error:', conflictError);
@@ -228,8 +238,8 @@ export function addDealsRoutes(app: Express) {
           brand,
           code: code || null,
           click_url: click_url || null,
-          start_date,
-          end_date,
+          start_at: start_date,
+          end_at: end_date,
           slot,
           tile_kind,
           priority: priority || 0,
@@ -304,7 +314,7 @@ export function addDealsRoutes(app: Express) {
           .eq('slot', slot)
           .eq('is_active', true)
           .neq('id', id)
-          .or(`and(start_date.lte.${end_date},end_date.gte.${start_date})`);
+          .or(`and(start_at.lte.${end_date},end_at.gte.${start_date})`);
 
         if (conflictError) {
           console.error('Conflict check error:', conflictError);

@@ -329,28 +329,43 @@ export default function AdminDeals() {
           <p className="text-sm text-white/60 mt-2">Visual preview of your deals moodboard</p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-12 gap-3">
+          <div className="grid grid-cols-12 gap-4">
             {SLOT_CONFIG.map(({ slot, kind, label }) => {
               const deal = slotMap.get(slot);
               
               const spans = {
                 wide: 'col-span-12',
                 half: 'col-span-6',
-                square: 'col-span-6',
+                square: 'col-span-4',
                 tall: 'col-span-4'
+              };
+              
+              const heights = {
+                wide: 'h-20',
+                half: 'h-16',
+                square: 'h-24',
+                tall: 'h-32'
               };
 
               return (
                 <div
                   key={slot}
-                  className={`${spans[kind]} border-2 rounded-lg p-4 text-center transition-all ${
-                    deal ? 'border-copper-500 bg-copper-500/10' : 'border-white/20 bg-white/5'
-                  } hover:bg-white/10`}
+                  className={`${spans[kind]} ${heights[kind]} border-2 rounded-lg flex flex-col items-center justify-center transition-all ${
+                    deal ? 'border-copper-500 bg-gradient-to-br from-copper-500/20 to-copper-500/5' : 'border-white/20 bg-white/5'
+                  } hover:bg-white/10 relative overflow-hidden`}
                 >
-                  <div className="text-xs font-mono text-white/60">Slot {slot}</div>
-                  <div className="text-xs text-copper-400 mt-1">{label}</div>
+                  <div className="absolute top-2 left-2 px-2 py-1 bg-black/20 rounded text-xs font-mono text-white/60">
+                    {slot}
+                  </div>
+                  <div className="text-xs text-copper-400 font-medium">{label}</div>
                   {deal && (
-                    <div className="text-sm mt-2 font-medium text-white truncate">{deal.brand}</div>
+                    <>
+                      <div className="text-sm mt-2 font-bold text-white">{deal.brand}</div>
+                      <div className="text-xs text-white/60 truncate px-4">{deal.title}</div>
+                    </>
+                  )}
+                  {!deal && (
+                    <div className="text-xs text-white/40 mt-1">Empty</div>
                   )}
                 </div>
               );
