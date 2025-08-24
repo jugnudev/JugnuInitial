@@ -17,7 +17,7 @@ export function addDealsRoutes(app: Express) {
 
       // If table doesn't exist, return empty slots
       if (tableCheckError?.code === 'PGRST204' || tableCheckError?.message?.includes('does not exist')) {
-        return res.json({ ok: true, slots: new Array(12).fill(null) });
+        return res.json({ ok: true, slots: new Array(7).fill(null) });
       }
 
       // Fetch active deals that are within date range
@@ -31,7 +31,7 @@ export function addDealsRoutes(app: Express) {
         // If there's a column error or table doesn't exist, return empty slots
         if (dealsError.code === '42703' || dealsError.code === 'PGRST204' || dealsError.message?.includes('does not exist')) {
           console.log('Deals table not configured yet');
-          return res.json({ ok: true, slots: new Array(12).fill(null) });
+          return res.json({ ok: true, slots: new Array(7).fill(null) });
         }
         console.error('Error fetching deals:', dealsError);
         return res.status(500).json({ ok: false, error: 'Failed to fetch deals' });
@@ -66,13 +66,13 @@ export function addDealsRoutes(app: Express) {
         dealImages = images || [];
       }
 
-      // Process deals and organize by slot
-      const slots = new Array(12).fill(null);
+      // Process deals and organize by slot (7 premium slots)
+      const slots = new Array(7).fill(null);
       
       if (filteredDeals) {
         filteredDeals.forEach((deal: any) => {
-          // Skip if slot is out of range
-          if (deal.slot < 1 || deal.slot > 12) return;
+          // Skip if slot is out of range (only 7 slots)
+          if (deal.slot < 1 || deal.slot > 7) return;
           
           // Skip if slot already filled by higher priority deal
           if (slots[deal.slot - 1] !== null) return;

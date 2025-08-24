@@ -56,6 +56,25 @@ const initialDeal: Deal = {
   is_active: true
 };
 
+// Image size recommendations based on tile kind
+const IMAGE_RECOMMENDATIONS = {
+  wide: { width: 1200, height: 400, ratio: '3:1', label: 'Wide Banner (1200x400px - 3:1 ratio)' },
+  square: { width: 600, height: 600, ratio: '1:1', label: 'Square (600x600px - 1:1 ratio)' },
+  tall: { width: 600, height: 900, ratio: '2:3', label: 'Tall (600x900px - 2:3 ratio)' },
+  half: { width: 600, height: 400, ratio: '3:2', label: 'Half Width (600x400px - 3:2 ratio)' }
+};
+
+// New slot configuration for 7 placements
+const SLOT_CONFIG = [
+  { slot: 1, kind: 'wide', label: 'Top Banner' },
+  { slot: 2, kind: 'half', label: 'Left Half' },
+  { slot: 3, kind: 'half', label: 'Right Half' },
+  { slot: 4, kind: 'square', label: 'Center Square' },
+  { slot: 5, kind: 'tall', label: 'Left Tall' },
+  { slot: 6, kind: 'half', label: 'Bottom Half' },
+  { slot: 7, kind: 'wide', label: 'Bottom Banner' }
+];
+
 export default function AdminDeals() {
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -80,14 +99,20 @@ export default function AdminDeals() {
   // Create deal mutation
   const createDealMutation = useMutation({
     mutationFn: async (deal: Deal & { images?: DealImage[] }) => {
-      return apiRequest('/api/admin/deals/create', {
+      const response = await fetch('/api/admin/deals/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-admin-key': localStorage.getItem('adminKey') || ''
         },
-        body: JSON.stringify(deal)
+        body: JSON.stringify(deal),
+        credentials: 'include'
       });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create deal');
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/deals'] });
@@ -111,14 +136,20 @@ export default function AdminDeals() {
   // Update deal mutation
   const updateDealMutation = useMutation({
     mutationFn: async ({ id, ...deal }: Deal & { images?: DealImage[] }) => {
-      return apiRequest(`/api/admin/deals/${id}`, {
+      const response = await fetch(`/api/admin/deals/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'x-admin-key': localStorage.getItem('adminKey') || ''
         },
-        body: JSON.stringify(deal)
+        body: JSON.stringify(deal),
+        credentials: 'include'
       });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to update deal');
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/deals'] });
@@ -142,12 +173,18 @@ export default function AdminDeals() {
   // Delete deal mutation
   const deleteDealMutation = useMutation({
     mutationFn: async (id: string) => {
-      return apiRequest(`/api/admin/deals/${id}`, {
+      const response = await fetch(`/api/admin/deals/${id}`, {
         method: 'DELETE',
         headers: {
           'x-admin-key': localStorage.getItem('adminKey') || ''
-        }
+        },
+        credentials: 'include'
       });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete deal');
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/deals'] });
@@ -243,8 +280,8 @@ export default function AdminDeals() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Deals Management</h2>
-          <p className="text-gray-600">Manage deals for the premium moodboard</p>
+          <h2 className="text-2xl font-bold text-white">Deals Management</h2>
+          <p className="text-white/60">Manage premium deals for the moodboard (7 premium slots)</p>
         </div>
         <Button
           onClick={() => {
@@ -252,6 +289,7 @@ export default function AdminDeals() {
             setImages([]);
             setIsDialogOpen(true);
           }}
+          className="bg-copper-500 hover:bg-copper-600 text-black"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Deal
@@ -259,7 +297,7 @@ export default function AdminDeals() {
       </div>
 
       {/* Filters */}
-      <Card>
+      <Card className="bg-white/5 border-white/10">
         <CardContent className="pt-6">
           <div className="flex gap-4">
             <div className="flex-1">
@@ -267,10 +305,11 @@ export default function AdminDeals() {
                 placeholder="Search deals..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
               />
             </div>
             <Select value={filter} onValueChange={(value: any) => setFilter(value)}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-32 bg-white/10 border-white/20 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -284,19 +323,15 @@ export default function AdminDeals() {
       </Card>
 
       {/* Slot Grid Visualization */}
-      <Card>
+      <Card className="bg-white/5 border-white/10">
         <CardHeader>
-          <CardTitle>Slot Layout</CardTitle>
+          <CardTitle className="text-white">Premium Slot Layout (7 Placements)</CardTitle>
+          <p className="text-sm text-white/60 mt-2">Visual preview of your deals moodboard</p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-12 gap-2">
-            {Array.from({ length: 12 }, (_, i) => {
-              const slot = i + 1;
+          <div className="grid grid-cols-12 gap-3">
+            {SLOT_CONFIG.map(({ slot, kind, label }) => {
               const deal = slotMap.get(slot);
-              const tileKind = deal?.tile_kind || 
-                (slot === 1 || slot === 12 ? 'wide' :
-                 slot === 5 || slot === 6 || slot === 10 || slot === 11 ? 'half' :
-                 slot === 2 || slot === 8 ? 'square' : 'tall');
               
               const spans = {
                 wide: 'col-span-12',
@@ -308,13 +343,14 @@ export default function AdminDeals() {
               return (
                 <div
                   key={slot}
-                  className={`${spans[tileKind]} border-2 rounded p-2 text-center ${
-                    deal ? 'border-orange-500 bg-orange-50' : 'border-gray-300 bg-gray-50'
-                  }`}
+                  className={`${spans[kind]} border-2 rounded-lg p-4 text-center transition-all ${
+                    deal ? 'border-copper-500 bg-copper-500/10' : 'border-white/20 bg-white/5'
+                  } hover:bg-white/10`}
                 >
-                  <div className="text-xs font-mono">Slot {slot}</div>
+                  <div className="text-xs font-mono text-white/60">Slot {slot}</div>
+                  <div className="text-xs text-copper-400 mt-1">{label}</div>
                   {deal && (
-                    <div className="text-xs mt-1 truncate">{deal.brand}</div>
+                    <div className="text-sm mt-2 font-medium text-white truncate">{deal.brand}</div>
                   )}
                 </div>
               );
@@ -481,16 +517,22 @@ export default function AdminDeals() {
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="slot">Slot (1-12) *</Label>
-                <Input
-                  id="slot"
-                  type="number"
-                  min="1"
-                  max="12"
-                  value={editingDeal?.slot || 1}
-                  onChange={(e) => setEditingDeal({ ...editingDeal!, slot: parseInt(e.target.value) })}
-                  required
-                />
+                <Label htmlFor="slot">Slot (1-7) *</Label>
+                <Select
+                  value={String(editingDeal?.slot || 1)}
+                  onValueChange={(value) => setEditingDeal({ ...editingDeal!, slot: parseInt(value) })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SLOT_CONFIG.map(({ slot, label }) => (
+                      <SelectItem key={slot} value={String(slot)}>
+                        {slot} - {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <Label htmlFor="tile_kind">Tile Size *</Label>
@@ -502,10 +544,11 @@ export default function AdminDeals() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="wide">Wide (4:1)</SelectItem>
-                    <SelectItem value="half">Half (2:1)</SelectItem>
-                    <SelectItem value="square">Square (1:1)</SelectItem>
-                    <SelectItem value="tall">Tall (2:3)</SelectItem>
+                    {Object.entries(IMAGE_RECOMMENDATIONS).map(([key, { label }]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -527,6 +570,20 @@ export default function AdminDeals() {
               />
               <Label>Active</Label>
             </div>
+
+            {/* Image Recommendations */}
+            {editingDeal?.tile_kind && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="text-sm font-medium text-blue-800">Recommended Image Size</div>
+                <div className="text-sm text-blue-600 mt-1">
+                  {IMAGE_RECOMMENDATIONS[editingDeal.tile_kind as keyof typeof IMAGE_RECOMMENDATIONS].label}
+                </div>
+                <div className="text-xs text-blue-500 mt-1">
+                  Optimal: {IMAGE_RECOMMENDATIONS[editingDeal.tile_kind as keyof typeof IMAGE_RECOMMENDATIONS].width}px × 
+                  {IMAGE_RECOMMENDATIONS[editingDeal.tile_kind as keyof typeof IMAGE_RECOMMENDATIONS].height}px
+                </div>
+              </div>
+            )}
 
             {/* Images */}
             <div>
