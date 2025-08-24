@@ -173,8 +173,8 @@ export function HomeMidSpotlight() {
 
           {/* Content */}
           <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-12 max-w-4xl">
-            {/* Sponsor name */}
-            <div className="text-orange-400 font-medium text-sm md:text-base mb-3 tracking-wide">
+            {/* Sponsor name - with extra top margin when sponsored badge is present */}
+            <div className={`text-orange-400 font-medium text-sm md:text-base mb-3 tracking-wide ${spotlight.is_sponsored ? 'mt-12' : ''}`}>
               {spotlight.sponsor_name}
             </div>
 
