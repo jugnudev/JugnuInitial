@@ -181,6 +181,15 @@ export default function EventsExplore() {
       <PageHero
         title="Events"
         subtitle="Discover concerts, festivals, cultural performances & community gatherings in Vancouver."
+        actions={
+          <button
+            onClick={() => window.location.href = '/events/feature'}
+            className="text-sm text-muted hover:text-primary transition-colors underline underline-offset-4 decoration-1 hover:decoration-primary"
+            data-testid="button-request-listing-hero"
+          >
+            Don't see your event? Request to have it listed
+          </button>
+        }
       />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-12">
