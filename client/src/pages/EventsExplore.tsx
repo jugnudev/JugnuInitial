@@ -273,8 +273,7 @@ export default function EventsExplore() {
             {/* Events Grid with Dynamic Banner Placement */}
             {filteredEvents.length > 0 ? (
               <>
-                {/* Banner above single card (when only 1 event) */}
-                {filteredEvents.length === 1 && <SponsoredBanner />}
+                {/* Sponsored Banner placed after grid */}
                 
                 <motion.div 
                   className={`grid gap-4 md:gap-6 ${
@@ -286,48 +285,30 @@ export default function EventsExplore() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.4 }}
                 >
-                  {filteredEvents.map((event: any, index: number) => {
-                    const eventCard = (
-                      <Card
-                        key={event.id}
-                        item={{
-                          ...event,
-                          type: 'event' as const,
-                          name: event.title,
-                          venue: event.venue || '',
-                          date: event.start_at || event.date,
-                          is_all_day: Boolean(event.is_all_day === 'true' || event.is_all_day === true),
-                        }}
-                        onClick={() => handleEventClick(event)}
-                        index={index}
-                        showFavorite={true}
-                        onToggleSave={() => toggleSaved(event.id)}
-                        isSaved={isEventSaved(event.id)}
-                      />
-                    );
-
-                    // Return card with banner placement logic
-                    if (filteredEvents.length >= 4 && index === 1) {
-                      // Banner after first full row (4+ events)
-                      return [
-                        eventCard,
-                        <div key={`banner-after-${index}`} className="md:col-span-2">
-                          <SponsoredBanner />
-                        </div>
-                      ];
-                    } else if ((filteredEvents.length === 2 || filteredEvents.length === 3) && index === 0) {
-                      // Banner after first card (2-3 events)  
-                      return [
-                        eventCard,
-                        <div key={`banner-after-${index}`} className="md:col-span-2">
-                          <SponsoredBanner />
-                        </div>
-                      ];
-                    } else {
-                      return eventCard;
-                    }
-                  })}
+                  {filteredEvents.map((event: any, index: number) => (
+                    <Card
+                      key={event.id}
+                      item={{
+                        ...event,
+                        type: 'event' as const,
+                        name: event.title,
+                        venue: event.venue || '',
+                        date: event.start_at || event.date,
+                        is_all_day: Boolean(event.is_all_day === 'true' || event.is_all_day === true),
+                      }}
+                      onClick={() => handleEventClick(event)}
+                      index={index}
+                      showFavorite={true}
+                      onToggleSave={() => toggleSaved(event.id)}
+                      isSaved={isEventSaved(event.id)}
+                    />
+                  ))}
                 </motion.div>
+                
+                {/* Sponsored Banner after events grid */}
+                <div className="mt-8">
+                  <SponsoredBanner />
+                </div>
               </>
             ) : (
               <>
