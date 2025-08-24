@@ -79,6 +79,17 @@ export default function Navigation() {
                 Events
               </Link>
               <Link
+                href="/deals"
+                className={`transition-colors duration-200 font-medium ${
+                  location === '/deals' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
+                data-testid="nav-deals"
+              >
+                Deals
+              </Link>
+              <Link
                 href="/promote"
                 className={`transition-colors duration-200 font-medium ${
                   location === '/promote' 
@@ -158,6 +169,18 @@ export default function Navigation() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Events
+              </Link>
+              <Link
+                href="/deals"
+                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
+                  location === '/deals' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
+                data-testid="nav-mobile-deals"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Deals
               </Link>
               <Link
                 href="/promote"
