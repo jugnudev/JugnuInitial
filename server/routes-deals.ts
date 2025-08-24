@@ -7,73 +7,30 @@ export function addDealsRoutes(app: Express) {
   // Public endpoint to list deals for the moodboard
   app.get('/api/deals/list', async (req, res) => {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const now = new Date().toISOString();
       
-      // First check if deals table exists
-      const { data: dealsTableCheck, error: tableCheckError } = await supabase
-        .from('deals')
-        .select('id')
-        .limit(1);
-
-      // If table doesn't exist, return empty slots
-      if (tableCheckError?.code === 'PGRST204' || tableCheckError?.message?.includes('does not exist')) {
-        return res.json({ ok: true, slots: new Array(7).fill(null) });
-      }
-
       // Fetch active deals that are within date range
       const { data: deals, error: dealsError } = await supabase
         .from('deals')
         .select('*')
+        .eq('status', 'active')
+        .lte('start_at', now)
+        .or(`end_at.is.null,end_at.gte.${now}`)
         .order('priority', { ascending: false })
-        .order('slot', { ascending: true });
+        .order('placement_slot', { ascending: true });
 
       if (dealsError) {
-        // If there's a column error or table doesn't exist, return empty slots
-        if (dealsError.code === '42703' || dealsError.code === 'PGRST204' || dealsError.message?.includes('does not exist')) {
-          console.log('Deals table not configured yet');
-          return res.json({ ok: true, slots: new Array(7).fill(null) });
-        }
         console.error('Error fetching deals:', dealsError);
-        return res.status(500).json({ ok: false, error: 'Failed to fetch deals' });
-      }
-      
-      // Filter deals manually for active deals within date range
-      const filteredDeals = (deals || []).filter((deal: any) => {
-        // Check date range - handle both column name possibilities
-        if (deal.start_at && deal.end_at) {
-          return deal.start_at <= today && deal.end_at >= today;
-        } else if (deal.start_date && deal.end_date) {
-          return deal.start_date <= today && deal.end_date >= today;
-        }
-        return true;
-      }).filter((deal: any) => {
-        // Check if is_active
-        if ('is_active' in deal) {
-          return deal.is_active;
-        }
-        return true;
-      });
-
-      // Fetch images if deals exist
-      let dealImages: any[] = [];
-      if (filteredDeals && filteredDeals.length > 0) {
-        const dealIds = filteredDeals.map((d: any) => d.id);
-        const { data: images } = await supabase
-          .from('deal_images')
-          .select('*')
-          .in('deal_id', dealIds)
-          .eq('kind', 'desktop'); // Prioritize desktop images
-        
-        dealImages = images || [];
+        // Return empty slots on error
+        return res.json({ ok: true, slots: new Array(7).fill(null) });
       }
 
       // Process deals and organize by slot (7 premium slots)
       const slots = new Array(7).fill(null);
       
-      if (filteredDeals) {
-        filteredDeals.forEach((deal: any) => {
-          // Use slot field directly
-          const slotNumber = deal.slot;
+      if (deals) {
+        deals.forEach((deal: any) => {
+          const slotNumber = deal.placement_slot;
           
           // Skip if slot is out of range (only 7 slots)
           if (!slotNumber || slotNumber < 1 || slotNumber > 7) return;
@@ -81,24 +38,24 @@ export function addDealsRoutes(app: Express) {
           // Skip if slot already filled by higher priority deal
           if (slots[slotNumber - 1] !== null) return;
           
-          // Find images for this deal
-          const image = dealImages.find((img: any) => img.deal_id === deal.id);
-          
+          // Map to frontend format
           slots[slotNumber - 1] = {
             id: deal.id,
             title: deal.title,
-            subtitle: deal.subtitle,
-            brand: deal.brand,
+            subtitle: deal.blurb,
+            brand: deal.merchant,
             code: deal.code,
-            click_url: deal.click_url,
+            click_url: deal.link_url,
             slot: slotNumber,
-            tile_kind: deal.tile_kind,
-            start_date: deal.start_at || deal.start_date,
-            end_date: deal.end_at || deal.end_date,
-            image: image ? {
-              url: image.url,
-              alt: image.alt || `${deal.brand} ${deal.title}`
-            } : undefined
+            tile_kind: getTileKindForSlot(slotNumber), // Map slot to tile kind
+            badge: deal.badge,
+            terms: deal.terms_md,
+            status: deal.status,
+            image: {
+              desktop: deal.image_desktop_url,
+              mobile: deal.image_mobile_url,
+              alt: `${deal.merchant} - ${deal.title}`
+            }
           };
         });
       }
@@ -119,51 +76,32 @@ export function addDealsRoutes(app: Express) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });
       }
 
-      // First check if table exists
-      const { data: dealsTableCheck, error: tableCheckError } = await supabase
-        .from('deals')
-        .select('id')
-        .limit(1);
-
-      // If table doesn't exist, return empty array
-      if (tableCheckError?.code === 'PGRST204' || tableCheckError?.message?.includes('does not exist')) {
-        return res.json({ ok: true, deals: [] });
-      }
-
       const { data: deals, error } = await supabase
         .from('deals')
         .select('*')
-        .order('slot', { ascending: true })
+        .order('placement_slot', { ascending: true })
         .order('priority', { ascending: false });
 
       if (error) {
-        // If table doesn't exist, return empty array
-        if (error.code === 'PGRST204' || error.message?.includes('does not exist')) {
-          return res.json({ ok: true, deals: [] });
-        }
         console.error('Error fetching admin deals:', error);
         return res.status(500).json({ ok: false, error: 'Failed to fetch deals' });
       }
 
-      // Fetch images separately if deals exist
-      let dealImages: any[] = [];
-      if (deals && deals.length > 0) {
-        const dealIds = deals.map((d: any) => d.id);
-        const { data: images } = await supabase
-          .from('deal_images')
-          .select('*')
-          .in('deal_id', dealIds);
-        
-        dealImages = images || [];
-      }
-
-      // Combine deals with their images
-      const dealsWithImages = (deals || []).map((deal: any) => ({
+      // Map to frontend format
+      const mappedDeals = (deals || []).map((deal: any) => ({
         ...deal,
-        deal_images: dealImages.filter((img: any) => img.deal_id === deal.id)
+        // Map database columns to frontend field names
+        brand: deal.merchant,
+        subtitle: deal.blurb,
+        click_url: deal.link_url,
+        slot: deal.placement_slot,
+        start_date: deal.start_at,
+        end_date: deal.end_at,
+        is_active: deal.status === 'active',
+        tile_kind: getTileKindForSlot(deal.placement_slot)
       }));
 
-      res.json({ ok: true, deals: dealsWithImages });
+      res.json({ ok: true, deals: mappedDeals });
     } catch (error) {
       console.error('Admin deals error:', error);
       res.status(500).json({ ok: false, error: 'Failed to load deals' });
@@ -181,21 +119,23 @@ export function addDealsRoutes(app: Express) {
 
       const {
         title,
-        subtitle,
-        brand,
+        subtitle, // maps to blurb
+        brand, // maps to merchant
         code,
-        click_url,
+        click_url, // maps to link_url
         start_date,
         end_date,
-        slot,
-        tile_kind,
+        slot, // maps to placement_slot
         priority,
         is_active,
-        images
+        badge,
+        terms,
+        image_desktop_url,
+        image_mobile_url
       } = req.body;
 
       // Validate required fields
-      if (!title || !subtitle || !brand || !start_date || !end_date || !slot || !tile_kind) {
+      if (!title || !brand || !start_date || !slot || !image_desktop_url || !image_mobile_url) {
         return res.status(400).json({ 
           ok: false, 
           error: 'Missing required fields' 
@@ -210,22 +150,22 @@ export function addDealsRoutes(app: Express) {
         });
       }
 
-      // Skip slot conflict check due to column name issues
-      // The database will handle uniqueness constraints if needed
-
-      // Create the deal - try with start_at/end_at columns
+      // Create the deal with correct column names
       const dealData: any = {
-          title,
-          subtitle,
-          brand,
-          code: code || null,
-          click_url: click_url || null,
-          start_at: start_date,  // Map to start_at
-          end_at: end_date,      // Map to end_at
-          slot,
-          tile_kind,
-          priority: priority || 0,
-          is_active: is_active !== false
+        title,
+        merchant: brand,
+        blurb: subtitle || null,
+        code: code || null,
+        link_url: click_url || null,
+        image_desktop_url,
+        image_mobile_url,
+        placement_slot: slot,
+        badge: badge || null,
+        terms_md: terms || null,
+        status: is_active ? 'active' : 'draft',
+        priority: priority || 0,
+        start_at: start_date,
+        end_at: end_date || null
       };
       
       const { data: deal, error: dealError } = await supabase
@@ -236,28 +176,14 @@ export function addDealsRoutes(app: Express) {
 
       if (dealError) {
         console.error('Deal creation error:', dealError);
-        return res.status(500).json({ ok: false, error: 'Failed to create deal' });
-      }
-
-      // Add images if provided
-      if (images && Array.isArray(images) && images.length > 0) {
-        const imageData = images.map((img: any) => ({
-          deal_id: deal.id,
-          kind: img.kind,
-          url: img.url,
-          width: img.width,
-          height: img.height,
-          alt: img.alt || `${brand} ${title}`
-        }));
-
-        const { error: imageError } = await supabase
-          .from('deal_images')
-          .insert(imageData);
-
-        if (imageError) {
-          console.error('Image insertion error:', imageError);
-          // Deal created but images failed - continue anyway
+        // Check if it's a slot conflict
+        if (dealError.message?.includes('overlap')) {
+          return res.status(400).json({ 
+            ok: false, 
+            error: `Slot ${slot} already has an active deal for the selected dates` 
+          });
         }
+        return res.status(500).json({ ok: false, error: 'Failed to create deal' });
       }
 
       res.json({ ok: true, deal, message: 'Deal created successfully' });
@@ -279,20 +205,20 @@ export function addDealsRoutes(app: Express) {
       const { id } = req.params;
       const {
         title,
-        subtitle,
-        brand,
+        subtitle, // maps to blurb
+        brand, // maps to merchant
         code,
-        click_url,
+        click_url, // maps to link_url
         start_date,
         end_date,
-        slot,
-        tile_kind,
+        slot, // maps to placement_slot
         priority,
         is_active,
-        images
+        badge,
+        terms,
+        image_desktop_url,
+        image_mobile_url
       } = req.body;
-
-      // Skip slot conflict check due to column name issues
 
       // Update the deal
       const updateData: any = {
@@ -300,16 +226,19 @@ export function addDealsRoutes(app: Express) {
       };
 
       if (title !== undefined) updateData.title = title;
-      if (subtitle !== undefined) updateData.subtitle = subtitle;
-      if (brand !== undefined) updateData.brand = brand;
+      if (subtitle !== undefined) updateData.blurb = subtitle;
+      if (brand !== undefined) updateData.merchant = brand;
       if (code !== undefined) updateData.code = code || null;
-      if (click_url !== undefined) updateData.click_url = click_url || null;
-      if (start_date !== undefined) updateData.start_at = start_date;  // Map to start_at
-      if (end_date !== undefined) updateData.end_at = end_date;  // Map to end_at
-      if (slot !== undefined) updateData.slot = slot;
-      if (tile_kind !== undefined) updateData.tile_kind = tile_kind;
+      if (click_url !== undefined) updateData.link_url = click_url || null;
+      if (start_date !== undefined) updateData.start_at = start_date;
+      if (end_date !== undefined) updateData.end_at = end_date || null;
+      if (slot !== undefined) updateData.placement_slot = slot;
       if (priority !== undefined) updateData.priority = priority;
-      if (is_active !== undefined) updateData.is_active = is_active;
+      if (is_active !== undefined) updateData.status = is_active ? 'active' : 'draft';
+      if (badge !== undefined) updateData.badge = badge || null;
+      if (terms !== undefined) updateData.terms_md = terms || null;
+      if (image_desktop_url !== undefined) updateData.image_desktop_url = image_desktop_url;
+      if (image_mobile_url !== undefined) updateData.image_mobile_url = image_mobile_url;
 
       const { data: deal, error: dealError } = await supabase
         .from('deals')
@@ -320,37 +249,14 @@ export function addDealsRoutes(app: Express) {
 
       if (dealError) {
         console.error('Deal update error:', dealError);
-        return res.status(500).json({ ok: false, error: 'Failed to update deal' });
-      }
-
-      // Update images if provided
-      if (images && Array.isArray(images)) {
-        // Delete existing images
-        await supabase
-          .from('deal_images')
-          .delete()
-          .eq('deal_id', id);
-
-        // Insert new images
-        if (images.length > 0) {
-          const imageData = images.map((img: any) => ({
-            deal_id: id,
-            kind: img.kind,
-            url: img.url,
-            width: img.width,
-            height: img.height,
-            alt: img.alt || `${brand || deal.brand} ${title || deal.title}`
-          }));
-
-          const { error: imageError } = await supabase
-            .from('deal_images')
-            .insert(imageData);
-
-          if (imageError) {
-            console.error('Image update error:', imageError);
-            // Deal updated but images failed - continue anyway
-          }
+        // Check if it's a slot conflict
+        if (dealError.message?.includes('overlap')) {
+          return res.status(400).json({ 
+            ok: false, 
+            error: `Slot ${slot} already has an active deal for the selected dates` 
+          });
         }
+        return res.status(500).json({ ok: false, error: 'Failed to update deal' });
       }
 
       res.json({ ok: true, deal, message: 'Deal updated successfully' });
@@ -387,4 +293,72 @@ export function addDealsRoutes(app: Express) {
       res.status(500).json({ ok: false, error: 'Failed to delete deal' });
     }
   });
+
+  // Track deal metrics (impressions and clicks)
+  app.post('/api/deals/track', async (req, res) => {
+    try {
+      const { deal_id, event_type } = req.body;
+      
+      if (!deal_id || !event_type) {
+        return res.status(400).json({ ok: false, error: 'Missing required fields' });
+      }
+
+      // Get current date in Pacific timezone
+      const pacificDate = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Vancouver' });
+      
+      // Update or insert metrics
+      const column = event_type === 'click' ? 'clicks' : 'impressions';
+      
+      const { error } = await supabase.rpc('increment_deal_metric', {
+        p_deal_id: deal_id,
+        p_day: pacificDate,
+        p_column: column
+      }).single();
+
+      if (error) {
+        // If RPC doesn't exist, do manual upsert
+        const { data: existing } = await supabase
+          .from('deals_metrics_daily')
+          .select('*')
+          .eq('deal_id', deal_id)
+          .eq('day', pacificDate)
+          .single();
+
+        if (existing) {
+          await supabase
+            .from('deals_metrics_daily')
+            .update({ [column]: existing[column] + 1 })
+            .eq('deal_id', deal_id)
+            .eq('day', pacificDate);
+        } else {
+          await supabase
+            .from('deals_metrics_daily')
+            .insert({
+              deal_id,
+              day: pacificDate,
+              [column]: 1
+            });
+        }
+      }
+
+      res.json({ ok: true });
+    } catch (error) {
+      console.error('Metrics tracking error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to track metrics' });
+    }
+  });
+}
+
+// Helper function to map slot numbers to tile kinds
+function getTileKindForSlot(slot: number): string {
+  const slotConfig = [
+    'wide',   // Slot 1
+    'half',   // Slot 2
+    'half',   // Slot 3
+    'square', // Slot 4
+    'tall',   // Slot 5
+    'tall',   // Slot 6
+    'tall'    // Slot 7
+  ];
+  return slotConfig[slot - 1] || 'square';
 }

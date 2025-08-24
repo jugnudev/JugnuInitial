@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
-import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,58 +9,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Plus, Edit, Trash2, ExternalLink } from 'lucide-react';
 
-interface DealImage {
-  id?: string;
-  kind: 'desktop' | 'mobile';
-  url: string;
-  width?: number;
-  height?: number;
-  alt?: string;
-}
-
 interface Deal {
   id?: string;
   title: string;
-  subtitle: string;
-  brand: string;
+  subtitle?: string;  // Maps to blurb
+  brand: string;      // Maps to merchant
   code?: string;
-  click_url?: string;
-  start_date: string;
-  end_date: string;
-  slot: number;
-  tile_kind: 'wide' | 'half' | 'square' | 'tall';
+  click_url?: string; // Maps to link_url
+  start_date: string; // Maps to start_at
+  end_date?: string;  // Maps to end_at
+  slot: number;       // Maps to placement_slot
+  tile_kind?: string;
   priority: number;
-  is_active: boolean;
+  is_active: boolean; // Maps to status
+  badge?: string;
+  terms?: string;     // Maps to terms_md
+  image_desktop_url: string;
+  image_mobile_url: string;
   created_at?: string;
   updated_at?: string;
-  deal_images?: DealImage[];
 }
-
-const initialDeal: Deal = {
-  title: '',
-  subtitle: '',
-  brand: '',
-  code: '',
-  click_url: '',
-  start_date: new Date().toISOString().split('T')[0],
-  end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-  slot: 1,
-  tile_kind: 'wide',
-  priority: 0,
-  is_active: true
-};
 
 // Image size recommendations based on tile kind
 const IMAGE_RECOMMENDATIONS = {
-  wide: { width: 1200, height: 400, ratio: '3:1', label: 'Wide Banner (1200x400px - 3:1 ratio)' },
+  wide: { width: 1200, height: 300, ratio: '4:1', label: 'Wide Banner (1200x300px - 4:1 ratio)' },
   square: { width: 600, height: 600, ratio: '1:1', label: 'Square (600x600px - 1:1 ratio)' },
   tall: { width: 600, height: 900, ratio: '2:3', label: 'Tall (600x900px - 2:3 ratio)' },
-  half: { width: 600, height: 400, ratio: '3:2', label: 'Half Width (600x400px - 3:2 ratio)' }
+  half: { width: 600, height: 300, ratio: '2:1', label: 'Half Width (600x300px - 2:1 ratio)' }
 };
 
 // New slot configuration for 7 placements
@@ -71,16 +49,29 @@ const SLOT_CONFIG = [
   { slot: 3, kind: 'half', label: 'Right Half' },
   { slot: 4, kind: 'square', label: 'Center Square' },
   { slot: 5, kind: 'tall', label: 'Left Tall' },
-  { slot: 6, kind: 'half', label: 'Bottom Half' },
-  { slot: 7, kind: 'wide', label: 'Bottom Banner' }
+  { slot: 6, kind: 'tall', label: 'Center Tall' },
+  { slot: 7, kind: 'tall', label: 'Right Tall' }
 ];
 
 export default function AdminDeals() {
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [images, setImages] = useState<DealImage[]>([]);
-  const [filter, setFilter] = useState<'all' | 'active' | 'inactive'>('all');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [formData, setFormData] = useState<Deal>({
+    title: '',
+    subtitle: '',
+    brand: '',
+    code: '',
+    click_url: '',
+    start_date: new Date().toISOString().split('T')[0],
+    end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    slot: 1,
+    priority: 0,
+    is_active: true,
+    badge: '',
+    terms: '',
+    image_desktop_url: '',
+    image_mobile_url: ''
+  });
 
   // Fetch deals
   const { data: dealsData, isLoading } = useQuery({
@@ -88,7 +79,7 @@ export default function AdminDeals() {
     queryFn: async () => {
       const response = await fetch('/api/admin/deals', {
         headers: {
-          'x-admin-key': localStorage.getItem('adminKey') || ''
+          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || localStorage.getItem('adminKey') || ''
         }
       });
       if (!response.ok) throw new Error('Failed to fetch deals');
@@ -96,18 +87,20 @@ export default function AdminDeals() {
     }
   });
 
+  const deals = dealsData?.deals || [];
+
   // Create deal mutation
   const createDealMutation = useMutation({
-    mutationFn: async (deal: Deal & { images?: DealImage[] }) => {
+    mutationFn: async (deal: Deal) => {
       const response = await fetch('/api/admin/deals/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-key': localStorage.getItem('adminKey') || ''
+          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || localStorage.getItem('adminKey') || ''
         },
-        body: JSON.stringify(deal),
-        credentials: 'include'
+        body: JSON.stringify(deal)
       });
+      
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to create deal');
@@ -116,18 +109,16 @@ export default function AdminDeals() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/deals'] });
-      setIsDialogOpen(false);
-      setEditingDeal(null);
-      setImages([]);
       toast({
         title: 'Success',
         description: 'Deal created successfully'
       });
+      closeDialog();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to create deal',
+        description: error.message,
         variant: 'destructive'
       });
     }
@@ -135,16 +126,16 @@ export default function AdminDeals() {
 
   // Update deal mutation
   const updateDealMutation = useMutation({
-    mutationFn: async ({ id, ...deal }: Deal & { images?: DealImage[] }) => {
+    mutationFn: async ({ id, ...deal }: Deal) => {
       const response = await fetch(`/api/admin/deals/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-key': localStorage.getItem('adminKey') || ''
+          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || localStorage.getItem('adminKey') || ''
         },
-        body: JSON.stringify(deal),
-        credentials: 'include'
+        body: JSON.stringify(deal)
       });
+      
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to update deal');
@@ -153,18 +144,16 @@ export default function AdminDeals() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/deals'] });
-      setIsDialogOpen(false);
-      setEditingDeal(null);
-      setImages([]);
       toast({
         title: 'Success',
         description: 'Deal updated successfully'
       });
+      closeDialog();
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update deal',
+        description: error.message,
         variant: 'destructive'
       });
     }
@@ -172,18 +161,15 @@ export default function AdminDeals() {
 
   // Delete deal mutation
   const deleteDealMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await fetch(`/api/admin/deals/${id}`, {
+    mutationFn: async (dealId: string) => {
+      const response = await fetch(`/api/admin/deals/${dealId}`, {
         method: 'DELETE',
         headers: {
-          'x-admin-key': localStorage.getItem('adminKey') || ''
-        },
-        credentials: 'include'
+          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || localStorage.getItem('adminKey') || ''
+        }
       });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete deal');
-      }
+      
+      if (!response.ok) throw new Error('Failed to delete deal');
       return response.json();
     },
     onSuccess: () => {
@@ -193,87 +179,75 @@ export default function AdminDeals() {
         description: 'Deal deleted successfully'
       });
     },
-    onError: (error: any) => {
+    onError: () => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to delete deal',
+        description: 'Failed to delete deal',
         variant: 'destructive'
       });
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingDeal) return;
-
-    const dealData = {
-      ...editingDeal,
-      images: images.length > 0 ? images : undefined
-    };
-
-    if (editingDeal.id) {
-      updateDealMutation.mutate(dealData);
+  const openDialog = (deal?: Deal) => {
+    if (deal) {
+      setEditingDeal(deal);
+      setFormData(deal);
     } else {
-      createDealMutation.mutate(dealData);
+      setEditingDeal(null);
+      setFormData({
+        title: '',
+        subtitle: '',
+        brand: '',
+        code: '',
+        click_url: '',
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        slot: 1,
+        priority: 0,
+        is_active: true,
+        badge: '',
+        terms: '',
+        image_desktop_url: '',
+        image_mobile_url: ''
+      });
     }
-  };
-
-  const handleEdit = (deal: Deal) => {
-    setEditingDeal(deal);
-    setImages(deal.deal_images || []);
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this deal?')) {
-      deleteDealMutation.mutate(id);
+  const closeDialog = () => {
+    setIsDialogOpen(false);
+    setEditingDeal(null);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (editingDeal) {
+      updateDealMutation.mutate({ ...editingDeal, ...formData });
+    } else {
+      createDealMutation.mutate(formData);
     }
   };
 
-  const handleAddImage = () => {
-    setImages([...images, { kind: 'desktop', url: '', alt: '' }]);
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
-  };
-
-  const handleImageChange = (index: number, field: keyof DealImage, value: any) => {
-    const updated = [...images];
-    updated[index] = { ...updated[index], [field]: value };
-    setImages(updated);
-  };
-
-  // Filter deals
-  const deals = dealsData?.deals?.filter((deal: Deal) => {
-    if (filter === 'active' && !deal.is_active) return false;
-    if (filter === 'inactive' && deal.is_active) return false;
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      return (
-        deal.title.toLowerCase().includes(search) ||
-        deal.brand.toLowerCase().includes(search) ||
-        deal.subtitle.toLowerCase().includes(search)
-      );
+  // Update tile_kind when slot changes
+  useEffect(() => {
+    const config = SLOT_CONFIG.find(c => c.slot === formData.slot);
+    if (config) {
+      setFormData(prev => ({ ...prev, tile_kind: config.kind }));
     }
-    return true;
-  }) || [];
+  }, [formData.slot]);
 
-  // Group deals by slot for visualization
-  const slotMap = new Map<number, Deal>();
-  deals.forEach((deal: Deal) => {
-    if (!slotMap.has(deal.slot) || deal.priority > (slotMap.get(deal.slot)?.priority || 0)) {
-      slotMap.set(deal.slot, deal);
+  // Create a map for quick slot lookup
+  const slotMap = new Map(deals.map((deal: Deal) => [deal.slot, deal]));
+
+  // Get recommended image size for current slot
+  const getImageRecommendation = () => {
+    const config = SLOT_CONFIG.find(c => c.slot === formData.slot);
+    if (config && config.kind) {
+      return IMAGE_RECOMMENDATIONS[config.kind as keyof typeof IMAGE_RECOMMENDATIONS];
     }
-  });
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="w-8 h-8 animate-spin" />
-      </div>
-    );
-  }
+    return IMAGE_RECOMMENDATIONS.square;
+  };
 
   return (
     <div className="space-y-6">
@@ -281,46 +255,16 @@ export default function AdminDeals() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-white">Deals Management</h2>
-          <p className="text-white/60">Manage premium deals for the moodboard (7 premium slots)</p>
+          <p className="text-sm text-white/60 mt-1">Manage your premium deals moodboard</p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingDeal(initialDeal);
-            setImages([]);
-            setIsDialogOpen(true);
-          }}
-          className="bg-copper-500 hover:bg-copper-600 text-black"
+        <Button 
+          onClick={() => openDialog()}
+          className="bg-copper-500 hover:bg-copper-600"
         >
-          <Plus className="w-4 h-4 mr-2" />
+          <Plus className="h-4 w-4 mr-2" />
           New Deal
         </Button>
       </div>
-
-      {/* Filters */}
-      <Card className="bg-white/5 border-white/10">
-        <CardContent className="pt-6">
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Search deals..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
-              />
-            </div>
-            <Select value={filter} onValueChange={(value: any) => setFilter(value)}>
-              <SelectTrigger className="w-32 bg-white/10 border-white/20 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Slot Grid Visualization */}
       <Card className="bg-white/5 border-white/10">
@@ -350,7 +294,7 @@ export default function AdminDeals() {
               return (
                 <div
                   key={slot}
-                  className={`${spans[kind]} ${heights[kind]} border-2 rounded-lg flex flex-col items-center justify-center transition-all ${
+                  className={`${spans[kind as keyof typeof spans]} ${heights[kind as keyof typeof heights]} border-2 rounded-lg flex flex-col items-center justify-center transition-all ${
                     deal ? 'border-copper-500 bg-gradient-to-br from-copper-500/20 to-copper-500/5' : 'border-white/20 bg-white/5'
                   } hover:bg-white/10 relative overflow-hidden`}
                 >
@@ -375,80 +319,84 @@ export default function AdminDeals() {
       </Card>
 
       {/* Deals List */}
-      <Card>
+      <Card className="bg-white/5 border-white/10">
         <CardHeader>
-          <CardTitle>All Deals</CardTitle>
+          <CardTitle className="text-white">Active Deals</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {deals.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No deals found</p>
-            ) : (
-              deals.map((deal: Deal) => (
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-copper-500" />
+            </div>
+          ) : deals.length === 0 ? (
+            <p className="text-center text-white/60 py-8">No deals created yet</p>
+          ) : (
+            <div className="space-y-4">
+              {deals.map((deal: Deal) => (
                 <div
                   key={deal.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                  className="bg-white/5 rounded-lg p-4 flex items-center justify-between"
                 >
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold">{deal.title}</h3>
-                      <Badge variant={deal.is_active ? 'default' : 'secondary'}>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="text-copper-400 border-copper-400">
                         Slot {deal.slot}
                       </Badge>
-                      <Badge variant="outline">{deal.tile_kind}</Badge>
-                      {!deal.is_active && (
-                        <Badge variant="secondary">Inactive</Badge>
+                      <h3 className="font-semibold text-white">{deal.brand} - {deal.title}</h3>
+                      {deal.badge && (
+                        <Badge className="bg-copper-500/20 text-copper-400 border-copper-400">
+                          {deal.badge}
+                        </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600">{deal.brand} • {deal.subtitle}</p>
-                    {deal.code && (
-                      <p className="text-sm font-mono mt-1">Code: {deal.code}</p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">
-                      {deal.start_date} to {deal.end_date} • Priority: {deal.priority}
-                    </p>
+                    <p className="text-sm text-white/60 mt-1">{deal.subtitle}</p>
+                    <div className="flex items-center gap-4 mt-2 text-xs text-white/40">
+                      <span>Priority: {deal.priority}</span>
+                      <span>•</span>
+                      <span>{deal.start_date} to {deal.end_date || 'No end date'}</span>
+                      {deal.code && (
+                        <>
+                          <span>•</span>
+                          <span>Code: {deal.code}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    {deal.click_url && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => window.open(deal.click_url, '_blank')}
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </Button>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <Badge className={deal.is_active ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}>
+                      {deal.is_active ? 'Active' : 'Inactive'}
+                    </Badge>
                     <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleEdit(deal)}
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => openDialog(deal)}
+                      className="text-white/60 hover:text-white"
                     >
-                      <Edit className="w-4 h-4" />
+                      <Edit className="h-4 w-4" />
                     </Button>
                     <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDelete(deal.id!)}
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deal.id && deleteDealMutation.mutate(deal.id)}
+                      className="text-red-400 hover:text-red-300"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Edit/Create Dialog */}
+      {/* Create/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-gray-900 text-white border-white/10">
           <DialogHeader>
-            <DialogTitle>
-              {editingDeal?.id ? 'Edit Deal' : 'Create New Deal'}
-            </DialogTitle>
+            <DialogTitle>{editingDeal ? 'Edit Deal' : 'Create New Deal'}</DialogTitle>
             <DialogDescription>
-              Fill in the deal details and assign it to a slot
+              {editingDeal ? 'Update the deal details' : 'Fill in the deal details and assign it to a slot'}
             </DialogDescription>
           </DialogHeader>
 
@@ -458,30 +406,34 @@ export default function AdminDeals() {
                 <Label htmlFor="title">Title *</Label>
                 <Input
                   id="title"
-                  value={editingDeal?.title || ''}
-                  onChange={(e) => setEditingDeal({ ...editingDeal!, title: e.target.value })}
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  placeholder="Summer Sale"
                   required
+                  className="bg-white/5 border-white/20"
                 />
               </div>
               <div>
                 <Label htmlFor="brand">Brand *</Label>
                 <Input
                   id="brand"
-                  value={editingDeal?.brand || ''}
-                  onChange={(e) => setEditingDeal({ ...editingDeal!, brand: e.target.value })}
+                  value={formData.brand}
+                  onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+                  placeholder="Store Name"
                   required
+                  className="bg-white/5 border-white/20"
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor="subtitle">Subtitle *</Label>
-              <Textarea
+              <Label htmlFor="subtitle">Subtitle</Label>
+              <Input
                 id="subtitle"
-                value={editingDeal?.subtitle || ''}
-                onChange={(e) => setEditingDeal({ ...editingDeal!, subtitle: e.target.value })}
-                required
-                rows={2}
+                value={formData.subtitle}
+                onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
+                placeholder="Up to 50% off selected items"
+                className="bg-white/5 border-white/20"
               />
             </div>
 
@@ -490,19 +442,20 @@ export default function AdminDeals() {
                 <Label htmlFor="code">Promo Code</Label>
                 <Input
                   id="code"
-                  value={editingDeal?.code || ''}
-                  onChange={(e) => setEditingDeal({ ...editingDeal!, code: e.target.value })}
-                  placeholder="e.g., SAVE20"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  placeholder="SUMMER50"
+                  className="bg-white/5 border-white/20"
                 />
               </div>
               <div>
                 <Label htmlFor="click_url">Click URL</Label>
                 <Input
                   id="click_url"
-                  type="url"
-                  value={editingDeal?.click_url || ''}
-                  onChange={(e) => setEditingDeal({ ...editingDeal!, click_url: e.target.value })}
+                  value={formData.click_url}
+                  onChange={(e) => setFormData({ ...formData, click_url: e.target.value })}
                   placeholder="https://..."
+                  className="bg-white/5 border-white/20"
                 />
               </div>
             </div>
@@ -513,19 +466,20 @@ export default function AdminDeals() {
                 <Input
                   id="start_date"
                   type="date"
-                  value={editingDeal?.start_date || ''}
-                  onChange={(e) => setEditingDeal({ ...editingDeal!, start_date: e.target.value })}
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
                   required
+                  className="bg-white/5 border-white/20"
                 />
               </div>
               <div>
-                <Label htmlFor="end_date">End Date *</Label>
+                <Label htmlFor="end_date">End Date</Label>
                 <Input
                   id="end_date"
                   type="date"
-                  value={editingDeal?.end_date || ''}
-                  onChange={(e) => setEditingDeal({ ...editingDeal!, end_date: e.target.value })}
-                  required
+                  value={formData.end_date}
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                  className="bg-white/5 border-white/20"
                 />
               </div>
             </div>
@@ -534,15 +488,15 @@ export default function AdminDeals() {
               <div>
                 <Label htmlFor="slot">Slot (1-7) *</Label>
                 <Select
-                  value={String(editingDeal?.slot || 1)}
-                  onValueChange={(value) => setEditingDeal({ ...editingDeal!, slot: parseInt(value) })}
+                  value={formData.slot.toString()}
+                  onValueChange={(value) => setFormData({ ...formData, slot: parseInt(value) })}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white/5 border-white/20">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {SLOT_CONFIG.map(({ slot, label }) => (
-                      <SelectItem key={slot} value={String(slot)}>
+                      <SelectItem key={slot} value={slot.toString()}>
                         {slot} - {label}
                       </SelectItem>
                     ))}
@@ -551,114 +505,103 @@ export default function AdminDeals() {
               </div>
               <div>
                 <Label htmlFor="tile_kind">Tile Size *</Label>
-                <Select
-                  value={editingDeal?.tile_kind || 'wide'}
-                  onValueChange={(value: any) => setEditingDeal({ ...editingDeal!, tile_kind: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(IMAGE_RECOMMENDATIONS).map(([key, { label }]) => (
-                      <SelectItem key={key} value={key}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="tile_kind"
+                  value={SLOT_CONFIG.find(c => c.slot === formData.slot)?.kind || ''}
+                  disabled
+                  className="bg-white/5 border-white/20 opacity-50"
+                />
               </div>
               <div>
                 <Label htmlFor="priority">Priority</Label>
                 <Input
                   id="priority"
                   type="number"
-                  value={editingDeal?.priority || 0}
-                  onChange={(e) => setEditingDeal({ ...editingDeal!, priority: parseInt(e.target.value) })}
+                  value={formData.priority}
+                  onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
+                  className="bg-white/5 border-white/20"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={editingDeal?.is_active || false}
-                onCheckedChange={(checked) => setEditingDeal({ ...editingDeal!, is_active: checked })}
-              />
-              <Label>Active</Label>
-            </div>
-
-            {/* Image Recommendations */}
-            {editingDeal?.tile_kind && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <div className="text-sm font-medium text-blue-800">Recommended Image Size</div>
-                <div className="text-sm text-blue-600 mt-1">
-                  {IMAGE_RECOMMENDATIONS[editingDeal.tile_kind as keyof typeof IMAGE_RECOMMENDATIONS].label}
-                </div>
-                <div className="text-xs text-blue-500 mt-1">
-                  Optimal: {IMAGE_RECOMMENDATIONS[editingDeal.tile_kind as keyof typeof IMAGE_RECOMMENDATIONS].width}px × 
-                  {IMAGE_RECOMMENDATIONS[editingDeal.tile_kind as keyof typeof IMAGE_RECOMMENDATIONS].height}px
-                </div>
-              </div>
-            )}
-
-            {/* Images */}
             <div>
-              <div className="flex justify-between items-center mb-2">
-                <Label>Images</Label>
-                <Button type="button" size="sm" variant="outline" onClick={handleAddImage}>
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Image
-                </Button>
+              <Label htmlFor="badge">Badge (Optional)</Label>
+              <Input
+                id="badge"
+                value={formData.badge}
+                onChange={(e) => setFormData({ ...formData, badge: e.target.value })}
+                placeholder="e.g., Limited Time, Back to School"
+                className="bg-white/5 border-white/20"
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="is_active"
+                checked={formData.is_active}
+                onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+              />
+              <Label htmlFor="is_active">Active</Label>
+            </div>
+
+            {/* Image URLs */}
+            <div className="space-y-4 p-4 bg-white/5 rounded-lg">
+              <div className="text-sm text-copper-400 font-medium">
+                Recommended Image Size: {getImageRecommendation().label}
               </div>
-              <div className="space-y-2">
-                {images.map((image, index) => (
-                  <div key={index} className="flex gap-2 items-end">
-                    <div className="flex-1">
-                      <Input
-                        placeholder="Image URL"
-                        value={image.url}
-                        onChange={(e) => handleImageChange(index, 'url', e.target.value)}
-                      />
-                    </div>
-                    <Select
-                      value={image.kind}
-                      onValueChange={(value: any) => handleImageChange(index, 'kind', value)}
-                    >
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="desktop">Desktop</SelectItem>
-                        <SelectItem value="mobile">Mobile</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleRemoveImage(index)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
+              
+              <div>
+                <Label htmlFor="image_desktop_url">Desktop Image URL *</Label>
+                <Input
+                  id="image_desktop_url"
+                  value={formData.image_desktop_url}
+                  onChange={(e) => setFormData({ ...formData, image_desktop_url: e.target.value })}
+                  placeholder="https://example.com/image-desktop.jpg"
+                  required
+                  className="bg-white/5 border-white/20"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="image_mobile_url">Mobile Image URL *</Label>
+                <Input
+                  id="image_mobile_url"
+                  value={formData.image_mobile_url}
+                  onChange={(e) => setFormData({ ...formData, image_mobile_url: e.target.value })}
+                  placeholder="https://example.com/image-mobile.jpg"
+                  required
+                  className="bg-white/5 border-white/20"
+                />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <div>
+              <Label htmlFor="terms">Terms (Markdown, Optional)</Label>
+              <Textarea
+                id="terms"
+                value={formData.terms}
+                onChange={(e) => setFormData({ ...formData, terms: e.target.value })}
+                placeholder="Enter terms in markdown format..."
+                className="min-h-[100px] bg-white/5 border-white/20"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={closeDialog}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
+              <Button 
+                type="submit" 
                 disabled={createDealMutation.isPending || updateDealMutation.isPending}
+                className="bg-copper-500 hover:bg-copper-600"
               >
                 {createDealMutation.isPending || updateDealMutation.isPending ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Saving...
                   </>
                 ) : (
-                  editingDeal?.id ? 'Update Deal' : 'Create Deal'
+                  editingDeal ? 'Update Deal' : 'Create Deal'
                 )}
               </Button>
             </div>
