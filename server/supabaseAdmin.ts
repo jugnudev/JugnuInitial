@@ -9,6 +9,15 @@ export function getSupabaseAdmin() {
   }
   
   return createClient(url, key, { 
-    auth: { persistSession: false } 
+    auth: { persistSession: false },
+    db: {
+      schema: 'public'  // Explicitly set the schema
+    },
+    global: {
+      headers: {
+        'apikey': key,
+        'Authorization': `Bearer ${key}`
+      }
+    }
   });
 }

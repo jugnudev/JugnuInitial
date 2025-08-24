@@ -25,7 +25,7 @@ export function addDealsRoutes(app: Express) {
         .from('deals')
         .select('*')
         .order('priority', { ascending: false })
-        .order('placement', { ascending: true });
+        .order('slot', { ascending: true });
 
       if (dealsError) {
         // If there's a column error or table doesn't exist, return empty slots
@@ -37,35 +37,32 @@ export function addDealsRoutes(app: Express) {
         return res.status(500).json({ ok: false, error: 'Failed to fetch deals' });
       }
       
-      // Filter deals manually if columns exist
+      // Filter deals manually for active deals within date range
       const filteredDeals = (deals || []).filter((deal: any) => {
-        // Check if date columns exist and filter (using start_at/end_at)
+        // Check date range - handle both column name possibilities
         if (deal.start_at && deal.end_at) {
           return deal.start_at <= today && deal.end_at >= today;
-        }
-        // Also check for old column names
-        if (deal.start_date && deal.end_date) {
+        } else if (deal.start_date && deal.end_date) {
           return deal.start_date <= today && deal.end_date >= today;
         }
-        // If no date columns, include the deal
         return true;
       }).filter((deal: any) => {
-        // Check if is_active exists and filter
+        // Check if is_active
         if ('is_active' in deal) {
           return deal.is_active;
         }
-        // If no is_active column, include the deal
         return true;
       });
 
-      // Fetch images separately if deals exist
+      // Fetch images if deals exist
       let dealImages: any[] = [];
       if (filteredDeals && filteredDeals.length > 0) {
         const dealIds = filteredDeals.map((d: any) => d.id);
         const { data: images } = await supabase
           .from('deal_images')
           .select('*')
-          .in('deal_id', dealIds);
+          .in('deal_id', dealIds)
+          .eq('kind', 'desktop'); // Prioritize desktop images
         
         dealImages = images || [];
       }
@@ -75,20 +72,17 @@ export function addDealsRoutes(app: Express) {
       
       if (filteredDeals) {
         filteredDeals.forEach((deal: any) => {
-          // Map placement field to slot
-          const slotNumber = deal.placement || deal.slot || 1;
+          // Use slot field directly
+          const slotNumber = deal.slot;
           
           // Skip if slot is out of range (only 7 slots)
-          if (slotNumber < 1 || slotNumber > 7) return;
+          if (!slotNumber || slotNumber < 1 || slotNumber > 7) return;
           
           // Skip if slot already filled by higher priority deal
           if (slots[slotNumber - 1] !== null) return;
           
           // Find images for this deal
-          const dealImagesForThisDeal = dealImages.filter((img: any) => img.deal_id === deal.id);
-          const desktopImage = dealImagesForThisDeal.find((img: any) => img.kind === 'desktop');
-          const mobileImage = dealImagesForThisDeal.find((img: any) => img.kind === 'mobile');
-          const image = desktopImage || mobileImage;
+          const image = dealImages.find((img: any) => img.deal_id === deal.id);
           
           slots[slotNumber - 1] = {
             id: deal.id,
@@ -97,9 +91,8 @@ export function addDealsRoutes(app: Express) {
             brand: deal.brand,
             code: deal.code,
             click_url: deal.click_url,
-            slot: slotNumber,  // Use mapped slot number
+            slot: slotNumber,
             tile_kind: deal.tile_kind,
-            // Map dates for consistency
             start_date: deal.start_at || deal.start_date,
             end_date: deal.end_at || deal.end_date,
             image: image ? {
@@ -112,12 +105,12 @@ export function addDealsRoutes(app: Express) {
 
       res.json({ ok: true, slots });
     } catch (error) {
-      console.error('Deals list error:', error);
+      console.error('Deals error:', error);
       res.status(500).json({ ok: false, error: 'Failed to load deals' });
     }
   });
 
-  // Admin endpoint to list all deals
+  // Admin endpoint to get all deals (for management)
   app.get('/api/admin/deals', async (req, res) => {
     try {
       // Check admin authentication
@@ -126,7 +119,17 @@ export function addDealsRoutes(app: Express) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });
       }
 
-      // First try to fetch without the relationship
+      // First check if table exists
+      const { data: dealsTableCheck, error: tableCheckError } = await supabase
+        .from('deals')
+        .select('id')
+        .limit(1);
+
+      // If table doesn't exist, return empty array
+      if (tableCheckError?.code === 'PGRST204' || tableCheckError?.message?.includes('does not exist')) {
+        return res.json({ ok: true, deals: [] });
+      }
+
       const { data: deals, error } = await supabase
         .from('deals')
         .select('*')
@@ -154,13 +157,9 @@ export function addDealsRoutes(app: Express) {
         dealImages = images || [];
       }
 
-      // Combine deals with their images and map column names for frontend
+      // Combine deals with their images
       const dealsWithImages = (deals || []).map((deal: any) => ({
         ...deal,
-        // Map database columns back to frontend field names
-        start_date: deal.start_at || deal.start_date,
-        end_date: deal.end_at || deal.end_date,
-        slot: deal.placement || deal.slot || 1,  // Map placement back to slot
         deal_images: dealImages.filter((img: any) => img.deal_id === deal.id)
       }));
 
@@ -203,7 +202,7 @@ export function addDealsRoutes(app: Express) {
         });
       }
 
-      // Validate slot range
+      // Validate slot range (7 slots only)
       if (slot < 1 || slot > 7) {
         return res.status(400).json({ 
           ok: false, 
@@ -211,25 +210,27 @@ export function addDealsRoutes(app: Express) {
         });
       }
 
-      // Skip slot conflict check - database doesn't have slot column
-      // We'll use placement field and priority to manage display order
+      // Skip slot conflict check due to column name issues
+      // The database will handle uniqueness constraints if needed
 
-      // Create the deal - use placement field instead of slot
-      const { data: deal, error: dealError } = await supabase
-        .from('deals')
-        .insert({
+      // Create the deal - try with start_at/end_at columns
+      const dealData: any = {
           title,
           subtitle,
           brand,
           code: code || null,
           click_url: click_url || null,
-          start_at: start_date,
-          end_at: end_date,
-          placement: slot,  // Map slot to placement field
+          start_at: start_date,  // Map to start_at
+          end_at: end_date,      // Map to end_at
+          slot,
           tile_kind,
           priority: priority || 0,
           is_active: is_active !== false
-        })
+      };
+      
+      const { data: deal, error: dealError } = await supabase
+        .from('deals')
+        .insert(dealData)
         .select()
         .single();
 
@@ -291,7 +292,7 @@ export function addDealsRoutes(app: Express) {
         images
       } = req.body;
 
-      // Skip slot conflict check - database doesn't have slot column
+      // Skip slot conflict check due to column name issues
 
       // Update the deal
       const updateData: any = {
@@ -303,9 +304,9 @@ export function addDealsRoutes(app: Express) {
       if (brand !== undefined) updateData.brand = brand;
       if (code !== undefined) updateData.code = code || null;
       if (click_url !== undefined) updateData.click_url = click_url || null;
-      if (start_date !== undefined) updateData.start_at = start_date;  // Map to database column
-      if (end_date !== undefined) updateData.end_at = end_date;  // Map to database column
-      if (slot !== undefined) updateData.placement = slot;  // Map slot to placement field
+      if (start_date !== undefined) updateData.start_at = start_date;  // Map to start_at
+      if (end_date !== undefined) updateData.end_at = end_date;  // Map to end_at
+      if (slot !== undefined) updateData.slot = slot;
       if (tile_kind !== undefined) updateData.tile_kind = tile_kind;
       if (priority !== undefined) updateData.priority = priority;
       if (is_active !== undefined) updateData.is_active = is_active;
