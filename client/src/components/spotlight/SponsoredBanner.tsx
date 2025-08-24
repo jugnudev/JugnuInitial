@@ -222,14 +222,14 @@ export function SponsoredBanner() {
 
           {/* Headline */}
           {spotlight.headline && (
-            <h3 className="text-white text-base md:text-lg lg:text-xl font-bold leading-tight mb-1 truncate">
+            <h3 className="text-white text-sm sm:text-base md:text-lg lg:text-xl font-bold leading-tight mb-1 md:truncate">
               {spotlight.headline}
             </h3>
           )}
 
           {/* Subline */}
           {spotlight.subline && (
-            <p className="text-white/90 text-sm md:text-base leading-snug line-clamp-2">
+            <p className="text-white/90 text-xs sm:text-sm md:text-base leading-snug md:line-clamp-2">
               {spotlight.subline}
             </p>
           )}
