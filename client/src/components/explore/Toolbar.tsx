@@ -1,4 +1,4 @@
-import { Search, Filter, X, Heart } from "lucide-react";
+import { Search, Filter, X, Heart, Grid2X2, Grid3X3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import SegmentedControl from "./SegmentedControl";
@@ -14,6 +14,8 @@ interface ToolbarProps {
   showSavedOnly?: boolean;
   onSavedToggle?: () => void;
   savedCount?: number;
+  viewMode?: 'normal' | 'compact';
+  onViewModeChange?: (mode: 'normal' | 'compact') => void;
   className?: string;
 }
 
@@ -28,6 +30,8 @@ export default function Toolbar({
   showSavedOnly = false,
   onSavedToggle,
   savedCount = 0,
+  viewMode = 'normal',
+  onViewModeChange,
   className = ""
 }: ToolbarProps) {
   return (
@@ -62,6 +66,27 @@ export default function Toolbar({
           value={segmentValue}
           onChange={onSegmentChange}
         />
+
+        {/* View Mode Toggle */}
+        {onViewModeChange && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onViewModeChange(viewMode === 'normal' ? 'compact' : 'normal')}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/20 text-white transition-all"
+            data-testid="view-mode-toggle"
+            aria-label={`Switch to ${viewMode === 'normal' ? 'compact' : 'normal'} view`}
+          >
+            {viewMode === 'normal' ? (
+              <Grid3X3 className="w-4 h-4" />
+            ) : (
+              <Grid2X2 className="w-4 h-4" />
+            )}
+            <span className="hidden lg:inline text-sm">
+              {viewMode === 'normal' ? 'Compact' : 'Normal'}
+            </span>
+          </Button>
+        )}
 
         {/* Saved Toggle */}
         {onSavedToggle && (
@@ -138,32 +163,55 @@ export default function Toolbar({
           
           {/* Action Buttons */}
           <div className="flex items-center justify-between gap-2">
-            {/* Saved Toggle */}
-            {onSavedToggle && (
-              <Button
-                variant={showSavedOnly ? "default" : "ghost"}
-                size="sm"
-                onClick={onSavedToggle}
-                className={`flex items-center gap-2 px-4 py-2 rounded-2xl transition-all ${
-                  showSavedOnly 
-                    ? 'bg-copper-500 hover:bg-copper-600 text-black' 
-                    : 'bg-white/5 hover:bg-white/10 border border-white/20 text-white'
-                }`}
-                data-testid="saved-toggle-mobile"
-                aria-pressed={showSavedOnly}
-                aria-label={`${showSavedOnly ? 'Hide' : 'Show'} saved events only`}
-              >
-                <Heart 
-                  className={`w-4 h-4 ${showSavedOnly ? 'fill-current' : 'fill-transparent'}`} 
-                />
-                <span className="text-sm">Saved</span>
-                {savedCount > 0 && (
-                  <span className="bg-black/20 text-xs rounded-full px-1.5 py-0.5 min-w-5 h-5 flex items-center justify-center font-medium">
-                    {savedCount}
+            <div className="flex items-center gap-2">
+              {/* View Mode Toggle */}
+              {onViewModeChange && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onViewModeChange(viewMode === 'normal' ? 'compact' : 'normal')}
+                  className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/20 text-white transition-all"
+                  data-testid="view-mode-toggle-mobile"
+                  aria-label={`Switch to ${viewMode === 'normal' ? 'compact' : 'normal'} view`}
+                >
+                  {viewMode === 'normal' ? (
+                    <Grid3X3 className="w-4 h-4" />
+                  ) : (
+                    <Grid2X2 className="w-4 h-4" />
+                  )}
+                  <span className="text-sm">
+                    {viewMode === 'normal' ? 'Compact' : 'Normal'}
                   </span>
-                )}
-              </Button>
-            )}
+                </Button>
+              )}
+
+              {/* Saved Toggle */}
+              {onSavedToggle && (
+                <Button
+                  variant={showSavedOnly ? "default" : "ghost"}
+                  size="sm"
+                  onClick={onSavedToggle}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-2xl transition-all ${
+                    showSavedOnly 
+                      ? 'bg-copper-500 hover:bg-copper-600 text-black' 
+                      : 'bg-white/5 hover:bg-white/10 border border-white/20 text-white'
+                  }`}
+                  data-testid="saved-toggle-mobile"
+                  aria-pressed={showSavedOnly}
+                  aria-label={`${showSavedOnly ? 'Hide' : 'Show'} saved events only`}
+                >
+                  <Heart 
+                    className={`w-4 h-4 ${showSavedOnly ? 'fill-current' : 'fill-transparent'}`} 
+                  />
+                  <span className="text-sm">Saved</span>
+                  {savedCount > 0 && (
+                    <span className="bg-black/20 text-xs rounded-full px-1.5 py-0.5 min-w-5 h-5 flex items-center justify-center font-medium">
+                      {savedCount}
+                    </span>
+                  )}
+                </Button>
+              )}
+            </div>
             
             {/* Filters button removed */}
           </div>
