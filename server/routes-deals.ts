@@ -10,10 +10,11 @@ export function addDealsRoutes(app: Express) {
       const now = new Date().toISOString();
       
       // Fetch active deals that are within date range
+      // Note: Using 'scheduled' status for active deals due to constraint issue
       const { data: deals, error: dealsError } = await supabase
         .from('deals')
         .select('*')
-        .eq('status', 'active')
+        .in('status', ['scheduled', 'active'])  // Check both scheduled and active
         .lte('start_at', now)
         .or(`end_at.is.null,end_at.gte.${now}`)
         .order('priority', { ascending: false })
@@ -97,7 +98,7 @@ export function addDealsRoutes(app: Express) {
         slot: deal.placement_slot,
         start_date: deal.start_at,
         end_date: deal.end_at,
-        is_active: deal.status === 'active',
+        is_active: deal.status === 'scheduled' || deal.status === 'active',  // Both scheduled and active are considered active
         tile_kind: getTileKindForSlot(deal.placement_slot)
       }));
 
@@ -151,6 +152,10 @@ export function addDealsRoutes(app: Express) {
       }
 
       // Create the deal with correct column names
+      // Ensure dates are properly formatted as timestamps
+      const startTimestamp = start_date.includes('T') ? start_date : `${start_date}T00:00:00Z`;
+      const endTimestamp = end_date ? (end_date.includes('T') ? end_date : `${end_date}T23:59:59Z`) : null;
+      
       const dealData: any = {
         title,
         merchant: brand,
@@ -162,11 +167,13 @@ export function addDealsRoutes(app: Express) {
         placement_slot: slot,
         badge: badge || null,
         terms_md: terms || null,
-        status: is_active ? 'active' : 'draft',
+        status: is_active ? 'scheduled' : 'draft',  // Using 'scheduled' for active deals due to constraint issue
         priority: priority || 0,
-        start_at: start_date,
-        end_at: end_date || null
+        start_at: startTimestamp,
+        end_at: endTimestamp
       };
+      
+      console.log('Creating deal with data:', JSON.stringify(dealData, null, 2));
       
       const { data: deal, error: dealError } = await supabase
         .from('deals')
@@ -183,7 +190,17 @@ export function addDealsRoutes(app: Express) {
             error: `Slot ${slot} already has an active deal for the selected dates` 
           });
         }
-        return res.status(500).json({ ok: false, error: 'Failed to create deal' });
+        // Check if it's a status constraint error
+        if (dealError.message?.includes('deals_status_check')) {
+          return res.status(400).json({ 
+            ok: false, 
+            error: 'Invalid status value. Must be one of: draft, scheduled, active, paused, expired' 
+          });
+        }
+        return res.status(500).json({ 
+          ok: false, 
+          error: dealError.message || 'Failed to create deal' 
+        });
       }
 
       res.json({ ok: true, deal, message: 'Deal created successfully' });
@@ -234,7 +251,7 @@ export function addDealsRoutes(app: Express) {
       if (end_date !== undefined) updateData.end_at = end_date || null;
       if (slot !== undefined) updateData.placement_slot = slot;
       if (priority !== undefined) updateData.priority = priority;
-      if (is_active !== undefined) updateData.status = is_active ? 'active' : 'draft';
+      if (is_active !== undefined) updateData.status = is_active ? 'scheduled' : 'draft';  // Using 'scheduled' for active deals
       if (badge !== undefined) updateData.badge = badge || null;
       if (terms !== undefined) updateData.terms_md = terms || null;
       if (image_desktop_url !== undefined) updateData.image_desktop_url = image_desktop_url;
