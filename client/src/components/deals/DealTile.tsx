@@ -67,38 +67,11 @@ export function DealTile({
   // Get gradient for placeholder based on slot
   const placeholderGradient = placeholderGradients[slot % placeholderGradients.length];
 
-  // Scale text based on tile size
-  const getTextScale = () => {
-    switch (tileKind) {
-      case 'wide':
-        return {
-          title: 'text-lg md:text-xl lg:text-2xl',
-          subtitle: 'text-sm md:text-base lg:text-lg',
-          brand: 'text-sm md:text-base'
-        };
-      case 'tall':
-        return {
-          title: 'text-base md:text-lg lg:text-xl',
-          subtitle: 'text-xs md:text-sm lg:text-base',
-          brand: 'text-xs md:text-sm'
-        };
-      default:
-        return {
-          title: 'text-base md:text-lg',
-          subtitle: 'text-xs md:text-sm',
-          brand: 'text-xs md:text-sm'
-        };
-    }
-  };
-
-  const textScale = getTextScale();
-
   const content = (
     <div
       className={`
-        relative w-full h-full rounded-2xl overflow-hidden group transition-all duration-300
+        relative w-full h-full rounded-xl sm:rounded-2xl overflow-hidden group transition-all duration-300
         ${href ? 'cursor-pointer hover:shadow-xl hover:shadow-orange-200/30' : 'cursor-default'}
-        ${aspectRatios[tileKind]} ${gridSpans[tileKind]}
       `}
       style={{
         backgroundImage: imgUrl && !isPlaceholder ? `url(${imgUrl})` : undefined,
@@ -117,40 +90,42 @@ export function DealTile({
       }`} />
 
       {/* Sponsored badge and brand */}
-      <div className="absolute top-3 left-3 flex items-center gap-2 z-10">
+      <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex items-center gap-1 sm:gap-2 z-10">
         <Badge 
           variant="secondary" 
-          className="bg-white/90 text-gray-900 border border-gray-200/50 backdrop-blur-sm text-xs"
+          className="bg-white/90 text-gray-900 border border-gray-200/50 backdrop-blur-sm text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5"
           data-testid={`deal-badge-${slot}`}
         >
           {isPlaceholder ? 'Jugnu' : 'Sponsored'}
         </Badge>
-        {!isPlaceholder && (
-          <span className={`text-orange-400 font-medium tracking-wide ${textScale.brand}`}>
+        {!isPlaceholder && brand && (
+          <span className={`text-orange-400 font-medium tracking-wide text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none`}>
             {brand}
           </span>
         )}
       </div>
 
       {/* Content */}
-      <div className="absolute inset-0 flex flex-col justify-end p-4 md:p-6">
+      <div className="absolute inset-0 flex flex-col justify-end p-3 sm:p-4 md:p-6">
         <div className="flex-1 flex flex-col justify-end">
           {/* Title */}
-          <h3 className={`text-white font-bold leading-tight mb-1 ${textScale.title}`}>
+          <h3 className="text-white font-bold leading-tight mb-1 text-sm sm:text-base md:text-lg lg:text-xl line-clamp-2">
             {title}
           </h3>
 
           {/* Subtitle */}
-          <p className={`text-white/90 leading-snug mb-3 ${textScale.subtitle}`}>
-            {subtitle}
-          </p>
+          {subtitle && (
+            <p className="text-white/90 leading-snug mb-2 sm:mb-3 text-xs sm:text-sm md:text-base line-clamp-2">
+              {subtitle}
+            </p>
+          )}
 
           {/* Code if available */}
           {code && !isPlaceholder && (
-            <div className="mb-3">
-              <span className="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-lg px-3 py-1">
-                <span className="text-white/70 text-xs mr-2">Code:</span>
-                <span className="text-white font-mono font-bold text-sm">{code}</span>
+            <div className="mb-2 sm:mb-3">
+              <span className="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-md sm:rounded-lg px-2 sm:px-3 py-0.5 sm:py-1">
+                <span className="text-white/70 text-[10px] sm:text-xs mr-1 sm:mr-2">Code:</span>
+                <span className="text-white font-mono font-bold text-xs sm:text-sm">{code}</span>
               </span>
             </div>
           )}
@@ -160,7 +135,7 @@ export function DealTile({
             <div className="flex justify-start">
               <Button 
                 size="sm"
-                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 text-sm font-semibold transition-all duration-200 hover:scale-105 group/btn"
+                className="bg-orange-600 hover:bg-orange-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-200 hover:scale-105 group/btn"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleClick();
@@ -168,7 +143,7 @@ export function DealTile({
                 data-testid={`deal-cta-${slot}`}
               >
                 Shop Now
-                <ExternalLink className="w-4 h-4 ml-1 transition-transform group-hover/btn:translate-x-1" />
+                <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 ml-1 transition-transform group-hover/btn:translate-x-1" />
               </Button>
             </div>
           )}
