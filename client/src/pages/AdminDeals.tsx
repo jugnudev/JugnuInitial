@@ -48,9 +48,9 @@ const SLOT_CONFIG = [
   { slot: 2, kind: 'half', label: 'Left Half' },
   { slot: 3, kind: 'half', label: 'Right Half' },
   { slot: 4, kind: 'square', label: 'Center Square' },
-  { slot: 5, kind: 'tall', label: 'Left Tall' },
-  { slot: 6, kind: 'tall', label: 'Center Tall' },
-  { slot: 7, kind: 'tall', label: 'Right Tall' }
+  { slot: 5, kind: 'half', label: 'Left Half' },
+  { slot: 6, kind: 'half', label: 'Right Half' },
+  { slot: 7, kind: 'wide', label: 'Bottom Banner' }
 ];
 
 export default function AdminDeals() {
@@ -279,7 +279,7 @@ export default function AdminDeals() {
               
               const spans = {
                 wide: 'col-span-12',
-                half: 'col-span-6',
+                half: slot === 5 || slot === 6 ? 'col-span-4' : 'col-span-6',
                 square: 'col-span-4',
                 tall: 'col-span-4'
               };
