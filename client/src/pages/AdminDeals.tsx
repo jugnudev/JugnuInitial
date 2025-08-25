@@ -47,10 +47,10 @@ const SLOT_CONFIG = [
   { slot: 1, kind: 'wide', label: 'Top Banner' },
   { slot: 2, kind: 'half', label: 'Left Half' },
   { slot: 3, kind: 'half', label: 'Right Half' },
-  { slot: 4, kind: 'square', label: 'Center Square' },
-  { slot: 5, kind: 'half', label: 'Left Half' },
-  { slot: 6, kind: 'half', label: 'Right Half' },
-  { slot: 7, kind: 'wide', label: 'Bottom Banner' }
+  { slot: 4, kind: 'square', label: 'Middle Square' },
+  { slot: 5, kind: 'square', label: 'Bottom Left' },
+  { slot: 6, kind: 'square', label: 'Bottom Center' },
+  { slot: 7, kind: 'square', label: 'Bottom Right' }
 ];
 
 export default function AdminDeals() {
@@ -279,7 +279,7 @@ export default function AdminDeals() {
               
               const spans = {
                 wide: 'col-span-12',
-                half: slot === 5 || slot === 6 ? 'col-span-4' : 'col-span-6',
+                half: 'col-span-6',
                 square: 'col-span-4',
                 tall: 'col-span-4'
               };
@@ -304,8 +304,8 @@ export default function AdminDeals() {
                   <div className="text-xs text-copper-400 font-medium">{label}</div>
                   {deal && (
                     <>
-                      <div className="text-sm mt-2 font-bold text-white">{deal.brand}</div>
-                      <div className="text-xs text-white/60 truncate px-4">{deal.title}</div>
+                      <div className="text-sm mt-2 font-bold text-white">{(deal as Deal).brand}</div>
+                      <div className="text-xs text-white/60 truncate px-4">{(deal as Deal).title}</div>
                     </>
                   )}
                   {!deal && (
