@@ -72,25 +72,29 @@ export function DealTile({
       className={`
         relative w-full h-full rounded-xl sm:rounded-2xl overflow-hidden group transition-all duration-300
         ${href ? 'cursor-pointer hover:shadow-xl hover:shadow-orange-200/30' : 'cursor-default'}
+        bg-gradient-to-br from-gray-800 to-gray-900
       `}
-      style={{
-        backgroundImage: imgUrl && !isPlaceholder ? `url(${imgUrl})` : undefined,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundColor: imgUrl || isPlaceholder ? undefined : '#f97316'
-      }}
       onClick={href ? handleClick : undefined}
       data-testid={`deal-tile-${slot}`}
     >
+      {/* Background Image */}
+      {imgUrl && !isPlaceholder && (
+        <div 
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url(${imgUrl})`,
+          }}
+        />
+      )}
       {/* Gradient overlay */}
-      <div className={`absolute inset-0 ${
+      <div className={`absolute inset-0 z-10 ${
         isPlaceholder 
           ? `bg-gradient-to-br ${placeholderGradient}` 
           : 'bg-gradient-to-r from-black/70 via-black/50 to-transparent'
       }`} />
 
       {/* Sponsored badge and brand */}
-      <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex items-center gap-1 sm:gap-2 z-10">
+      <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex items-center gap-1 sm:gap-2 z-20">
         <Badge 
           variant="secondary" 
           className="bg-white/90 text-gray-900 border border-gray-200/50 backdrop-blur-sm text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5"
@@ -106,7 +110,7 @@ export function DealTile({
       </div>
 
       {/* Content */}
-      <div className="absolute inset-0 flex flex-col justify-end p-3 sm:p-4 md:p-6">
+      <div className="absolute inset-0 flex flex-col justify-end p-3 sm:p-4 md:p-6 z-20">
         <div className="flex-1 flex flex-col justify-end">
           {/* Title */}
           <h3 className="text-white font-bold leading-tight mb-1 text-sm sm:text-base md:text-lg lg:text-xl line-clamp-2">
