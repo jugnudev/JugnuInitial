@@ -94,42 +94,42 @@ export function DealTile({
       }`} />
 
       {/* Sponsored badge and brand */}
-      <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex items-center gap-1 sm:gap-2 z-20">
+      <div className="absolute top-3 sm:top-4 md:top-5 left-3 sm:left-4 md:left-5 flex items-center gap-2 sm:gap-3 z-20">
         <Badge 
           variant="secondary" 
-          className="bg-white/90 text-gray-900 border border-gray-200/50 backdrop-blur-sm text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5"
+          className="bg-white/95 text-gray-900 border border-gray-200/50 backdrop-blur-sm text-xs sm:text-sm px-2 sm:px-3 py-1 font-medium"
           data-testid={`deal-badge-${slot}`}
         >
           {isPlaceholder ? 'Jugnu' : 'Sponsored'}
         </Badge>
         {!isPlaceholder && brand && (
-          <span className={`text-orange-400 font-medium tracking-wide text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none`}>
+          <span className={`text-orange-400 font-semibold tracking-wide text-sm sm:text-base truncate max-w-[120px] sm:max-w-none`}>
             {brand}
           </span>
         )}
       </div>
 
       {/* Content */}
-      <div className="absolute inset-0 flex flex-col justify-end p-3 sm:p-4 md:p-6 z-20">
+      <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-5 md:p-6 lg:p-8 z-20">
         <div className="flex-1 flex flex-col justify-end">
           {/* Title */}
-          <h3 className="text-white font-bold leading-tight mb-1 text-sm sm:text-base md:text-lg lg:text-xl line-clamp-2">
+          <h3 className="text-white font-bold leading-relaxed mb-2 text-base sm:text-lg md:text-xl lg:text-2xl line-clamp-2">
             {title}
           </h3>
 
           {/* Subtitle */}
           {subtitle && (
-            <p className="text-white/90 leading-snug mb-2 sm:mb-3 text-xs sm:text-sm md:text-base line-clamp-2">
+            <p className="text-white/90 leading-relaxed mb-3 sm:mb-4 text-sm sm:text-base md:text-lg line-clamp-2">
               {subtitle}
             </p>
           )}
 
           {/* Code if available */}
           {code && !isPlaceholder && (
-            <div className="mb-2 sm:mb-3">
-              <span className="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-md sm:rounded-lg px-2 sm:px-3 py-0.5 sm:py-1">
-                <span className="text-white/70 text-[10px] sm:text-xs mr-1 sm:mr-2">Code:</span>
-                <span className="text-white font-mono font-bold text-xs sm:text-sm">{code}</span>
+            <div className="mb-3 sm:mb-4">
+              <span className="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-lg px-3 sm:px-4 py-1 sm:py-1.5">
+                <span className="text-white/70 text-xs sm:text-sm mr-2">Code:</span>
+                <span className="text-white font-mono font-bold text-sm sm:text-base">{code}</span>
               </span>
             </div>
           )}
@@ -139,7 +139,7 @@ export function DealTile({
             <div className="flex justify-start">
               <Button 
                 size="sm"
-                className="bg-orange-600 hover:bg-orange-700 text-white px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold transition-all duration-200 hover:scale-105 group/btn"
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 sm:px-5 py-2 sm:py-2.5 text-sm sm:text-base font-semibold transition-all duration-200 hover:scale-105 group/btn"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleClick();
