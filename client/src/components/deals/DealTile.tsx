@@ -70,7 +70,7 @@ export function DealTile({
   const content = (
     <div
       className={`
-        relative w-full h-full rounded-xl sm:rounded-2xl overflow-hidden group transition-all duration-300
+        absolute inset-0 rounded-xl sm:rounded-2xl overflow-hidden group transition-all duration-300
         ${href ? 'cursor-pointer hover:shadow-xl hover:shadow-orange-200/30' : 'cursor-default'}
         bg-gradient-to-br from-gray-800 to-gray-900
       `}

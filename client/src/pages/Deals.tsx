@@ -116,17 +116,19 @@ export default function Deals() {
                   className={config.gridClass}
                 >
                   {deal ? (
-                    <DealTile
-                      title={deal.title}
-                      subtitle={deal.subtitle}
-                      brand={deal.brand}
-                      code={deal.code}
-                      imgUrl={deal.image?.desktop || deal.image?.mobile}
-                      alt={deal.image?.alt}
-                      href={deal.click_url}
-                      tileKind={config.tileKind}
-                      slot={config.slot}
-                    />
+                    <div className={`relative ${config.aspectRatio} w-full`}>
+                      <DealTile
+                        title={deal.title}
+                        subtitle={deal.subtitle}
+                        brand={deal.brand}
+                        code={deal.code}
+                        imgUrl={deal.image?.desktop || deal.image?.mobile}
+                        alt={deal.image?.alt}
+                        href={deal.click_url}
+                        tileKind={config.tileKind}
+                        slot={config.slot}
+                      />
+                    </div>
                   ) : (
                     <div className={`relative ${config.aspectRatio} rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-br from-white/5 to-white/10 border border-white/10 backdrop-blur-sm group hover:border-copper-500/30 transition-all duration-300 hover:shadow-2xl hover:shadow-copper-500/10`}>
                       <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
