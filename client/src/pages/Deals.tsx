@@ -35,7 +35,7 @@ const slotConfigs: Array<{
   { slot: 4, tileKind: 'square', gridClass: 'col-span-12 md:col-span-4', aspectRatio: 'aspect-square' },
   { slot: 5, tileKind: 'square', gridClass: 'col-span-12 md:col-span-4', aspectRatio: 'aspect-square' },
   { slot: 6, tileKind: 'square', gridClass: 'col-span-12 md:col-span-4', aspectRatio: 'aspect-square' },
-  { slot: 7, tileKind: 'square', gridClass: 'col-span-12 md:col-span-4', aspectRatio: 'aspect-square' },
+  { slot: 7, tileKind: 'wide', gridClass: 'col-span-12', aspectRatio: 'aspect-[4/1] md:aspect-[5/1]' },
 ];
 
 export default function Deals() {

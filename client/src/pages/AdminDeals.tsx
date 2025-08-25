@@ -50,7 +50,7 @@ const SLOT_CONFIG = [
   { slot: 4, kind: 'square', label: 'Middle Square' },
   { slot: 5, kind: 'square', label: 'Bottom Left' },
   { slot: 6, kind: 'square', label: 'Bottom Center' },
-  { slot: 7, kind: 'square', label: 'Bottom Right' }
+  { slot: 7, kind: 'wide', label: 'Bottom Banner' }
 ];
 
 export default function AdminDeals() {
