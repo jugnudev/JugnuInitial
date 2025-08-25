@@ -30,13 +30,13 @@ const slotConfigs: Array<{
   aspectRatio: string;
   mobileAspectRatio?: string;
 }> = [
-  { slot: 1, tileKind: 'wide', gridClass: 'col-span-12', aspectRatio: 'aspect-[2/1] sm:aspect-[3/1] md:aspect-[5/1]' },
+  { slot: 1, tileKind: 'wide', gridClass: 'col-span-12', aspectRatio: 'aspect-[3/1] sm:aspect-[4/1] md:aspect-[5/1] lg:aspect-[6/1]' },
   { slot: 2, tileKind: 'half', gridClass: 'col-span-6 md:col-span-6', aspectRatio: 'aspect-square sm:aspect-[3/2] md:aspect-[2/1]' },
   { slot: 3, tileKind: 'half', gridClass: 'col-span-6 md:col-span-6', aspectRatio: 'aspect-square sm:aspect-[3/2] md:aspect-[2/1]' },
   { slot: 4, tileKind: 'square', gridClass: 'col-span-12 sm:col-span-6 md:col-span-4', aspectRatio: 'aspect-[3/2] sm:aspect-square' },
   { slot: 5, tileKind: 'square', gridClass: 'col-span-6 sm:col-span-6 md:col-span-4', aspectRatio: 'aspect-square' },
   { slot: 6, tileKind: 'square', gridClass: 'col-span-6 sm:col-span-6 md:col-span-4', aspectRatio: 'aspect-square' },
-  { slot: 7, tileKind: 'wide', gridClass: 'col-span-12', aspectRatio: 'aspect-[2/1] sm:aspect-[3/1] md:aspect-[5/1]' },
+  { slot: 7, tileKind: 'wide', gridClass: 'col-span-12', aspectRatio: 'aspect-[3/1] sm:aspect-[4/1] md:aspect-[5/1] lg:aspect-[6/1]' },
 ];
 
 export default function Deals() {
