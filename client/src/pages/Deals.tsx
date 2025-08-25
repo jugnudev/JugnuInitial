@@ -12,7 +12,8 @@ interface Deal {
   slot: number;
   tile_kind: 'wide' | 'half' | 'square' | 'tall';
   image?: {
-    url: string;
+    desktop: string;
+    mobile: string;
     alt: string;
   };
 }
@@ -120,7 +121,7 @@ export default function Deals() {
                       subtitle={deal.subtitle}
                       brand={deal.brand}
                       code={deal.code}
-                      imgUrl={deal.image?.url}
+                      imgUrl={deal.image?.desktop || deal.image?.mobile}
                       alt={deal.image?.alt}
                       href={deal.click_url}
                       tileKind={config.tileKind}
