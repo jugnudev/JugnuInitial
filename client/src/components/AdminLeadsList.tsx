@@ -25,7 +25,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Eye, Download, Search, Filter, Users, ExternalLink, Send, RotateCw, X, CheckCircle, Copy } from 'lucide-react';
+import { Eye, Download, Search, Filter, Users, ExternalLink, Send, RotateCw, X, CheckCircle, Copy, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -67,6 +67,8 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
   });
   
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   
   // Fetch leads with filters
@@ -91,6 +93,29 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
     }
   });
   
+  // Delete lead mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (leadId: string) => {
+      const response = await fetch(`/api/admin/leads/${leadId}`, {
+        method: 'DELETE',
+        headers: {
+          'x-admin-key': adminKey
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to delete lead');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-leads'] });
+      setDeleteDialogOpen(false);
+      setLeadToDelete(null);
+    }
+  });
+
   // Update lead status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ leadId, status, adminNotes }: { 
@@ -409,16 +434,30 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
-                          onClick={() => setSelectedLead(lead)}
-                          data-testid={`button-view-${lead.id}`}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
+                            onClick={() => setSelectedLead(lead)}
+                            data-testid={`button-view-${lead.id}`}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-red-700 bg-red-900/20 text-red-400 hover:bg-red-900/40"
+                            onClick={() => {
+                              setLeadToDelete(lead);
+                              setDeleteDialogOpen(true);
+                            }}
+                            data-testid={`button-delete-${lead.id}`}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -738,6 +777,77 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export Lead
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      {/* Delete Confirmation Dialog */}
+      {leadToDelete && (
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent className="max-w-md bg-gray-900 border-gray-700 text-white">
+            <DialogHeader>
+              <DialogTitle className="text-white">Confirm Delete</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-4">
+              <p className="text-gray-300">
+                Are you sure you want to delete this lead?
+              </p>
+              
+              <Card className="border-gray-700 bg-gray-800/50">
+                <CardContent className="pt-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Business:</span>
+                      <span className="text-white font-medium">{leadToDelete.business_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Contact:</span>
+                      <span className="text-white">{leadToDelete.contact_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Email:</span>
+                      <span className="text-white">{leadToDelete.email}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Status:</span>
+                      <Badge className={`${statusColors[leadToDelete.status]} border-0`}>
+                        {leadToDelete.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <div className="bg-red-900/20 border border-red-700 rounded-lg p-3">
+                <p className="text-red-400 text-sm">
+                  <strong>Warning:</strong> This action cannot be undone. All data associated with this lead will be permanently deleted.
+                </p>
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDeleteDialogOpen(false);
+                    setLeadToDelete(null);
+                  }}
+                  className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
+                  data-testid="button-cancel-delete"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => deleteMutation.mutate(leadToDelete.id)}
+                  disabled={deleteMutation.isPending}
+                  className="bg-red-600 hover:bg-red-700"
+                  data-testid="button-confirm-delete"
+                >
+                  {deleteMutation.isPending ? 'Deleting...' : 'Delete Lead'}
                 </Button>
               </div>
             </div>

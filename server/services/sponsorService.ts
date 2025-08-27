@@ -416,6 +416,24 @@ export async function getLead(id: string) {
   return lead;
 }
 
+// Delete lead
+export async function deleteLead(leadId: string): Promise<{ ok: boolean }> {
+  const supabase = getSupabaseAdmin();
+  
+  // Delete lead from database
+  const { error } = await supabase
+    .from('sponsor_leads')
+    .delete()
+    .eq('id', leadId);
+  
+  if (error) {
+    console.error('Failed to delete lead:', error);
+    throw new Error(`Failed to delete lead: ${error.message}`);
+  }
+  
+  return { ok: true };
+}
+
 // Update lead status
 export async function updateLeadStatus(id: string, status: string, adminNotes?: string) {
   const supabase = getSupabaseAdmin();

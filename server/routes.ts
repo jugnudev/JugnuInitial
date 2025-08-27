@@ -9,7 +9,6 @@ import { addQuotesRoutes } from './routes-quotes.js';
 import { addAdminLeadsRoutes } from './routes-admin-leads.js';
 import { registerOnboardingRoutes } from './routes-onboarding.js';
 import { addDealsRoutes } from './routes-deals.js';
-import { setupTestPortalRoutes } from './routes-test-portal.js';
 import { createHash } from "crypto";
 import ical from "node-ical";
 import he from "he";
@@ -2834,12 +2833,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Add onboarding routes for campaign creation
   registerOnboardingRoutes(app);
-  
-  // Test routes for debugging portal tokens (development only)
-  if (process.env.NODE_ENV === 'development') {
-    setupTestPortalRoutes(app);
-    console.log('✓ Test portal routes enabled');
-  }
 
   // Dev-only routes that call admin endpoints server-side (no client secrets)
   if (process.env.NODE_ENV !== 'production') {

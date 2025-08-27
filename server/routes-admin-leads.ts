@@ -1,5 +1,5 @@
 import type { Express } from 'express';
-import { getLeads, getLead, updateLeadStatus } from './services/sponsorService';
+import { getLeads, getLead, updateLeadStatus, deleteLead } from './services/sponsorService';
 import { getQuote } from './services/sponsorService';
 import { z } from 'zod';
 
@@ -127,6 +127,27 @@ export function addAdminLeadsRoutes(app: Express) {
     } catch (error) {
       console.error('Error fetching lead:', error);
       res.status(500).json({ ok: false, error: 'Failed to fetch lead' });
+    }
+  });
+
+  // DELETE /api/admin/leads/:id - Delete lead
+  app.delete('/api/admin/leads/:id', requireAdminKey, async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      if (!id) {
+        return res.status(400).json({ ok: false, error: 'Lead ID required' });
+      }
+      
+      await deleteLead(id);
+      
+      res.json({ ok: true, message: 'Lead deleted successfully' });
+    } catch (error: any) {
+      console.error('Delete lead error:', error);
+      res.status(400).json({ 
+        ok: false, 
+        error: error?.message || 'Failed to delete lead' 
+      });
     }
   });
 
