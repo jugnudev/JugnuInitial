@@ -55,7 +55,7 @@ export default function Onboard() {
     headline: '',
     subline: '',
     ctaText: 'Learn More',
-    clickUrl: ''
+    clickUrl: 'https://'
   });
   
   // Creative upload state
@@ -396,7 +396,32 @@ export default function Onboard() {
                   <Input
                     type="url"
                     value={formData.clickUrl}
-                    onChange={(e) => setFormData(prev => ({ ...prev, clickUrl: e.target.value }))}
+                    onChange={(e) => {
+                      let value = e.target.value;
+                      // If user clears the field or it's getting too short, reset to https://
+                      if (value.length < 8) {
+                        value = 'https://';
+                      }
+                      // If user types something that doesn't start with http:// or https://, prepend https://
+                      else if (!value.startsWith('http://') && !value.startsWith('https://')) {
+                        // Remove any partial protocol attempts
+                        value = value.replace(/^(ht?t?p?s?:?\/?\/?)/, '');
+                        value = 'https://' + value;
+                      }
+                      setFormData(prev => ({ ...prev, clickUrl: value }));
+                    }}
+                    onBlur={(e) => {
+                      // Clean up the URL on blur
+                      let value = e.target.value;
+                      if (value === 'https://') {
+                        // Don't do anything if it's just the protocol
+                        return;
+                      }
+                      // Ensure it's a valid URL format
+                      if (!value.match(/^https?:\/\/.+/)) {
+                        setFormData(prev => ({ ...prev, clickUrl: 'https://' }));
+                      }
+                    }}
                     placeholder="https://yourwebsite.com/landing-page"
                     required
                   />

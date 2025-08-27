@@ -116,7 +116,7 @@ export default function AdminPromote() {
     headline: '',
     subline: '',
     cta_text: '',
-    click_url: '',
+    click_url: 'https://',
     placements: [] as string[],
     start_at: '',
     end_at: '',
@@ -236,7 +236,7 @@ export default function AdminPromote() {
       // Parse frequencyCap properly - don't drop 0
       const capValue = campaignForm.freq_cap_per_user_per_day;
       const cap = 
-        capValue === null || capValue === undefined || capValue === ''
+        capValue === null || capValue === undefined
           ? undefined  // Only undefined means don't change
           : Math.max(0, Number(capValue));  // 0 is valid (no cap)
       
@@ -518,7 +518,7 @@ export default function AdminPromote() {
       headline: '',
       subline: '',
       cta_text: '',
-      click_url: '',
+      click_url: 'https://',
       placements: [],
       start_at: '',
       end_at: '',
@@ -533,13 +533,20 @@ export default function AdminPromote() {
 
   const openEditCampaign = (campaign: Campaign) => {
     setEditingCampaign(campaign);
+    // Ensure click_url has a protocol
+    let clickUrl = campaign.click_url;
+    if (clickUrl && !clickUrl.startsWith('http://') && !clickUrl.startsWith('https://')) {
+      clickUrl = 'https://' + clickUrl;
+    } else if (!clickUrl) {
+      clickUrl = 'https://';
+    }
     setCampaignForm({
       name: campaign.name,
       sponsor_name: campaign.sponsor_name,
       headline: campaign.headline,
       subline: campaign.subline || '',
       cta_text: campaign.cta_text,
-      click_url: campaign.click_url,
+      click_url: clickUrl,
       placements: campaign.placements,
       start_at: campaign.start_at.split('T')[0],
       end_at: campaign.end_at.split('T')[0],
@@ -1355,8 +1362,34 @@ export default function AdminPromote() {
               <Label htmlFor="click_url" className="text-white">Click URL</Label>
               <Input
                 id="click_url"
+                type="url"
                 value={campaignForm.click_url}
-                onChange={(e) => setCampaignForm(prev => ({ ...prev, click_url: e.target.value }))}
+                onChange={(e) => {
+                  let value = e.target.value;
+                  // If user clears the field or it's getting too short, reset to https://
+                  if (value.length < 8) {
+                    value = 'https://';
+                  }
+                  // If user types something that doesn't start with http:// or https://, prepend https://
+                  else if (!value.startsWith('http://') && !value.startsWith('https://')) {
+                    // Remove any partial protocol attempts
+                    value = value.replace(/^(ht?t?p?s?:?\/?\/?)/, '');
+                    value = 'https://' + value;
+                  }
+                  setCampaignForm(prev => ({ ...prev, click_url: value }));
+                }}
+                onBlur={(e) => {
+                  // Clean up the URL on blur
+                  let value = e.target.value;
+                  if (value === 'https://') {
+                    // Don't do anything if it's just the protocol
+                    return;
+                  }
+                  // Ensure it's a valid URL format
+                  if (!value.match(/^https?:\/\/.+/)) {
+                    setCampaignForm(prev => ({ ...prev, click_url: 'https://' }));
+                  }
+                }}
                 className="bg-white/10 border-white/20 text-white"
                 placeholder="https://example.com/landing"
               />
