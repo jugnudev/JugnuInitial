@@ -57,7 +57,8 @@ export async function getOnboardingData(token: string) {
   }
   
   // Map package to placements
-  const placements = PACKAGE_PLACEMENTS_MAP[lead.package_code as keyof typeof PACKAGE_PLACEMENTS_MAP] || [];
+  const packagePlacements = PACKAGE_PLACEMENTS_MAP[lead.package_code as keyof typeof PACKAGE_PLACEMENTS_MAP];
+  const placements: string[] = packagePlacements ? [...packagePlacements] : [];
   
   // Convert dates to PT timezone for start_at and end_at
   const startDate = new Date(lead.start_date);
@@ -214,17 +215,41 @@ export async function processOnboarding(token: string, formData: z.infer<typeof 
   }
   
   // Create portal token for campaign
-  const portalToken = uuidv4();
-  const { error: portalError } = await supabase
+  // Set expiration to 90 days from now (matching standard sponsor portal duration)
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 90);
+  
+  // Use the new UUID-based system - let database generate the ID
+  const { data: tokenData, error: portalError } = await supabase
     .from('sponsor_portal_tokens')
     .insert({
-      token: portalToken,
       campaign_id: campaign.id,
-      created_at: new Date().toISOString(),
-    });
+      expires_at: expiresAt.toISOString(),
+      is_active: true,
+    })
+    .select('id, campaign_id, expires_at')
+    .single();
   
   if (portalError) {
     console.error('Failed to create portal token:', portalError);
+    // Still return success for campaign creation, just without portal
+    return {
+      ok: true,
+      campaignId: campaign.id,
+      portalLink: null,
+    };
+  }
+  
+  // Use the UUID id returned from database as the portal token
+  const portalToken = tokenData?.id;
+  
+  if (!portalToken) {
+    console.error('Portal token created but no ID was returned');
+    return {
+      ok: true,
+      campaignId: campaign.id,
+      portalLink: null,
+    };
   }
   
   const portalLink = `${process.env.APP_BASE_URL || 'https://thehouseofjugnu.com'}/sponsor/${portalToken}`;

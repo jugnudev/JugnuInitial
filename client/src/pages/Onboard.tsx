@@ -171,10 +171,12 @@ export default function Onboard() {
       
       if (result.ok) {
         setIsComplete(true);
-        setPortalLink(result.portalLink);
+        setPortalLink(result.portalLink || null);
         toast({
           title: 'Campaign created!',
-          description: 'Your campaign has been successfully set up'
+          description: result.portalLink 
+            ? 'Your campaign has been successfully set up' 
+            : 'Your campaign has been set up. Contact us for your portal link.'
         });
       } else {
         throw new Error(result.error || 'Failed to create campaign');
@@ -237,7 +239,7 @@ export default function Onboard() {
   }
   
   // Success state
-  if (isComplete && portalLink) {
+  if (isComplete) {
     return (
       <div className="min-h-screen bg-bg flex items-center justify-center p-4">
         <motion.div
@@ -252,23 +254,33 @@ export default function Onboard() {
               Your campaign has been successfully set up and will be reviewed by our team.
             </p>
             
-            <div className="bg-muted/50 rounded-lg p-4 mb-6">
-              <p className="text-sm text-muted mb-2">Your Analytics Portal:</p>
-              <a 
-                href={portalLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline break-all flex items-center justify-center gap-1"
-              >
-                View Portal <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-            
-            <Alert>
-              <AlertDescription className="text-sm">
-                Save this link! You'll use it to track your campaign performance in real-time.
-              </AlertDescription>
-            </Alert>
+            {portalLink ? (
+              <>
+                <div className="bg-muted/50 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-muted mb-2">Your Analytics Portal:</p>
+                  <a 
+                    href={portalLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline break-all flex items-center justify-center gap-1"
+                  >
+                    View Portal <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+                
+                <Alert>
+                  <AlertDescription className="text-sm">
+                    Save this link! You'll use it to track your campaign performance in real-time.
+                  </AlertDescription>
+                </Alert>
+              </>
+            ) : (
+              <Alert>
+                <AlertDescription className="text-sm">
+                  We'll send you the portal link shortly. Check your email or contact support if you don't receive it.
+                </AlertDescription>
+              </Alert>
+            )}
           </Card>
         </motion.div>
       </div>
