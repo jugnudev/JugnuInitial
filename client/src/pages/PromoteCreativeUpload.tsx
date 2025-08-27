@@ -170,7 +170,7 @@ export function PromoteCreativeUpload({
           {renderUploadField(
             'eventsDesktop',
             'Desktop Creative *',
-            '(Min: 1600×400px, ~4:1 ratio, JPG/PNG/WebP)',
+            '(1600×400px, 4:1 ratio, JPG/PNG/WebP)',
             creatives.eventsDesktop,
             creativeValidation.eventsDesktop,
             dragActive.eventsDesktop
@@ -179,7 +179,7 @@ export function PromoteCreativeUpload({
           {renderUploadField(
             'eventsMobile',
             'Mobile Creative *',
-            '(Min: 1080×1080px, 1:1 ratio, JPG/PNG/WebP)',
+            '(400×300px, 4:3 ratio, JPG/PNG/WebP)',
             creatives.eventsMobile,
             creativeValidation.eventsMobile,
             dragActive.eventsMobile
@@ -198,7 +198,7 @@ export function PromoteCreativeUpload({
           {renderUploadField(
             'homeDesktop',
             'Desktop Creative *',
-            '(Min: 1600×400px, ~4:1 ratio, JPG/PNG/WebP)',
+            '(1080×600px, 9:5 ratio, JPG/PNG/WebP)',
             creatives.homeDesktop,
             creativeValidation.homeDesktop,
             dragActive.homeDesktop
@@ -207,7 +207,7 @@ export function PromoteCreativeUpload({
           {renderUploadField(
             'homeMobile',
             'Mobile Creative *',
-            '(Min: 1080×1080px, 1:1 ratio, JPG/PNG/WebP)',
+            '(600×400px, 3:2 ratio, JPG/PNG/WebP)',
             creatives.homeMobile,
             creativeValidation.homeMobile,
             dragActive.homeMobile
@@ -221,7 +221,7 @@ export function PromoteCreativeUpload({
           {renderUploadField(
             'desktop',
             'Desktop Creative *',
-            '(Min: 1600×400px, ~4:1 ratio, JPG/PNG/WebP)',
+            '(1600×400px, 4:1 ratio, JPG/PNG/WebP)',
             creatives.desktop,
             creativeValidation.desktop,
             dragActive.desktop
@@ -230,7 +230,7 @@ export function PromoteCreativeUpload({
           {renderUploadField(
             'mobile',
             'Mobile Creative *',
-            '(Min: 1080×1080px, 1:1 ratio, JPG/PNG/WebP)',
+            '(400×300px, 4:3 ratio, JPG/PNG/WebP)',
             creatives.mobile,
             creativeValidation.mobile,
             dragActive.mobile

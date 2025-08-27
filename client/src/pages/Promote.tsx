@@ -288,23 +288,48 @@ export default function Promote() {
 
   // Creative validation requirements
   const CREATIVE_REQUIREMENTS = {
+    eventsDesktop: {
+      width: 1600,
+      height: 400,
+      aspectRatio: { min: 3.8, max: 4.2 }, // 4:1 ratio with tolerance
+      formats: ['image/jpeg', 'image/png', 'image/webp']
+    },
+    eventsMobile: {
+      width: 400,
+      height: 300,
+      aspectRatio: { min: 1.2, max: 1.5 }, // 4:3 ratio with tolerance
+      formats: ['image/jpeg', 'image/png', 'image/webp']
+    },
+    homeDesktop: {
+      width: 1080,
+      height: 600,
+      aspectRatio: { min: 1.6, max: 2.0 }, // 9:5 (1.8:1) ratio with tolerance
+      formats: ['image/jpeg', 'image/png', 'image/webp']
+    },
+    homeMobile: {
+      width: 600,
+      height: 400,
+      aspectRatio: { min: 1.3, max: 1.7 }, // 3:2 (1.5:1) ratio with tolerance
+      formats: ['image/jpeg', 'image/png', 'image/webp']
+    },
+    // Default/fallback requirements
     desktop: {
-      minWidth: 1600,
-      minHeight: 400,
-      aspectRatio: { min: 3.5, max: 4.5 }, // ~4:1 ratio with tolerance
+      width: 1600,
+      height: 400,
+      aspectRatio: { min: 3.8, max: 4.2 }, // 4:1 ratio with tolerance
       formats: ['image/jpeg', 'image/png', 'image/webp']
     },
     mobile: {
-      minWidth: 1080,
-      minHeight: 1080,
-      aspectRatio: { min: 0.9, max: 1.1 }, // ~1:1 ratio with tolerance
+      width: 400,
+      height: 300,
+      aspectRatio: { min: 1.2, max: 1.5 }, // 4:3 ratio with tolerance
       formats: ['image/jpeg', 'image/png', 'image/webp']
     }
   };
 
   const validateCreative = async (file: File, type: 'desktop' | 'mobile' | 'eventsDesktop' | 'eventsMobile' | 'homeDesktop' | 'homeMobile') => {
-    const baseType = type.includes('Mobile') || type === 'mobile' ? 'mobile' : 'desktop';
-    const requirements = CREATIVE_REQUIREMENTS[baseType];
+    // Get requirements for the specific type, or fall back to desktop/mobile
+    const requirements = CREATIVE_REQUIREMENTS[type] || CREATIVE_REQUIREMENTS[type.includes('Mobile') || type === 'mobile' ? 'mobile' : 'desktop'];
     const issues: string[] = [];
     
     // Check file format
@@ -320,17 +345,19 @@ export default function Promote() {
     // Check image dimensions
     const dimensions = await getImageDimensions(file);
     if (dimensions) {
-      if (dimensions.width < requirements.minWidth) {
-        issues.push(`Width must be at least ${requirements.minWidth}px (got ${dimensions.width}px)`);
-      }
-      if (dimensions.height < requirements.minHeight) {
-        issues.push(`Height must be at least ${requirements.minHeight}px (got ${dimensions.height}px)`);
+      if (dimensions.width !== requirements.width || dimensions.height !== requirements.height) {
+        issues.push(`Dimensions must be exactly ${requirements.width}×${requirements.height}px (got ${dimensions.width}×${dimensions.height}px)`);
       }
       
       const aspectRatio = dimensions.width / dimensions.height;
       if (aspectRatio < requirements.aspectRatio.min || aspectRatio > requirements.aspectRatio.max) {
-        const idealRatio = baseType === 'desktop' ? '4:1' : '1:1';
-        issues.push(`Aspect ratio should be approximately ${idealRatio} (got ${aspectRatio.toFixed(2)}:1)`);
+        // Determine ideal ratio description based on type
+        let idealRatio = '4:1';
+        if (type === 'eventsMobile' || type === 'mobile') idealRatio = '4:3';
+        else if (type === 'homeDesktop') idealRatio = '9:5';
+        else if (type === 'homeMobile') idealRatio = '3:2';
+        
+        issues.push(`Aspect ratio should be ${idealRatio} (got ${aspectRatio.toFixed(2)}:1)`);
       }
     } else {
       issues.push('Could not read image dimensions');
