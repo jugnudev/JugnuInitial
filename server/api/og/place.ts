@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { supabase } from '../../db';
+import { db as supabase } from '../../database';
 
 export async function GET(req: Request, res: Response) {
   try {
