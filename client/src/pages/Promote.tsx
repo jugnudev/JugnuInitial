@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, BarChart3, Target, TrendingUp, Eye, MousePointer, Users, MapPin, Calendar, CheckCircle, Upload, ExternalLink, Mail, Plus, Minus, Zap, Star, Shield } from 'lucide-react';
+import { PromoteCreativeUpload } from './PromoteCreativeUpload';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -89,17 +90,29 @@ export default function Promote() {
   // Creative validation state
   const [creatives, setCreatives] = useState({
     desktop: null as File | null,
-    mobile: null as File | null
+    mobile: null as File | null,
+    eventsDesktop: null as File | null,
+    eventsMobile: null as File | null,
+    homeDesktop: null as File | null,
+    homeMobile: null as File | null
   });
   const [creativeValidation, setCreativeValidation] = useState({
     desktop: { valid: false, issues: [] as string[], dimensions: null as {width: number, height: number} | null },
-    mobile: { valid: false, issues: [] as string[], dimensions: null as {width: number, height: number} | null }
+    mobile: { valid: false, issues: [] as string[], dimensions: null as {width: number, height: number} | null },
+    eventsDesktop: { valid: false, issues: [] as string[], dimensions: null as {width: number, height: number} | null },
+    eventsMobile: { valid: false, issues: [] as string[], dimensions: null as {width: number, height: number} | null },
+    homeDesktop: { valid: false, issues: [] as string[], dimensions: null as {width: number, height: number} | null },
+    homeMobile: { valid: false, issues: [] as string[], dimensions: null as {width: number, height: number} | null }
   });
   
   // Drag state for visual feedback
   const [dragActive, setDragActive] = useState({
     desktop: false,
-    mobile: false
+    mobile: false,
+    eventsDesktop: false,
+    eventsMobile: false,
+    homeDesktop: false,
+    homeMobile: false
   });
   
   // Calculate current pricing
@@ -289,8 +302,9 @@ export default function Promote() {
     }
   };
 
-  const validateCreative = async (file: File, type: 'desktop' | 'mobile') => {
-    const requirements = CREATIVE_REQUIREMENTS[type];
+  const validateCreative = async (file: File, type: 'desktop' | 'mobile' | 'eventsDesktop' | 'eventsMobile' | 'homeDesktop' | 'homeMobile') => {
+    const baseType = type.includes('Mobile') || type === 'mobile' ? 'mobile' : 'desktop';
+    const requirements = CREATIVE_REQUIREMENTS[baseType];
     const issues: string[] = [];
     
     // Check file format
@@ -315,7 +329,7 @@ export default function Promote() {
       
       const aspectRatio = dimensions.width / dimensions.height;
       if (aspectRatio < requirements.aspectRatio.min || aspectRatio > requirements.aspectRatio.max) {
-        const idealRatio = type === 'desktop' ? '4:1' : '1:1';
+        const idealRatio = baseType === 'desktop' ? '4:1' : '1:1';
         issues.push(`Aspect ratio should be approximately ${idealRatio} (got ${aspectRatio.toFixed(2)}:1)`);
       }
     } else {
@@ -340,7 +354,7 @@ export default function Promote() {
     });
   };
 
-  const handleCreativeUpload = async (file: File, type: 'desktop' | 'mobile') => {
+  const handleCreativeUpload = async (file: File, type: 'desktop' | 'mobile' | 'eventsDesktop' | 'eventsMobile' | 'homeDesktop' | 'homeMobile') => {
     setCreatives(prev => ({ ...prev, [type]: file }));
     
     const validation = await validateCreative(file, type);
@@ -420,21 +434,26 @@ export default function Promote() {
       
       // Add creative assets based on package type
       // Priority: uploaded files first, then links if no files
-      if (creatives.desktop || creatives.mobile) {
+      const hasUploadedFiles = creatives.eventsDesktop || creatives.eventsMobile || 
+                               creatives.homeDesktop || creatives.homeMobile || 
+                               creatives.desktop || creatives.mobile;
+      
+      if (hasUploadedFiles) {
         // User uploaded files - these take priority
-        if (packageToSubmit === 'events_spotlight' || packageToSubmit === 'full_feature') {
-          if (creatives.desktop) formDataToSend.append('events_desktop', creatives.desktop, creatives.desktop.name);
-          if (creatives.mobile) formDataToSend.append('events_mobile', creatives.mobile, creatives.mobile.name);
+        if (packageToSubmit === 'events_spotlight') {
+          if (creatives.eventsDesktop) formDataToSend.append('events_desktop', creatives.eventsDesktop, creatives.eventsDesktop.name);
+          if (creatives.eventsMobile) formDataToSend.append('events_mobile', creatives.eventsMobile, creatives.eventsMobile.name);
         }
         if (packageToSubmit === 'homepage_feature') {
-          if (creatives.desktop) formDataToSend.append('home_desktop', creatives.desktop, creatives.desktop.name);
-          if (creatives.mobile) formDataToSend.append('home_mobile', creatives.mobile, creatives.mobile.name);
+          if (creatives.homeDesktop) formDataToSend.append('home_desktop', creatives.homeDesktop, creatives.homeDesktop.name);
+          if (creatives.homeMobile) formDataToSend.append('home_mobile', creatives.homeMobile, creatives.homeMobile.name);
         }
         if (packageToSubmit === 'full_feature') {
-          // For full feature, we need both events and home creatives
-          // Using the same files for both placements
-          if (creatives.desktop) formDataToSend.append('home_desktop', creatives.desktop, creatives.desktop.name);
-          if (creatives.mobile) formDataToSend.append('home_mobile', creatives.mobile, creatives.mobile.name);
+          // For full feature, we need all 4 separate creatives
+          if (creatives.eventsDesktop) formDataToSend.append('events_desktop', creatives.eventsDesktop, creatives.eventsDesktop.name);
+          if (creatives.eventsMobile) formDataToSend.append('events_mobile', creatives.eventsMobile, creatives.eventsMobile.name);
+          if (creatives.homeDesktop) formDataToSend.append('home_desktop', creatives.homeDesktop, creatives.homeDesktop.name);
+          if (creatives.homeMobile) formDataToSend.append('home_mobile', creatives.homeMobile, creatives.homeMobile.name);
         }
       } else if (formData.creative_links && formData.creative_links.trim()) {
         // Only use links if no files were uploaded and links are provided
@@ -2168,322 +2187,19 @@ export default function Promote() {
                 </div>
 
                 {/* Creative Upload Section */}
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
-                      <Upload className="w-5 h-5" />
-                      Creative Assets (Optional)
-                    </h3>
-                    <p className="text-muted text-sm mb-6">
-                      Upload your campaign creatives. Requirements vary by package:
-                      {selectedPackage === 'events_spotlight' && ' Events Banner (Desktop + Mobile)'}
-                      {selectedPackage === 'homepage_feature' && ' Homepage Banner (Desktop + Mobile)'}
-                      {selectedPackage === 'full_feature' && ' Both Events Banner + Homepage Banner (4 total assets: Desktop + Mobile for each placement)'}
-                    </p>
-                  </div>
-
-                  {/* Desktop Creative */}
-                  <div className="space-y-3">
-                    <label className="block text-white font-medium">
-                      Desktop Creative *
-                      <span className="text-muted text-sm font-normal ml-2">
-                        (Min: 1600×400px, ~4:1 ratio, JPG/PNG/WebP)
-                      </span>
-                    </label>
-                    
-                    <div 
-                      className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
-                        dragActive.desktop ? 'border-copper-500 bg-copper-500/20' :
-                        creatives.desktop ? 
-                          (creativeValidation.desktop.valid ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10') :
-                          'border-white/20 hover:border-white/40'
-                      }`}
-                      onDragEnter={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setDragActive(prev => ({ ...prev, desktop: true }));
-                      }}
-                      onDragLeave={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (e.currentTarget === e.target) {
-                          setDragActive(prev => ({ ...prev, desktop: false }));
-                        }
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setDragActive(prev => ({ ...prev, desktop: false }));
-                        
-                        const files = Array.from(e.dataTransfer.files);
-                        const imageFile = files.find(file => file.type.startsWith('image/'));
-                        
-                        if (imageFile) {
-                          handleCreativeUpload(imageFile, 'desktop');
-                        } else {
-                          toast({
-                            title: "Invalid file",
-                            description: "Please drop an image file (JPG, PNG, or WebP)",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                    >
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleCreativeUpload(file, 'desktop');
-                        }}
-                        className="hidden"
-                        id="desktop-creative"
-                        data-testid="upload-desktop-creative"
-                      />
-                      
-                      {!creatives.desktop ? (
-                        <label htmlFor="desktop-creative" className="cursor-pointer flex flex-col items-center gap-3">
-                          <Upload className={`w-8 h-8 ${dragActive.desktop ? 'text-copper-500' : 'text-muted'} transition-colors`} />
-                          <div className="text-center">
-                            <div className="text-white font-medium">
-                              {dragActive.desktop ? 'Drop your image here' : 'Upload Desktop Creative'}
-                            </div>
-                            <div className="text-muted text-sm">Click to browse or drag & drop</div>
-                          </div>
-                        </label>
-                      ) : (
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-3 h-3 rounded-full ${
-                                creativeValidation.desktop.valid ? 'bg-green-500' : 'bg-red-500'
-                              }`}></div>
-                              <span className="text-white font-medium">{creatives.desktop.name}</span>
-                              {creativeValidation.desktop.valid && (
-                                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  Ready
-                                </Badge>
-                              )}
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setCreatives(prev => ({ ...prev, desktop: null }));
-                                setCreativeValidation(prev => ({ 
-                                  ...prev, 
-                                  desktop: { valid: false, issues: [], dimensions: null }
-                                }));
-                              }}
-                              className="text-white border-white/20"
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                          
-                          {creativeValidation.desktop.dimensions && (
-                            <div className="text-sm text-muted">
-                              Dimensions: {creativeValidation.desktop.dimensions.width}×{creativeValidation.desktop.dimensions.height}px
-                            </div>
-                          )}
-                          
-                          {creativeValidation.desktop.issues.length > 0 && (
-                            <div className="space-y-1">
-                              {creativeValidation.desktop.issues.map((issue, index) => (
-                                <div key={index} className="text-red-400 text-sm flex items-center gap-2">
-                                  <div className="w-1 h-1 bg-red-400 rounded-full"></div>
-                                  {issue}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Mobile Creative */}
-                  <div className="space-y-3">
-                    <label className="block text-white font-medium">
-                      Mobile Creative *
-                      <span className="text-muted text-sm font-normal ml-2">
-                        (Min: 1080×1080px, 1:1 ratio, JPG/PNG/WebP)
-                      </span>
-                    </label>
-                    
-                    <div 
-                      className={`border-2 border-dashed rounded-lg p-6 transition-colors ${
-                        dragActive.mobile ? 'border-copper-500 bg-copper-500/20' :
-                        creatives.mobile ? 
-                          (creativeValidation.mobile.valid ? 'border-green-500 bg-green-500/10' : 'border-red-500 bg-red-500/10') :
-                          'border-white/20 hover:border-white/40'
-                      }`}
-                      onDragEnter={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setDragActive(prev => ({ ...prev, mobile: true }));
-                      }}
-                      onDragLeave={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (e.currentTarget === e.target) {
-                          setDragActive(prev => ({ ...prev, mobile: false }));
-                        }
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setDragActive(prev => ({ ...prev, mobile: false }));
-                        
-                        const files = Array.from(e.dataTransfer.files);
-                        const imageFile = files.find(file => file.type.startsWith('image/'));
-                        
-                        if (imageFile) {
-                          handleCreativeUpload(imageFile, 'mobile');
-                        } else {
-                          toast({
-                            title: "Invalid file",
-                            description: "Please drop an image file (JPG, PNG, or WebP)",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                    >
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleCreativeUpload(file, 'mobile');
-                        }}
-                        className="hidden"
-                        id="mobile-creative"
-                        data-testid="upload-mobile-creative"
-                      />
-                      
-                      {!creatives.mobile ? (
-                        <label htmlFor="mobile-creative" className="cursor-pointer flex flex-col items-center gap-3">
-                          <Upload className={`w-8 h-8 ${dragActive.mobile ? 'text-copper-500' : 'text-muted'} transition-colors`} />
-                          <div className="text-center">
-                            <div className="text-white font-medium">
-                              {dragActive.mobile ? 'Drop your image here' : 'Upload Mobile Creative'}
-                            </div>
-                            <div className="text-muted text-sm">Click to browse or drag & drop</div>
-                          </div>
-                        </label>
-                      ) : (
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-3 h-3 rounded-full ${
-                                creativeValidation.mobile.valid ? 'bg-green-500' : 'bg-red-500'
-                              }`}></div>
-                              <span className="text-white font-medium">{creatives.mobile.name}</span>
-                              {creativeValidation.mobile.valid && (
-                                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  Ready
-                                </Badge>
-                              )}
-                            </div>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setCreatives(prev => ({ ...prev, mobile: null }));
-                                setCreativeValidation(prev => ({ 
-                                  ...prev, 
-                                  mobile: { valid: false, issues: [], dimensions: null }
-                                }));
-                              }}
-                              className="text-white border-white/20"
-                            >
-                              Remove
-                            </Button>
-                          </div>
-                          
-                          {creativeValidation.mobile.dimensions && (
-                            <div className="text-sm text-muted">
-                              Dimensions: {creativeValidation.mobile.dimensions.width}×{creativeValidation.mobile.dimensions.height}px
-                            </div>
-                          )}
-                          
-                          {creativeValidation.mobile.issues.length > 0 && (
-                            <div className="space-y-1">
-                              {creativeValidation.mobile.issues.map((issue, index) => (
-                                <div key={index} className="text-red-400 text-sm flex items-center gap-2">
-                                  <div className="w-1 h-1 bg-red-400 rounded-full"></div>
-                                  {issue}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Creative Guidelines */}
-                  <div className="bg-white/5 border border-white/10 rounded-lg p-4">
-                    <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-                      <Eye className="w-4 h-4" />
-                      Creative Guidelines
-                    </h4>
-                    <ul className="space-y-2 text-sm text-muted">
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" />
-                        All banners automatically include a subtle "Sponsored" label for transparency
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" />
-                        Avoid placing critical text near edges (safe margin: 40px)
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" />
-                        Use high contrast colors for better readability
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <CheckCircle className="w-3 h-3 text-green-400 flex-shrink-0" />
-                        Test designs on dark backgrounds (similar to site theme)
-                      </li>
-                    </ul>
-                  </div>
-
-                  {/* Fallback for existing links */}
-                  <div>
-                    <label className="block text-white font-medium mb-2">
-                      Additional Creative Links
-                      <span className="text-muted text-sm font-normal ml-2">(Optional - Figma, brand assets, etc.)</span>
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/70 text-sm">
-                        https://
-                      </span>
-                      <Input
-                        type="text"
-                        value={formData.creative_links.replace(/^https?:\/\//, '')}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/^https?:\/\//, '');
-                          setFormData({...formData, creative_links: value});
-                        }}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/50 pl-16"
-                        placeholder="figma.com/file/... or drive.google.com/..."
-                        data-testid="input-additional-creative-links"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <PromoteCreativeUpload 
+                  selectedPackage={selectedPackage}
+                  creatives={creatives}
+                  creativeValidation={creativeValidation}
+                  dragActive={dragActive}
+                  handleCreativeUpload={handleCreativeUpload}
+                  setCreatives={setCreatives}
+                  setCreativeValidation={setCreativeValidation}
+                  setDragActive={setDragActive}
+                  formData={formData}
+                  setFormData={setFormData}
+                  toast={toast}
+                />
 
                 <div>
                   <label className="block text-white font-medium mb-2">
@@ -2507,26 +2223,61 @@ export default function Promote() {
                       Creative Validation Status
                     </h4>
                     <div className="grid md:grid-cols-2 gap-4 text-sm">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${
-                          creatives.desktop && creativeValidation.desktop.valid ? 'bg-green-500' : 'bg-red-500'
-                        }`}></div>
-                        <span className="text-muted">
-                          Desktop Creative: {creatives.desktop ? 
-                            (creativeValidation.desktop.valid ? 'Ready ✓' : 'Issues found') : 
-                            'Required'}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${
-                          creatives.mobile && creativeValidation.mobile.valid ? 'bg-green-500' : 'bg-red-500'
-                        }`}></div>
-                        <span className="text-muted">
-                          Mobile Creative: {creatives.mobile ? 
-                            (creativeValidation.mobile.valid ? 'Ready ✓' : 'Issues found') : 
-                            'Required'}
-                        </span>
-                      </div>
+                      {/* Events Desktop */}
+                      {(selectedPackage === 'events_spotlight' || selectedPackage === 'full_feature') && (
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full ${
+                            creatives.eventsDesktop && creativeValidation.eventsDesktop.valid ? 'bg-green-500' : 'bg-red-500'
+                          }`}></div>
+                          <span className="text-muted">
+                            Events Desktop: {creatives.eventsDesktop ? 
+                              (creativeValidation.eventsDesktop.valid ? 'Ready ✓' : 'Issues found') : 
+                              'Required'}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Events Mobile */}
+                      {(selectedPackage === 'events_spotlight' || selectedPackage === 'full_feature') && (
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full ${
+                            creatives.eventsMobile && creativeValidation.eventsMobile.valid ? 'bg-green-500' : 'bg-red-500'
+                          }`}></div>
+                          <span className="text-muted">
+                            Events Mobile: {creatives.eventsMobile ? 
+                              (creativeValidation.eventsMobile.valid ? 'Ready ✓' : 'Issues found') : 
+                              'Required'}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Home Desktop */}
+                      {(selectedPackage === 'homepage_feature' || selectedPackage === 'full_feature') && (
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full ${
+                            creatives.homeDesktop && creativeValidation.homeDesktop.valid ? 'bg-green-500' : 'bg-red-500'
+                          }`}></div>
+                          <span className="text-muted">
+                            Homepage Desktop: {creatives.homeDesktop ? 
+                              (creativeValidation.homeDesktop.valid ? 'Ready ✓' : 'Issues found') : 
+                              'Required'}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Home Mobile */}
+                      {(selectedPackage === 'homepage_feature' || selectedPackage === 'full_feature') && (
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full ${
+                            creatives.homeMobile && creativeValidation.homeMobile.valid ? 'bg-green-500' : 'bg-red-500'
+                          }`}></div>
+                          <span className="text-muted">
+                            Homepage Mobile: {creatives.homeMobile ? 
+                              (creativeValidation.homeMobile.valid ? 'Ready ✓' : 'Issues found') : 
+                              'Required'}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

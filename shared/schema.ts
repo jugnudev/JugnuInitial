@@ -176,9 +176,13 @@ export const sponsorLeads = pgTable("sponsor_leads", {
   objective: text("objective"),
   ackExclusive: boolean("ack_exclusive").notNull().default(false),
   ackGuarantee: boolean("ack_guarantee").notNull().default(false),
-  // Creatives
-  desktopAssetUrl: text("desktop_asset_url").notNull(),
-  mobileAssetUrl: text("mobile_asset_url").notNull(),
+  // Creatives - Support for all placements
+  desktopAssetUrl: text("desktop_asset_url"),  // Legacy field - kept for backward compatibility
+  mobileAssetUrl: text("mobile_asset_url"),    // Legacy field - kept for backward compatibility
+  eventsDesktopAssetUrl: text("events_desktop_asset_url"),  // Events page desktop creative
+  eventsMobileAssetUrl: text("events_mobile_asset_url"),    // Events page mobile creative
+  homeDesktopAssetUrl: text("home_desktop_asset_url"),      // Homepage desktop creative
+  homeMobileAssetUrl: text("home_mobile_asset_url"),        // Homepage mobile creative
   creativeLinks: text("creative_links"),
   // Notes
   comments: text("comments"),

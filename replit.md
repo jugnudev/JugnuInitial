@@ -47,6 +47,7 @@ Preferred communication style: Simple, everyday language.
 - **Admin Authentication**: `x-admin-key` header authentication with audit logging.
 - **Lead Management**: Full CRUD operations for sponsor leads including delete functionality with confirmation dialog.
 - **Onboarding Flow**: Multi-part form submission at `/api/onboard/:token` creates campaigns, uploads creatives, and generates portal tokens automatically.
+- **4-Creative Upload System**: Full Feature campaigns require 4 separate creative uploads (events banner desktop/mobile + homepage feature desktop/mobile). Frontend validates dimensions and formats for each placement.
 - **Health Monitoring**: `/api/health` endpoint with database connectivity checks, table status, and response time metrics.
 - **Promote v2 Sales Page**: Premium sales page for sponsorship packages with detailed pricing, add-ons, and application forms.
 - **Sponsor Portal System**: Token-based analytics portal (`/sponsor/:tokenId`) with real-time metrics (impressions, clicks, CTR), charts, and CSV export.
@@ -90,6 +91,7 @@ Preferred communication style: Simple, everyday language.
 - **esbuild**: Fast JavaScript bundler for production.
 
 ### Active Integrations
-- **Supabase**: Database backend with RLS for `community_events`.
+- **Supabase**: Database backend with RLS for `community_events` and sponsor management tables.
 - **Google Calendar**: ICS feed parsing for community events.
 - **Calendar Export**: Google Calendar and ICS file generation for event adds.
+- **Creative Asset Storage**: Supabase Storage for sponsor creative uploads with automatic URL generation.
