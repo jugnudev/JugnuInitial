@@ -91,7 +91,7 @@ interface AdminSession {
 }
 
 export default function AdminPromote() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [session, setSession] = useState<AdminSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -106,6 +106,10 @@ export default function AdminPromote() {
   const [runningTest, setRunningTest] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [activeTab, setActiveTab] = useState('campaigns');
+  
+  // Get campaign ID from URL query parameter
+  const urlParams = new URLSearchParams(window.location.search);
+  const highlightCampaignId = urlParams.get('campaign');
 
   // Form state
   const [loginPassword, setLoginPassword] = useState('');
@@ -143,6 +147,19 @@ export default function AdminPromote() {
   useEffect(() => {
     checkSession();
   }, []);
+  
+  // Scroll to highlighted campaign when campaigns are loaded
+  useEffect(() => {
+    if (highlightCampaignId && campaigns.length > 0) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        const element = document.getElementById(`campaign-${highlightCampaignId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 100);
+    }
+  }, [highlightCampaignId, campaigns]);
 
   const checkSession = async () => {
     try {
@@ -802,7 +819,11 @@ export default function AdminPromote() {
                 const existingToken = portalTokens.find(t => t.campaign_id === campaign.id);
                 
                 return (
-                  <Card key={campaign.id} className="p-4 sm:p-6 bg-white/5 border-white/10">
+                  <Card 
+                    key={campaign.id} 
+                    id={`campaign-${campaign.id}`}
+                    className={`p-4 sm:p-6 ${campaign.id === highlightCampaignId ? 'bg-orange-500/10 border-orange-500/50 ring-2 ring-orange-500/30' : 'bg-white/5 border-white/10'}`}
+                  >
                     <div className="flex flex-col space-y-4">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0">
                         <div className="flex-1 min-w-0">

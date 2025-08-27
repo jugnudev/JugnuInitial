@@ -728,7 +728,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
-                    onClick={() => window.open(`/admin/campaigns/${selectedLead.source_campaign_id}`, '_blank')}
+                    onClick={() => window.open(`/admin/promote?campaign=${selectedLead.source_campaign_id}`, '_blank')}
                     data-testid="button-open-campaign"
                   >
                     <ExternalLink className="h-4 w-4 mr-2" />
