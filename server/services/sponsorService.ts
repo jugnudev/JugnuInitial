@@ -337,9 +337,40 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
   };
   
   const supabase = getSupabaseAdmin();
+  
+  // Workaround for Supabase schema cache issue
+  // Store the creative URLs in the legacy columns and payload for now
+  const leadForInsert = { ...lead };
+  
+  // Map new creative URLs to legacy columns as a workaround
+  if (data.eventsDesktopAssetUrl || data.homeDesktopAssetUrl) {
+    leadForInsert.desktop_asset_url = data.eventsDesktopAssetUrl || data.homeDesktopAssetUrl || data.desktopAssetUrl || null;
+  }
+  if (data.eventsMobileAssetUrl || data.homeMobileAssetUrl) {
+    leadForInsert.mobile_asset_url = data.eventsMobileAssetUrl || data.homeMobileAssetUrl || data.mobileAssetUrl || null;
+  }
+  
+  // Store all creative URLs in the payload for retrieval
+  const payloadWithCreatives = {
+    ...(rawPayload || {}),
+    creative_urls: {
+      events_desktop: data.eventsDesktopAssetUrl || null,
+      events_mobile: data.eventsMobileAssetUrl || null,
+      home_desktop: data.homeDesktopAssetUrl || null,
+      home_mobile: data.homeMobileAssetUrl || null
+    }
+  };
+  leadForInsert.payload = payloadWithCreatives;
+  
+  // Remove the problematic columns that Supabase cache doesn't recognize
+  delete (leadForInsert as any).events_desktop_asset_url;
+  delete (leadForInsert as any).events_mobile_asset_url;
+  delete (leadForInsert as any).home_desktop_asset_url;
+  delete (leadForInsert as any).home_mobile_asset_url;
+  
   const { data: result, error } = await supabase
     .from('sponsor_leads')
-    .insert(lead)
+    .insert(leadForInsert)
     .select('id')
     .single();
   
@@ -416,6 +447,17 @@ export async function getLead(id: string) {
       return null; // Not found
     }
     throw new Error(`Failed to fetch lead: ${error.message}`);
+  }
+  
+  // Extract creative URLs from payload if they exist (workaround for schema cache issue)
+  if (lead && lead.payload && typeof lead.payload === 'object' && 'creative_urls' in lead.payload) {
+    const creativeUrls = (lead.payload as any).creative_urls;
+    if (creativeUrls) {
+      lead.events_desktop_asset_url = creativeUrls.events_desktop || null;
+      lead.events_mobile_asset_url = creativeUrls.events_mobile || null;
+      lead.home_desktop_asset_url = creativeUrls.home_desktop || null;
+      lead.home_mobile_asset_url = creativeUrls.home_mobile || null;
+    }
   }
   
   return lead;
