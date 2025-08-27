@@ -43,8 +43,9 @@ Preferred communication style: Simple, everyday language.
 
 ### Admin & Sponsorship Systems
 - **Admin API**: Key-based system for managing campaigns, portal tokens, and onboarding.
-- **Portal Token System**: UUID-based secure tokens with legacy hex token support for backward compatibility.
+- **Portal Token System**: UUID-based secure tokens with legacy hex token support for backward compatibility. Tokens are created in Supabase with 90-day expiration and validated via `/api/spotlight/portal/:tokenId` endpoint.
 - **Admin Authentication**: `x-admin-key` header authentication with audit logging.
+- **Onboarding Flow**: Multi-part form submission at `/api/onboard/:token` creates campaigns, uploads creatives, and generates portal tokens automatically.
 - **Health Monitoring**: `/api/health` endpoint with database connectivity checks, table status, and response time metrics.
 - **Promote v2 Sales Page**: Premium sales page for sponsorship packages with detailed pricing, add-ons, and application forms.
 - **Sponsor Portal System**: Token-based analytics portal (`/sponsor/:tokenId`) with real-time metrics (impressions, clicks, CTR), charts, and CSV export.

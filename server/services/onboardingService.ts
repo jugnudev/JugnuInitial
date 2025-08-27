@@ -231,7 +231,11 @@ export async function processOnboarding(token: string, formData: z.infer<typeof 
     .single();
   
   if (portalError) {
-    console.error('Failed to create portal token:', portalError);
+    console.error('Failed to create portal token:', {
+      error: portalError,
+      campaignId: campaign.id,
+      expires_at: expiresAt.toISOString()
+    });
     // Still return success for campaign creation, just without portal
     return {
       ok: true,
@@ -244,13 +248,20 @@ export async function processOnboarding(token: string, formData: z.infer<typeof 
   const portalToken = tokenData?.id;
   
   if (!portalToken) {
-    console.error('Portal token created but no ID was returned');
+    console.error('Portal token created but no ID was returned', { tokenData });
     return {
       ok: true,
       campaignId: campaign.id,
       portalLink: null,
     };
   }
+  
+  // Log successful creation for debugging
+  console.log('Portal token created successfully:', {
+    tokenId: portalToken,
+    campaignId: campaign.id,
+    expiresAt: tokenData.expires_at
+  });
   
   const portalLink = `${process.env.APP_BASE_URL || 'https://thehouseofjugnu.com'}/sponsor/${portalToken}`;
   

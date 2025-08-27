@@ -1140,6 +1140,11 @@ thehouseofjugnu.com`;
         return res.status(400).json({ ok: false, error: 'Token ID is required' });
       }
 
+      console.log('Portal access attempt:', { 
+        tokenId, 
+        isUuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tokenId) 
+      });
+
       // Validate token and get campaign - accept both UUID and legacy hex tokens
       let tokenQuery = supabase
         .from('sponsor_portal_tokens')
@@ -1169,6 +1174,12 @@ thehouseofjugnu.com`;
       const { data: tokenData, error: tokenError } = await tokenQuery.single();
 
       if (tokenError || !tokenData) {
+        console.error('Portal token not found:', { 
+          tokenId, 
+          isUuid,
+          error: tokenError,
+          queryType: isUuid ? 'by id' : 'by token'
+        });
         return res.status(404).json({ ok: false, error: 'Invalid or expired portal link' });
       }
 
