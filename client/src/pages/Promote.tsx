@@ -412,13 +412,11 @@ export default function Promote() {
         hasRequiredCreatives = !!(creatives.eventsDesktop && creatives.eventsMobile && 
                                  creatives.homeDesktop && creatives.homeMobile);
       } else if (selectedPackage === 'events_spotlight') {
-        // Events spotlight requires events creatives or generic ones
-        hasRequiredCreatives = !!((creatives.eventsDesktop && creatives.eventsMobile) ||
-                                 (creatives.desktop && creatives.mobile));
+        // Events spotlight requires events creatives
+        hasRequiredCreatives = !!(creatives.eventsDesktop && creatives.eventsMobile);
       } else if (selectedPackage === 'homepage_feature') {
-        // Homepage feature requires home creatives or generic ones
-        hasRequiredCreatives = !!((creatives.homeDesktop && creatives.homeMobile) ||
-                                 (creatives.desktop && creatives.mobile));
+        // Homepage feature requires home creatives
+        hasRequiredCreatives = !!(creatives.homeDesktop && creatives.homeMobile);
       } else {
         // Other packages use generic creatives
         hasRequiredCreatives = !!(creatives.desktop && creatives.mobile);
@@ -454,30 +452,20 @@ export default function Promote() {
           validationIssues.push(...creativeValidation.homeMobile.issues.map(i => `Homepage Mobile: ${i}`));
         }
       } else if (selectedPackage === 'events_spotlight') {
-        // Check events creatives or generic ones
-        if (creatives.eventsDesktop && !creativeValidation.eventsDesktop.valid) {
+        // Check events creatives
+        if (!creativeValidation.eventsDesktop.valid) {
           validationIssues.push(...creativeValidation.eventsDesktop.issues.map(i => `Events Desktop: ${i}`));
-        } else if (creatives.desktop && !creativeValidation.desktop.valid) {
-          validationIssues.push(...creativeValidation.desktop.issues.map(i => `Desktop: ${i}`));
         }
-        
-        if (creatives.eventsMobile && !creativeValidation.eventsMobile.valid) {
+        if (!creativeValidation.eventsMobile.valid) {
           validationIssues.push(...creativeValidation.eventsMobile.issues.map(i => `Events Mobile: ${i}`));
-        } else if (creatives.mobile && !creativeValidation.mobile.valid) {
-          validationIssues.push(...creativeValidation.mobile.issues.map(i => `Mobile: ${i}`));
         }
       } else if (selectedPackage === 'homepage_feature') {
-        // Check homepage creatives or generic ones
-        if (creatives.homeDesktop && !creativeValidation.homeDesktop.valid) {
+        // Check homepage creatives
+        if (!creativeValidation.homeDesktop.valid) {
           validationIssues.push(...creativeValidation.homeDesktop.issues.map(i => `Homepage Desktop: ${i}`));
-        } else if (creatives.desktop && !creativeValidation.desktop.valid) {
-          validationIssues.push(...creativeValidation.desktop.issues.map(i => `Desktop: ${i}`));
         }
-        
-        if (creatives.homeMobile && !creativeValidation.homeMobile.valid) {
+        if (!creativeValidation.homeMobile.valid) {
           validationIssues.push(...creativeValidation.homeMobile.issues.map(i => `Homepage Mobile: ${i}`));
-        } else if (creatives.mobile && !creativeValidation.mobile.valid) {
-          validationIssues.push(...creativeValidation.mobile.issues.map(i => `Mobile: ${i}`));
         }
       } else {
         // Check generic creatives
