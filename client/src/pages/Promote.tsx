@@ -404,25 +404,95 @@ export default function Promote() {
     const creativesRequired = ['events_spotlight', 'homepage_feature', 'full_feature'].includes(selectedPackage || '');
     
     if (creativesRequired && !formData.creative_links) {
-      if (!creatives.desktop || !creatives.mobile) {
+      // Check for appropriate creatives based on package type
+      let hasRequiredCreatives = false;
+      
+      if (selectedPackage === 'full_feature') {
+        // Full feature requires all 4 creatives
+        hasRequiredCreatives = !!(creatives.eventsDesktop && creatives.eventsMobile && 
+                                 creatives.homeDesktop && creatives.homeMobile);
+      } else if (selectedPackage === 'events_spotlight') {
+        // Events spotlight requires events creatives or generic ones
+        hasRequiredCreatives = !!((creatives.eventsDesktop && creatives.eventsMobile) ||
+                                 (creatives.desktop && creatives.mobile));
+      } else if (selectedPackage === 'homepage_feature') {
+        // Homepage feature requires home creatives or generic ones
+        hasRequiredCreatives = !!((creatives.homeDesktop && creatives.homeMobile) ||
+                                 (creatives.desktop && creatives.mobile));
+      } else {
+        // Other packages use generic creatives
+        hasRequiredCreatives = !!(creatives.desktop && creatives.mobile);
+      }
+      
+      if (!hasRequiredCreatives) {
         toast({
           title: "Creative Assets Required",
-          description: "Please upload both desktop and mobile creatives or provide creative links.",
+          description: selectedPackage === 'full_feature' 
+            ? "Please upload all 4 creative assets (events and homepage, desktop and mobile) or provide creative links."
+            : "Please upload both desktop and mobile creatives or provide creative links.",
           variant: "destructive",
           duration: 5000,
         });
         return;
       }
 
-      if (!creativeValidation.desktop.valid || !creativeValidation.mobile.valid) {
-        const issues = [
-          ...(!creativeValidation.desktop.valid ? creativeValidation.desktop.issues.map(i => `Desktop: ${i}`) : []),
-          ...(!creativeValidation.mobile.valid ? creativeValidation.mobile.issues.map(i => `Mobile: ${i}`) : [])
-        ];
+      // Check validation based on package type
+      let validationIssues: string[] = [];
+      
+      if (selectedPackage === 'full_feature') {
+        // Check all 4 creatives for full feature
+        if (!creativeValidation.eventsDesktop.valid) {
+          validationIssues.push(...creativeValidation.eventsDesktop.issues.map(i => `Events Desktop: ${i}`));
+        }
+        if (!creativeValidation.eventsMobile.valid) {
+          validationIssues.push(...creativeValidation.eventsMobile.issues.map(i => `Events Mobile: ${i}`));
+        }
+        if (!creativeValidation.homeDesktop.valid) {
+          validationIssues.push(...creativeValidation.homeDesktop.issues.map(i => `Homepage Desktop: ${i}`));
+        }
+        if (!creativeValidation.homeMobile.valid) {
+          validationIssues.push(...creativeValidation.homeMobile.issues.map(i => `Homepage Mobile: ${i}`));
+        }
+      } else if (selectedPackage === 'events_spotlight') {
+        // Check events creatives or generic ones
+        if (creatives.eventsDesktop && !creativeValidation.eventsDesktop.valid) {
+          validationIssues.push(...creativeValidation.eventsDesktop.issues.map(i => `Events Desktop: ${i}`));
+        } else if (creatives.desktop && !creativeValidation.desktop.valid) {
+          validationIssues.push(...creativeValidation.desktop.issues.map(i => `Desktop: ${i}`));
+        }
         
+        if (creatives.eventsMobile && !creativeValidation.eventsMobile.valid) {
+          validationIssues.push(...creativeValidation.eventsMobile.issues.map(i => `Events Mobile: ${i}`));
+        } else if (creatives.mobile && !creativeValidation.mobile.valid) {
+          validationIssues.push(...creativeValidation.mobile.issues.map(i => `Mobile: ${i}`));
+        }
+      } else if (selectedPackage === 'homepage_feature') {
+        // Check homepage creatives or generic ones
+        if (creatives.homeDesktop && !creativeValidation.homeDesktop.valid) {
+          validationIssues.push(...creativeValidation.homeDesktop.issues.map(i => `Homepage Desktop: ${i}`));
+        } else if (creatives.desktop && !creativeValidation.desktop.valid) {
+          validationIssues.push(...creativeValidation.desktop.issues.map(i => `Desktop: ${i}`));
+        }
+        
+        if (creatives.homeMobile && !creativeValidation.homeMobile.valid) {
+          validationIssues.push(...creativeValidation.homeMobile.issues.map(i => `Homepage Mobile: ${i}`));
+        } else if (creatives.mobile && !creativeValidation.mobile.valid) {
+          validationIssues.push(...creativeValidation.mobile.issues.map(i => `Mobile: ${i}`));
+        }
+      } else {
+        // Check generic creatives
+        if (creatives.desktop && !creativeValidation.desktop.valid) {
+          validationIssues.push(...creativeValidation.desktop.issues.map(i => `Desktop: ${i}`));
+        }
+        if (creatives.mobile && !creativeValidation.mobile.valid) {
+          validationIssues.push(...creativeValidation.mobile.issues.map(i => `Mobile: ${i}`));
+        }
+      }
+      
+      if (validationIssues.length > 0) {
         toast({
           title: "Creative Validation Failed",
-          description: `Please fix: ${issues.slice(0, 2).join('. ')}${issues.length > 2 ? '...' : ''}`,
+          description: `Please fix: ${validationIssues.slice(0, 2).join('. ')}${validationIssues.length > 2 ? '...' : ''}`,
           variant: "destructive",
           duration: 8000,
         });

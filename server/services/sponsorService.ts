@@ -151,6 +151,7 @@ export async function createQuote(data: z.infer<typeof createQuoteSchema>): Prom
   );
   
   const quote = {
+    id: crypto.randomUUID(),
     package_code: data.packageCode,
     duration: data.duration,
     num_weeks: data.numWeeks,
