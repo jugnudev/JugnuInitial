@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import { Loader2, Plus, Edit, Trash2, ExternalLink } from 'lucide-react';
 
@@ -56,6 +57,15 @@ const SLOT_CONFIG = [
 export default function AdminDeals() {
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [adminKey, setAdminKey] = useState(() => {
+    try {
+      return localStorage.getItem('adminKey') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [authError, setAuthError] = useState(false);
   const [formData, setFormData] = useState<Deal>({
     title: '',
     subtitle: '',
@@ -73,21 +83,39 @@ export default function AdminDeals() {
     image_mobile_url: ''
   });
 
-  // Fetch deals
-  const { data: dealsData, isLoading } = useQuery({
-    queryKey: ['/api/admin/deals'],
+  // Check authentication
+  const { data: authCheck, refetch: checkAuth } = useQuery({
+    queryKey: ['/api/admin/deals', 'auth', adminKey],
     queryFn: async () => {
       const response = await fetch('/api/admin/deals', {
         headers: {
-          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || localStorage.getItem('adminKey') || ''
+          'x-admin-key': adminKey
         }
       });
-      if (!response.ok) throw new Error('Failed to fetch deals');
-      return response.json();
-    }
+      
+      if (response.status === 401) {
+        setAuthError(true);
+        setIsAuthenticated(false);
+        return null;
+      }
+      
+      setAuthError(false);
+      setIsAuthenticated(true);
+      // Save the admin key to localStorage on successful auth
+      try {
+        localStorage.setItem('adminKey', adminKey);
+      } catch (e) {
+        console.warn('Failed to save admin key to localStorage:', e);
+      }
+      
+      const data = await response.json();
+      return data;
+    },
+    enabled: !!adminKey,
+    retry: false
   });
 
-  const deals = dealsData?.deals || [];
+  const deals = authCheck?.deals || [];
 
   // Create deal mutation
   const createDealMutation = useMutation({
@@ -96,7 +124,7 @@ export default function AdminDeals() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || localStorage.getItem('adminKey') || ''
+          'x-admin-key': adminKey
         },
         body: JSON.stringify(deal)
       });
@@ -131,7 +159,7 @@ export default function AdminDeals() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || localStorage.getItem('adminKey') || ''
+          'x-admin-key': adminKey
         },
         body: JSON.stringify(deal)
       });
@@ -165,7 +193,7 @@ export default function AdminDeals() {
       const response = await fetch(`/api/admin/deals/${dealId}`, {
         method: 'DELETE',
         headers: {
-          'x-admin-key': import.meta.env.VITE_ADMIN_KEY || localStorage.getItem('adminKey') || ''
+          'x-admin-key': adminKey
         }
       });
       
@@ -248,6 +276,52 @@ export default function AdminDeals() {
     }
     return IMAGE_RECOMMENDATIONS.square;
   };
+
+  // If not authenticated, show login form
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-950 p-4 sm:p-6 flex items-center justify-center">
+        <Card className="w-full max-w-md bg-gray-900 border-gray-800 shadow-2xl">
+          <CardHeader>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">Admin Access</CardTitle>
+            <p className="text-gray-300 mt-2">Enter admin key to access deals management</p>
+          </CardHeader>
+          <CardContent className="space-y-6 pt-4">
+            <Input
+              type="password"
+              placeholder="Admin key"
+              value={adminKey}
+              onChange={(e) => setAdminKey(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && adminKey.trim() && checkAuth()}
+              className="h-12 text-center text-lg border-2 border-gray-700 bg-gray-800 text-white placeholder:text-gray-400 focus:border-orange-500"
+              data-testid="input-admin-key"
+            />
+            
+            {authError && (
+              <Alert variant="destructive" className="border-red-600 bg-red-900/50">
+                <AlertDescription className="text-red-200">
+                  Invalid admin key. Please check and try again.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            <Button
+              onClick={async () => {
+                if (adminKey.trim()) {
+                  checkAuth();
+                }
+              }}
+              className="w-full h-12 text-lg bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg text-white"
+              disabled={!adminKey.trim()}
+              data-testid="button-login"
+            >
+              Access Admin Panel
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
