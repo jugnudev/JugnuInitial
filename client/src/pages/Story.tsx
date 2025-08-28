@@ -203,11 +203,7 @@ export default function Story() {
                 <h2 className="font-fraunces text-3xl lg:text-4xl font-bold mb-6 text-[#c76613]">
                   The Magic We Create
                 </h2>
-                <p className="text-lg leading-relaxed text-text mb-6">
-                  Every event is a moment of bioluminescence—a flash of culture, connection, and celebration. 
-                  We don't just host parties; we cultivate experiences where strangers become friends, 
-                  where memories are forged in rhythm and laughter, where the diaspora finds its frequency.
-                </p>
+                <p className="text-lg leading-relaxed text-text mb-6">Jugnu isn't just your favourite hub for South Asian culture. Yes, you'll find experiences here first in utomost clarity. However, with our partners and growing relationships, Jugnu is here to provide you with deals to make these experiences more accessible; from discounts at your favourite places to eat, to tickets to your next night out...Share our culture, and embrace it fully.</p>
                 <div className="mt-8 p-6 bg-black/30 rounded-2xl">
                   <p className="text-2xl font-fraunces text-center leading-relaxed text-[#c76613]">
                     Small sparks. Big nights. Lasting memories.
