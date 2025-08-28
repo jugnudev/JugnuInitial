@@ -2,15 +2,6 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 export default function Story() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-radial from-[#1a1a1a] via-[#0f0f0f] to-[#050505] relative overflow-hidden">
@@ -42,49 +33,6 @@ export default function Story() {
           />
         ))}
       </div>
-      {/* Big flying firefly that follows cursor with delay */}
-      <motion.div
-        className="fixed pointer-events-none z-50"
-        animate={{
-          x: mousePosition.x - 20,
-          y: mousePosition.y - 20
-        }}
-        transition={{
-          type: "spring",
-          damping: 30,
-          stiffness: 200,
-          restDelta: 0.001
-        }}
-      >
-        <motion.div
-          className="relative"
-          animate={{
-            scale: [1, 1.2, 1],
-            rotate: [0, 10, -10, 0]
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        >
-          {/* Firefly glow */}
-          <div 
-            className="absolute w-10 h-10 bg-amber-300 rounded-full blur-xl opacity-60"
-            style={{
-              boxShadow: '0 0 40px rgba(251, 191, 36, 0.9), 0 0 80px rgba(251, 191, 36, 0.6)'
-            }}
-          />
-          {/* Firefly body */}
-          <div className="relative w-10 h-10 bg-gradient-radial from-amber-200 to-amber-500 rounded-full">
-            <motion.div
-              className="absolute inset-0 bg-white rounded-full"
-              animate={{ opacity: [0.3, 0.8, 0.3] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            />
-          </div>
-        </motion.div>
-      </motion.div>
       {/* Hero Section */}
       <section className="relative pt-32 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-4xl">
