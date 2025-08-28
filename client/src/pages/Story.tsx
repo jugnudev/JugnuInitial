@@ -203,7 +203,7 @@ export default function Story() {
             >
               <div className="absolute inset-0 bg-gradient-radial from-amber-500/20 via-transparent to-transparent blur-3xl" />
               <div className="relative bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-md rounded-3xl p-8 lg:p-12 border border-amber-500/30">
-                <h2 className="font-fraunces text-3xl lg:text-4xl font-bold mb-6 text-amber-400">
+                <h2 className="font-fraunces text-3xl lg:text-4xl font-bold mb-6 text-[#c76613]">
                   The Magic We Create
                 </h2>
                 <p className="text-lg leading-relaxed text-text mb-6">
@@ -212,7 +212,7 @@ export default function Story() {
                   where memories are forged in rhythm and laughter, where the diaspora finds its frequency.
                 </p>
                 <div className="mt-8 p-6 bg-black/30 rounded-2xl">
-                  <p className="text-2xl font-fraunces text-center text-amber-300 leading-relaxed">
+                  <p className="text-2xl font-fraunces text-center leading-relaxed text-[#c76613]">
                     Small sparks. Big nights. Lasting memories.
                   </p>
                   <p className="text-xl text-center text-amber-400 mt-4 font-semibold">
