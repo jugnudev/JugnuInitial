@@ -166,7 +166,7 @@ export default function Story() {
                 Our Ethos
               </h2>
               <p className="text-lg leading-relaxed text-text mb-6">
-                <span className="text-amber-300 font-semibold">Bring your light, and watch the room respond.</span>
+                <span className="font-semibold text-[#c76613]">Bring your light, and watch the room respond.</span>
               </p>
               <p className="text-lg leading-relaxed text-text">Jugnu is for the ones who glow on their own—and burn brighter together. For diasporas and dreamers, for classics and new sounds, for culture that doesn't need permission. We showcase spaces that feel like home and discovery in the same breath. We have no competition, because we're here for the whole community - supporting both those who provide experiences, and those who participate in them. </p>
             </motion.div>
