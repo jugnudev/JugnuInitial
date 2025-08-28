@@ -66,7 +66,7 @@ export default function AdminLeads() {
       return {
         totalLeads: leads.length,
         newLeads: leads.filter((l: any) => l.status === 'new').length,
-        totalRevenue: leads.filter((l: any) => l.status === 'approved').reduce((sum: number, lead: any) => sum + (lead.total_cents || 0), 0),
+        totalRevenue: leads.filter((l: any) => l.status === 'approved' || l.status === 'onboarded').reduce((sum: number, lead: any) => sum + (lead.total_cents || 0), 0),
         promoUsage: leads.filter((l: any) => l.promo_applied).length
       };
     },
