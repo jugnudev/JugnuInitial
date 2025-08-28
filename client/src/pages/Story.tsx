@@ -240,45 +240,6 @@ export default function Story() {
           </motion.div>
         </div>
       </section>
-      {/* Floating fireflies animation overlay */}
-      <div className="fixed inset-0 pointer-events-none">
-        {[...Array(5)].map((_, i) => (
-          <motion.div
-            key={`float-${i}`}
-            className="absolute"
-            initial={{ 
-              x: Math.random() * window.innerWidth,
-              y: window.innerHeight + 100
-            }}
-            animate={{
-              y: -100,
-              x: Math.sin(i) * 200 + Math.random() * window.innerWidth
-            }}
-            transition={{
-              duration: 20 + i * 5,
-              repeat: Infinity,
-              delay: i * 3,
-              ease: "linear"
-            }}
-          >
-            <motion.div
-              className="w-2 h-2 bg-amber-300 rounded-full"
-              animate={{
-                opacity: [0.2, 1, 0.2],
-                scale: [0.8, 1.5, 0.8]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                delay: i * 0.5
-              }}
-              style={{
-                boxShadow: '0 0 20px rgba(251, 191, 36, 0.9)'
-              }}
-            />
-          </motion.div>
-        ))}
-      </div>
     </div>
   );
 }
