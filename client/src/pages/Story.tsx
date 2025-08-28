@@ -140,7 +140,7 @@ export default function Story() {
               whileHover={{ scale: 1.02 }}
               transition={{ type: "spring", stiffness: 300 }}
             >
-              <h2 className="font-fraunces text-3xl lg:text-4xl font-bold mb-6 text-amber-400">
+              <h2 className="font-fraunces text-3xl lg:text-4xl font-bold mb-6 text-[#c76613]">
                 Why Fireflies?
               </h2>
               <p className="text-lg leading-relaxed text-text mb-6">
