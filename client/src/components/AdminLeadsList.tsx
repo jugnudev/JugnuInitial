@@ -51,6 +51,8 @@ interface Lead {
   onboarding_used_at?: string;
   onboarding_link?: string;
   source_campaign_id?: string;
+  start_date?: string;
+  end_date?: string;
 }
 
 interface AdminLeadsListProps {
@@ -530,6 +532,38 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                     <label className="text-sm font-medium text-gray-400">Duration</label>
                     <div className="font-medium capitalize text-white">{selectedLead.duration}</div>
                   </div>
+                  {selectedLead.start_date && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Campaign Start Date</label>
+                      <div className="font-medium text-white">
+                        {new Date(selectedLead.start_date).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {selectedLead.end_date && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Campaign End Date</label>
+                      <div className="font-medium text-white">
+                        {new Date(selectedLead.end_date).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  {selectedLead.start_date && selectedLead.end_date && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-400">Campaign Duration</label>
+                      <div className="font-medium text-white">
+                        {Math.ceil((new Date(selectedLead.end_date).getTime() - new Date(selectedLead.start_date).getTime()) / (1000 * 60 * 60 * 24))} days
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <label className="text-sm font-medium text-gray-400">Total Amount</label>
                     <div className="font-medium text-lg text-white">
