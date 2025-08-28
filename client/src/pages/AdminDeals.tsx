@@ -195,10 +195,23 @@ export default function AdminDeals() {
     }
   });
 
-  const openDialog = (deal?: Deal) => {
+  const openDialog = (deal?: any) => {
     if (deal) {
       setEditingDeal(deal);
-      setFormData(deal);
+      // Map database fields to form fields
+      setFormData({
+        ...deal,
+        // Handle date field mapping (database uses start_at/end_at)
+        start_date: deal.start_date || deal.start_at || '',
+        end_date: deal.end_date || deal.end_at || '',
+        // Map other fields that might have different names
+        subtitle: deal.subtitle || deal.blurb || '',
+        brand: deal.brand || deal.merchant || '',
+        click_url: deal.click_url || deal.link_url || '',
+        slot: deal.slot || deal.placement_slot || 1,
+        is_active: deal.is_active !== undefined ? deal.is_active : (deal.status === 'active' || true),
+        terms: deal.terms || deal.terms_md || ''
+      });
     } else {
       setEditingDeal(null);
       setFormData({
