@@ -162,7 +162,7 @@ export default function Story() {
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
             >
-              <h2 className="font-fraunces text-3xl lg:text-4xl font-bold mb-6 text-amber-400">
+              <h2 className="font-fraunces text-3xl lg:text-4xl font-bold mb-6 text-[#c76613]">
                 Our Ethos
               </h2>
               <p className="text-lg leading-relaxed text-text mb-6">
