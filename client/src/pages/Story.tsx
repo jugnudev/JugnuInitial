@@ -233,7 +233,7 @@ export default function Story() {
                 whileTap={{ scale: 0.95 }}
                 data-testid="button-explore-events"
               >
-                Explore Our Events
+                Upcoming Events
                 <span className="text-lg">✨</span>
               </motion.a>
             </motion.div>
