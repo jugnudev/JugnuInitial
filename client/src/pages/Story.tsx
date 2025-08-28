@@ -106,7 +106,7 @@ export default function Story() {
             </motion.h1>
             
             <motion.p 
-              className="text-2xl leading-relaxed text-amber-200/80 mb-4"
+              className="text-2xl leading-relaxed mb-4 text-[#c96814]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 1, delay: 0.4 }}
