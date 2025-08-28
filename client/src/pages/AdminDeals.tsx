@@ -199,11 +199,20 @@ export default function AdminDeals() {
     if (deal) {
       setEditingDeal(deal);
       // Map database fields to form fields
+      // Convert date formats: from timestamp to YYYY-MM-DD for HTML date input
+      const formatDateForInput = (dateValue: string | null | undefined) => {
+        if (!dateValue) return '';
+        // If it's already in YYYY-MM-DD format, return as is
+        if (dateValue.match(/^\d{4}-\d{2}-\d{2}$/)) return dateValue;
+        // Otherwise, extract the date part from timestamp
+        return dateValue.split('T')[0];
+      };
+      
       setFormData({
         ...deal,
-        // Handle date field mapping (database uses start_at/end_at)
-        start_date: deal.start_date || deal.start_at || '',
-        end_date: deal.end_date || deal.end_at || '',
+        // Handle date field mapping and format conversion
+        start_date: formatDateForInput(deal.start_date || deal.start_at),
+        end_date: formatDateForInput(deal.end_date || deal.end_at),
         // Map other fields that might have different names
         subtitle: deal.subtitle || deal.blurb || '',
         brand: deal.brand || deal.merchant || '',
