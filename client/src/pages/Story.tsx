@@ -187,10 +187,7 @@ export default function Story() {
                 Each person brings their unique frequency—their story, their culture, their energy—creating 
                 a tapestry of experiences that illuminates Vancouver's cultural landscape.
               </p>
-              <p className="text-lg leading-relaxed text-text">
-                From intimate gatherings to grand celebrations, from traditional melodies to fusion beats, 
-                we're building bridges between generations and cultures, one spark at a time.
-              </p>
+              <p className="text-lg leading-relaxed text-text">From intimate gatherings to grand celebrations, from traditional melodies to fusion beats, we're building bridges between generations and cultures, one spark at a time. Jugnu doesn't pick and choose what to support. We showcase our culture as it is, presenting you with every opportunity - all in one place.</p>
             </motion.div>
 
             {/* The Vision */}
