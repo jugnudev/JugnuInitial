@@ -42,7 +42,6 @@ export default function Story() {
           />
         ))}
       </div>
-
       {/* Big flying firefly that follows cursor with delay */}
       <motion.div
         className="fixed pointer-events-none z-50"
@@ -86,7 +85,6 @@ export default function Story() {
           </div>
         </motion.div>
       </motion.div>
-
       {/* Hero Section */}
       <section className="relative pt-32 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-4xl">
@@ -127,7 +125,6 @@ export default function Story() {
           </motion.div>
         </div>
       </section>
-
       {/* Main Story Content */}
       <section className="relative py-16 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-4xl">
@@ -171,12 +168,7 @@ export default function Story() {
               <p className="text-lg leading-relaxed text-text mb-6">
                 <span className="text-amber-300 font-semibold">Bring your light, and watch the room respond.</span>
               </p>
-              <p className="text-lg leading-relaxed text-text">
-                Jugnu is for the ones who glow on their own—and burn brighter together. 
-                For diasporas and dreamers, for classics and new sounds, for culture that doesn't need permission.
-                We curate spaces that feel like home and discovery in the same breath: 
-                Bollywood at the core, the world at the edges, and a city learning to shine.
-              </p>
+              <p className="text-lg leading-relaxed text-text">Jugnu is for the ones who glow on their own—and burn brighter together. For diasporas and dreamers, for classics and new sounds, for culture that doesn't need permission. We showcase spaces that feel like home and discovery in the same breath. We have no competition, because we're here for the whole community - supporting both those who provide experiences, and those who participate in them. </p>
             </motion.div>
 
             {/* The Community */}
@@ -255,7 +247,6 @@ export default function Story() {
           </motion.div>
         </div>
       </section>
-
       {/* Floating fireflies animation overlay */}
       <div className="fixed inset-0 pointer-events-none">
         {[...Array(5)].map((_, i) => (
