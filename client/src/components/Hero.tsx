@@ -23,7 +23,7 @@ export default function Hero() {
 
   // Always render the Jugnu hero (no more spotlight hero at top)
   return (
-    <section id="hero" className="relative h-[55vh] min-h-[500px] flex items-center justify-center overflow-hidden">
+    <section id="hero" className="relative h-[60vh] min-h-[550px] flex items-center justify-center overflow-hidden">
       {/* Firefly dots */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="firefly"></div>

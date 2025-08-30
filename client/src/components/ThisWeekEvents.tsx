@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Calendar, MapPin, ArrowRight, ChevronLeft, ChevronRight, Clock } from "lucide-react";
 import { Link } from "wouter";
-import { format, parseISO, addDays } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useState, useRef, useEffect } from "react";
@@ -32,29 +32,18 @@ interface EventsResponse {
   total: number;
 }
 
-export default function TwoWeeksEvents() {
+export default function ThisWeekEvents() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
 
-  // Fetch next 2 weeks of events
+  // Fetch this week's events
   const { data, isLoading } = useQuery<EventsResponse>({
-    queryKey: ["community-events-twoweeks"],
+    queryKey: ["community-events-week"],
     queryFn: async () => {
-      // Get date range for next 2 weeks
-      const today = new Date();
-      const twoWeeksFromNow = addDays(today, 14);
-      const startDate = format(today, 'yyyy-MM-dd');
-      const endDate = format(twoWeeksFromNow, 'yyyy-MM-dd');
-      
-      const response = await fetch(`/api/community/weekly?range=custom&start=${startDate}&end=${endDate}`);
+      const response = await fetch("/api/community/weekly?range=week");
       if (!response.ok) {
-        // Fallback to month if custom range not supported
-        const fallbackResponse = await fetch("/api/community/weekly?range=month");
-        if (!fallbackResponse.ok) {
-          throw new Error("Failed to fetch events");
-        }
-        return fallbackResponse.json();
+        throw new Error("Failed to fetch events");
       }
       return response.json();
     },
@@ -133,7 +122,7 @@ export default function TwoWeeksEvents() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
             <h2 className="font-fraunces text-3xl lg:text-4xl font-bold tracking-tight text-white mb-2">
-              Next Two Weeks in Vancouver
+              This Week in Vancouver
             </h2>
             <p className="text-muted">Loading events...</p>
           </div>
@@ -162,7 +151,7 @@ export default function TwoWeeksEvents() {
           <div className="flex justify-between items-end mb-2">
             <div>
               <h2 className="font-fraunces text-3xl lg:text-4xl font-bold tracking-tight text-white mb-2">
-                Next Two Weeks in Vancouver
+                This Week in Vancouver
               </h2>
               <p className="text-muted">
                 South Asian culture, music, and community events

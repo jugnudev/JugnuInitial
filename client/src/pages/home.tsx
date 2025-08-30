@@ -1,7 +1,7 @@
 import Hero from "@/components/Hero";
 import Events from "@/components/Events";
 import Gallery from "@/components/Gallery";
-import TwoWeeksEvents from "@/components/TwoWeeksEvents";
+import ThisWeekEvents from "@/components/ThisWeekEvents";
 import PartnerWithUs from "@/components/PartnerWithUs";
 import { HomeMidSpotlight } from "@/components/spotlight/HomeMidSpotlight";
 
@@ -139,7 +139,7 @@ export default function Home() {
       
       <Hero />
       <HomeMidSpotlight />
-      <TwoWeeksEvents />
+      <ThisWeekEvents />
       <Events />
       <PartnerWithUs />
       <Gallery />
