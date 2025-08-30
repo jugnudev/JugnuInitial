@@ -168,6 +168,99 @@ const upload = multer({
 });
 
 export function addQuotesRoutes(app: Express) {
+  // GET /api/spotlight/blocked-dates - Get dates that are already booked
+  app.get('/api/spotlight/blocked-dates', async (req, res) => {
+    try {
+      const supabase = getSupabaseAdmin();
+      
+      // Get all active campaigns and approved/onboarded leads
+      const [campaignsResult, leadsResult] = await Promise.all([
+        // Get active campaigns
+        supabase
+          .from('sponsor_campaigns')
+          .select('start_at, end_at, placements')
+          .eq('is_active', true)
+          .gte('end_at', new Date().toISOString()),
+          
+        // Get approved or onboarded leads  
+        supabase
+          .from('sponsor_leads')
+          .select('start_date, end_date, package_code, status')
+          .in('status', ['approved', 'onboarded', 'active'])
+          .gte('end_date', new Date().toISOString())
+      ]);
+      
+      if (campaignsResult.error) {
+        console.error('Error fetching campaigns:', campaignsResult.error);
+      }
+      
+      if (leadsResult.error) {
+        console.error('Error fetching leads:', leadsResult.error);
+      }
+      
+      // Collect all blocked date ranges
+      const blockedRanges: Array<{ start: string; end: string; reason: string }> = [];
+      
+      // Add dates from active campaigns
+      if (campaignsResult.data) {
+        campaignsResult.data.forEach(campaign => {
+          if (campaign.start_at && campaign.end_at) {
+            blockedRanges.push({
+              start: campaign.start_at.split('T')[0],
+              end: campaign.end_at.split('T')[0],
+              reason: 'Active campaign'
+            });
+          }
+        });
+      }
+      
+      // Add dates from approved/onboarded leads
+      if (leadsResult.data) {
+        leadsResult.data.forEach(lead => {
+          if (lead.start_date && lead.end_date) {
+            blockedRanges.push({
+              start: lead.start_date.split('T')[0],
+              end: lead.end_date.split('T')[0],
+              reason: `${lead.status === 'approved' ? 'Approved' : 'Reserved'} booking`
+            });
+          }
+        });
+      }
+      
+      // Generate array of all blocked dates
+      const blockedDates = new Set<string>();
+      const dateReasons = new Map<string, string>();
+      
+      blockedRanges.forEach(range => {
+        const start = new Date(range.start);
+        const end = new Date(range.end);
+        
+        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          const dateStr = d.toISOString().split('T')[0];
+          blockedDates.add(dateStr);
+          // Keep the first reason for each date
+          if (!dateReasons.has(dateStr)) {
+            dateReasons.set(dateStr, range.reason);
+          }
+        }
+      });
+      
+      res.json({
+        ok: true,
+        blockedDates: Array.from(blockedDates).sort(),
+        blockedRanges,
+        dateReasons: Object.fromEntries(dateReasons)
+      });
+      
+    } catch (error) {
+      console.error('Error fetching blocked dates:', error);
+      res.status(500).json({ 
+        ok: false, 
+        error: 'Failed to fetch blocked dates' 
+      });
+    }
+  });
+
   // POST /api/spotlight/quotes - Create a new quote
   app.post('/api/spotlight/quotes', async (req, res) => {
     try {

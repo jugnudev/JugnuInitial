@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, BarChart3, Target, TrendingUp, Eye, MousePointer, Users, MapPin, Calendar, CheckCircle, Upload, ExternalLink, Mail, Plus, Minus, Zap, Star, Shield } from 'lucide-react';
+import { ArrowRight, BarChart3, Target, TrendingUp, Eye, MousePointer, Users, MapPin, Calendar, CheckCircle, Upload, ExternalLink, Mail, Plus, Minus, Zap, Star, Shield, AlertTriangle, Info } from 'lucide-react';
 import { PromoteCreativeUpload } from './PromoteCreativeUpload';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -76,9 +76,32 @@ export default function Promote() {
   const [weekDuration, setWeekDuration] = useState(1);
   const [dayDuration, setDayDuration] = useState(1);
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnType[]>([]);
+  const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
+  const [dateReasons, setDateReasons] = useState<Map<string, string>>(new Map());
+  const [dateValidationError, setDateValidationError] = useState<string | null>(null);
+  const [isLoadingBlockedDates, setIsLoadingBlockedDates] = useState(true);
   
   // Quote prefill functionality
   const { quoteId, prefillData, isLoading: isPrefillLoading, error: prefillError, hasPrefill } = useQuotePrefill();
+  
+  // Fetch blocked dates on mount
+  useEffect(() => {
+    const fetchBlockedDates = async () => {
+      try {
+        const response = await fetch('/api/spotlight/blocked-dates');
+        if (response.ok) {
+          const data = await response.json();
+          setBlockedDates(new Set(data.blockedDates));
+          setDateReasons(new Map(Object.entries(data.dateReasons)));
+        }
+      } catch (error) {
+        console.error('Failed to fetch blocked dates:', error);
+      } finally {
+        setIsLoadingBlockedDates(false);
+      }
+    };
+    fetchBlockedDates();
+  }, []);
   
   // Force Full Feature to weekly
   useEffect(() => {
@@ -243,6 +266,44 @@ export default function Promote() {
     }
   }, [prefillError]);
 
+  // Validate selected date range against blocked dates
+  const validateDateRange = (startDateStr: string, endDateStr: string) => {
+    if (!startDateStr || !endDateStr) {
+      setDateValidationError(null);
+      return true;
+    }
+    
+    const start = new Date(startDateStr);
+    const end = new Date(endDateStr);
+    const conflictingDates: string[] = [];
+    const reasons = new Set<string>();
+    
+    // Check each date in the range
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dateStr = d.toISOString().split('T')[0];
+      if (blockedDates.has(dateStr)) {
+        conflictingDates.push(dateStr);
+        const reason = dateReasons.get(dateStr);
+        if (reason) {
+          reasons.add(reason);
+        }
+      }
+    }
+    
+    if (conflictingDates.length > 0) {
+      const reasonText = Array.from(reasons).join(', ');
+      if (conflictingDates.length === 1) {
+        setDateValidationError(`This date is unavailable (${reasonText}). Please select different dates.`);
+      } else {
+        setDateValidationError(`${conflictingDates.length} dates in your selected range are unavailable (${reasonText}). Please select different dates.`);
+      }
+      return false;
+    }
+    
+    setDateValidationError(null);
+    return true;
+  };
+
   // Auto-calculate end date based on start date and campaign duration
   useEffect(() => {
     if (formData.start_date && selectedPackage) {
@@ -269,8 +330,11 @@ export default function Promote() {
         ...prev,
         end_date: endDateString
       }));
+      
+      // Validate date range against blocked dates
+      validateDateRange(formData.start_date, endDateString);
     }
-  }, [formData.start_date, durationType, weekDuration, dayDuration, selectedPackage]);
+  }, [formData.start_date, durationType, weekDuration, dayDuration, selectedPackage, blockedDates]);
 
   // Get tomorrow's date as minimum start date
   const getTomorrowDate = () => {
@@ -397,6 +461,16 @@ export default function Promote() {
     // Spam prevention
     if (honeypot || Date.now() - formStartTime < 3000) {
       console.warn('Spam submission detected');
+      return;
+    }
+    
+    // Validate dates are not blocked
+    if (!validateDateRange(formData.start_date, formData.end_date)) {
+      toast({
+        variant: "destructive",
+        title: "Date conflict detected",
+        description: "Please select available dates for your campaign. The selected dates are already booked.",
+      });
       return;
     }
 
@@ -2148,6 +2222,11 @@ export default function Promote() {
                   <div>
                     <label className="block text-white font-medium mb-2">
                       Start Date *
+                      {isLoadingBlockedDates && (
+                        <span className="text-white/50 font-normal text-sm ml-2">
+                          (Checking availability...)
+                        </span>
+                      )}
                     </label>
                     <Input
                       type="date"
@@ -2155,7 +2234,7 @@ export default function Promote() {
                       min={getTomorrowDate()}
                       value={formData.start_date}
                       onChange={(e) => setFormData({...formData, start_date: e.target.value})}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      className={`bg-white/10 border-white/20 text-white placeholder:text-white/50 ${dateValidationError ? 'border-red-500' : ''}`}
                       data-testid="input-start-date"
                     />
                   </div>
@@ -2177,6 +2256,34 @@ export default function Promote() {
                     />
                   </div>
                 </div>
+                
+                {/* Date availability warning */}
+                {dateValidationError && (
+                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-red-400 font-medium">Date Conflict</p>
+                        <p className="text-red-300/90 text-sm mt-1">{dateValidationError}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Helpful message about availability */}
+                {!dateValidationError && !isLoadingBlockedDates && blockedDates.size > 0 && (
+                  <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-blue-400 font-medium">Booking Information</p>
+                        <p className="text-blue-300/90 text-sm mt-1">
+                          Some dates are already reserved for other campaigns. We maintain exclusivity so each sponsor gets maximum visibility. Dates will automatically be validated as you select them.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Checkout Summary */}
                 {selectedPackage && currentPricing && (
@@ -2370,11 +2477,11 @@ export default function Promote() {
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
-                    className="bg-copper-500 hover:bg-copper-600 text-black font-semibold px-8 py-3 flex-1"
+                    disabled={isSubmitting || !!dateValidationError}
+                    className="bg-copper-500 hover:bg-copper-600 text-black font-semibold px-8 py-3 flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                     data-testid="button-submit-application"
                   >
-                    {isSubmitting ? 'Submitting...' : 'Submit Application'}
+                    {isSubmitting ? 'Submitting...' : dateValidationError ? 'Dates Unavailable' : 'Submit Application'}
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
                   
