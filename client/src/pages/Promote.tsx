@@ -9,11 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
-import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { PRICING_CONFIG, calculatePricing, formatCAD, type PackageType, type AddOnType, type DurationType } from '@/lib/pricing';
 import { useQuotePrefill } from '@/hooks/useQuotePrefill';
 import QuotePrefillBanner from '@/components/QuotePrefillBanner';
@@ -1291,12 +1292,36 @@ export default function Promote() {
                 
                 {/* Package-specific features */}
                 <ul className="space-y-3 mb-4 text-sm">
-                  {PRICING_CONFIG.packages.events_spotlight.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                      <span className="text-muted">{feature}</span>
-                    </li>
-                  ))}
+                  {PRICING_CONFIG.packages.events_spotlight.features.map((feature, index) => {
+                    if (feature.startsWith('__TOOLTIP__')) {
+                      const parts = feature.replace('__TOOLTIP__', '').split('__');
+                      const label = parts[0];
+                      const tooltip = parts[1] || '';
+                      return (
+                        <li key={index} className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-muted cursor-help border-b border-dashed border-muted hover:border-copper-500 transition-colors">
+                                  {label}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs bg-gray-900 text-white p-3 text-sm">
+                                {tooltip}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </li>
+                      );
+                    }
+                    return (
+                      <li key={index} className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
+                        <span className="text-muted">{feature}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
 
                 {/* Global perks section */}
@@ -1385,12 +1410,36 @@ export default function Promote() {
                 
                 {/* Package-specific features */}
                 <ul className="space-y-3 mb-4 text-sm">
-                  {PRICING_CONFIG.packages.homepage_feature.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                      <span className="text-muted">{feature}</span>
-                    </li>
-                  ))}
+                  {PRICING_CONFIG.packages.homepage_feature.features.map((feature, index) => {
+                    if (feature.startsWith('__TOOLTIP__')) {
+                      const parts = feature.replace('__TOOLTIP__', '').split('__');
+                      const label = parts[0];
+                      const tooltip = parts[1] || '';
+                      return (
+                        <li key={index} className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-muted cursor-help border-b border-dashed border-muted hover:border-copper-500 transition-colors">
+                                  {label}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs bg-gray-900 text-white p-3 text-sm">
+                                {tooltip}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </li>
+                      );
+                    }
+                    return (
+                      <li key={index} className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
+                        <span className="text-muted">{feature}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
 
                 {/* Global perks section */}
@@ -1463,12 +1512,36 @@ export default function Promote() {
                 
                 {/* Package-specific features */}
                 <ul className="space-y-3 mb-4 text-sm">
-                  {PRICING_CONFIG.packages.full_feature.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
-                      <span className="text-muted">{feature}</span>
-                    </li>
-                  ))}
+                  {PRICING_CONFIG.packages.full_feature.features.map((feature, index) => {
+                    if (feature.startsWith('__TOOLTIP__')) {
+                      const parts = feature.replace('__TOOLTIP__', '').split('__');
+                      const label = parts[0];
+                      const tooltip = parts[1] || '';
+                      return (
+                        <li key={index} className="flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-muted cursor-help border-b border-dashed border-muted hover:border-copper-500 transition-colors">
+                                  {label}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs bg-gray-900 text-white p-3 text-sm">
+                                {tooltip}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </li>
+                      );
+                    }
+                    return (
+                      <li key={index} className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-copper-500 flex-shrink-0" />
+                        <span className="text-muted">{feature}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
 
                 {/* Global perks section */}
@@ -2046,7 +2119,7 @@ export default function Promote() {
                           tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         />
                         <YAxis stroke="rgba(255,255,255,0.5)" fontSize={12} />
-                        <Tooltip 
+                        <RechartsTooltip 
                           contentStyle={{ 
                             backgroundColor: 'rgba(0,0,0,0.8)', 
                             border: '1px solid rgba(255,255,255,0.2)',
@@ -2081,7 +2154,7 @@ export default function Promote() {
                           tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         />
                         <YAxis stroke="rgba(255,255,255,0.5)" fontSize={12} />
-                        <Tooltip 
+                        <RechartsTooltip 
                           contentStyle={{ 
                             backgroundColor: 'rgba(0,0,0,0.8)', 
                             border: '1px solid rgba(255,255,255,0.2)',
@@ -2359,6 +2432,9 @@ export default function Promote() {
                       </div>
                     )}
                   </div>
+                  <p className="text-xs text-muted mt-1">
+                    Promo codes apply to base package pricing only, not add-ons.
+                  </p>
                   {promoCodeValidation && (
                     <p className={`text-sm mt-2 ${
                       promoCodeValidation.valid ? 'text-green-400' : 'text-red-400'
