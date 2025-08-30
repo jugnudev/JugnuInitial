@@ -78,7 +78,7 @@ export default function Promote() {
   const [selectedAddOns, setSelectedAddOns] = useState<AddOnType[]>([]);
   const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
   const [dateReasons, setDateReasons] = useState<Map<string, string>>(new Map());
-  const [dateValidationError, setDateValidationError] = useState<string | null>(null);
+  const [dateValidationMessage, setDateValidationMessage] = useState<{ type: 'error' | 'success', message: string } | null>(null);
   const [isLoadingBlockedDates, setIsLoadingBlockedDates] = useState(true);
   
   // Quote prefill functionality
@@ -301,7 +301,7 @@ export default function Promote() {
   // Validate selected date range against blocked dates
   const validateDateRange = (startDateStr: string, endDateStr: string) => {
     if (!startDateStr || !endDateStr) {
-      setDateValidationError(null);
+      setDateValidationMessage(null);
       return true;
     }
     
@@ -346,11 +346,18 @@ export default function Promote() {
         errorMessage += ' Please select different dates.';
       }
       
-      setDateValidationError(errorMessage);
+      setDateValidationMessage({ type: 'error', message: errorMessage });
       return false;
     }
     
-    setDateValidationError(null);
+    // Dates are valid - show success message
+    const durationDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const startFormatted = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const endFormatted = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    setDateValidationMessage({ 
+      type: 'success', 
+      message: `✓ Placement available for ${durationDays} day${durationDays > 1 ? 's' : ''} (${startFormatted} - ${endFormatted})`
+    });
     return true;
   };
 
@@ -2284,7 +2291,7 @@ export default function Promote() {
                       min={getTomorrowDate()}
                       value={formData.start_date}
                       onChange={(e) => setFormData({...formData, start_date: e.target.value})}
-                      className={`bg-white/10 border-white/20 text-white placeholder:text-white/50 ${dateValidationError ? 'border-red-500' : ''}`}
+                      className={`bg-white/10 border-white/20 text-white placeholder:text-white/50 ${dateValidationMessage?.type === 'error' ? 'border-red-500' : dateValidationMessage?.type === 'success' ? 'border-green-500' : ''}`}
                       data-testid="input-start-date"
                     />
                   </div>
@@ -2307,21 +2314,37 @@ export default function Promote() {
                   </div>
                 </div>
                 
-                {/* Date availability warning */}
-                {dateValidationError && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                {/* Date availability message */}
+                {dateValidationMessage && (
+                  <div className={`${
+                    dateValidationMessage.type === 'error' 
+                      ? 'bg-red-500/10 border-red-500/30' 
+                      : 'bg-green-500/10 border-green-500/30'
+                  } border rounded-lg p-4`}>
                     <div className="flex items-start gap-3">
-                      <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      {dateValidationMessage.type === 'error' ? (
+                        <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                      )}
                       <div>
-                        <p className="text-red-400 font-medium">Date Conflict</p>
-                        <p className="text-red-300/90 text-sm mt-1">{dateValidationError}</p>
+                        <p className={`font-medium ${
+                          dateValidationMessage.type === 'error' ? 'text-red-400' : 'text-green-400'
+                        }`}>
+                          {dateValidationMessage.type === 'error' ? 'Date Conflict' : 'Dates Available'}
+                        </p>
+                        <p className={`text-sm mt-1 ${
+                          dateValidationMessage.type === 'error' ? 'text-red-300/90' : 'text-green-300/90'
+                        }`}>
+                          {dateValidationMessage.message}
+                        </p>
                       </div>
                     </div>
                   </div>
                 )}
                 
                 {/* Helpful message about availability */}
-                {!dateValidationError && !isLoadingBlockedDates && blockedDates.size > 0 && (
+                {!dateValidationMessage && !isLoadingBlockedDates && blockedDates.size > 0 && (
                   <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
                     <div className="flex items-start gap-3">
                       <Info className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
@@ -2527,11 +2550,11 @@ export default function Promote() {
                 <div className="flex flex-col sm:flex-row gap-4 pt-4">
                   <Button
                     type="submit"
-                    disabled={isSubmitting || !!dateValidationError}
+                    disabled={isSubmitting || dateValidationMessage?.type === 'error'}
                     className="bg-copper-500 hover:bg-copper-600 text-black font-semibold px-8 py-3 flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
                     data-testid="button-submit-application"
                   >
-                    {isSubmitting ? 'Submitting...' : dateValidationError ? 'Dates Unavailable' : 'Submit Application'}
+                    {isSubmitting ? 'Submitting...' : dateValidationMessage?.type === 'error' ? 'Dates Unavailable' : 'Submit Application'}
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
                   
