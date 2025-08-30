@@ -29,7 +29,7 @@ export const createQuoteSchema = z.object({
   startDate: z.string().nullish(),
   endDate: z.string().nullish(),
   addOns: z.array(z.string()).default([]),
-  promoCode: z.string().optional(),
+  promoCode: z.string().optional().nullable(),
 });
 
 export const createApplicationSchema = z.object({
@@ -300,7 +300,7 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
       finalNumWeeks,
       data.numDays || 1,
       data.addOns || [],
-      data.promoCode
+      data.promoCode || undefined
     );
   }
   

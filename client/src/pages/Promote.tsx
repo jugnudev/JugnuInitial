@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight, BarChart3, Target, TrendingUp, Eye, MousePointer, Users, MapPin, Calendar, CheckCircle, Upload, ExternalLink, Mail, Plus, Minus, Zap, Star, Shield, AlertTriangle, Info, XCircle } from 'lucide-react';
 import { PromoteCreativeUpload } from './PromoteCreativeUpload';
@@ -140,15 +140,6 @@ export default function Promote() {
     homeMobile: false
   });
   
-  // Calculate current pricing
-  const currentPricing = selectedPackage ? calculatePricing(
-    selectedPackage,
-    durationType,
-    weekDuration,
-    dayDuration,
-    selectedAddOns
-  ) : null;
-  
   const [formData, setFormData] = useState({
     business_name: '',
     contact_name: '',
@@ -166,6 +157,24 @@ export default function Promote() {
     week_duration: 1,
     selected_add_ons: [] as AddOnType[]
   });
+
+  // Calculate current pricing with promo code discount
+  const currentPricing = useMemo(() => {
+    if (!selectedPackage) return null;
+    
+    return calculatePricing(
+      selectedPackage,
+      durationType,
+      weekDuration,
+      dayDuration,
+      selectedAddOns,
+      promoCodeValidation?.valid && promoCodeValidation?.discount ? {
+        type: promoCodeValidation.discount.discount_type,
+        value: promoCodeValidation.discount.discount_value,
+        code: formData.promo_code
+      } : null
+    );
+  }, [selectedPackage, durationType, weekDuration, dayDuration, selectedAddOns, promoCodeValidation, formData.promo_code]);
 
   // Honeypot and latency check for spam prevention
   const [honeypot, setHoneypot] = useState('');
@@ -650,9 +659,8 @@ export default function Promote() {
       formDataToSend.append('objective', formData.objective);
       if (formData.comments) formDataToSend.append('comments', formData.comments);
       if (quoteId) formDataToSend.append('quoteId', quoteId);
-      if (formData.promo_code && promoCodeValidation?.valid) {
-        formDataToSend.append('promoCode', formData.promo_code);
-      }
+      // Always send promoCode field, even if empty
+      formDataToSend.append('promoCode', formData.promo_code && promoCodeValidation?.valid ? formData.promo_code : '');
       
       // Add creative assets based on package type
       // Priority: uploaded files first, then links if no files
@@ -2485,10 +2493,22 @@ export default function Promote() {
                       <div className="border-t border-white/10 pt-2">
                         <div className="flex justify-between items-center">
                           <span className="text-white font-semibold">Total:</span>
-                          <span className="text-copper-400 font-bold">
-                            {formatCAD(currentPricing.total)}
-                          </span>
+                          <div className="text-right">
+                            {currentPricing.promoDiscount > 0 && (
+                              <div className="text-sm text-muted line-through">
+                                {formatCAD(currentPricing.subtotal)}
+                              </div>
+                            )}
+                            <span className="text-copper-400 font-bold">
+                              {formatCAD(currentPricing.total)}
+                            </span>
+                          </div>
                         </div>
+                        {currentPricing.promoDiscount > 0 && (
+                          <div className="text-xs text-green-400 mt-1">
+                            You save {formatCAD(currentPricing.promoDiscount)} with promo code!
+                          </div>
+                        )}
                       </div>
                     </div>
                   </Card>

@@ -121,6 +121,7 @@ export interface PricingCalculation {
   subtotal: number;
   multiWeekDiscount: number;
   earlyPartnerDiscount: number;
+  promoDiscount: number;
   total: number;
   savings: number;
   weeklySavingsPercent: number; // Savings percentage vs daily×7
@@ -138,7 +139,8 @@ export function calculatePricing(
   durationType: DurationType,
   weekDuration: number,
   dayDuration: number = 1,
-  addOns: AddOnType[]
+  addOns: AddOnType[],
+  promoDiscount?: { type: 'percentage' | 'fixed_amount' | 'free_days', value: number, code: string } | null
 ): PricingCalculation {
   const pkg = PRICING_CONFIG.packages[packageType];
   
@@ -190,7 +192,22 @@ export function calculatePricing(
     earlyPartnerDiscount = (basePrice - multiWeekDiscount) * PRICING_CONFIG.discounts.earlyPartner.rate;
   }
   
-  const discountedBasePrice = basePrice - multiWeekDiscount - earlyPartnerDiscount;
+  // Calculate promo discount on base price (after other discounts but before add-ons)
+  let promoDiscountAmount = 0;
+  if (promoDiscount && promoDiscount.value > 0) {
+    const priceAfterDiscounts = basePrice - multiWeekDiscount - earlyPartnerDiscount;
+    if (promoDiscount.type === 'percentage') {
+      promoDiscountAmount = priceAfterDiscounts * (promoDiscount.value / 100);
+    } else if (promoDiscount.type === 'fixed_amount') {
+      promoDiscountAmount = Math.min(promoDiscount.value, priceAfterDiscounts);
+    } else if (promoDiscount.type === 'free_days' && durationType === 'daily') {
+      // Apply free days discount for daily bookings
+      const freeDaysValue = Math.min(promoDiscount.value * pkg.daily, priceAfterDiscounts);
+      promoDiscountAmount = freeDaysValue;
+    }
+  }
+  
+  const discountedBasePrice = basePrice - multiWeekDiscount - earlyPartnerDiscount - promoDiscountAmount;
   
   // Add-ons are added after discounts (no discounts apply to add-ons)
   const addOnsTotal = addOns.reduce((sum, addOn) => {
@@ -199,7 +216,7 @@ export function calculatePricing(
   
   const subtotal = basePrice + addOnsTotal;
   const total = discountedBasePrice + addOnsTotal;
-  const savings = multiWeekDiscount + earlyPartnerDiscount;
+  const savings = multiWeekDiscount + earlyPartnerDiscount + promoDiscountAmount;
   
   return {
     basePrice,
@@ -208,6 +225,7 @@ export function calculatePricing(
     subtotal,
     multiWeekDiscount,
     earlyPartnerDiscount,
+    promoDiscount: promoDiscountAmount,
     total,
     savings,
     weeklySavingsPercent,
@@ -219,7 +237,8 @@ export function calculatePricing(
       })),
       discounts: [
         ...(multiWeekDiscount > 0 ? [{ name: PRICING_CONFIG.discounts.multiWeek.label, amount: multiWeekDiscount }] : []),
-        ...(earlyPartnerDiscount > 0 ? [{ name: PRICING_CONFIG.discounts.earlyPartner.label, amount: earlyPartnerDiscount }] : [])
+        ...(earlyPartnerDiscount > 0 ? [{ name: PRICING_CONFIG.discounts.earlyPartner.label, amount: earlyPartnerDiscount }] : []),
+        ...(promoDiscountAmount > 0 && promoDiscount ? [{ name: `Promo Code: ${promoDiscount.code}`, amount: promoDiscountAmount }] : [])
       ]
     }
   };
