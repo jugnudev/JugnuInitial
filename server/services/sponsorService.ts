@@ -29,6 +29,7 @@ export const createQuoteSchema = z.object({
   startDate: z.string().nullish(),
   endDate: z.string().nullish(),
   addOns: z.array(z.string()).default([]),
+  promoCode: z.string().optional(),
 });
 
 export const createApplicationSchema = z.object({
@@ -51,6 +52,7 @@ export const createApplicationSchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   addOns: z.array(z.string()).optional(),
+  promoCode: z.string().optional(),
   
   // Campaign details
   budgetRange: z.string().optional(),
@@ -92,13 +94,13 @@ export async function canUseSeptemberPromo(email: string): Promise<boolean> {
 }
 
 // Calculate pricing for a quote
-export function calculatePricing(
+export async function calculatePricing(
   packageCode: PackageCode,
   duration: 'daily' | 'weekly',
   numWeeks: number,
   numDays: number,
   addOns: string[],
-  promoApplied: boolean = false
+  promoCode?: string
 ) {
   const pkg = PRICING.packages[packageCode];
   
@@ -121,8 +123,43 @@ export function calculatePricing(
     return sum;
   }, 0);
   
-  // Apply promo to base price only (not add-ons)
-  const discountedBasePrice = promoApplied ? 0 : basePrice;
+  // Apply promo code discount
+  let discountAmount = 0;
+  let promoApplied = false;
+  
+  if (promoCode) {
+    const supabase = getSupabaseAdmin();
+    const { data: promoData } = await supabase
+      .from('promo_codes')
+      .select('*')
+      .eq('code', promoCode.toUpperCase())
+      .eq('is_active', true)
+      .gte('valid_to', new Date().toISOString())
+      .lte('valid_from', new Date().toISOString())
+      .single();
+    
+    if (promoData) {
+      // Check if package is applicable
+      if (!promoData.applicable_packages || promoData.applicable_packages.includes(packageCode)) {
+        // Check minimum purchase amount
+        const subtotal = basePrice + addOnsPrice;
+        if (subtotal >= promoData.min_purchase_amount) {
+          // Apply discount based on type
+          if (promoData.discount_type === 'percentage') {
+            discountAmount = Math.round(basePrice * (promoData.discount_value / 100));
+          } else if (promoData.discount_type === 'fixed_amount') {
+            discountAmount = Math.min(promoData.discount_value, basePrice);
+          } else if (promoData.discount_type === 'free_days' && duration === 'daily') {
+            const freeValue = Math.min(promoData.discount_value * pkg.daily, basePrice);
+            discountAmount = freeValue;
+          }
+          promoApplied = true;
+        }
+      }
+    }
+  }
+  
+  const discountedBasePrice = basePrice - discountAmount;
   
   return {
     basePriceCents: basePrice * 100,
@@ -141,13 +178,13 @@ export async function createQuote(data: z.infer<typeof createQuoteSchema>): Prom
   }
   
   // Calculate pricing
-  const pricing = calculatePricing(
+  const pricing = await calculatePricing(
     data.packageCode,
     data.duration,
     data.numWeeks,
     data.numDays || 1,
     data.addOns,
-    false // Promo will be applied during application if eligible
+    data.promoCode
   );
   
   const quote = {
@@ -160,8 +197,8 @@ export async function createQuote(data: z.infer<typeof createQuoteSchema>): Prom
     end_date: data.endDate || null,
     add_ons: data.addOns.map(code => ({ code, price: PRICING.addOns[code as AddOnCode] || 0 })),
     base_price_cents: pricing.basePriceCents,
-    promo_applied: false,
-    promo_code: null,
+    promo_applied: !!data.promoCode && pricing.promoSavingsCents > 0,
+    promo_code: data.promoCode || null,
     currency: 'CAD',
     total_cents: pricing.totalCents,
     expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
@@ -257,36 +294,82 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
       price: PRICING.addOns[code as AddOnCode] || 0 
     }));
     
-    pricing = calculatePricing(
+    pricing = await calculatePricing(
       finalPackageCode as PackageCode,
       finalDuration as 'daily' | 'weekly',
       finalNumWeeks,
       data.numDays || 1,
       data.addOns || [],
-      false
+      data.promoCode
     );
   }
   
-  // Check for September promo eligibility
-  const canUsePromo = await canUseSeptemberPromo(data.email);
-  const promoApplied = canUsePromo && finalDuration === 'weekly';
+  // Handle promo code application
+  let promoApplied = false;
+  let appliedPromoCode = null;
   
-  if (promoApplied) {
-    // Apply promo to base price only
-    pricing.totalCents = pricing.addonsCents;
-    
-    // Record promo redemption
+  if (data.promoCode) {
+    // Check if promo code is valid and apply discount
     const supabase = getSupabaseAdmin();
-    const { error: promoError } = await supabase
-      .from('sponsor_promo_redemptions')
-      .insert({
-        sponsor_email: data.email,
-        promo_code: 'SEPTEMBER_FREE_WEEK_2025',
-        notes: `Applied to lead for ${finalPackageCode}`
-      });
+    const { data: promoData } = await supabase
+      .from('promo_codes')
+      .select('*')
+      .eq('code', data.promoCode.toUpperCase())
+      .eq('is_active', true)
+      .gte('valid_to', new Date().toISOString())
+      .lte('valid_from', new Date().toISOString())
+      .single();
     
-    if (promoError) {
-      console.error('Failed to record promo redemption:', promoError);
+    if (promoData) {
+      // Check if package is applicable
+      if (!promoData.applicable_packages || promoData.applicable_packages.includes(finalPackageCode)) {
+        // Check minimum purchase amount
+        if (pricing.subtotalCents >= promoData.min_purchase_amount * 100) {
+          // Check usage limits
+          if (!promoData.max_uses || promoData.current_uses < promoData.max_uses) {
+            promoApplied = true;
+            appliedPromoCode = data.promoCode.toUpperCase();
+            
+            // Record promo usage
+            await supabase
+              .from('promo_code_usage')
+              .insert({
+                promo_code_id: promoData.id,
+                lead_id: null, // Will be updated after lead creation
+                applied_discount_cents: pricing.promoSavingsCents || 0,
+                created_at: new Date().toISOString()
+              });
+            
+            // Update usage count
+            await supabase
+              .from('promo_codes')
+              .update({ current_uses: (promoData.current_uses || 0) + 1 })
+              .eq('id', promoData.id);
+          }
+        }
+      }
+    }
+  } else {
+    // Check for September promo eligibility (backward compatibility)
+    const canUsePromo = await canUseSeptemberPromo(data.email);
+    if (canUsePromo && finalDuration === 'weekly') {
+      promoApplied = true;
+      appliedPromoCode = 'SEPTEMBER_FREE_WEEK_2025';
+      pricing.totalCents = pricing.addonsCents;
+      
+      // Record promo redemption
+      const supabase = getSupabaseAdmin();
+      const { error: promoError } = await supabase
+        .from('sponsor_promo_redemptions')
+        .insert({
+          sponsor_email: data.email,
+          promo_code: 'SEPTEMBER_FREE_WEEK_2025',
+          notes: `Applied to lead for ${finalPackageCode}`
+        });
+      
+      if (promoError) {
+        console.error('Failed to record promo redemption:', promoError);
+      }
     }
   }
   
@@ -316,7 +399,7 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
     end_date: data.endDate || finalEndDate,
     add_ons: finalAddOns,
     promo_applied: promoApplied,
-    promo_code: promoApplied ? 'SEPTEMBER_FREE_WEEK_2025' : null,
+    promo_code: appliedPromoCode,
     currency: 'CAD',
     subtotal_cents: pricing.subtotalCents,
     addons_cents: pricing.addonsCents,

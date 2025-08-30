@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight, BarChart3, Target, TrendingUp, Eye, MousePointer, Users, MapPin, Calendar, CheckCircle, Upload, ExternalLink, Mail, Plus, Minus, Zap, Star, Shield, AlertTriangle, Info } from 'lucide-react';
+import { ArrowRight, BarChart3, Target, TrendingUp, Eye, MousePointer, Users, MapPin, Calendar, CheckCircle, Upload, ExternalLink, Mail, Plus, Minus, Zap, Star, Shield, AlertTriangle, Info, XCircle } from 'lucide-react';
 import { PromoteCreativeUpload } from './PromoteCreativeUpload';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -79,6 +79,8 @@ export default function Promote() {
   const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
   const [dateReasons, setDateReasons] = useState<Map<string, string>>(new Map());
   const [dateValidationMessage, setDateValidationMessage] = useState<{ type: 'error' | 'success', message: string } | null>(null);
+  const [promoCodeValidation, setPromoCodeValidation] = useState<{ valid: boolean, message: string, discount?: any } | null>(null);
+  const [isValidatingPromoCode, setIsValidatingPromoCode] = useState(false);
   const [isLoadingBlockedDates, setIsLoadingBlockedDates] = useState(true);
   
   // Quote prefill functionality
@@ -151,6 +153,7 @@ export default function Promote() {
     business_name: '',
     contact_name: '',
     email: '',
+    promo_code: '',
     instagram: '',
     website: '',
     start_date: '',
@@ -647,6 +650,9 @@ export default function Promote() {
       formDataToSend.append('objective', formData.objective);
       if (formData.comments) formDataToSend.append('comments', formData.comments);
       if (quoteId) formDataToSend.append('quoteId', quoteId);
+      if (formData.promo_code && promoCodeValidation?.valid) {
+        formDataToSend.append('promoCode', formData.promo_code);
+      }
       
       // Add creative assets based on package type
       // Priority: uploaded files first, then links if no files
@@ -2273,6 +2279,95 @@ export default function Promote() {
                       data-testid="input-website"
                     />
                   </div>
+                </div>
+
+                {/* Promo Code Field */}
+                <div>
+                  <label className="block text-white font-medium mb-2">
+                    Promo Code
+                    {isValidatingPromoCode && (
+                      <span className="text-white/50 font-normal text-sm ml-2">
+                        (Checking...)
+                      </span>
+                    )}
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      value={formData.promo_code}
+                      onChange={async (e) => {
+                        const code = e.target.value.toUpperCase();
+                        setFormData({...formData, promo_code: code});
+                        
+                        // Clear validation if empty
+                        if (!code) {
+                          setPromoCodeValidation(null);
+                          return;
+                        }
+                        
+                        // Validate promo code
+                        setIsValidatingPromoCode(true);
+                        try {
+                          const response = await fetch(`/api/promo-codes/validate?code=${encodeURIComponent(code)}&package=${encodeURIComponent(selectedPackage || '')}`);
+                          const data = await response.json();
+                          
+                          if (response.ok && data.valid) {
+                            setPromoCodeValidation({
+                              valid: true,
+                              message: data.message || 'Promo code applied successfully!',
+                              discount: data.discount
+                            });
+                          } else {
+                            setPromoCodeValidation({
+                              valid: false,
+                              message: data.error || 'Invalid promo code'
+                            });
+                          }
+                        } catch {
+                          setPromoCodeValidation({
+                            valid: false,
+                            message: 'Unable to validate promo code'
+                          });
+                        } finally {
+                          setIsValidatingPromoCode(false);
+                        }
+                      }}
+                      className={`bg-white/10 border-white/20 text-white placeholder:text-white/50 uppercase ${
+                        promoCodeValidation ? 
+                          (promoCodeValidation.valid ? 'border-green-500' : 'border-red-500') : ''
+                      }`}
+                      placeholder="Enter promo code (optional)"
+                      data-testid="input-promo-code"
+                    />
+                    {promoCodeValidation && (
+                      <div className={`absolute right-2 top-1/2 transform -translate-y-1/2 ${
+                        promoCodeValidation.valid ? 'text-green-400' : 'text-red-400'
+                      }`}>
+                        {promoCodeValidation.valid ? (
+                          <CheckCircle className="w-5 h-5" />
+                        ) : (
+                          <XCircle className="w-5 h-5" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {promoCodeValidation && (
+                    <p className={`text-sm mt-2 ${
+                      promoCodeValidation.valid ? 'text-green-400' : 'text-red-400'
+                    }`}>
+                      {promoCodeValidation.message}
+                      {promoCodeValidation.valid && promoCodeValidation.discount && (
+                        <span className="block mt-1">
+                          {promoCodeValidation.discount.discount_type === 'percentage' && 
+                            `${promoCodeValidation.discount.discount_value}% discount applied`}
+                          {promoCodeValidation.discount.discount_type === 'fixed_amount' && 
+                            `$${promoCodeValidation.discount.discount_value} discount applied`}
+                          {promoCodeValidation.discount.discount_type === 'free_days' && 
+                            `${promoCodeValidation.discount.discount_value} free day${promoCodeValidation.discount.discount_value > 1 ? 's' : ''} applied`}
+                        </span>
+                      )}
+                    </p>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
