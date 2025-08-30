@@ -368,8 +368,8 @@ export default function Promote() {
       }
       
       if (nextSlot) {
-        const startFormatted = new Date(nextSlot.start).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        const endFormatted = new Date(nextSlot.end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const startFormatted = new Date(nextSlot.start + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+        const endFormatted = new Date(nextSlot.end + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
         errorMessage += ` Next available slot for ${durationDays} days: ${startFormatted} - ${endFormatted}`;
       } else {
         errorMessage += ' Please select different dates.';
@@ -2525,18 +2525,6 @@ export default function Promote() {
                         Change
                       </Button>
                     </div>
-                  </div>
-                )}
-
-                {/* Package-specific availability note */}
-                {selectedPackage && (
-                  <div className="mb-4 p-3 bg-copper-500/10 border border-copper-500/20 rounded-lg">
-                    <p className="text-sm text-copper-400">
-                      <span className="font-medium">ℹ️ Availability Note:</span> 
-                      {selectedPackage === 'events_spotlight' && " Events Spotlight can run alongside Homepage Banner packages since they use different placements."}
-                      {selectedPackage === 'homepage_banner' && " Homepage Banner can run alongside Events Spotlight packages since they use different placements."}
-                      {selectedPackage === 'full_feature' && " Full Feature requires exclusive booking of both Events and Homepage placements."}
-                    </p>
                   </div>
                 )}
 
