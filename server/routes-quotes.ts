@@ -216,16 +216,21 @@ export function addQuotesRoutes(app: Express) {
       const dateReasons = new Map<string, string>();
       
       blockedRanges.forEach(range => {
-        const start = new Date(range.start);
-        const end = new Date(range.end);
+        // Parse dates with explicit UTC to avoid timezone issues
+        const start = new Date(range.start + 'T00:00:00Z');
+        const end = new Date(range.end + 'T00:00:00Z');
         
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-          const dateStr = d.toISOString().split('T')[0];
+        // Use a safer date iteration that doesn't modify the original date
+        const currentDate = new Date(start);
+        while (currentDate <= end) {
+          const dateStr = currentDate.toISOString().split('T')[0];
           blockedDates.add(dateStr);
           // Keep the first reason for each date
           if (!dateReasons.has(dateStr)) {
             dateReasons.set(dateStr, range.reason);
           }
+          // Create a new date for the next iteration to avoid mutation issues
+          currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         }
       });
       

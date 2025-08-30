@@ -286,18 +286,20 @@ export default function Promote() {
     
     for (let i = 0; i < maxSearchDays; i++) {
       const testStart = new Date(afterDate);
-      testStart.setDate(testStart.getDate() + i);
+      testStart.setUTCDate(testStart.getUTCDate() + i);
       const testEnd = new Date(testStart);
-      testEnd.setDate(testEnd.getDate() + durationDays - 1);
+      testEnd.setUTCDate(testEnd.getUTCDate() + durationDays - 1);
       
       // Check if this range is completely available
       let hasConflict = false;
-      for (let d = new Date(testStart); d <= testEnd; d.setDate(d.getDate() + 1)) {
-        const dateStr = d.toISOString().split('T')[0];
+      const currentDate = new Date(testStart);
+      while (currentDate <= testEnd) {
+        const dateStr = currentDate.toISOString().split('T')[0];
         if (blockedDates.has(dateStr)) {
           hasConflict = true;
           break;
         }
+        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
       }
       
       if (!hasConflict) {
@@ -318,14 +320,15 @@ export default function Promote() {
       return true;
     }
     
-    const start = new Date(startDateStr);
-    const end = new Date(endDateStr);
+    const start = new Date(startDateStr + 'T00:00:00Z');
+    const end = new Date(endDateStr + 'T00:00:00Z');
     const conflictingDates: string[] = [];
     const reasons = new Set<string>();
     
-    // Check each date in the range
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      const dateStr = d.toISOString().split('T')[0];
+    // Check each date in the range using consistent UTC dates
+    const currentDate = new Date(start);
+    while (currentDate <= end) {
+      const dateStr = currentDate.toISOString().split('T')[0];
       if (blockedDates.has(dateStr)) {
         conflictingDates.push(dateStr);
         const reason = dateReasons.get(dateStr);
@@ -333,6 +336,7 @@ export default function Promote() {
           reasons.add(reason);
         }
       }
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
     
     if (conflictingDates.length > 0) {
@@ -365,8 +369,11 @@ export default function Promote() {
     
     // Dates are valid - show success message
     const durationDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    const startFormatted = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const endFormatted = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    // Parse the date strings to ensure correct date display
+    const startDate = new Date(startDateStr + 'T00:00:00');
+    const endDate = new Date(endDateStr + 'T00:00:00');
+    const startFormatted = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+    const endFormatted = endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
     setDateValidationMessage({ 
       type: 'success', 
       message: `✓ Placement available for ${durationDays} day${durationDays > 1 ? 's' : ''} (${startFormatted} - ${endFormatted})`
@@ -409,7 +416,7 @@ export default function Promote() {
   // Get tomorrow's date as minimum start date
   const getTomorrowDate = () => {
     const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
     return tomorrow.toISOString().split('T')[0];
   };
 

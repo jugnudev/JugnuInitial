@@ -55,16 +55,16 @@ export const PRICING_CONFIG = {
     full_feature: {
       name: 'Full Feature (Both Placements + Email + IG Story)',
       description: 'Both placements for the same 7 days + Email Feature + Instagram Story',
-      daily: 350, // Not applicable - weekly only
-      weekly: 350,
-      base: 350,
+      daily: 220, // Not applicable - weekly only
+      weekly: 220,
+      base: 220,
       supportsDailyBooking: false,
       globalPerks: GLOBAL_PERKS,
       features: [
         'Both placements for the same 7 days',
         '1 Email Feature to our community list (100+ subscribers) during your week',
         '1 Instagram Story during your week (creative provided or simple template)',
-        '__TOOLTIP__Delivery guarantee__We guarantee at least 4,500 viewable impressions and 225 clicks during your week. If we deliver less, we continue at no cost until the target is met.'
+        '__TOOLTIP__Delivery guarantee__We guarantee at least 2,000 viewable impressions and 225 clicks during your week. If we deliver less, we continue at no cost until the target is met.'
       ],
       sizeSpecs: {
         desktop: '1600×400 + 1080×600',
