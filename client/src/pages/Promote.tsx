@@ -282,10 +282,13 @@ export default function Promote() {
   // Find next available date range that fits the duration
   const findNextAvailableSlot = (afterDate: Date, durationDays: number): { start: string; end: string } | null => {
     const maxSearchDays = 365; // Search up to a year ahead
-    const blockedDatesArray = Array.from(blockedDates).sort();
+    
+    // Start searching from the day after the provided date to ensure we find a truly available slot
+    const searchStart = new Date(afterDate.toISOString().split('T')[0] + 'T00:00:00Z');
+    searchStart.setUTCDate(searchStart.getUTCDate() + 1);
     
     for (let i = 0; i < maxSearchDays; i++) {
-      const testStart = new Date(afterDate);
+      const testStart = new Date(searchStart);
       testStart.setUTCDate(testStart.getUTCDate() + i);
       const testEnd = new Date(testStart);
       testEnd.setUTCDate(testEnd.getUTCDate() + durationDays - 1);
