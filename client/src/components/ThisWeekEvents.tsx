@@ -157,7 +157,7 @@ export default function ThisWeekEvents() {
                 South Asian culture, music, and community events
               </p>
             </div>
-            <Link href="/explore">
+            <Link href="/events">
               <Button
                 variant="ghost"
                 className="text-copper-400 hover:text-copper-300 hover:bg-white/5"
