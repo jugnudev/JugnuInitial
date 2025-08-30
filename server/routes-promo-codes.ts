@@ -26,7 +26,9 @@ const validatePromoSchema = z.object({
 // Admin middleware (reuse from existing admin routes)
 const requireAdminKey = (req: Request, res: Response, next: Function) => {
   const adminKey = req.headers['x-admin-key'];
-  if (adminKey !== process.env.ADMIN_API_KEY) {
+  const expectedKey = process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD || process.env.EXPORT_ADMIN_KEY;
+  
+  if (!adminKey || adminKey !== expectedKey) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
   }
   next();
@@ -34,6 +36,75 @@ const requireAdminKey = (req: Request, res: Response, next: Function) => {
 
 export function addPromoCodeRoutes(app: Express) {
   const supabase = getSupabaseAdmin();
+
+  // GET /api/promo-codes/validate - Validate promo code (public)
+  app.get('/api/promo-codes/validate', async (req, res) => {
+    try {
+      const { code, package: packageCode } = req.query;
+      
+      if (!code) {
+        return res.status(400).json({ 
+          ok: false, 
+          valid: false,
+          error: 'Promo code is required' 
+        });
+      }
+
+      const { data: promoData, error } = await supabase
+        .from('promo_codes')
+        .select('*')
+        .eq('code', String(code).toUpperCase())
+        .eq('is_active', true)
+        .gte('valid_to', new Date().toISOString())
+        .lte('valid_from', new Date().toISOString())
+        .single();
+
+      if (error || !promoData) {
+        return res.json({ 
+          ok: true,
+          valid: false, 
+          error: 'Invalid or expired promo code' 
+        });
+      }
+
+      // Check if package is applicable
+      if (packageCode && promoData.applicable_packages && 
+          !promoData.applicable_packages.includes(String(packageCode))) {
+        return res.json({ 
+          ok: true,
+          valid: false, 
+          error: 'Promo code not valid for this package' 
+        });
+      }
+
+      // Check usage limits
+      if (promoData.max_uses && promoData.current_uses >= promoData.max_uses) {
+        return res.json({ 
+          ok: true,
+          valid: false, 
+          error: 'Promo code has reached its usage limit' 
+        });
+      }
+
+      res.json({ 
+        ok: true,
+        valid: true, 
+        message: 'Valid promo code',
+        discount: {
+          discount_type: promoData.discount_type,
+          discount_value: promoData.discount_value,
+          min_purchase_amount: promoData.min_purchase_amount
+        }
+      });
+    } catch (error) {
+      console.error('Error validating promo code:', error);
+      res.status(500).json({ 
+        ok: false,
+        valid: false, 
+        error: 'Failed to validate promo code' 
+      });
+    }
+  });
 
   // GET /api/admin/promo-codes - List all promo codes (admin)
   app.get('/api/admin/promo-codes', requireAdminKey, async (req, res) => {
