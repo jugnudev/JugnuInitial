@@ -213,6 +213,11 @@
   display: none; /* Chrome, Safari and Opera */
 }
 
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

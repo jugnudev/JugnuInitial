@@ -1,8 +1,8 @@
 import Hero from "@/components/Hero";
 import Events from "@/components/Events";
 import Gallery from "@/components/Gallery";
-import ThisWeekEvents from "@/components/ThisWeekEvents";
-import PromoteShowcase from "@/components/PromoteShowcase";
+import TwoWeeksEvents from "@/components/TwoWeeksEvents";
+import PartnerWithUs from "@/components/PartnerWithUs";
 import { HomeMidSpotlight } from "@/components/spotlight/HomeMidSpotlight";
 
 export default function Home() {
@@ -138,12 +138,10 @@ export default function Home() {
       />
       
       <Hero />
-      <div id="this-week">
-        <ThisWeekEvents />
-      </div>
-      <Events />
       <HomeMidSpotlight />
-      <PromoteShowcase />
+      <TwoWeeksEvents />
+      <Events />
+      <PartnerWithUs />
       <Gallery />
     </>
   );
