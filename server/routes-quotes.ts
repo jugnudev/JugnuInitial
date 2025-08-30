@@ -167,11 +167,28 @@ const upload = multer({
   storage: multer.memoryStorage()
 });
 
+// Define package placement mappings
+const packagePlacements: Record<string, string[]> = {
+  'events_spotlight': ['events'],
+  'homepage_banner': ['homepage'],
+  'full_feature': ['events', 'homepage']
+};
+
+// Check if two packages have placement conflicts
+function hasPlacementConflict(package1: string, package2: string): boolean {
+  const placements1 = packagePlacements[package1] || [];
+  const placements2 = packagePlacements[package2] || [];
+  
+  // Check if there's any overlap in placements
+  return placements1.some(p => placements2.includes(p));
+}
+
 export function addQuotesRoutes(app: Express) {
   // GET /api/spotlight/blocked-dates - Get dates that are already booked
   app.get('/api/spotlight/blocked-dates', async (req, res) => {
     try {
       const supabase = getSupabaseAdmin();
+      const { package_code } = req.query;
       
       // Only check sponsor_leads table for blocked dates
       // This excludes placeholder campaigns that advertise sponsor opportunities
@@ -190,12 +207,20 @@ export function addQuotesRoutes(app: Express) {
       }
       
       // Collect all blocked date ranges from approved/onboarded leads only
-      const blockedRanges: Array<{ start: string; end: string; reason: string }> = [];
+      const blockedRanges: Array<{ start: string; end: string; reason: string; package: string }> = [];
       
       // Add dates from approved/onboarded leads
       if (leadsData) {
         leadsData.forEach(lead => {
           if (lead.start_date && lead.end_date) {
+            // If a package_code is specified, only include conflicting packages
+            if (package_code && typeof package_code === 'string') {
+              // Skip if there's no placement conflict
+              if (!hasPlacementConflict(package_code, lead.package_code)) {
+                return;
+              }
+            }
+            
             const reasonText = lead.status === 'approved' 
               ? 'Approved booking' 
               : lead.status === 'active' 
@@ -205,7 +230,8 @@ export function addQuotesRoutes(app: Express) {
             blockedRanges.push({
               start: lead.start_date.split('T')[0],
               end: lead.end_date.split('T')[0],
-              reason: reasonText
+              reason: reasonText,
+              package: lead.package_code
             });
           }
         });

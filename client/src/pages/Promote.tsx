@@ -87,11 +87,17 @@ export default function Promote() {
   // Quote prefill functionality
   const { quoteId, prefillData, isLoading: isPrefillLoading, error: prefillError, hasPrefill } = useQuotePrefill();
   
-  // Fetch blocked dates on mount
+  // Fetch blocked dates based on selected package
   useEffect(() => {
     const fetchBlockedDates = async () => {
+      setIsLoadingBlockedDates(true);
       try {
-        const response = await fetch('/api/spotlight/blocked-dates');
+        // Build URL with package_code parameter if a package is selected
+        const url = selectedPackage 
+          ? `/api/spotlight/blocked-dates?package_code=${selectedPackage}`
+          : '/api/spotlight/blocked-dates';
+          
+        const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();
           setBlockedDates(new Set(data.blockedDates));
@@ -104,7 +110,7 @@ export default function Promote() {
       }
     };
     fetchBlockedDates();
-  }, []);
+  }, [selectedPackage]); // Re-fetch when package changes
   
   // Force Full Feature to weekly
   useEffect(() => {
@@ -346,8 +352,11 @@ export default function Promote() {
       // Calculate duration in days
       const durationDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       
-      // Find next available slot
-      const nextSlot = findNextAvailableSlot(start, durationDays);
+      // Find the last conflicting date to search from there
+      const lastConflictDate = new Date(conflictingDates[conflictingDates.length - 1] + 'T00:00:00Z');
+      
+      // Find next available slot after the last conflict
+      const nextSlot = findNextAvailableSlot(lastConflictDate, durationDays);
       
       const reasonText = Array.from(reasons).join(', ');
       let errorMessage = '';
@@ -1273,6 +1282,9 @@ export default function Promote() {
                   <Badge className="bg-copper-500/20 text-copper-400 border-copper-500/30">
                     Events Page
                   </Badge>
+                  <div className="text-xs text-muted mt-2">
+                    Placement: Events page only (can be booked alongside Homepage Banner)
+                  </div>
                 </div>
                 <h3 className="font-fraunces text-2xl font-bold text-white mb-4">{PRICING_CONFIG.packages.events_spotlight.name}</h3>
                 <p className="text-muted text-sm mb-4">{PRICING_CONFIG.packages.events_spotlight.description}</p>
@@ -1509,6 +1521,9 @@ export default function Promote() {
                   <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
                     Premium
                   </Badge>
+                  <div className="text-xs text-muted mt-2">
+                    Placement: Both Events page + Homepage (exclusive booking for all placements)
+                  </div>
                 </div>
                 <h3 className="font-fraunces text-2xl font-bold text-white mb-4">{PRICING_CONFIG.packages.full_feature.name}</h3>
                 <p className="text-muted text-sm mb-4">{PRICING_CONFIG.packages.full_feature.description}</p>
@@ -2510,6 +2525,18 @@ export default function Promote() {
                         Change
                       </Button>
                     </div>
+                  </div>
+                )}
+
+                {/* Package-specific availability note */}
+                {selectedPackage && (
+                  <div className="mb-4 p-3 bg-copper-500/10 border border-copper-500/20 rounded-lg">
+                    <p className="text-sm text-copper-400">
+                      <span className="font-medium">ℹ️ Availability Note:</span> 
+                      {selectedPackage === 'events_spotlight' && " Events Spotlight can run alongside Homepage Banner packages since they use different placements."}
+                      {selectedPackage === 'homepage_banner' && " Homepage Banner can run alongside Events Spotlight packages since they use different placements."}
+                      {selectedPackage === 'full_feature' && " Full Feature requires exclusive booking of both Events and Homepage placements."}
+                    </p>
                   </div>
                 )}
 
