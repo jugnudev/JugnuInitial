@@ -173,55 +173,39 @@ export function addQuotesRoutes(app: Express) {
     try {
       const supabase = getSupabaseAdmin();
       
-      // Get all active campaigns and approved/onboarded leads
-      const [campaignsResult, leadsResult] = await Promise.all([
-        // Get active campaigns
-        supabase
-          .from('sponsor_campaigns')
-          .select('start_at, end_at, placements')
-          .eq('is_active', true)
-          .gte('end_at', new Date().toISOString()),
-          
-        // Get approved or onboarded leads  
-        supabase
-          .from('sponsor_leads')
-          .select('start_date, end_date, package_code, status')
-          .in('status', ['approved', 'onboarded', 'active'])
-          .gte('end_date', new Date().toISOString())
-      ]);
+      // Only check sponsor_leads table for blocked dates
+      // This excludes placeholder campaigns that advertise sponsor opportunities
+      const { data: leadsData, error: leadsError } = await supabase
+        .from('sponsor_leads')
+        .select('start_date, end_date, package_code, status, business_name')
+        .in('status', ['approved', 'onboarded', 'active'])
+        .gte('end_date', new Date().toISOString());
       
-      if (campaignsResult.error) {
-        console.error('Error fetching campaigns:', campaignsResult.error);
-      }
-      
-      if (leadsResult.error) {
-        console.error('Error fetching leads:', leadsResult.error);
-      }
-      
-      // Collect all blocked date ranges
-      const blockedRanges: Array<{ start: string; end: string; reason: string }> = [];
-      
-      // Add dates from active campaigns
-      if (campaignsResult.data) {
-        campaignsResult.data.forEach(campaign => {
-          if (campaign.start_at && campaign.end_at) {
-            blockedRanges.push({
-              start: campaign.start_at.split('T')[0],
-              end: campaign.end_at.split('T')[0],
-              reason: 'Active campaign'
-            });
-          }
+      if (leadsError) {
+        console.error('Error fetching leads:', leadsError);
+        return res.status(500).json({ 
+          ok: false, 
+          error: 'Failed to fetch blocked dates' 
         });
       }
       
+      // Collect all blocked date ranges from approved/onboarded leads only
+      const blockedRanges: Array<{ start: string; end: string; reason: string }> = [];
+      
       // Add dates from approved/onboarded leads
-      if (leadsResult.data) {
-        leadsResult.data.forEach(lead => {
+      if (leadsData) {
+        leadsData.forEach(lead => {
           if (lead.start_date && lead.end_date) {
+            const reasonText = lead.status === 'approved' 
+              ? 'Approved booking' 
+              : lead.status === 'active' 
+                ? 'Active sponsor'
+                : 'Reserved booking';
+            
             blockedRanges.push({
               start: lead.start_date.split('T')[0],
               end: lead.end_date.split('T')[0],
-              reason: `${lead.status === 'approved' ? 'Approved' : 'Reserved'} booking`
+              reason: reasonText
             });
           }
         });
