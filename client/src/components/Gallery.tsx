@@ -13,9 +13,9 @@ export default function Gallery() {
 
   if (isLoading) {
     return (
-      <section id="gallery" className="py-16 lg:py-24 bg-gradient-to-b from-transparent to-white/5">
+      <section id="gallery" className="py-12 lg:py-16 bg-gradient-to-b from-transparent to-white/5">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <h2 className="font-fraunces text-4xl lg:text-5xl font-bold tracking-tight text-primary mb-4">
               Gallery
             </h2>
@@ -36,9 +36,9 @@ export default function Gallery() {
   }
 
   return (
-    <section id="gallery" className="py-16 lg:py-24 bg-gradient-to-b from-transparent to-white/5">
+    <section id="gallery" className="py-12 lg:py-16 bg-gradient-to-b from-transparent to-white/5">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
+        <div className="text-center mb-12">
           <h2 className="font-fraunces text-4xl lg:text-5xl font-bold tracking-tight text-primary mb-4">
             Gallery
           </h2>

@@ -1,5 +1,6 @@
 import { useEvents } from "@/lib/events";
 import { Link } from "wouter";
+import { motion } from "framer-motion";
 import heroLogoImage from "@assets/Upscaled Logo copy_1754763190534.png";
 
 export default function Hero() {
@@ -22,7 +23,7 @@ export default function Hero() {
 
   // Always render the Jugnu hero (no more spotlight hero at top)
   return (
-    <section id="hero" className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section id="hero" className="relative h-[70vh] min-h-[600px] flex items-center justify-center overflow-hidden">
       {/* Firefly dots */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="firefly"></div>
@@ -86,6 +87,33 @@ export default function Hero() {
             </Link>
           </div>
         </div>
+        
+        {/* Scroll Indicator */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ 
+            duration: 1,
+            delay: 1,
+            repeat: Infinity,
+            repeatType: "reverse",
+            repeatDelay: 0.5
+          }}
+          className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+        >
+          <div className="flex flex-col items-center gap-2 cursor-pointer"
+               onClick={() => {
+                 const nextSection = document.getElementById('this-week');
+                 if (nextSection) {
+                   nextSection.scrollIntoView({ behavior: 'smooth' });
+                 }
+               }}>
+            <span className="text-xs text-muted uppercase tracking-wider">Scroll</span>
+            <svg className="w-5 h-5 text-copper-400 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </div>
+        </motion.div>
       </div>
     </section>
   );

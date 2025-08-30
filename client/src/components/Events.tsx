@@ -23,9 +23,9 @@ export default function Events() {
 
   if (isLoading) {
     return (
-      <section id="events" className="py-16 lg:py-24">
+      <section id="events" className="py-12 lg:py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <h2 className="font-fraunces text-4xl lg:text-5xl font-bold tracking-tight text-primary mb-4">
               Upcoming Events
             </h2>
@@ -46,9 +46,9 @@ export default function Events() {
   }
 
   return (
-    <section id="events" className="py-16 lg:py-24">
+    <section id="events" className="py-12 lg:py-16">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
+        <div className="text-center mb-12">
           <h2 className="font-fraunces text-4xl lg:text-5xl font-bold tracking-tight text-primary mb-4">
             Upcoming Events
           </h2>
