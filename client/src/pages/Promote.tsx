@@ -727,6 +727,7 @@ export default function Promote() {
           business_name: '',
           contact_name: '',
           email: '',
+          promo_code: '',
           instagram: '',
           website: '',
           start_date: '',
@@ -746,11 +747,19 @@ export default function Promote() {
         // Reset creatives
         setCreatives({
           desktop: null,
-          mobile: null
+          mobile: null,
+          eventsDesktop: null,
+          eventsMobile: null,
+          homeDesktop: null,
+          homeMobile: null
         });
         setCreativeValidation({
           desktop: { valid: false, issues: [], dimensions: null },
-          mobile: { valid: false, issues: [], dimensions: null }
+          mobile: { valid: false, issues: [], dimensions: null },
+          eventsDesktop: { valid: false, issues: [], dimensions: null },
+          eventsMobile: { valid: false, issues: [], dimensions: null },
+          homeDesktop: { valid: false, issues: [], dimensions: null },
+          homeMobile: { valid: false, issues: [], dimensions: null }
         });
       } else {
         throw new Error(result.error || 'Failed to submit application');
@@ -2453,6 +2462,46 @@ export default function Promote() {
                     </p>
                   )}
                 </div>
+
+                {/* Package Selection Reminder */}
+                {!selectedPackage ? (
+                  <div className="bg-copper-500/10 border border-copper-500/30 rounded-lg p-6 text-center">
+                    <p className="text-white mb-4">
+                      Please select a package before continuing with your application
+                    </p>
+                    <Button
+                      type="button"
+                      onClick={() => scrollToSection('packages')}
+                      className="bg-copper-500 hover:bg-copper-600 text-black font-semibold"
+                      data-testid="select-package-reminder"
+                    >
+                      <ArrowRight className="mr-2 h-4 w-4 rotate-180" />
+                      Select a Package
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-white/70 text-sm mb-1">Selected Package</p>
+                        <p className="text-white font-semibold">
+                          {selectedPackage === 'events_spotlight' && 'Events Spotlight Banner'}
+                          {selectedPackage === 'homepage_feature' && 'Homepage Hero Feature'}
+                          {selectedPackage === 'full_feature' && 'Full Feature Package'}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => scrollToSection('packages')}
+                        className="text-copper-400 hover:text-copper-300"
+                        data-testid="change-package"
+                      >
+                        Change
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
