@@ -536,10 +536,11 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                     <div>
                       <label className="text-sm font-medium text-gray-400">Campaign Start Date</label>
                       <div className="font-medium text-white">
-                        {new Date(selectedLead.start_date).toLocaleDateString('en-US', { 
+                        {new Date(selectedLead.start_date + 'T00:00:00').toLocaleDateString('en-US', { 
                           year: 'numeric', 
                           month: 'short', 
-                          day: 'numeric' 
+                          day: 'numeric',
+                          timeZone: 'UTC'
                         })}
                       </div>
                     </div>
@@ -548,10 +549,11 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                     <div>
                       <label className="text-sm font-medium text-gray-400">Campaign End Date</label>
                       <div className="font-medium text-white">
-                        {new Date(selectedLead.end_date).toLocaleDateString('en-US', { 
+                        {new Date(selectedLead.end_date + 'T00:00:00').toLocaleDateString('en-US', { 
                           year: 'numeric', 
                           month: 'short', 
-                          day: 'numeric' 
+                          day: 'numeric',
+                          timeZone: 'UTC'
                         })}
                       </div>
                     </div>
@@ -560,7 +562,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                     <div>
                       <label className="text-sm font-medium text-gray-400">Campaign Duration</label>
                       <div className="font-medium text-white">
-                        {Math.ceil((new Date(selectedLead.end_date).getTime() - new Date(selectedLead.start_date).getTime()) / (1000 * 60 * 60 * 24))} days
+                        {Math.ceil((new Date(selectedLead.end_date + 'T00:00:00').getTime() - new Date(selectedLead.start_date + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24)) + 1} days
                       </div>
                     </div>
                   )}
