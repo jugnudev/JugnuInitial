@@ -266,6 +266,38 @@ export default function Promote() {
     }
   }, [prefillError]);
 
+  // Find next available date range that fits the duration
+  const findNextAvailableSlot = (afterDate: Date, durationDays: number): { start: string; end: string } | null => {
+    const maxSearchDays = 365; // Search up to a year ahead
+    const blockedDatesArray = Array.from(blockedDates).sort();
+    
+    for (let i = 0; i < maxSearchDays; i++) {
+      const testStart = new Date(afterDate);
+      testStart.setDate(testStart.getDate() + i);
+      const testEnd = new Date(testStart);
+      testEnd.setDate(testEnd.getDate() + durationDays - 1);
+      
+      // Check if this range is completely available
+      let hasConflict = false;
+      for (let d = new Date(testStart); d <= testEnd; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        if (blockedDates.has(dateStr)) {
+          hasConflict = true;
+          break;
+        }
+      }
+      
+      if (!hasConflict) {
+        return {
+          start: testStart.toISOString().split('T')[0],
+          end: testEnd.toISOString().split('T')[0]
+        };
+      }
+    }
+    
+    return null;
+  };
+
   // Validate selected date range against blocked dates
   const validateDateRange = (startDateStr: string, endDateStr: string) => {
     if (!startDateStr || !endDateStr) {
@@ -291,12 +323,30 @@ export default function Promote() {
     }
     
     if (conflictingDates.length > 0) {
+      // Calculate duration in days
+      const durationDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      // Find next available slot
+      const nextSlot = findNextAvailableSlot(start, durationDays);
+      
       const reasonText = Array.from(reasons).join(', ');
+      let errorMessage = '';
+      
       if (conflictingDates.length === 1) {
-        setDateValidationError(`This date is unavailable (${reasonText}). Please select different dates.`);
+        errorMessage = `This date is unavailable (${reasonText}).`;
       } else {
-        setDateValidationError(`${conflictingDates.length} dates in your selected range are unavailable (${reasonText}). Please select different dates.`);
+        errorMessage = `${conflictingDates.length} dates in your selected range are unavailable (${reasonText}).`;
       }
+      
+      if (nextSlot) {
+        const startFormatted = new Date(nextSlot.start).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        const endFormatted = new Date(nextSlot.end).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        errorMessage += ` Next available slot for ${durationDays} days: ${startFormatted} - ${endFormatted}`;
+      } else {
+        errorMessage += ' Please select different dates.';
+      }
+      
+      setDateValidationError(errorMessage);
       return false;
     }
     
