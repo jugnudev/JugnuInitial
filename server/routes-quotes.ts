@@ -14,6 +14,7 @@ import { z } from 'zod';
 import sgMail from '@sendgrid/mail';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
+import { getSupabaseAdmin } from './supabaseAdmin';
 
 
 // Rate limiting for quote and application endpoints
@@ -108,42 +109,43 @@ async function sendAdminNotificationEmail(leadId: string, leadData: any) {
     full_feature: 'Full Feature'
   };
   
-  const subject = `New Sponsor Application: ${leadData.businessName} - ${packageNames[leadData.packageCode as keyof typeof packageNames]}`;
+  const subject = `New Sponsor Application: ${leadData.business_name} - ${packageNames[leadData.package_code as keyof typeof packageNames]}`;
   
   const html = `
     <h2>New Sponsor Application Received</h2>
     
     <h3>Contact Information</h3>
-    <p><strong>Business:</strong> ${leadData.businessName}</p>
-    <p><strong>Contact:</strong> ${leadData.contactName}</p>
+    <p><strong>Business:</strong> ${leadData.business_name}</p>
+    <p><strong>Contact:</strong> ${leadData.contact_name}</p>
     <p><strong>Email:</strong> ${leadData.email}</p>
     ${leadData.instagram ? `<p><strong>Instagram:</strong> @${leadData.instagram}</p>` : ''}
     ${leadData.website ? `<p><strong>Website:</strong> <a href="${leadData.website}">${leadData.website}</a></p>` : ''}
     
     <h3>Package Selection</h3>
-    <p><strong>Package:</strong> ${packageNames[leadData.packageCode as keyof typeof packageNames]}</p>
+    <p><strong>Package:</strong> ${packageNames[leadData.package_code as keyof typeof packageNames]}</p>
     <p><strong>Duration:</strong> ${leadData.duration}</p>
-    <p><strong>Dates:</strong> ${leadData.startDate && leadData.endDate ? `${leadData.startDate} to ${leadData.endDate}` : leadData.selectedDates.join(', ')}</p>
-    ${leadData.addOns.length > 0 ? `<p><strong>Add-ons:</strong> ${leadData.addOns.map((a: any) => a.code).join(', ')}</p>` : ''}
+    <p><strong>Dates:</strong> ${leadData.start_date && leadData.end_date ? `${leadData.start_date} to ${leadData.end_date}` : (leadData.selected_dates ? leadData.selected_dates.join(', ') : 'Not specified')}</p>
+    ${leadData.add_ons && leadData.add_ons.length > 0 ? `<p><strong>Add-ons:</strong> ${leadData.add_ons.map((a: any) => {
+      if (typeof a === 'string') return a;
+      return a.code || a;
+    }).join(', ')}</p>` : '<p><strong>Add-ons:</strong> None</p>'}
     
     <h3>Pricing</h3>
-    <p><strong>Subtotal:</strong> CA$${(leadData.subtotalCents / 100).toFixed(2)}</p>
-    ${leadData.promoApplied ? `<p><strong>Promo:</strong> ${leadData.promoCode} (Base package free)</p>` : ''}
-    <p><strong>Total:</strong> CA$${(leadData.totalCents / 100).toFixed(2)}</p>
+    <p><strong>Subtotal:</strong> CA$${leadData.subtotal_cents ? (leadData.subtotal_cents / 100).toFixed(2) : '0.00'}</p>
+    ${leadData.promo_applied ? `<p><strong>Promo:</strong> ${leadData.promo_code} (Base package free)</p>` : ''}
+    <p><strong>Total:</strong> CA$${leadData.total_cents ? (leadData.total_cents / 100).toFixed(2) : '0.00'}</p>
     
     <h3>Campaign Details</h3>
     ${leadData.objective ? `<p><strong>Objective:</strong> ${leadData.objective}</p>` : ''}
-    ${leadData.budgetRange ? `<p><strong>Budget Range:</strong> ${leadData.budgetRange}</p>` : ''}
+    ${leadData.budget_range ? `<p><strong>Budget Range:</strong> ${leadData.budget_range}</p>` : ''}
     
     <h3>Creative Assets</h3>
-    <p><strong>Desktop Asset:</strong> <a href="${leadData.desktopAssetUrl}">View Desktop Creative</a></p>
-    <p><strong>Mobile Asset:</strong> <a href="${leadData.mobileAssetUrl}">View Mobile Creative</a></p>
-    ${leadData.creativeLinks ? `<p><strong>Additional Links:</strong> ${leadData.creativeLinks}</p>` : ''}
+    <p><strong>Desktop Asset:</strong> <a href="${leadData.desktop_asset_url}">View Desktop Creative</a></p>
+    <p><strong>Mobile Asset:</strong> <a href="${leadData.mobile_asset_url}">View Mobile Creative</a></p>
+    ${leadData.creative_links ? `<p><strong>Additional Links:</strong> ${leadData.creative_links}</p>` : ''}
     
     ${leadData.comments ? `<h3>Comments</h3><p>${leadData.comments}</p>` : ''}
     
-    <h3>Admin Actions</h3>
-    <p><a href="${process.env.FRONTEND_URL || 'http://localhost:5000'}/admin/leads/${leadId}">View Lead Details</a></p>
   `;
   
   try {
@@ -364,8 +366,18 @@ export function addQuotesRoutes(app: Express) {
       
       const leadId = await createApplication(body, rawPayload);
       
-      // Send admin notification email
-      await sendAdminNotificationEmail(leadId, body);
+      // Fetch the created lead to get calculated values
+      const supabase = getSupabaseAdmin();
+      const { data: leadData } = await supabase
+        .from('sponsor_leads')
+        .select('*')
+        .eq('id', leadId)
+        .single();
+      
+      // Send admin notification email with complete lead data
+      if (leadData) {
+        await sendAdminNotificationEmail(leadId, leadData);
+      }
       
       res.json({ ok: true, lead_id: leadId });
     } catch (err) {
