@@ -409,7 +409,8 @@ export function addQuotesRoutes(app: Express) {
         comments: req.body.comments,
         ackExclusive: true,
         ackGuarantee: true,
-        quoteId: req.body.quoteId
+        quoteId: req.body.quoteId,
+        promoCode: req.body.promoCode
       };
       
       // Handle creative assets based on package type
