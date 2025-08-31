@@ -294,11 +294,19 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
       price: PRICING.addOns[code as AddOnCode] || 0 
     }));
     
+    // Calculate actual number of days from date range if provided
+    let actualNumDays = data.numDays || 1;
+    if (finalDuration === 'daily' && finalStartDate && finalEndDate) {
+      const start = new Date(finalStartDate + 'T00:00:00Z');
+      const end = new Date(finalEndDate + 'T00:00:00Z');
+      actualNumDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    }
+    
     pricing = await calculatePricing(
       finalPackageCode as PackageCode,
       finalDuration as 'daily' | 'weekly',
       finalNumWeeks,
-      data.numDays || 1,
+      actualNumDays,
       data.addOns || [],
       data.promoCode || undefined
     );
