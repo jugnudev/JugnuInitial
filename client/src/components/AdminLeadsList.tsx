@@ -39,6 +39,9 @@ interface Lead {
   package_code: string;
   duration: string;
   total_cents: number;
+  base_price_cents?: number;
+  addons_cents?: number;
+  subtotal_cents?: number;
   status: 'new' | 'reviewing' | 'approved' | 'onboarding_sent' | 'onboarded' | 'rejected';
   created_at: string;
   promo_applied: boolean;
@@ -53,6 +56,9 @@ interface Lead {
   source_campaign_id?: string;
   start_date?: string;
   end_date?: string;
+  num_weeks?: number;
+  num_days?: number;
+  add_ons?: any[];
 }
 
 interface AdminLeadsListProps {
@@ -424,8 +430,16 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium text-white">
-                        CA${(lead.total_cents / 100).toFixed(2)}
+                      <TableCell>
+                        <div className="font-medium text-white">
+                          CA${(lead.total_cents / 100).toFixed(2)}
+                        </div>
+                        {lead.base_price_cents !== undefined && lead.addons_cents !== undefined && (
+                          <div className="text-xs text-gray-400 mt-1">
+                            Base: ${(lead.base_price_cents / 100).toFixed(0)}
+                            {lead.addons_cents > 0 && ` + Add-ons: ${(lead.addons_cents / 100).toFixed(0)}`}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge 
@@ -567,14 +581,36 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                     </div>
                   )}
                   <div>
-                    <label className="text-sm font-medium text-gray-400">Total Amount</label>
-                    <div className="font-medium text-lg text-white">
-                      CA${(selectedLead.total_cents / 100).toFixed(2)}
-                      {selectedLead.promo_applied && (
-                        <Badge variant="secondary" className="ml-2 bg-green-600 text-green-100">
-                          {selectedLead.promo_code}
-                        </Badge>
+                    <label className="text-sm font-medium text-gray-400">Pricing Breakdown</label>
+                    <div className="space-y-1 mt-1">
+                      {selectedLead.base_price_cents !== undefined && (
+                        <div className="text-sm text-gray-300">
+                          Package: CA${(selectedLead.base_price_cents / 100).toFixed(2)}
+                        </div>
                       )}
+                      {selectedLead.addons_cents !== undefined && selectedLead.addons_cents > 0 && (
+                        <div className="text-sm text-gray-300">
+                          Add-ons: CA${(selectedLead.addons_cents / 100).toFixed(2)}
+                          {selectedLead.add_ons && selectedLead.add_ons.length > 0 && (
+                            <span className="text-xs text-gray-400 ml-2">
+                              ({selectedLead.add_ons.map((a: any) => typeof a === 'string' ? a : a.code).join(', ')})
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {selectedLead.subtotal_cents !== undefined && selectedLead.promo_applied && (
+                        <div className="text-sm text-gray-300">
+                          Subtotal: CA${(selectedLead.subtotal_cents / 100).toFixed(2)}
+                        </div>
+                      )}
+                      {selectedLead.promo_applied && selectedLead.promo_code && selectedLead.subtotal_cents && (
+                        <div className="text-sm text-green-400">
+                          Promo ({selectedLead.promo_code}): -CA${((selectedLead.subtotal_cents - selectedLead.total_cents) / 100).toFixed(2)}
+                        </div>
+                      )}
+                      <div className="font-medium text-lg text-white pt-1 border-t border-gray-700">
+                        Total: CA${(selectedLead.total_cents / 100).toFixed(2)}
+                      </div>
                     </div>
                   </div>
                 </CardContent>

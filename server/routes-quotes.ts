@@ -378,6 +378,18 @@ export function addQuotesRoutes(app: Express) {
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       
       // Build application data from form fields
+      const parsedNumDays = parseInt(req.body.numDays);
+      const finalNumDays = isNaN(parsedNumDays) ? 1 : parsedNumDays;
+      
+      console.log('📅 Parsing numDays:', {
+        raw: req.body.numDays,
+        parsed: parsedNumDays,
+        final: finalNumDays,
+        duration: req.body.duration,
+        startDate: req.body.startDate,
+        endDate: req.body.endDate
+      });
+      
       const applicationData: any = {
         businessName: req.body.businessName,
         contactName: req.body.contactName,
@@ -387,7 +399,7 @@ export function addQuotesRoutes(app: Express) {
         packageCode: req.body.packageCode,
         duration: req.body.duration,
         numWeeks: parseInt(req.body.numWeeks) || 1,
-        numDays: parseInt(req.body.numDays) || 1,  // Default to 1 if not provided
+        numDays: finalNumDays,
         selectedDates: [],
         startDate: req.body.startDate,
         endDate: req.body.endDate,

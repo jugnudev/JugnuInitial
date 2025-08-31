@@ -675,18 +675,32 @@ export default function Promote() {
       
       // Calculate actual days from date range if both dates are provided
       let calculatedDays = 1;
-      if (durationType === 'daily' && formData.start_date && formData.end_date) {
+      if (formData.start_date && formData.end_date) {
         const start = new Date(formData.start_date + 'T00:00:00Z');
         const end = new Date(formData.end_date + 'T00:00:00Z');
-        calculatedDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        console.log('Frontend calculated days from date range:', {
+        const dayDiff = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        
+        // Always use calculated days from date range when available
+        if (durationType === 'daily') {
+          calculatedDays = dayDiff;
+        } else {
+          // For weekly, still send 1 but log the actual span
+          calculatedDays = 1;
+        }
+        
+        console.log('📅 Frontend date calculation:', {
+          durationType,
           startDate: formData.start_date,
           endDate: formData.end_date,
+          dayDiff,
           calculatedDays,
-          originalDayDuration: dayDuration
+          dayDurationControl: dayDuration,
+          willSendDays: calculatedDays
         });
       } else if (durationType === 'daily') {
+        // Fallback to manual day counter only if no dates
         calculatedDays = dayDuration;
+        console.log('📅 Using manual day counter:', dayDuration);
       }
       
       formDataToSend.append('numDays', String(calculatedDays));

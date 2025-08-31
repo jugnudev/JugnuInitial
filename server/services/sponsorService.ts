@@ -111,8 +111,24 @@ export async function calculatePricing(
     const fullWeeks = Math.floor(numDays / 7);
     const remainingDays = numDays % 7;
     basePrice = (fullWeeks * pkg.weekly) + (remainingDays * pkg.daily);
+    
+    console.log('📊 Daily pricing calculation:', {
+      packageCode,
+      numDays,
+      fullWeeks,
+      remainingDays,
+      weeklyRate: pkg.weekly,
+      dailyRate: pkg.daily,
+      calculatedBasePrice: basePrice
+    });
   } else {
     basePrice = pkg.weekly * numWeeks;
+    console.log('📊 Weekly pricing calculation:', {
+      packageCode,
+      numWeeks,
+      weeklyRate: pkg.weekly,
+      calculatedBasePrice: basePrice
+    });
   }
   
   // Calculate add-ons
@@ -311,6 +327,14 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
       });
     }
     
+    console.log('📝 About to calculate pricing with:', {
+      finalPackageCode,
+      finalDuration,
+      finalNumWeeks,
+      actualNumDays,
+      addOns: data.addOns || []
+    });
+    
     pricing = await calculatePricing(
       finalPackageCode as PackageCode,
       finalDuration as 'daily' | 'weekly',
@@ -319,6 +343,13 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
       data.addOns || [],
       data.promoCode || undefined
     );
+    
+    console.log('💰 Pricing calculated:', {
+      basePriceCents: pricing.basePriceCents,
+      addonsCents: pricing.addonsCents,
+      subtotalCents: pricing.subtotalCents,
+      totalCents: pricing.totalCents
+    });
   }
   
   // Handle promo code application
