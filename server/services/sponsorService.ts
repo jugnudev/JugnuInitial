@@ -287,12 +287,41 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
       throw new Error('Package selection does not match quote');
     }
     
-    pricing = {
-      basePriceCents: quoteData.base_price_cents,
-      addonsCents: finalAddOns.reduce((sum: number, addon: any) => sum + (addon.price * 100), 0),
-      subtotalCents: quoteData.base_price_cents + finalAddOns.reduce((sum: number, addon: any) => sum + (addon.price * 100), 0),
-      totalCents: quoteData.total_cents
-    };
+    // If a promo code is provided, recalculate pricing with the promo
+    // Otherwise use the quote's stored pricing
+    if (data.promoCode) {
+      // Extract numDays from the quote data or calculate from dates
+      let numDays = 1;
+      if (finalDuration === 'daily' && finalStartDate && finalEndDate) {
+        const start = new Date(finalStartDate + 'T00:00:00Z');
+        const end = new Date(finalEndDate + 'T00:00:00Z');
+        numDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      }
+      
+      console.log('🔄 Recalculating pricing with promo code:', {
+        packageCode: finalPackageCode,
+        duration: finalDuration,
+        numWeeks: finalNumWeeks,
+        numDays,
+        promoCode: data.promoCode
+      });
+      
+      pricing = await calculatePricing(
+        finalPackageCode as PackageCode,
+        finalDuration as 'daily' | 'weekly',
+        finalNumWeeks,
+        numDays,
+        finalAddOns.map((a: any) => a.code),
+        data.promoCode
+      );
+    } else {
+      pricing = {
+        basePriceCents: quoteData.base_price_cents,
+        addonsCents: finalAddOns.reduce((sum: number, addon: any) => sum + (addon.price * 100), 0),
+        subtotalCents: quoteData.base_price_cents + finalAddOns.reduce((sum: number, addon: any) => sum + (addon.price * 100), 0),
+        totalCents: quoteData.total_cents
+      };
+    }
   } else {
     // Calculate from scratch
     if (!data.packageCode || !data.duration) {
@@ -356,8 +385,41 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
   let promoApplied = false;
   let appliedPromoCode = null;
   
-  if (data.promoCode) {
-    // Check if promo code is valid and apply discount
+  // If we already calculated pricing with a promo code (from quote path), 
+  // just set the flags based on whether discount was applied
+  if (data.promoCode && data.quoteId && pricing.promoSavingsCents > 0) {
+    promoApplied = true;
+    appliedPromoCode = data.promoCode.toUpperCase();
+    
+    // Record promo usage for quote-based applications with promo
+    const supabase = getSupabaseAdmin();
+    const { data: promoData } = await supabase
+      .from('promo_codes')
+      .select('*')
+      .eq('code', data.promoCode.toUpperCase())
+      .eq('is_active', true)
+      .single();
+    
+    if (promoData) {
+      // Record promo usage
+      await supabase
+        .from('promo_code_usage')
+        .insert({
+          promo_code_id: promoData.id,
+          lead_id: null, // Will be updated after lead creation
+          applied_discount_cents: pricing.promoSavingsCents || 0,
+          created_at: new Date().toISOString()
+        });
+      
+      // Update usage count
+      await supabase
+        .from('promo_codes')
+        .update({ current_uses: (promoData.current_uses || 0) + 1 })
+        .eq('id', promoData.id);
+    }
+  } else if (data.promoCode && !data.quoteId) {
+    // Only validate and apply promo for non-quote applications
+    // (quote applications already have pricing calculated with promo)
     const supabase = getSupabaseAdmin();
     const { data: promoData } = await supabase
       .from('promo_codes')
