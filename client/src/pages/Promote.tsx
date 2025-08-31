@@ -672,7 +672,24 @@ export default function Promote() {
       formDataToSend.append('packageCode', packageToSubmit);
       formDataToSend.append('duration', packageToSubmit === 'full_feature' ? 'weekly' : durationType);
       formDataToSend.append('numWeeks', String(durationType === 'weekly' ? weekDuration : 1));
-      formDataToSend.append('numDays', String(durationType === 'daily' ? dayDuration : 1)); // Minimum 1 day
+      
+      // Calculate actual days from date range if both dates are provided
+      let calculatedDays = 1;
+      if (durationType === 'daily' && formData.start_date && formData.end_date) {
+        const start = new Date(formData.start_date + 'T00:00:00Z');
+        const end = new Date(formData.end_date + 'T00:00:00Z');
+        calculatedDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        console.log('Frontend calculated days from date range:', {
+          startDate: formData.start_date,
+          endDate: formData.end_date,
+          calculatedDays,
+          originalDayDuration: dayDuration
+        });
+      } else if (durationType === 'daily') {
+        calculatedDays = dayDuration;
+      }
+      
+      formDataToSend.append('numDays', String(calculatedDays));
       formDataToSend.append('startDate', formData.start_date);
       formDataToSend.append('endDate', formData.end_date);
       formDataToSend.append('addOns', JSON.stringify(selectedAddOns));

@@ -294,12 +294,21 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
       price: PRICING.addOns[code as AddOnCode] || 0 
     }));
     
-    // Calculate actual number of days from date range if provided
-    let actualNumDays = data.numDays || 1;
+    // Use the number of days received from frontend (which now calculates from date range)
+    const actualNumDays = data.numDays || 1;
+    
+    // Log the received data for validation
     if (finalDuration === 'daily' && finalStartDate && finalEndDate) {
       const start = new Date(finalStartDate + 'T00:00:00Z');
       const end = new Date(finalEndDate + 'T00:00:00Z');
-      actualNumDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const expectedDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      console.log('Backend validation - Days for pricing:', {
+        startDate: finalStartDate,
+        endDate: finalEndDate,
+        receivedNumDays: actualNumDays,
+        expectedDays,
+        match: actualNumDays === expectedDays
+      });
     }
     
     pricing = await calculatePricing(
