@@ -122,7 +122,7 @@ export default function ThisWeekEvents() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-8">
             <h2 className="font-fraunces text-3xl lg:text-4xl font-bold tracking-tight text-white mb-2">
-              What's next (7 day preview)
+              What's next? (7 day preview)
             </h2>
             <p className="text-muted">Loading events...</p>
           </div>
@@ -151,7 +151,7 @@ export default function ThisWeekEvents() {
           <div className="flex justify-between items-end mb-2">
             <div>
               <h2 className="font-fraunces text-3xl lg:text-4xl font-bold tracking-tight text-white mb-2">
-                What's next (7 day preview)
+                What's next? (7 day preview)
               </h2>
               <p className="text-muted">
                 South Asian culture, music, and community events
