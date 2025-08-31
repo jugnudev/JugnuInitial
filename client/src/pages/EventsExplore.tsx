@@ -24,6 +24,7 @@ const CATEGORIES = [
   { value: 'Parties', label: 'Parties' },
   { value: 'Comedy', label: 'Comedy' },
   { value: 'Festivals', label: 'Festivals' },
+  { value: 'Other', label: 'Other' },
 ];
 
 export default function EventsExplore() {

@@ -2,7 +2,7 @@
 export const PLACE_GROUPS = ['All', 'Eat & Drink', 'Shops & Services', 'Culture & Faith'] as const;
 export type PlaceGroup = typeof PLACE_GROUPS[number];
 
-export const EVENT_CATEGORIES = ['All', 'Concert', 'Parties', 'Comedy', 'Festival'] as const;
+export const EVENT_CATEGORIES = ['All', 'Concert', 'Parties', 'Comedy', 'Festival', 'Other'] as const;
 export type EventCategory = typeof EVENT_CATEGORIES[number];
 
 // Map place types to display groups
