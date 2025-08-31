@@ -290,12 +290,19 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
     // If a promo code is provided, recalculate pricing with the promo
     // Otherwise use the quote's stored pricing
     if (data.promoCode) {
-      // Extract numDays from the quote data or calculate from dates
+      // Use numDays from the application data if available (for daily duration)
+      // This is more reliable than trying to calculate from potentially null dates
       let numDays = 1;
-      if (finalDuration === 'daily' && finalStartDate && finalEndDate) {
-        const start = new Date(finalStartDate + 'T00:00:00Z');
-        const end = new Date(finalEndDate + 'T00:00:00Z');
-        numDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      if (finalDuration === 'daily') {
+        // Prefer the numDays from application data if provided
+        if (data.numDays && data.numDays > 0) {
+          numDays = data.numDays;
+        } else if (finalStartDate && finalEndDate) {
+          // Fallback to calculating from dates if available
+          const start = new Date(finalStartDate + 'T00:00:00Z');
+          const end = new Date(finalEndDate + 'T00:00:00Z');
+          numDays = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        }
       }
       
       console.log('🔄 Recalculating pricing with promo code:', {
@@ -303,7 +310,8 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
         duration: finalDuration,
         numWeeks: finalNumWeeks,
         numDays,
-        promoCode: data.promoCode
+        promoCode: data.promoCode,
+        fromApplicationData: data.numDays
       });
       
       pricing = await calculatePricing(
