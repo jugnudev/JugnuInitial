@@ -1951,6 +1951,7 @@ export default function Promote() {
                             packageCode: selectedPackage,
                             duration: selectedPackage === 'full_feature' ? 'weekly' : durationType,
                             numWeeks: durationType === 'weekly' ? weekDuration : 1,
+                            numDays: durationType === 'daily' ? dayDuration : 1,
                             selectedDates: [],
                             startDate: null,
                             endDate: null,
