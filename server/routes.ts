@@ -390,7 +390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .replace(/[">]/g, '\n') // Split on quotes and > symbols to separate URLs
               .replace(/<[^>]+>/g, '') // Strip remaining HTML tags
               .replace(/&[a-zA-Z0-9#]+;/g, (match: string) => he.decode(match)) // Decode HTML entities
-              .replace(/\s+/g, ' ') // Normalize whitespace
+              .replace(/[ \t]+/g, ' ') // Normalize spaces and tabs (but preserve newlines!)
               .trim();
             
             console.log(`Cleaned for parsing: ${cleanedForParsing.substring(0, 200)}...`);
