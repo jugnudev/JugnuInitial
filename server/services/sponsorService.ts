@@ -12,7 +12,7 @@ const PRICING = {
   },
   addOns: {
     ig_story: 10,
-    email_feature: 30
+    email_feature: 90
   }
 } as const;
 
@@ -166,7 +166,7 @@ export async function calculatePricing(
     addonsCents: addOnsPrice * 100,
     subtotalCents: (basePrice + addOnsPrice) * 100,
     totalCents: (discountedBasePrice + addOnsPrice) * 100,
-    promoSavingsCents: promoApplied ? basePrice * 100 : 0
+    promoSavingsCents: promoApplied ? discountAmount * 100 : 0
   };
 }
 
@@ -401,6 +401,7 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
     promo_applied: promoApplied,
     promo_code: appliedPromoCode,
     currency: 'CAD',
+    base_price_cents: pricing.basePriceCents,
     subtotal_cents: pricing.subtotalCents,
     addons_cents: pricing.addonsCents,
     total_cents: pricing.totalCents,

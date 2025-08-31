@@ -131,8 +131,10 @@ async function sendAdminNotificationEmail(leadId: string, leadData: any) {
     }).join(', ')}</p>` : '<p><strong>Add-ons:</strong> None</p>'}
     
     <h3>Pricing</h3>
+    <p><strong>Package:</strong> CA$${leadData.base_price_cents ? (leadData.base_price_cents / 100).toFixed(2) : '0.00'}</p>
+    ${leadData.add_ons && leadData.add_ons.length > 0 ? `<p><strong>Add-ons:</strong> CA$${leadData.addons_cents ? (leadData.addons_cents / 100).toFixed(2) : '0.00'}</p>` : ''}
     <p><strong>Subtotal:</strong> CA$${leadData.subtotal_cents ? (leadData.subtotal_cents / 100).toFixed(2) : '0.00'}</p>
-    ${leadData.promo_applied ? `<p><strong>Promo:</strong> ${leadData.promo_code} (Base package free)</p>` : ''}
+    ${leadData.promo_applied && leadData.promo_code ? `<p><strong>Promo Code:</strong> ${leadData.promo_code} (-CA$${((leadData.subtotal_cents - leadData.total_cents) / 100).toFixed(2)})</p>` : ''}
     <p><strong>Total:</strong> CA$${leadData.total_cents ? (leadData.total_cents / 100).toFixed(2) : '0.00'}</p>
     
     <h3>Campaign Details</h3>
