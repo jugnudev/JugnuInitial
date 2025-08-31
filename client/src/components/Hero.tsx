@@ -73,7 +73,7 @@ export default function Hero() {
                 className="inline-flex items-center justify-center px-8 py-4 text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200 shadow-lg hover:shadow-xl btn-glow bg-[#c05a0e]"
                 data-testid="button-join-waitlist"
               >
-                Join Waitlist
+                Join
               </Link>
             )}
             

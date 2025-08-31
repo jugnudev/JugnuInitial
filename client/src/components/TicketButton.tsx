@@ -84,7 +84,7 @@ export default function TicketButton({
             rel="noopener noreferrer"
             data-testid="button-waitlist"
           >
-            Join Waitlist
+            Join
           </a>
         )}
       </div>
@@ -117,7 +117,7 @@ export default function TicketButton({
           className={cn(btnBase, sizes, primary, className)}
           data-testid="button-join-waitlist"
         >
-          Join Waitlist
+          Join
         </button>
       );
     }

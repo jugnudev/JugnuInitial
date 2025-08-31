@@ -84,7 +84,7 @@ export default function Events() {
                   className="inline-flex items-center justify-center px-6 py-3 bg-primary text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent transition-all duration-200 btn-glow"
                   data-testid="button-join-waitlist-empty"
                 >
-                  Join Waitlist
+                  Join
                 </a>
               </div>
             </div>
