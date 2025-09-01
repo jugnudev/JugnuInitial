@@ -238,9 +238,26 @@ export default function ThisWeekEvents() {
                       )}
                       
                       {/* Date Badge */}
-                      <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-1.5">
-                        <div className="text-xs font-semibold text-copper-400">
-                          {formatEventDate(event.date)}
+                      <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-sm rounded-lg px-3 py-2 text-center min-w-[60px]">
+                        <div className="text-xl font-bold text-white">
+                          {(() => {
+                            try {
+                              const date = parseISO(event.start_at || event.date);
+                              return format(date, "d");
+                            } catch {
+                              return "TBA";
+                            }
+                          })()}
+                        </div>
+                        <div className="text-xs font-semibold text-copper-400 uppercase">
+                          {(() => {
+                            try {
+                              const date = parseISO(event.start_at || event.date);
+                              return format(date, "MMM");
+                            } catch {
+                              return "";
+                            }
+                          })()}
                         </div>
                       </div>
                       
