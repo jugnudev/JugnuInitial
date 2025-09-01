@@ -105,8 +105,7 @@ export const PRICING_CONFIG = {
       code: 'SEPTEMBER_FREE_WEEK_2025',
       description: 'First 7-day booking free (September)',
       isActive: () => {
-        const now = new Date();
-        return now.getMonth() === 8 && now.getFullYear() === 2025; // September is month 8
+        return false; // Offer disabled
       },
       applies: (durationType: DurationType) => durationType === 'weekly',
       badge: '🎉 Launch Offer: First 7-day booking free (September)'
