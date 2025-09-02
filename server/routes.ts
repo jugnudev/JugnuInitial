@@ -3258,6 +3258,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get current live visitors
       const liveVisitors = activeVisitors.size;
       
+      // Get the most recent save time from database
+      const { data: lastSaveData } = await supabase
+        .from('visitor_analytics')
+        .select('created_at')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      const lastSavedTime = lastSaveData?.[0]?.created_at || lastAnalyticsSaveTime?.toISOString();
+      
       res.json({ 
         ok: true, 
         data,
@@ -3266,7 +3275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           liveVisitors,
           daysAnalyzed: daysCount
         },
-        lastSaved: lastAnalyticsSaveTime?.toISOString()
+        lastSaved: lastSavedTime
       });
     } catch (error) {
       console.error('Error fetching analytics:', error);

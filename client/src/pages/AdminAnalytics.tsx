@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Users, Eye, TrendingUp, Activity, Monitor, Smartphone, Tablet, Globe, RefreshCcw } from 'lucide-react';
+import { Users, Eye, TrendingUp, Activity, Monitor, Smartphone, Tablet, Globe, RefreshCcw, Clock } from 'lucide-react';
 import { queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -47,6 +47,7 @@ const COLORS = ['#f97316', '#22c55e', '#3b82f6', '#a855f7', '#ef4444'];
 export default function AdminAnalytics() {
   const [dateRange, setDateRange] = useState('30');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
   const { toast } = useToast();
 
   // Check authentication
@@ -79,6 +80,7 @@ export default function AdminAnalytics() {
         }
         throw new Error('Failed to fetch analytics');
       }
+      setLastRefresh(new Date());
       return response.json();
     },
     enabled: isAuthenticated,
@@ -99,7 +101,11 @@ export default function AdminAnalytics() {
       return response.json();
     },
     onSuccess: (data) => {
-      const lastSaved = data.lastSaved ? new Date(data.lastSaved).toLocaleString('en-US', { timeZone: 'America/Vancouver' }) : 'now';
+      const lastSaved = data.lastSaved ? new Date(data.lastSaved).toLocaleString('en-US', { 
+        timeZone: 'America/Los_Angeles',
+        dateStyle: 'short',
+        timeStyle: 'short'
+      }) + ' PST' : 'now';
       toast({
         title: 'Analytics Stored',
         description: `Daily analytics saved at ${lastSaved}`,
@@ -236,15 +242,24 @@ export default function AdminAnalytics() {
               </Button>
             </div>
           </div>
-          {data?.lastSaved && (
-            <div className="text-sm text-white/60">
-              Last saved: {new Date(data.lastSaved).toLocaleString('en-US', { 
-                timeZone: 'America/Vancouver',
-                dateStyle: 'medium',
+          <div className="flex gap-4 text-sm text-white/60">
+            {data?.lastSaved && (
+              <div>
+                Last saved: {new Date(data.lastSaved).toLocaleString('en-US', { 
+                  timeZone: 'America/Los_Angeles',
+                  dateStyle: 'short',
+                  timeStyle: 'short'
+                })} PST
+              </div>
+            )}
+            <div className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              Auto-refreshes every minute (last: {lastRefresh.toLocaleTimeString('en-US', {
+                timeZone: 'America/Los_Angeles',
                 timeStyle: 'short'
-              })} Pacific
+              })} PST)
             </div>
-          )}
+          </div>
         </div>
 
         {/* Summary Cards */}
