@@ -2995,7 +2995,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Track visitor activity
   app.post('/api/fireflies/ping', (req, res) => {
-    const visitorId = req.session?.id || req.ip || 'anonymous';
+    // Use a combination of IP and user agent for more stable visitor tracking
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    const visitorId = `${ip}_${userAgent}`.slice(0, 200); // Limit length for memory efficiency
+    
     activeVisitors.set(visitorId, Date.now());
     
     // Clean up old visitors
