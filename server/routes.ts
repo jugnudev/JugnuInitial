@@ -2992,6 +2992,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fireflies (Active Visitors) Tracking & Analytics
   const activeVisitors = new Map<string, number>();
   const VISITOR_TIMEOUT = 15 * 60 * 1000; // 15 minutes
+  let lastAnalyticsSaveTime: Date | null = null;
   
   // Enhanced visitor tracking with detailed analytics
   interface VisitorSession {
@@ -3061,7 +3062,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     activeVisitors.set(visitorId, now);
     
     // Clean up old visitors
-    for (const [id, timestamp] of activeVisitors.entries()) {
+    const entries = Array.from(activeVisitors.entries());
+    for (const [id, timestamp] of entries) {
       if (now - timestamp > VISITOR_TIMEOUT) {
         activeVisitors.delete(id);
         visitorSessions.delete(id);
@@ -3075,7 +3077,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/fireflies/count', (req, res) => {
     // Clean up old visitors first
     const now = Date.now();
-    for (const [id, timestamp] of activeVisitors.entries()) {
+    const entries = Array.from(activeVisitors.entries());
+    for (const [id, timestamp] of entries) {
       if (now - timestamp > VISITOR_TIMEOUT) {
         activeVisitors.delete(id);
       }
@@ -3087,16 +3090,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Visitor Analytics API Endpoints
   
-  // Store daily analytics (called by a cron job or manually)
-  app.post('/api/admin/analytics/store-daily', async (req, res) => {
-    const adminKey = req.headers['x-admin-key'];
-    if (adminKey !== process.env.ADMIN_KEY) {
-      return res.status(401).json({ ok: false, error: 'Unauthorized' });
-    }
-    
+  // Function to save analytics data
+  async function saveAnalyticsData(date?: string): Promise<boolean> {
     try {
       const supabase = await getSupabaseAdmin();
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      const targetDate = date || new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Skip if no data to save
+      if (visitorSessions.size === 0 && dailyAnalytics.pages.size === 0) {
+        console.log(`No analytics data to save for ${targetDate}`);
+        return true;
+      }
       
       // Calculate analytics from current sessions
       const uniqueVisitors = visitorSessions.size;
@@ -3105,11 +3109,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate new vs returning (simplified - would need persistent storage for accurate tracking)
       const newVisitors = Math.floor(uniqueVisitors * 0.7); // Estimate 70% new visitors
       const returningVisitors = uniqueVisitors - newVisitors;
-      
-      // Calculate average session duration
-      const avgSessionDuration = Array.from(visitorSessions.values()).reduce((sum, s) => {
-        return sum + (s.lastSeen - s.firstSeen) / 1000; // Convert to seconds
-      }, 0) / (uniqueVisitors || 1);
       
       // Get top pages
       const topPages = Array.from(dailyAnalytics.pages.entries())
@@ -3127,24 +3126,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { error } = await supabase
         .from('visitor_analytics')
         .upsert({
-          day: today,
+          day: targetDate,
           unique_visitors: uniqueVisitors,
-          total_pageviews: totalPageviews,
-          new_visitors: newVisitors,
-          returning_visitors: returningVisitors,
-          avg_session_duration: Math.round(avgSessionDuration),
+          pageviews: totalPageviews,
+          device_types: dailyAnalytics.deviceCounts,
           top_pages: topPages,
-          top_referrers: topReferrers,
-          device_breakdown: dailyAnalytics.deviceCounts
+          referrers: topReferrers,
+          new_visitors: newVisitors,
+          returning_visitors: returningVisitors
         }, {
           onConflict: 'day'
         });
       
-      if (error) throw error;
+      if (!error) {
+        lastAnalyticsSaveTime = new Date();
+        console.log(`✅ Analytics saved for ${targetDate} at ${lastAnalyticsSaveTime.toLocaleString('en-US', { timeZone: 'America/Vancouver' })}`);
+      } else {
+        console.error('Error storing analytics:', error);
+      }
       
-      res.json({ ok: true, message: 'Analytics stored successfully' });
+      return !error;
     } catch (error) {
-      console.error('Error storing analytics:', error);
+      console.error('Error saving analytics data:', error);
+      return false;
+    }
+  }
+  
+  // Automatic daily saving at midnight Pacific time
+  function scheduleAnalyticsSaving() {
+    const checkAndSave = async () => {
+      const now = new Date();
+      const vancouverTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Vancouver" }));
+      
+      // Check if it's midnight (00:00-00:05) Pacific time
+      if (vancouverTime.getHours() === 0 && vancouverTime.getMinutes() < 5) {
+        // Save yesterday's data
+        const yesterday = new Date(vancouverTime);
+        yesterday.setDate(yesterday.getDate() - 1);
+        const yesterdayStr = yesterday.toISOString().split('T')[0];
+        
+        // Check if we haven't saved in the last hour
+        if (!lastAnalyticsSaveTime || (now.getTime() - lastAnalyticsSaveTime.getTime()) > 3600000) {
+          console.log(`🕒 Midnight Pacific - Auto-saving analytics for ${yesterdayStr}`);
+          await saveAnalyticsData(yesterdayStr);
+        }
+      }
+    };
+    
+    // Check every 5 minutes
+    setInterval(checkAndSave, 5 * 60 * 1000);
+    
+    // Also save on server startup if there's data from previous session
+    setTimeout(async () => {
+      const today = new Date().toISOString().split('T')[0];
+      if (visitorSessions.size > 0 || dailyAnalytics.pages.size > 0) {
+        console.log('📊 Server startup - Saving unsaved analytics data');
+        await saveAnalyticsData(today);
+      }
+    }, 5000); // Wait 5 seconds after startup
+  }
+  
+  // Start the scheduled saving
+  scheduleAnalyticsSaving();
+  
+  // Store daily analytics (called manually from admin dashboard)
+  app.post('/api/admin/analytics/store-daily', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+    
+    const success = await saveAnalyticsData();
+    if (success) {
+      res.json({ 
+        ok: true, 
+        message: 'Analytics stored successfully',
+        lastSaved: lastAnalyticsSaveTime?.toISOString()
+      });
+    } else {
       res.status(500).json({ ok: false, error: 'Failed to store analytics' });
     }
   });
@@ -3206,7 +3265,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ...summary,
           liveVisitors,
           daysAnalyzed: daysCount
-        }
+        },
+        lastSaved: lastAnalyticsSaveTime?.toISOString()
       });
     } catch (error) {
       console.error('Error fetching analytics:', error);

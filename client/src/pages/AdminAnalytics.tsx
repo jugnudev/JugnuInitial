@@ -10,6 +10,13 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import AdminNav from '@/components/AdminNav';
 
+interface AnalyticsResponse {
+  ok: boolean;
+  data: AnalyticsData[];
+  summary: AnalyticsSummary;
+  lastSaved?: string;
+}
+
 interface AnalyticsData {
   day: string;
   unique_visitors: number;
@@ -55,6 +62,7 @@ export default function AdminAnalytics() {
     ok: boolean;
     data: AnalyticsData[];
     summary: AnalyticsSummary;
+    lastSaved?: string;
   }>({
     queryKey: ['/api/admin/analytics', dateRange],
     queryFn: async () => {
@@ -90,10 +98,11 @@ export default function AdminAnalytics() {
       if (!response.ok) throw new Error('Failed to store analytics');
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      const lastSaved = data.lastSaved ? new Date(data.lastSaved).toLocaleString('en-US', { timeZone: 'America/Vancouver' }) : 'now';
       toast({
         title: 'Analytics Stored',
-        description: 'Daily analytics have been saved to the database',
+        description: `Daily analytics saved at ${lastSaved}`,
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/analytics'] });
     },
@@ -203,28 +212,39 @@ export default function AdminAnalytics() {
       <AdminNav />
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Visitor Analytics Dashboard</h1>
-          <div className="flex gap-4">
-            <Select value={dateRange} onValueChange={setDateRange}>
-              <SelectTrigger className="w-32 bg-black/40 border-copper-500/30 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-black border-copper-500/30">
-                <SelectItem value="7">7 days</SelectItem>
-                <SelectItem value="30">30 days</SelectItem>
-                <SelectItem value="90">90 days</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button 
-              onClick={() => storeDailyMutation.mutate()}
-              disabled={storeDailyMutation.isPending}
-              className="bg-copper-600 hover:bg-copper-700"
-            >
-              <RefreshCcw className="w-4 h-4 mr-2" />
-              Store Today's Data
-            </Button>
+        <div className="mb-8">
+          <div className="flex justify-between items-center mb-2">
+            <h1 className="text-3xl font-bold text-white">Visitor Analytics Dashboard</h1>
+            <div className="flex gap-4">
+              <Select value={dateRange} onValueChange={setDateRange}>
+                <SelectTrigger className="w-32 bg-black/40 border-copper-500/30 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-black border-copper-500/30">
+                  <SelectItem value="7">7 days</SelectItem>
+                  <SelectItem value="30">30 days</SelectItem>
+                  <SelectItem value="90">90 days</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                onClick={() => storeDailyMutation.mutate()}
+                disabled={storeDailyMutation.isPending}
+                className="bg-copper-600 hover:bg-copper-700"
+              >
+                <RefreshCcw className="w-4 h-4 mr-2" />
+                Store Today's Data
+              </Button>
+            </div>
           </div>
+          {data?.lastSaved && (
+            <div className="text-sm text-white/60">
+              Last saved: {new Date(data.lastSaved).toLocaleString('en-US', { 
+                timeZone: 'America/Vancouver',
+                dateStyle: 'medium',
+                timeStyle: 'short'
+              })} Pacific
+            </div>
+          )}
         </div>
 
         {/* Summary Cards */}
