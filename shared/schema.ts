@@ -94,6 +94,22 @@ export const sponsorMetricsDaily = pgTable("sponsor_metrics_daily", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
 
+// Visitor Analytics Table
+export const visitorAnalytics = pgTable("visitor_analytics", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  day: date("day").notNull().unique(), // Unique constraint to ensure one record per day
+  uniqueVisitors: integer("unique_visitors").notNull().default(0),
+  totalPageviews: integer("total_pageviews").notNull().default(0),
+  newVisitors: integer("new_visitors").notNull().default(0),
+  returningVisitors: integer("returning_visitors").notNull().default(0),
+  avgSessionDuration: integer("avg_session_duration").default(0), // in seconds
+  topPages: jsonb("top_pages").default(sql`'[]'::jsonb`), // Array of { path: string, views: number }
+  topReferrers: jsonb("top_referrers").default(sql`'[]'::jsonb`), // Array of { referrer: string, count: number }
+  deviceBreakdown: jsonb("device_breakdown").default(sql`'{"mobile": 0, "desktop": 0, "tablet": 0}'::jsonb`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+});
+
 // New tables for sponsorship refresh
 export const sponsorPromoRedemptions = pgTable("sponsor_promo_redemptions", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -239,6 +255,12 @@ export const insertSponsorLeadSchema = createInsertSchema(sponsorLeads).omit({
   createdAt: true,
 });
 
+export const insertVisitorAnalyticsSchema = createInsertSchema(visitorAnalytics).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -263,3 +285,5 @@ export type SponsorQuote = typeof sponsorQuotes.$inferSelect;
 export type InsertSponsorQuote = z.infer<typeof insertSponsorQuoteSchema>;
 export type SponsorLead = typeof sponsorLeads.$inferSelect;
 export type InsertSponsorLead = z.infer<typeof insertSponsorLeadSchema>;
+export type VisitorAnalytics = typeof visitorAnalytics.$inferSelect;
+export type InsertVisitorAnalytics = z.infer<typeof insertVisitorAnalyticsSchema>;

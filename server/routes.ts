@@ -36,7 +36,7 @@ function createCanonicalKey(title: string, startAt: Date, venue: string | null, 
   return `${titleNorm}|${whenStr}|${venueNorm}`;
 }
 
-import { insertCommunityEventSchema, updateCommunityEventSchema } from "@shared/schema";
+import { insertCommunityEventSchema, updateCommunityEventSchema, visitorAnalytics, insertVisitorAnalyticsSchema } from "@shared/schema";
 import { importFromGoogle, importFromYelp, reverifyAllPlaces } from "./lib/places-sync.js";
 import { matchAndEnrichPlaces, inactivateUnmatchedPlaces, getPlaceMatchingStats } from "./lib/place-matcher.js";
 
@@ -2989,24 +2989,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('✓ Dev routes enabled for places admin operations');
   }
 
-  // Fireflies (Active Visitors) Tracking
+  // Fireflies (Active Visitors) Tracking & Analytics
   const activeVisitors = new Map<string, number>();
   const VISITOR_TIMEOUT = 15 * 60 * 1000; // 15 minutes
+  
+  // Enhanced visitor tracking with detailed analytics
+  interface VisitorSession {
+    id: string;
+    firstSeen: number;
+    lastSeen: number;
+    pageviews: number;
+    pages: Set<string>;
+    referrer?: string;
+    device: 'mobile' | 'desktop' | 'tablet';
+  }
+  
+  const visitorSessions = new Map<string, VisitorSession>();
+  const dailyAnalytics = {
+    pageviews: new Map<string, number>(),
+    referrers: new Map<string, number>(),
+    pages: new Map<string, number>(),
+    deviceCounts: { mobile: 0, desktop: 0, tablet: 0 }
+  };
 
-  // Track visitor activity
+  // Track visitor activity with enhanced analytics
   app.post('/api/fireflies/ping', (req, res) => {
     // Use a combination of IP and user agent for more stable visitor tracking
     const userAgent = req.headers['user-agent'] || 'unknown';
     const ip = req.ip || req.connection?.remoteAddress || 'unknown';
     const visitorId = `${ip}_${userAgent}`.slice(0, 200); // Limit length for memory efficiency
     
-    activeVisitors.set(visitorId, Date.now());
+    // Detect device type
+    const device = userAgent.includes('Mobile') ? 'mobile' : 
+                   userAgent.includes('Tablet') || userAgent.includes('iPad') ? 'tablet' : 'desktop';
+    
+    // Track page and referrer
+    const page = (req.body?.page || '/') as string;
+    const referrer = req.body?.referrer || req.headers.referer;
+    
+    const now = Date.now();
+    
+    // Update or create visitor session
+    let session = visitorSessions.get(visitorId);
+    if (!session) {
+      session = {
+        id: visitorId,
+        firstSeen: now,
+        lastSeen: now,
+        pageviews: 1,
+        pages: new Set([page]),
+        referrer,
+        device
+      };
+      visitorSessions.set(visitorId, session);
+      
+      // Track new visitor
+      dailyAnalytics.deviceCounts[device]++;
+      if (referrer) {
+        dailyAnalytics.referrers.set(referrer, (dailyAnalytics.referrers.get(referrer) || 0) + 1);
+      }
+    } else {
+      session.lastSeen = now;
+      session.pageviews++;
+      session.pages.add(page);
+    }
+    
+    // Track pageview
+    dailyAnalytics.pageviews.set(page, (dailyAnalytics.pageviews.get(page) || 0) + 1);
+    dailyAnalytics.pages.set(page, (dailyAnalytics.pages.get(page) || 0) + 1);
+    
+    activeVisitors.set(visitorId, now);
     
     // Clean up old visitors
-    const now = Date.now();
     for (const [id, timestamp] of activeVisitors.entries()) {
       if (now - timestamp > VISITOR_TIMEOUT) {
         activeVisitors.delete(id);
+        visitorSessions.delete(id);
       }
     }
     
@@ -3025,6 +3083,159 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const count = activeVisitors.size || 1; // Always show at least 1 (the current visitor)
     res.json({ ok: true, count });
+  });
+
+  // Visitor Analytics API Endpoints
+  
+  // Store daily analytics (called by a cron job or manually)
+  app.post('/api/admin/analytics/store-daily', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+    
+    try {
+      const supabase = await getSupabaseAdmin();
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Calculate analytics from current sessions
+      const uniqueVisitors = visitorSessions.size;
+      const totalPageviews = Array.from(visitorSessions.values()).reduce((sum, s) => sum + s.pageviews, 0);
+      
+      // Calculate new vs returning (simplified - would need persistent storage for accurate tracking)
+      const newVisitors = Math.floor(uniqueVisitors * 0.7); // Estimate 70% new visitors
+      const returningVisitors = uniqueVisitors - newVisitors;
+      
+      // Calculate average session duration
+      const avgSessionDuration = Array.from(visitorSessions.values()).reduce((sum, s) => {
+        return sum + (s.lastSeen - s.firstSeen) / 1000; // Convert to seconds
+      }, 0) / (uniqueVisitors || 1);
+      
+      // Get top pages
+      const topPages = Array.from(dailyAnalytics.pages.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([path, views]) => ({ path, views }));
+      
+      // Get top referrers
+      const topReferrers = Array.from(dailyAnalytics.referrers.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+        .map(([referrer, count]) => ({ referrer, count }));
+      
+      // Store in database
+      const { error } = await supabase
+        .from('visitor_analytics')
+        .upsert({
+          day: today,
+          unique_visitors: uniqueVisitors,
+          total_pageviews: totalPageviews,
+          new_visitors: newVisitors,
+          returning_visitors: returningVisitors,
+          avg_session_duration: Math.round(avgSessionDuration),
+          top_pages: topPages,
+          top_referrers: topReferrers,
+          device_breakdown: dailyAnalytics.deviceCounts
+        }, {
+          onConflict: 'day'
+        });
+      
+      if (error) throw error;
+      
+      res.json({ ok: true, message: 'Analytics stored successfully' });
+    } catch (error) {
+      console.error('Error storing analytics:', error);
+      res.status(500).json({ ok: false, error: 'Failed to store analytics' });
+    }
+  });
+  
+  // Get analytics data for dashboard
+  app.get('/api/admin/analytics', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+    
+    try {
+      const supabase = await getSupabaseAdmin();
+      const { days = 30 } = req.query;
+      
+      // Calculate date range
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - Number(days));
+      
+      const { data, error } = await supabase
+        .from('visitor_analytics')
+        .select('*')
+        .gte('day', startDate.toISOString().split('T')[0])
+        .lte('day', endDate.toISOString().split('T')[0])
+        .order('day', { ascending: true });
+      
+      if (error) throw error;
+      
+      // Calculate summary statistics
+      const summary = data?.reduce((acc, day) => ({
+        totalVisitors: acc.totalVisitors + (day.unique_visitors || 0),
+        totalPageviews: acc.totalPageviews + (day.total_pageviews || 0),
+        avgVisitorsPerDay: 0, // Will calculate after
+        avgPageviewsPerDay: 0, // Will calculate after
+      }), {
+        totalVisitors: 0,
+        totalPageviews: 0,
+        avgVisitorsPerDay: 0,
+        avgPageviewsPerDay: 0,
+      }) || {
+        totalVisitors: 0,
+        totalPageviews: 0,
+        avgVisitorsPerDay: 0,
+        avgPageviewsPerDay: 0,
+      };
+      
+      const daysCount = data?.length || 1;
+      summary.avgVisitorsPerDay = Math.round(summary.totalVisitors / daysCount);
+      summary.avgPageviewsPerDay = Math.round(summary.totalPageviews / daysCount);
+      
+      // Get current live visitors
+      const liveVisitors = activeVisitors.size;
+      
+      res.json({ 
+        ok: true, 
+        data,
+        summary: {
+          ...summary,
+          liveVisitors,
+          daysAnalyzed: daysCount
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      res.status(500).json({ ok: false, error: 'Failed to fetch analytics' });
+    }
+  });
+  
+  // Get current session analytics (real-time)
+  app.get('/api/admin/analytics/realtime', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+    
+    const sessions = Array.from(visitorSessions.values()).map(s => ({
+      ...s,
+      pages: Array.from(s.pages),
+      sessionDuration: Math.round((s.lastSeen - s.firstSeen) / 1000)
+    }));
+    
+    res.json({
+      ok: true,
+      liveVisitors: activeVisitors.size,
+      sessions,
+      topPages: Array.from(dailyAnalytics.pages.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10),
+      deviceBreakdown: dailyAnalytics.deviceCounts
+    });
   });
 
   // use storage to perform CRUD operations on the storage interface

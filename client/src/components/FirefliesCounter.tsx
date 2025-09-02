@@ -11,7 +11,14 @@ export default function FirefliesCounter() {
       try {
         await fetch('/api/fireflies/ping', { 
           method: 'POST',
-          credentials: 'include'
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            page: window.location.pathname,
+            referrer: document.referrer || undefined
+          })
         });
       } catch (error) {
         console.error('Failed to ping fireflies:', error);
@@ -23,8 +30,15 @@ export default function FirefliesCounter() {
 
     // Ping every 5 minutes to stay active
     const pingInterval = setInterval(pingServer, 5 * 60 * 1000);
+    
+    // Also ping when the page changes (for single-page app navigation)
+    const handleLocationChange = () => pingServer();
+    window.addEventListener('popstate', handleLocationChange);
 
-    return () => clearInterval(pingInterval);
+    return () => {
+      clearInterval(pingInterval);
+      window.removeEventListener('popstate', handleLocationChange);
+    };
   }, []);
 
   // Fetch the count regularly
