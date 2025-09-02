@@ -3129,10 +3129,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .upsert({
           day: targetDate,
           unique_visitors: uniqueVisitors,
-          pageviews: totalPageviews,
-          device_types: dailyAnalytics.deviceCounts,
+          total_pageviews: totalPageviews,
+          device_breakdown: dailyAnalytics.deviceCounts,
           top_pages: topPages,
-          referrers: topReferrers,
+          top_referrers: topReferrers,
           new_visitors: newVisitors,
           returning_visitors: returningVisitors
         }, {
@@ -3198,12 +3198,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Calculate totals and averages
               const totals = data.reduce((acc, day) => ({
                 visitors: acc.visitors + (day.unique_visitors || 0),
-                pageviews: acc.pageviews + (day.pageviews || 0),
+                pageviews: acc.pageviews + (day.total_pageviews || 0),
                 newVisitors: acc.newVisitors + (day.new_visitors || 0),
                 returningVisitors: acc.returningVisitors + (day.returning_visitors || 0),
-                mobile: acc.mobile + (day.device_types?.mobile || 0),
-                desktop: acc.desktop + (day.device_types?.desktop || 0),
-                tablet: acc.tablet + (day.device_types?.tablet || 0)
+                mobile: acc.mobile + (day.device_breakdown?.mobile || 0),
+                desktop: acc.desktop + (day.device_breakdown?.desktop || 0),
+                tablet: acc.tablet + (day.device_breakdown?.tablet || 0)
               }), {
                 visitors: 0,
                 pageviews: 0,
@@ -3433,7 +3433,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const csvRows = data?.map(day => {
         const topPage = day.top_pages?.[0] || {};
-        const deviceTypes = day.device_types || {};
+        const deviceBreakdown = day.device_breakdown || {};
         
         return [
           day.day,
@@ -3441,9 +3441,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           day.total_pageviews || 0,
           day.new_visitors || 0,
           day.returning_visitors || 0,
-          deviceTypes.desktop || 0,
-          deviceTypes.mobile || 0,
-          deviceTypes.tablet || 0,
+          deviceBreakdown.desktop || 0,
+          deviceBreakdown.mobile || 0,
+          deviceBreakdown.tablet || 0,
           topPage.path || '',
           topPage.views || 0
         ];
@@ -3455,9 +3455,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pageviews: acc.pageviews + (day.total_pageviews || 0),
         newVisitors: acc.newVisitors + (day.new_visitors || 0),
         returningVisitors: acc.returningVisitors + (day.returning_visitors || 0),
-        desktop: acc.desktop + (day.device_types?.desktop || 0),
-        mobile: acc.mobile + (day.device_types?.mobile || 0),
-        tablet: acc.tablet + (day.device_types?.tablet || 0)
+        desktop: acc.desktop + (day.device_breakdown?.desktop || 0),
+        mobile: acc.mobile + (day.device_breakdown?.mobile || 0),
+        tablet: acc.tablet + (day.device_breakdown?.tablet || 0)
       }), {
         visitors: 0,
         pageviews: 0,

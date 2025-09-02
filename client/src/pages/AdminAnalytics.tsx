@@ -26,7 +26,7 @@ interface AnalyticsData {
   avg_session_duration: number;
   top_pages: Array<{ path: string; views: number }>;
   top_referrers: Array<{ referrer: string; count: number }>;
-  device_types: {
+  device_breakdown: {
     mobile: number;
     desktop: number;
     tablet: number;
@@ -222,9 +222,9 @@ export default function AdminAnalytics() {
 
   // Aggregate device data
   const deviceData = analyticsData.reduce((acc, day) => {
-    acc.mobile += day.device_types?.mobile || 0;
-    acc.desktop += day.device_types?.desktop || 0;
-    acc.tablet += day.device_types?.tablet || 0;
+    acc.mobile += day.device_breakdown?.mobile || 0;
+    acc.desktop += day.device_breakdown?.desktop || 0;
+    acc.tablet += day.device_breakdown?.tablet || 0;
     return acc;
   }, { mobile: 0, desktop: 0, tablet: 0 });
 
