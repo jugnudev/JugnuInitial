@@ -2995,6 +2995,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const VISITOR_TIMEOUT = 15 * 60 * 1000; // 15 minutes
   let lastAnalyticsSaveTime: Date | null = null;
   
+  // Get current PST date string
+  function getPSTDateString(date?: Date): string {
+    const d = date || new Date();
+    const pstDate = new Date(d.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+    const year = pstDate.getFullYear();
+    const month = String(pstDate.getMonth() + 1).padStart(2, '0');
+    const day = String(pstDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  
   // Enhanced visitor tracking with detailed analytics
   interface VisitorSession {
     id: string;
@@ -3008,6 +3018,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }
   
   const visitorSessions = new Map<string, VisitorSession>();
+  
+  // Daily unique visitors set - persists for the entire day (PST)
+  interface DailyVisitorData {
+    date: string; // YYYY-MM-DD in PST
+    uniqueVisitorIds: Set<string>;
+    totalPageviews: number;
+    deviceBreakdown: { mobile: number; desktop: number; tablet: number };
+  }
+  
+  let currentDayData: DailyVisitorData = {
+    date: getPSTDateString(),
+    uniqueVisitorIds: new Set(),
+    totalPageviews: 0,
+    deviceBreakdown: { mobile: 0, desktop: 0, tablet: 0 }
+  };
+  
+  // Initialize or reset daily data
+  function checkAndResetDailyData(): void {
+    const todayPST = getPSTDateString();
+    
+    if (currentDayData.date !== todayPST) {
+      // New day - reset data
+      currentDayData = {
+        date: todayPST,
+        uniqueVisitorIds: new Set(),
+        totalPageviews: 0,
+        deviceBreakdown: { mobile: 0, desktop: 0, tablet: 0 }
+      };
+      // Clear old visitor sessions for the new day
+      visitorSessions.clear();
+      dailyAnalytics.pageviews.clear();
+      dailyAnalytics.pages.clear();
+      dailyAnalytics.referrers.clear();
+      dailyAnalytics.deviceCounts = { mobile: 0, desktop: 0, tablet: 0 };
+      console.log(`📅 New day detected: ${todayPST} - Reset daily analytics`);
+    }
+  }
+  
   const dailyAnalytics = {
     pageviews: new Map<string, number>(),
     referrers: new Map<string, number>(),
@@ -3017,6 +3065,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Track visitor activity with enhanced analytics
   app.post('/api/fireflies/ping', (req, res) => {
+    // Check if we need to reset for a new day
+    checkAndResetDailyData();
+    
     // Use a combination of IP and user agent for more stable visitor tracking
     const userAgent = req.headers['user-agent'] || 'unknown';
     const ip = req.ip || req.connection?.remoteAddress || 'unknown';
@@ -3032,6 +3083,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     const now = Date.now();
     const FIFTEEN_MINUTES = 15 * 60 * 1000; // 15 minutes in milliseconds
+    
+    // Track if this is a new unique visitor for today
+    const isNewVisitorToday = !currentDayData.uniqueVisitorIds.has(visitorId);
+    if (isNewVisitorToday) {
+      currentDayData.uniqueVisitorIds.add(visitorId);
+      currentDayData.deviceBreakdown[device]++;
+    }
     
     // Update or create visitor session
     let session = visitorSessions.get(visitorId);
@@ -3075,9 +3133,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     // Only track pageview if it should be counted
     if (shouldCountPageview) {
+      currentDayData.totalPageviews++;
       dailyAnalytics.pageviews.set(page, (dailyAnalytics.pageviews.get(page) || 0) + 1);
       dailyAnalytics.pages.set(page, (dailyAnalytics.pages.get(page) || 0) + 1);
-      console.log(`[Analytics] Counted pageview for ${page} (visitor: ${visitorId.slice(0, 20)}...)`);
+      console.log(`[Analytics] Counted pageview for ${page} (visitor: ${visitorId.slice(0, 20)}..., unique today: ${isNewVisitorToday})`);
     } else {
       const timeSinceLastView = session.pageLastViewed.get(page) ? 
         Math.round((now - session.pageLastViewed.get(page)!) / 1000) : 0;
@@ -3119,17 +3178,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function saveAnalyticsData(date?: string): Promise<boolean> {
     try {
       const supabase = await getSupabaseAdmin();
-      const targetDate = date || new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      const targetDate = date || getPSTDateString(); // Use PST date
+      
+      // Check if saving for today - use current day data
+      const isToday = targetDate === getPSTDateString();
       
       // Skip if no data to save
-      if (visitorSessions.size === 0 && dailyAnalytics.pages.size === 0) {
+      if (isToday) {
+        if (currentDayData.uniqueVisitorIds.size === 0 && currentDayData.totalPageviews === 0) {
+          console.log(`No analytics data to save for ${targetDate}`);
+          return true;
+        }
+      } else if (visitorSessions.size === 0 && dailyAnalytics.pages.size === 0) {
         console.log(`No analytics data to save for ${targetDate}`);
         return true;
       }
       
-      // Calculate analytics from current sessions
-      const uniqueVisitors = visitorSessions.size;
-      const totalPageviews = Array.from(visitorSessions.values()).reduce((sum, s) => sum + s.pageviews, 0);
+      // Calculate analytics from current day data or sessions
+      const uniqueVisitors = isToday ? currentDayData.uniqueVisitorIds.size : visitorSessions.size;
+      const totalPageviews = isToday ? currentDayData.totalPageviews : 
+        Array.from(visitorSessions.values()).reduce((sum, s) => sum + s.pageviews, 0);
       
       // Calculate new vs returning (simplified - would need persistent storage for accurate tracking)
       const newVisitors = Math.floor(uniqueVisitors * 0.7); // Estimate 70% new visitors
@@ -3154,7 +3222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           day: targetDate,
           unique_visitors: uniqueVisitors,
           total_pageviews: totalPageviews,
-          device_breakdown: dailyAnalytics.deviceCounts,
+          device_breakdown: isToday ? currentDayData.deviceBreakdown : dailyAnalytics.deviceCounts,
           top_pages: topPages,
           top_referrers: topReferrers,
           new_visitors: newVisitors,
@@ -3326,33 +3394,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     try {
       const supabase = await getSupabaseAdmin();
-      const { days = 30 } = req.query;
+      const { days = '30' } = req.query;
       
-      // Calculate date range
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - Number(days));
+      // Calculate date range in PST
+      let startDateStr: string;
+      let endDateStr: string;
+      
+      if (days === 'today') {
+        startDateStr = endDateStr = getPSTDateString();
+      } else if (days === 'yesterday') {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        startDateStr = endDateStr = getPSTDateString(yesterday);
+      } else {
+        const daysNum = Number(days);
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - daysNum);
+        startDateStr = getPSTDateString(startDate);
+        endDateStr = getPSTDateString(endDate);
+      }
       
       const { data, error } = await supabase
         .from('visitor_analytics')
         .select('*')
-        .gte('day', startDate.toISOString().split('T')[0])
-        .lte('day', endDate.toISOString().split('T')[0])
+        .gte('day', startDateStr)
+        .lte('day', endDateStr)
         .order('day', { ascending: true });
       
       if (error) throw error;
       
-      // Get today's date
-      const today = new Date().toISOString().split('T')[0];
+      // Get today's date in PST
+      const today = getPSTDateString();
       
       // Calculate today's live data from memory
       const todayLiveData = {
         day: today,
-        unique_visitors: visitorSessions.size,
-        total_pageviews: Array.from(visitorSessions.values()).reduce((sum, s) => sum + s.pageviews, 0),
-        new_visitors: Math.floor(visitorSessions.size * 0.7), // Estimate
-        returning_visitors: Math.floor(visitorSessions.size * 0.3),
-        device_breakdown: dailyAnalytics.deviceCounts,
+        unique_visitors: currentDayData.uniqueVisitorIds.size,
+        total_pageviews: currentDayData.totalPageviews,
+        new_visitors: Math.floor(currentDayData.uniqueVisitorIds.size * 0.7), // Estimate
+        returning_visitors: Math.floor(currentDayData.uniqueVisitorIds.size * 0.3),
+        device_breakdown: currentDayData.deviceBreakdown,
         top_pages: Array.from(dailyAnalytics.pages.entries())
           .sort((a, b) => b[1] - a[1])
           .slice(0, 10)

@@ -260,6 +260,8 @@ export default function AdminAnalytics() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-black border-copper-500/30">
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="yesterday">Yesterday</SelectItem>
                   <SelectItem value="7">7 days</SelectItem>
                   <SelectItem value="30">30 days</SelectItem>
                   <SelectItem value="90">90 days</SelectItem>
@@ -322,7 +324,11 @@ export default function AdminAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-white">{summary.totalVisitors.toLocaleString()}</div>
-              <p className="text-xs text-white/60">Last {dateRange} days</p>
+              <p className="text-xs text-white/60">
+                {dateRange === 'today' ? 'Today' : 
+                 dateRange === 'yesterday' ? 'Yesterday' : 
+                 `Last ${dateRange} days`}
+              </p>
             </CardContent>
           </Card>
 
@@ -333,7 +339,11 @@ export default function AdminAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-white">{summary.totalPageviews.toLocaleString()}</div>
-              <p className="text-xs text-white/60">Last {dateRange} days</p>
+              <p className="text-xs text-white/60">
+                {dateRange === 'today' ? 'Today' : 
+                 dateRange === 'yesterday' ? 'Yesterday' : 
+                 `Last ${dateRange} days`}
+              </p>
             </CardContent>
           </Card>
 
@@ -344,7 +354,11 @@ export default function AdminAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-white">{summary.avgVisitorsPerDay}</div>
-              <p className="text-xs text-white/60">Per day average</p>
+              <p className="text-xs text-white/60">
+                {dateRange === 'today' || dateRange === 'yesterday' ? 
+                  (dateRange === 'today' ? 'Today\'s total' : 'Yesterday\'s total') :
+                  'Per day average'}
+              </p>
             </CardContent>
           </Card>
         </div>
