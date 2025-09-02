@@ -2989,6 +2989,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('✓ Dev routes enabled for places admin operations');
   }
 
+  // Fireflies (Active Visitors) Tracking
+  const activeVisitors = new Map<string, number>();
+  const VISITOR_TIMEOUT = 15 * 60 * 1000; // 15 minutes
+
+  // Track visitor activity
+  app.post('/api/fireflies/ping', (req, res) => {
+    const visitorId = req.session?.id || req.ip || 'anonymous';
+    activeVisitors.set(visitorId, Date.now());
+    
+    // Clean up old visitors
+    const now = Date.now();
+    for (const [id, timestamp] of activeVisitors.entries()) {
+      if (now - timestamp > VISITOR_TIMEOUT) {
+        activeVisitors.delete(id);
+      }
+    }
+    
+    res.json({ ok: true });
+  });
+
+  // Get active visitor count
+  app.get('/api/fireflies/count', (req, res) => {
+    // Clean up old visitors first
+    const now = Date.now();
+    for (const [id, timestamp] of activeVisitors.entries()) {
+      if (now - timestamp > VISITOR_TIMEOUT) {
+        activeVisitors.delete(id);
+      }
+    }
+    
+    const count = activeVisitors.size || 1; // Always show at least 1 (the current visitor)
+    res.json({ ok: true, count });
+  });
+
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
 
