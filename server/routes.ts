@@ -3318,8 +3318,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (error) throw error;
       
-      // Calculate summary statistics
-      const summary = data?.reduce((acc, day) => ({
+      // Get today's date
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Calculate today's live data from memory
+      const todayLiveData = {
+        day: today,
+        unique_visitors: visitorSessions.size,
+        total_pageviews: Array.from(visitorSessions.values()).reduce((sum, s) => sum + s.pageviews, 0),
+        new_visitors: Math.floor(visitorSessions.size * 0.7), // Estimate
+        returning_visitors: Math.floor(visitorSessions.size * 0.3),
+        device_breakdown: dailyAnalytics.deviceCounts,
+        top_pages: Array.from(dailyAnalytics.pages.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([path, views]) => ({ path, views })),
+        top_referrers: Array.from(dailyAnalytics.referrers.entries())
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10)
+          .map(([referrer, count]) => ({ referrer, count }))
+      };
+      
+      // Find today's saved data if it exists
+      const todayIndex = data?.findIndex(d => d.day === today);
+      let analyticsData = data || [];
+      
+      // If we have live data for today, either update or append it
+      if (visitorSessions.size > 0 || dailyAnalytics.pages.size > 0) {
+        if (todayIndex !== undefined && todayIndex >= 0) {
+          // Merge live data with saved data for today
+          const savedToday = analyticsData[todayIndex];
+          analyticsData[todayIndex] = {
+            ...savedToday,
+            unique_visitors: Math.max(savedToday.unique_visitors || 0, todayLiveData.unique_visitors),
+            total_pageviews: (savedToday.total_pageviews || 0) + todayLiveData.total_pageviews,
+            device_breakdown: {
+              mobile: (savedToday.device_breakdown?.mobile || 0) + (todayLiveData.device_breakdown.mobile || 0),
+              desktop: (savedToday.device_breakdown?.desktop || 0) + (todayLiveData.device_breakdown.desktop || 0),
+              tablet: (savedToday.device_breakdown?.tablet || 0) + (todayLiveData.device_breakdown.tablet || 0)
+            },
+            top_pages: todayLiveData.top_pages.length > 0 ? todayLiveData.top_pages : savedToday.top_pages
+          };
+        } else {
+          // Add today's live data if not already in the list
+          analyticsData.push(todayLiveData);
+          analyticsData.sort((a, b) => a.day.localeCompare(b.day));
+        }
+      }
+      
+      // Calculate summary statistics using the merged data
+      const summary = analyticsData.reduce((acc, day) => ({
         totalVisitors: acc.totalVisitors + (day.unique_visitors || 0),
         totalPageviews: acc.totalPageviews + (day.total_pageviews || 0),
         avgVisitorsPerDay: 0, // Will calculate after
@@ -3329,14 +3377,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalPageviews: 0,
         avgVisitorsPerDay: 0,
         avgPageviewsPerDay: 0,
-      }) || {
-        totalVisitors: 0,
-        totalPageviews: 0,
-        avgVisitorsPerDay: 0,
-        avgPageviewsPerDay: 0,
-      };
+      });
       
-      const daysCount = data?.length || 1;
+      const daysCount = analyticsData.length || 1;
       summary.avgVisitorsPerDay = Math.round(summary.totalVisitors / daysCount);
       summary.avgPageviewsPerDay = Math.round(summary.totalPageviews / daysCount);
       
@@ -3354,7 +3397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ 
         ok: true, 
-        data,
+        data: analyticsData,
         summary: {
           ...summary,
           liveVisitors,
