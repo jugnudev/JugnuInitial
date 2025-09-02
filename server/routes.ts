@@ -3176,8 +3176,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Check if it's 6 PM (18:00-18:05) Pacific time for daily email
-      if (vancouverTime.getHours() === 18 && vancouverTime.getMinutes() < 5) {
+      // Check if it's 10 PM (22:00-22:05) Pacific time for daily email
+      if (vancouverTime.getHours() === 22 && vancouverTime.getMinutes() < 5) {
         // Only send if we haven't sent today
         if (lastEmailSentDate !== todayStr) {
           try {

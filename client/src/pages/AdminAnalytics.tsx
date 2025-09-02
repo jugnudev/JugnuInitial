@@ -386,8 +386,11 @@ export default function AdminAnalytics() {
                     data={deviceChartData}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    labelLine={true}
+                    label={(entry) => {
+                      const percent = (entry.percent * 100).toFixed(0);
+                      return percent > 0 ? `${entry.name} ${percent}%` : '';
+                    }}
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
@@ -397,6 +400,7 @@ export default function AdminAnalytics() {
                     ))}
                   </Pie>
                   <Tooltip />
+                  <Legend verticalAlign="bottom" height={36} />
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
