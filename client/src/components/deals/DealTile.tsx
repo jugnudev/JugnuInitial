@@ -94,42 +94,42 @@ export function DealTile({
       }`} />
 
       {/* Sponsored badge and brand */}
-      <div className="absolute top-3 sm:top-4 md:top-5 left-3 sm:left-4 md:left-5 flex items-center gap-2 sm:gap-3 z-20">
+      <div className="absolute top-2 sm:top-3 md:top-4 left-2 sm:left-3 md:left-5 flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-3 z-20">
         <Badge 
           variant="secondary" 
-          className="bg-white/95 text-gray-900 border border-gray-200/50 backdrop-blur-sm text-xs sm:text-sm px-2 sm:px-3 py-1 font-medium"
+          className="bg-white/95 text-gray-900 border border-gray-200/50 backdrop-blur-sm text-[10px] sm:text-xs md:text-sm px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 font-medium"
           data-testid={`deal-badge-${slot}`}
         >
           {isPlaceholder ? 'Jugnu' : 'Sponsored'}
         </Badge>
         {!isPlaceholder && brand && (
-          <span className={`text-orange-400 font-semibold tracking-wide text-sm sm:text-base truncate max-w-[120px] sm:max-w-none`}>
+          <span className={`text-orange-400 font-semibold tracking-wide text-xs sm:text-sm md:text-base ${tileKind === 'wide' ? 'max-w-[200px]' : 'max-w-[150px]'} sm:max-w-none truncate`}>
             {brand}
           </span>
         )}
       </div>
 
       {/* Content */}
-      <div className="absolute inset-0 flex flex-col justify-end p-4 sm:p-5 md:p-6 lg:p-8 z-20">
-        <div className="flex-1 flex flex-col justify-end">
+      <div className="absolute inset-0 flex flex-col justify-end p-3 sm:p-4 md:p-6 lg:p-8 z-20">
+        <div className={`flex-1 flex flex-col justify-end ${tileKind === 'wide' ? 'pt-8 sm:pt-0' : ''}`}>
           {/* Title */}
-          <h3 className="text-white font-bold leading-relaxed mb-2 text-base sm:text-lg md:text-xl lg:text-2xl line-clamp-2">
+          <h3 className={`text-white font-bold leading-tight sm:leading-relaxed mb-1 sm:mb-2 ${tileKind === 'wide' ? 'text-sm sm:text-base md:text-xl lg:text-2xl' : 'text-base sm:text-lg md:text-xl lg:text-2xl'} line-clamp-2`}>
             {title}
           </h3>
 
           {/* Subtitle */}
           {subtitle && (
-            <p className="text-white/90 leading-relaxed mb-3 sm:mb-4 text-sm sm:text-base md:text-lg line-clamp-2">
+            <p className={`text-white/90 leading-tight sm:leading-relaxed mb-2 sm:mb-3 md:mb-4 ${tileKind === 'wide' ? 'text-xs sm:text-sm md:text-base lg:text-lg' : 'text-sm sm:text-base md:text-lg'} line-clamp-2`}>
               {subtitle}
             </p>
           )}
 
           {/* Code if available */}
           {code && !isPlaceholder && (
-            <div className="mb-3 sm:mb-4">
-              <span className="inline-flex items-center bg-white/20 backdrop-blur-sm rounded-lg px-3 sm:px-4 py-1 sm:py-1.5">
-                <span className="text-white/70 text-xs sm:text-sm mr-2">Code:</span>
-                <span className="text-white font-mono font-bold text-sm sm:text-base">{code}</span>
+            <div className="mb-2 sm:mb-3 md:mb-4">
+              <span className={`inline-flex items-center bg-white/20 backdrop-blur-sm rounded-lg ${tileKind === 'wide' ? 'px-2 sm:px-3 py-0.5 sm:py-1' : 'px-3 sm:px-4 py-1 sm:py-1.5'}`}>
+                <span className={`text-white/70 ${tileKind === 'wide' ? 'text-[10px] sm:text-xs' : 'text-xs sm:text-sm'} mr-1 sm:mr-2`}>Code:</span>
+                <span className={`text-white font-mono font-bold ${tileKind === 'wide' ? 'text-xs sm:text-sm' : 'text-sm sm:text-base'}`}>{code}</span>
               </span>
             </div>
           )}
@@ -139,7 +139,7 @@ export function DealTile({
             <div className="flex justify-start">
               <Button 
                 size="sm"
-                className="bg-orange-600 hover:bg-orange-700 text-white px-4 sm:px-5 py-2 sm:py-2.5 text-sm sm:text-base font-semibold transition-all duration-200 hover:scale-105 group/btn"
+                className={`bg-orange-600 hover:bg-orange-700 text-white ${tileKind === 'wide' ? 'px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm' : 'px-4 sm:px-5 py-2 sm:py-2.5 text-sm sm:text-base'} font-semibold transition-all duration-200 hover:scale-105 group/btn`}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleClick();
