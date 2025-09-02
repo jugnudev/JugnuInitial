@@ -17,6 +17,23 @@ export interface OnboardingEmailData {
   expiresInDays: number;
 }
 
+export interface AnalyticsEmailData {
+  recipientEmail: string;
+  date: string;
+  totalVisitors: number;
+  totalPageviews: number;
+  avgVisitorsPerDay: number;
+  avgPageviewsPerDay: number;
+  topPages: Array<{ path: string; views: number }>;
+  deviceBreakdown: {
+    mobile: number;
+    desktop: number;
+    tablet: number;
+  };
+  newVisitors: number;
+  returningVisitors: number;
+}
+
 export async function sendOnboardingEmail(data: OnboardingEmailData): Promise<void> {
   if (!SENDGRID_API_KEY) {
     console.error('SendGrid API key not configured, skipping email send');
@@ -155,5 +172,278 @@ ${APP_BASE_URL}
   } catch (error) {
     console.error('Error sending onboarding email:', error);
     throw error;
+  }
+}
+
+export async function sendDailyAnalyticsEmail(data: AnalyticsEmailData): Promise<void> {
+  if (!SENDGRID_API_KEY) {
+    console.error('SendGrid API key not configured, skipping analytics email');
+    return;
+  }
+
+  const totalDevices = data.deviceBreakdown.mobile + data.deviceBreakdown.desktop + data.deviceBreakdown.tablet;
+  const mobilePercent = totalDevices > 0 ? Math.round((data.deviceBreakdown.mobile / totalDevices) * 100) : 0;
+  const desktopPercent = totalDevices > 0 ? Math.round((data.deviceBreakdown.desktop / totalDevices) * 100) : 0;
+  const tabletPercent = totalDevices > 0 ? Math.round((data.deviceBreakdown.tablet / totalDevices) * 100) : 0;
+
+  const msg = {
+    to: data.recipientEmail,
+    from: {
+      email: EMAIL_FROM_ADDRESS,
+      name: EMAIL_FROM_NAME
+    },
+    subject: `Daily Analytics Report - ${data.date}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+              background-color: #f5f5f5;
+            }
+            .container {
+              background: white;
+              border-radius: 12px;
+              overflow: hidden;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+            .header {
+              background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+              color: white;
+              padding: 30px;
+              text-align: center;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 28px;
+              font-weight: 600;
+            }
+            .header p {
+              margin: 5px 0 0;
+              opacity: 0.9;
+              font-size: 14px;
+            }
+            .content {
+              padding: 30px;
+            }
+            .metric-grid {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 20px;
+              margin: 25px 0;
+            }
+            .metric-card {
+              background: #fafafa;
+              border: 1px solid #e5e5e5;
+              border-radius: 8px;
+              padding: 15px;
+              text-align: center;
+            }
+            .metric-label {
+              font-size: 12px;
+              color: #666;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              margin-bottom: 5px;
+            }
+            .metric-value {
+              font-size: 24px;
+              font-weight: 600;
+              color: #f97316;
+            }
+            .section {
+              margin: 30px 0;
+            }
+            .section-title {
+              font-size: 18px;
+              font-weight: 600;
+              color: #333;
+              margin-bottom: 15px;
+              border-bottom: 2px solid #f97316;
+              padding-bottom: 5px;
+            }
+            .data-table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            .data-table th {
+              background: #fafafa;
+              padding: 10px;
+              text-align: left;
+              font-size: 12px;
+              color: #666;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+              border-bottom: 1px solid #e5e5e5;
+            }
+            .data-table td {
+              padding: 10px;
+              border-bottom: 1px solid #f0f0f0;
+            }
+            .device-bar {
+              display: flex;
+              height: 30px;
+              border-radius: 6px;
+              overflow: hidden;
+              margin: 15px 0;
+            }
+            .device-segment {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: white;
+              font-size: 12px;
+              font-weight: 600;
+            }
+            .footer {
+              padding: 20px 30px;
+              background: #fafafa;
+              text-align: center;
+              font-size: 12px;
+              color: #666;
+              border-top: 1px solid #e5e5e5;
+            }
+            .footer a {
+              color: #f97316;
+              text-decoration: none;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>📊 Daily Analytics Report</h1>
+              <p>${data.date}</p>
+            </div>
+            
+            <div class="content">
+              <div class="metric-grid">
+                <div class="metric-card">
+                  <div class="metric-label">Total Visitors</div>
+                  <div class="metric-value">${data.totalVisitors.toLocaleString()}</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-label">Total Pageviews</div>
+                  <div class="metric-value">${data.totalPageviews.toLocaleString()}</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-label">New Visitors</div>
+                  <div class="metric-value">${data.newVisitors.toLocaleString()}</div>
+                </div>
+                <div class="metric-card">
+                  <div class="metric-label">Returning Visitors</div>
+                  <div class="metric-value">${data.returningVisitors.toLocaleString()}</div>
+                </div>
+              </div>
+
+              <div class="section">
+                <div class="section-title">📱 Device Breakdown</div>
+                <div class="device-bar">
+                  ${desktopPercent > 0 ? `<div class="device-segment" style="background: #3b82f6; width: ${desktopPercent}%">${desktopPercent}%</div>` : ''}
+                  ${mobilePercent > 0 ? `<div class="device-segment" style="background: #f97316; width: ${mobilePercent}%">${mobilePercent}%</div>` : ''}
+                  ${tabletPercent > 0 ? `<div class="device-segment" style="background: #8b5cf6; width: ${tabletPercent}%">${tabletPercent}%</div>` : ''}
+                </div>
+                <table class="data-table">
+                  <tr>
+                    <td>💻 Desktop</td>
+                    <td style="text-align: right; font-weight: 600;">${data.deviceBreakdown.desktop.toLocaleString()} (${desktopPercent}%)</td>
+                  </tr>
+                  <tr>
+                    <td>📱 Mobile</td>
+                    <td style="text-align: right; font-weight: 600;">${data.deviceBreakdown.mobile.toLocaleString()} (${mobilePercent}%)</td>
+                  </tr>
+                  <tr>
+                    <td>📱 Tablet</td>
+                    <td style="text-align: right; font-weight: 600;">${data.deviceBreakdown.tablet.toLocaleString()} (${tabletPercent}%)</td>
+                  </tr>
+                </table>
+              </div>
+
+              ${data.topPages.length > 0 ? `
+              <div class="section">
+                <div class="section-title">📄 Top Pages</div>
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Page</th>
+                      <th style="text-align: right;">Views</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${data.topPages.slice(0, 5).map(page => `
+                      <tr>
+                        <td>${page.path}</td>
+                        <td style="text-align: right; font-weight: 600;">${page.views.toLocaleString()}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+              ` : ''}
+
+              <div class="section">
+                <div class="section-title">📈 Daily Averages</div>
+                <table class="data-table">
+                  <tr>
+                    <td>Average Visitors per Day</td>
+                    <td style="text-align: right; font-weight: 600;">${data.avgVisitorsPerDay}</td>
+                  </tr>
+                  <tr>
+                    <td>Average Pageviews per Day</td>
+                    <td style="text-align: right; font-weight: 600;">${data.avgPageviewsPerDay}</td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+
+            <div class="footer">
+              <p>View full analytics dashboard at <a href="${APP_BASE_URL}/admin/analytics">${APP_BASE_URL}/admin/analytics</a></p>
+              <p style="margin-top: 10px; color: #999;">
+                This is an automated daily report. To unsubscribe or change settings, please contact support.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `
+Daily Analytics Report - ${data.date}
+
+SUMMARY
+Total Visitors: ${data.totalVisitors.toLocaleString()}
+Total Pageviews: ${data.totalPageviews.toLocaleString()}
+New Visitors: ${data.newVisitors.toLocaleString()}
+Returning Visitors: ${data.returningVisitors.toLocaleString()}
+
+DEVICE BREAKDOWN
+Desktop: ${data.deviceBreakdown.desktop.toLocaleString()} (${desktopPercent}%)
+Mobile: ${data.deviceBreakdown.mobile.toLocaleString()} (${mobilePercent}%)
+Tablet: ${data.deviceBreakdown.tablet.toLocaleString()} (${tabletPercent}%)
+
+TOP PAGES
+${data.topPages.slice(0, 5).map(page => `${page.path}: ${page.views.toLocaleString()} views`).join('\n')}
+
+DAILY AVERAGES
+Average Visitors per Day: ${data.avgVisitorsPerDay}
+Average Pageviews per Day: ${data.avgPageviewsPerDay}
+
+---
+View full analytics dashboard at ${APP_BASE_URL}/admin/analytics
+    `.trim()
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log(`Analytics email sent to ${data.recipientEmail}`);
+  } catch (error) {
+    console.error('Error sending analytics email:', error);
   }
 }

@@ -39,6 +39,7 @@ function createCanonicalKey(title: string, startAt: Date, venue: string | null, 
 import { insertCommunityEventSchema, updateCommunityEventSchema, visitorAnalytics, insertVisitorAnalyticsSchema } from "@shared/schema";
 import { importFromGoogle, importFromYelp, reverifyAllPlaces } from "./lib/places-sync.js";
 import { matchAndEnrichPlaces, inactivateUnmatchedPlaces, getPlaceMatchingStats } from "./lib/place-matcher.js";
+import { sendDailyAnalyticsEmail } from "./services/emailService";
 
 // Helper function for group filtering (duplicated from client taxonomy)
 function getTypesForGroup(group: string): string[] {
@@ -3152,11 +3153,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
   
-  // Automatic daily saving at midnight Pacific time
+  // Automatic daily saving at midnight Pacific time and email at 6 PM PST
   function scheduleAnalyticsSaving() {
+    let lastEmailSentDate: string | null = null;
+    
     const checkAndSave = async () => {
       const now = new Date();
-      const vancouverTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Vancouver" }));
+      const vancouverTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+      const todayStr = vancouverTime.toISOString().split('T')[0];
       
       // Check if it's midnight (00:00-00:05) Pacific time
       if (vancouverTime.getHours() === 0 && vancouverTime.getMinutes() < 5) {
@@ -3169,6 +3173,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (!lastAnalyticsSaveTime || (now.getTime() - lastAnalyticsSaveTime.getTime()) > 3600000) {
           console.log(`🕒 Midnight Pacific - Auto-saving analytics for ${yesterdayStr}`);
           await saveAnalyticsData(yesterdayStr);
+        }
+      }
+      
+      // Check if it's 6 PM (18:00-18:05) Pacific time for daily email
+      if (vancouverTime.getHours() === 18 && vancouverTime.getMinutes() < 5) {
+        // Only send if we haven't sent today
+        if (lastEmailSentDate !== todayStr) {
+          try {
+            const supabase = await getSupabaseAdmin();
+            
+            // Get last 30 days of data for the email
+            const startDate = new Date(vancouverTime);
+            startDate.setDate(startDate.getDate() - 30);
+            
+            const { data } = await supabase
+              .from('visitor_analytics')
+              .select('*')
+              .gte('day', startDate.toISOString().split('T')[0])
+              .lte('day', todayStr)
+              .order('day', { ascending: false });
+            
+            if (data && data.length > 0) {
+              // Calculate totals and averages
+              const totals = data.reduce((acc, day) => ({
+                visitors: acc.visitors + (day.unique_visitors || 0),
+                pageviews: acc.pageviews + (day.pageviews || 0),
+                newVisitors: acc.newVisitors + (day.new_visitors || 0),
+                returningVisitors: acc.returningVisitors + (day.returning_visitors || 0),
+                mobile: acc.mobile + (day.device_types?.mobile || 0),
+                desktop: acc.desktop + (day.device_types?.desktop || 0),
+                tablet: acc.tablet + (day.device_types?.tablet || 0)
+              }), {
+                visitors: 0,
+                pageviews: 0,
+                newVisitors: 0,
+                returningVisitors: 0,
+                mobile: 0,
+                desktop: 0,
+                tablet: 0
+              });
+              
+              // Aggregate top pages
+              const topPagesMap = new Map<string, number>();
+              data.forEach(day => {
+                if (day.top_pages && Array.isArray(day.top_pages)) {
+                  day.top_pages.forEach((page: any) => {
+                    if (page.path) {
+                      topPagesMap.set(page.path, (topPagesMap.get(page.path) || 0) + (page.views || 0));
+                    }
+                  });
+                }
+              });
+              
+              const topPages = Array.from(topPagesMap.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10)
+                .map(([path, views]) => ({ path, views }));
+              
+              await sendDailyAnalyticsEmail({
+                recipientEmail: 'relations@thehouseofjugnu.com',
+                date: todayStr,
+                totalVisitors: totals.visitors,
+                totalPageviews: totals.pageviews,
+                avgVisitorsPerDay: Math.round(totals.visitors / data.length),
+                avgPageviewsPerDay: Math.round(totals.pageviews / data.length),
+                topPages,
+                deviceBreakdown: {
+                  mobile: totals.mobile,
+                  desktop: totals.desktop,
+                  tablet: totals.tablet
+                },
+                newVisitors: totals.newVisitors,
+                returningVisitors: totals.returningVisitors
+              });
+              
+              lastEmailSentDate = todayStr;
+              console.log(`📧 Daily analytics email sent for ${todayStr}`);
+            }
+          } catch (error) {
+            console.error('Error sending daily analytics email:', error);
+          }
         }
       }
     };
@@ -3305,6 +3390,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .slice(0, 10),
       deviceBreakdown: dailyAnalytics.deviceCounts
     });
+  });
+
+  // Export analytics data as CSV
+  app.get('/api/admin/analytics/export', async (req, res) => {
+    const adminKey = req.headers['x-admin-key'];
+    if (adminKey !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+    
+    try {
+      const supabase = await getSupabaseAdmin();
+      const { days = 30 } = req.query;
+      
+      // Calculate date range
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - Number(days));
+      
+      const { data, error } = await supabase
+        .from('visitor_analytics')
+        .select('*')
+        .gte('day', startDate.toISOString().split('T')[0])
+        .lte('day', endDate.toISOString().split('T')[0])
+        .order('day', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Generate CSV content
+      const csvHeaders = [
+        'Date',
+        'Unique Visitors',
+        'Total Pageviews',
+        'New Visitors',
+        'Returning Visitors',
+        'Desktop',
+        'Mobile',
+        'Tablet',
+        'Top Page',
+        'Top Page Views'
+      ];
+      
+      const csvRows = data?.map(day => {
+        const topPage = day.top_pages?.[0] || {};
+        const deviceTypes = day.device_types || {};
+        
+        return [
+          day.day,
+          day.unique_visitors || 0,
+          day.total_pageviews || 0,
+          day.new_visitors || 0,
+          day.returning_visitors || 0,
+          deviceTypes.desktop || 0,
+          deviceTypes.mobile || 0,
+          deviceTypes.tablet || 0,
+          topPage.path || '',
+          topPage.views || 0
+        ];
+      }) || [];
+      
+      // Add summary row
+      const totals = data?.reduce((acc, day) => ({
+        visitors: acc.visitors + (day.unique_visitors || 0),
+        pageviews: acc.pageviews + (day.total_pageviews || 0),
+        newVisitors: acc.newVisitors + (day.new_visitors || 0),
+        returningVisitors: acc.returningVisitors + (day.returning_visitors || 0),
+        desktop: acc.desktop + (day.device_types?.desktop || 0),
+        mobile: acc.mobile + (day.device_types?.mobile || 0),
+        tablet: acc.tablet + (day.device_types?.tablet || 0)
+      }), {
+        visitors: 0,
+        pageviews: 0,
+        newVisitors: 0,
+        returningVisitors: 0,
+        desktop: 0,
+        mobile: 0,
+        tablet: 0
+      }) || {
+        visitors: 0,
+        pageviews: 0,
+        newVisitors: 0,
+        returningVisitors: 0,
+        desktop: 0,
+        mobile: 0,
+        tablet: 0
+      };
+      
+      csvRows.push([
+        'TOTAL',
+        totals.visitors,
+        totals.pageviews,
+        totals.newVisitors,
+        totals.returningVisitors,
+        totals.desktop,
+        totals.mobile,
+        totals.tablet,
+        '',
+        ''
+      ]);
+      
+      // Convert to CSV string
+      const csvContent = [
+        csvHeaders.join(','),
+        ...csvRows.map(row => row.map(cell => {
+          const value = String(cell);
+          if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+            return `"${value.replace(/"/g, '""')}"`;
+          }
+          return value;
+        }).join(','))
+      ].join('\n');
+      
+      // Set headers for file download
+      const filename = `jugnu-analytics-${days}days-${new Date().toISOString().split('T')[0]}.csv`;
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(csvContent);
+      
+    } catch (error) {
+      console.error('Error exporting analytics:', error);
+      res.status(500).json({ ok: false, error: 'Failed to export analytics' });
+    }
   });
 
   // use storage to perform CRUD operations on the storage interface

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Users, Eye, TrendingUp, Activity, Monitor, Smartphone, Tablet, Globe, RefreshCcw, Clock } from 'lucide-react';
+import { Users, Eye, TrendingUp, Activity, Monitor, Smartphone, Tablet, Globe, RefreshCcw, Clock, Download } from 'lucide-react';
 import { queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -26,7 +26,7 @@ interface AnalyticsData {
   avg_session_duration: number;
   top_pages: Array<{ path: string; views: number }>;
   top_referrers: Array<{ referrer: string; count: number }>;
-  device_breakdown: {
+  device_types: {
     mobile: number;
     desktop: number;
     tablet: number;
@@ -121,6 +121,39 @@ export default function AdminAnalytics() {
     }
   });
 
+  // Export CSV handler
+  const handleExportCSV = async () => {
+    const adminKey = localStorage.getItem('adminKey');
+    const response = await fetch(`/api/admin/analytics/export?days=${dateRange}`, {
+      headers: {
+        'x-admin-key': adminKey || ''
+      }
+    });
+    
+    if (response.ok) {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `jugnu-analytics-${dateRange}days-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast({
+        title: 'Export Successful',
+        description: `Analytics data exported for last ${dateRange} days`,
+      });
+    } else {
+      toast({
+        title: 'Export Failed',
+        description: 'Failed to export analytics data',
+        variant: 'destructive'
+      });
+    }
+  };
+
   // Login handler
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -189,9 +222,9 @@ export default function AdminAnalytics() {
 
   // Aggregate device data
   const deviceData = analyticsData.reduce((acc, day) => {
-    acc.mobile += day.device_breakdown?.mobile || 0;
-    acc.desktop += day.device_breakdown?.desktop || 0;
-    acc.tablet += day.device_breakdown?.tablet || 0;
+    acc.mobile += day.device_types?.mobile || 0;
+    acc.desktop += day.device_types?.desktop || 0;
+    acc.tablet += day.device_types?.tablet || 0;
     return acc;
   }, { mobile: 0, desktop: 0, tablet: 0 });
 
@@ -232,6 +265,13 @@ export default function AdminAnalytics() {
                   <SelectItem value="90">90 days</SelectItem>
                 </SelectContent>
               </Select>
+              <Button 
+                onClick={handleExportCSV}
+                className="bg-copper-600 hover:bg-copper-700"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Export CSV
+              </Button>
               <Button 
                 onClick={() => storeDailyMutation.mutate()}
                 disabled={storeDailyMutation.isPending}
