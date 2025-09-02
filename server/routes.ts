@@ -3004,6 +3004,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     pages: Set<string>;
     referrer?: string;
     device: 'mobile' | 'desktop' | 'tablet';
+    pageLastViewed: Map<string, number>; // Track when each page was last viewed
   }
   
   const visitorSessions = new Map<string, VisitorSession>();
@@ -3030,10 +3031,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const referrer = req.body?.referrer || req.headers.referer;
     
     const now = Date.now();
+    const FIFTEEN_MINUTES = 15 * 60 * 1000; // 15 minutes in milliseconds
     
     // Update or create visitor session
     let session = visitorSessions.get(visitorId);
+    let shouldCountPageview = false;
+    
     if (!session) {
+      // New visitor session
       session = {
         id: visitorId,
         firstSeen: now,
@@ -3041,9 +3046,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pageviews: 1,
         pages: new Set([page]),
         referrer,
-        device
+        device,
+        pageLastViewed: new Map([[page, now]])
       };
       visitorSessions.set(visitorId, session);
+      shouldCountPageview = true;
       
       // Track new visitor
       dailyAnalytics.deviceCounts[device]++;
@@ -3051,14 +3058,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dailyAnalytics.referrers.set(referrer, (dailyAnalytics.referrers.get(referrer) || 0) + 1);
       }
     } else {
+      // Existing visitor
       session.lastSeen = now;
-      session.pageviews++;
-      session.pages.add(page);
+      
+      // Check if this page view should be counted
+      const lastPageViewTime = session.pageLastViewed.get(page);
+      
+      if (!lastPageViewTime || (now - lastPageViewTime > FIFTEEN_MINUTES)) {
+        // Either first time viewing this page in this session, or more than 15 minutes since last view
+        shouldCountPageview = true;
+        session.pageviews++;
+        session.pages.add(page);
+        session.pageLastViewed.set(page, now);
+      }
     }
     
-    // Track pageview
-    dailyAnalytics.pageviews.set(page, (dailyAnalytics.pageviews.get(page) || 0) + 1);
-    dailyAnalytics.pages.set(page, (dailyAnalytics.pages.get(page) || 0) + 1);
+    // Only track pageview if it should be counted
+    if (shouldCountPageview) {
+      dailyAnalytics.pageviews.set(page, (dailyAnalytics.pageviews.get(page) || 0) + 1);
+      dailyAnalytics.pages.set(page, (dailyAnalytics.pages.get(page) || 0) + 1);
+      console.log(`[Analytics] Counted pageview for ${page} (visitor: ${visitorId.slice(0, 20)}...)`);
+    } else {
+      const timeSinceLastView = session.pageLastViewed.get(page) ? 
+        Math.round((now - session.pageLastViewed.get(page)!) / 1000) : 0;
+      console.log(`[Analytics] Skipped duplicate pageview for ${page} (last viewed ${timeSinceLastView}s ago)`);
+    }
     
     activeVisitors.set(visitorId, now);
     
