@@ -237,16 +237,25 @@ export default function AdminPromote() {
 
   const loadData = async (overrideKey?: string) => {
     try {
-      // Use override key if provided, otherwise let adminFetch read from localStorage
-      const fetchOptions = overrideKey ? {
-        headers: {
-          'x-admin-key': overrideKey
-        }
-      } : {};
-      
+      // If we have an override key, use fetch directly to ensure the correct key is used
+      // Otherwise use adminFetch which reads from localStorage
       const [campaignsRes, tokensRes] = await Promise.all([
-        adminFetch(ENDPOINTS.ADMIN.CAMPAIGNS, fetchOptions),
-        adminFetch(ENDPOINTS.ADMIN.PORTAL_TOKENS, fetchOptions)
+        overrideKey 
+          ? fetch(ENDPOINTS.ADMIN.CAMPAIGNS, {
+              headers: {
+                'Content-Type': 'application/json',
+                'x-admin-key': overrideKey
+              }
+            })
+          : adminFetch(ENDPOINTS.ADMIN.CAMPAIGNS),
+        overrideKey
+          ? fetch(ENDPOINTS.ADMIN.PORTAL_TOKENS, {
+              headers: {
+                'Content-Type': 'application/json',
+                'x-admin-key': overrideKey
+              }
+            })
+          : adminFetch(ENDPOINTS.ADMIN.PORTAL_TOKENS)
       ]);
 
       if (campaignsRes.ok) {
