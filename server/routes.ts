@@ -369,9 +369,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
               eventTimezone = 'America/Vancouver';
             }
             
-            // Ensure dates are stored as UTC ISO strings
-            startAt = new Date(calendarEvent.start);
-            endAt = calendarEvent.end ? new Date(calendarEvent.end) : new Date(startAt.getTime() + 3 * 60 * 60 * 1000);
+            // Handle dates differently for all-day events
+            if (isAllDay) {
+              // All-day events need special handling to preserve the calendar date
+              // When an event is all-day, we want to store it at noon local time
+              // to prevent date shifting when displayed
+              
+              const adjustAllDayDate = (date: any) => {
+                const d = new Date(date);
+                // Get the date components in UTC
+                const year = d.getUTCFullYear();
+                const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+                const day = String(d.getUTCDate()).padStart(2, '0');
+                
+                // Create a new date at noon Pacific time
+                // Using -08:00 for PST (we'll let the display handle PDT conversion)
+                return new Date(`${year}-${month}-${day}T12:00:00-08:00`);
+              };
+              
+              startAt = adjustAllDayDate(calendarEvent.start);
+              endAt = calendarEvent.end ? adjustAllDayDate(calendarEvent.end) : new Date(startAt.getTime() + 24 * 60 * 60 * 1000);
+              
+              console.log(`All-day event "${title}": ${startAt.toISOString()} to ${endAt.toISOString()}`);
+            } else {
+              // Regular events with specific times
+              startAt = new Date(calendarEvent.start);
+              endAt = calendarEvent.end ? new Date(calendarEvent.end) : new Date(startAt.getTime() + 3 * 60 * 60 * 1000);
+            }
             
             // Extract venue and address from location
             const location = calendarEvent.location || '';
