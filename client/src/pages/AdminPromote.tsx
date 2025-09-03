@@ -165,20 +165,25 @@ export default function AdminPromote() {
 
   const checkSession = async () => {
     try {
-      const response = await fetch(ENDPOINTS.ADMIN.SESSION);
-      const data = await response.json();
+      // Check if admin key exists in localStorage (like admin/leads does)
+      const existingKey = localStorage.getItem('adminKey');
       
-      if (data.ok && data.isAdmin) {
-        // Session is already valid, restore admin key if it exists
-        const existingKey = localStorage.getItem('adminKey');
-        if (existingKey) {
-          setAdminKey(existingKey);
+      if (existingKey) {
+        // Try to validate the key by making a test request
+        setAdminKey(existingKey);
+        const testResponse = await adminFetch(ENDPOINTS.ADMIN.CAMPAIGNS);
+        
+        if (testResponse.ok) {
+          // Admin key is valid, skip login
+          setSession({ isAdmin: true, loginTime: Date.now() });
+          loadData();
+          setLoading(false);
+          return;
         }
-        setSession({ isAdmin: true, loginTime: data.loginTime });
-        loadData();
-      } else {
-        setShowLoginForm(true);
       }
+      
+      // No valid admin key, show login form
+      setShowLoginForm(true);
     } catch (error) {
       console.error('Session check error:', error);
       setShowLoginForm(true);

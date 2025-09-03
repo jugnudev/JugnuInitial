@@ -229,7 +229,7 @@ export function addAdminRoutes(app: Express) {
   });
 
   // GET /api/admin/campaigns
-  app.get('/api/admin/campaigns', requireAdminSession, async (req: Request, res: Response) => {
+  app.get('/api/admin/campaigns', requireAdminKey, async (req: Request, res: Response) => {
     try {
       // Use service role to bypass RLS
       const { data: campaigns, error } = await supabase
@@ -505,7 +505,7 @@ export function addAdminRoutes(app: Express) {
   });
 
   // PATCH /api/admin/campaigns/:id/toggle
-  app.patch('/api/admin/campaigns/:id/toggle', requireAdminSession, async (req: Request, res: Response) => {
+  app.patch('/api/admin/campaigns/:id/toggle', requireAdminKey, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const { is_active } = req.body;
@@ -535,7 +535,7 @@ export function addAdminRoutes(app: Express) {
   });
 
   // POST /api/admin/campaigns/:id/duplicate
-  app.post('/api/admin/campaigns/:id/duplicate', requireAdminSession, async (req: Request, res: Response) => {
+  app.post('/api/admin/campaigns/:id/duplicate', requireAdminKey, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -602,7 +602,7 @@ export function addAdminRoutes(app: Express) {
   });
 
   // DELETE /api/admin/campaigns/:id
-  app.delete('/api/admin/campaigns/:id', requireAdminSession, async (req: Request, res: Response) => {
+  app.delete('/api/admin/campaigns/:id', requireAdminKey, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
@@ -642,7 +642,7 @@ export function addAdminRoutes(app: Express) {
   });
 
   // GET /api/admin/portal-tokens
-  app.get('/api/admin/portal-tokens', requireAdminSession, async (req: Request, res: Response) => {
+  app.get('/api/admin/portal-tokens', requireAdminKey, async (req: Request, res: Response) => {
     try {
       // Use service role to bypass RLS - include UUID id for migration
       const { data: tokens, error } = await supabase
@@ -681,7 +681,7 @@ export function addAdminRoutes(app: Express) {
   // Duplicate handler removed - using requireAdminKey handler at line 345
 
   // POST /api/admin/portal-tokens/email (send portal link via email)
-  app.post('/api/admin/portal-tokens/email', requireAdminSession, async (req: Request, res: Response) => {
+  app.post('/api/admin/portal-tokens/email', requireAdminKey, async (req: Request, res: Response) => {
     try {
       const { token, recipients, message } = req.body;
 
@@ -770,7 +770,7 @@ The Jugnu Team
   });
 
   // DELETE /api/admin/portal-tokens/:id
-  app.delete('/api/admin/portal-tokens/:id', requireAdminSession, async (req: Request, res: Response) => {
+  app.delete('/api/admin/portal-tokens/:id', requireAdminKey, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
 
