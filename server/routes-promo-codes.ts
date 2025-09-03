@@ -27,7 +27,7 @@ const validatePromoSchema = z.object({
 const requireAdminKey = (req: Request, res: Response, next: Function) => {
   const adminKey = req.headers['x-admin-key'];
   // Use the same order as login endpoint returns
-  const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || 'jugnu-admin-dev-2025';
+  const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025';
   
   if (!adminKey || adminKey !== expectedKey) {
     return res.status(401).json({ ok: false, error: 'Unauthorized' });
