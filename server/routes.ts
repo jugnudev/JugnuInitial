@@ -3403,9 +3403,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (days === 'today') {
         startDateStr = endDateStr = getPSTDateString();
       } else if (days === 'yesterday') {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        startDateStr = endDateStr = getPSTDateString(yesterday);
+        // Calculate yesterday in PST
+        const now = new Date();
+        // Get current time in milliseconds and subtract 24 hours
+        const yesterdayTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        startDateStr = endDateStr = getPSTDateString(yesterdayTime);
       } else {
         const daysNum = Number(days);
         const endDate = new Date();
@@ -3449,24 +3451,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const todayIndex = data?.findIndex(d => d.day === today);
       let analyticsData = data || [];
       
-      // If we have live data for today, either update or append it
-      if (visitorSessions.size > 0 || dailyAnalytics.pages.size > 0) {
+      // Only include today's live data if we're actually requesting today's data
+      const includeToday = (days === 'today' || days === '30' || days === '90' || days === '7');
+      
+      // If we have live data for today and we're including today, either update or append it
+      if (includeToday && (currentDayData.uniqueVisitorIds.size > 0 || currentDayData.totalPageviews > 0)) {
         if (todayIndex !== undefined && todayIndex >= 0) {
-          // Merge live data with saved data for today
-          const savedToday = analyticsData[todayIndex];
+          // Replace saved data with current live data for today
+          // Live data contains the complete current state, not a delta
           analyticsData[todayIndex] = {
-            ...savedToday,
-            unique_visitors: Math.max(savedToday.unique_visitors || 0, todayLiveData.unique_visitors),
-            total_pageviews: (savedToday.total_pageviews || 0) + todayLiveData.total_pageviews,
-            device_breakdown: {
-              mobile: (savedToday.device_breakdown?.mobile || 0) + (todayLiveData.device_breakdown.mobile || 0),
-              desktop: (savedToday.device_breakdown?.desktop || 0) + (todayLiveData.device_breakdown.desktop || 0),
-              tablet: (savedToday.device_breakdown?.tablet || 0) + (todayLiveData.device_breakdown.tablet || 0)
-            },
-            top_pages: todayLiveData.top_pages.length > 0 ? todayLiveData.top_pages : savedToday.top_pages
+            ...analyticsData[todayIndex],
+            unique_visitors: todayLiveData.unique_visitors,
+            total_pageviews: todayLiveData.total_pageviews,
+            device_breakdown: todayLiveData.device_breakdown,
+            new_visitors: todayLiveData.new_visitors,
+            returning_visitors: todayLiveData.returning_visitors,
+            top_pages: todayLiveData.top_pages.length > 0 ? todayLiveData.top_pages : analyticsData[todayIndex].top_pages,
+            top_referrers: todayLiveData.top_referrers.length > 0 ? todayLiveData.top_referrers : analyticsData[todayIndex].top_referrers
           };
-        } else {
-          // Add today's live data if not already in the list
+        } else if (startDateStr <= today && endDateStr >= today) {
+          // Add today's live data if it's within the requested date range
           analyticsData.push(todayLiveData);
           analyticsData.sort((a, b) => a.day.localeCompare(b.day));
         }
