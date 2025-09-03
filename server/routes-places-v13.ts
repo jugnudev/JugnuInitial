@@ -11,7 +11,8 @@ export function addPlacesV13Routes(app: Express) {
   app.post('/api/places/admin/reclassify-worship', async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      if (!adminKey || adminKey !== expectedKey) {
         return res.status(401).json({ 
           ok: false, 
           error: 'Unauthorized - invalid or missing admin key' 
@@ -90,7 +91,8 @@ export function addPlacesV13Routes(app: Express) {
   app.post('/api/places/admin/enrich-photos', async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      if (!adminKey || adminKey !== expectedKey) {
         return res.status(401).json({ 
           ok: false, 
           error: 'Unauthorized - invalid or missing admin key' 

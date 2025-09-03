@@ -9,7 +9,8 @@ const supabase = getSupabaseAdmin();
 router.post('/api/admin/migrate-places-v12', async (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'];
-    if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ 
         ok: false, 
         error: 'Unauthorized - invalid or missing admin key' 
@@ -75,7 +76,8 @@ router.post('/api/admin/migrate-places-v12', async (req, res) => {
 router.get('/api/admin/places-validation', async (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'];
-    if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ 
         ok: false, 
         error: 'Unauthorized - invalid or missing admin key' 
@@ -150,7 +152,8 @@ router.get('/api/admin/places-validation', async (req, res) => {
 router.post('/api/admin/cleanup-invalid-places', async (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'];
-    if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ 
         ok: false, 
         error: 'Unauthorized - invalid or missing admin key' 
