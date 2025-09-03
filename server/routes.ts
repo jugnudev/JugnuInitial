@@ -1380,7 +1380,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             start_at, end_at, timezone, venue, address, 
             neighborhood, city, organizer, tickets_url, source_url, 
             image_url, price_from, tags, status, featured, source_hash,
-            canonical_key
+            canonical_key, is_all_day
           `)
           .in('status', ['upcoming', 'soldout'])
           .gte('start_at', now.toISOString())
@@ -1394,7 +1394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             id, created_at, updated_at, title, description, category,
             start_at, end_at, timezone, venue, address, 
             neighborhood, city, organizer, tickets_url, source_url, 
-            image_url, price_from, tags, status, featured, source_hash
+            image_url, price_from, tags, status, featured, source_hash, is_all_day
           `)
           .in('status', ['upcoming', 'soldout'])
           .gte('start_at', now.toISOString())
