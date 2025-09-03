@@ -402,8 +402,8 @@ export default function AdminAnalytics() {
                     cy="50%"
                     labelLine={true}
                     label={(entry) => {
-                      const percent = (entry.percent * 100).toFixed(0);
-                      return percent > 0 ? `${entry.name} ${percent}%` : '';
+                      const percent = ((entry.percent || 0) * 100).toFixed(0);
+                      return Number(percent) > 0 ? `${entry.name} ${percent}%` : '';
                     }}
                     outerRadius={80}
                     fill="#8884d8"
