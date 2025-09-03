@@ -113,7 +113,8 @@ const auditLog = async (action: string, details: any, userId?: string) => {
 // Admin key middleware for API endpoints
 const requireAdminKey = (req: Request, res: Response, next: Function) => {
   const adminKey = req.headers['x-admin-key'];
-  const expectedKey = process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+  // Check the same keys that login endpoint returns
+  const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
   
   if (!expectedKey) {
     return res.status(500).json({ ok: false, error: 'Admin system not configured' });

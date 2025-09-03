@@ -242,6 +242,7 @@ export default function AdminPromote() {
       const [campaignsRes, tokensRes] = await Promise.all([
         overrideKey 
           ? fetch(ENDPOINTS.ADMIN.CAMPAIGNS, {
+              method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
                 'x-admin-key': overrideKey
@@ -250,6 +251,7 @@ export default function AdminPromote() {
           : adminFetch(ENDPOINTS.ADMIN.CAMPAIGNS),
         overrideKey
           ? fetch(ENDPOINTS.ADMIN.PORTAL_TOKENS, {
+              method: 'GET',
               headers: {
                 'Content-Type': 'application/json',
                 'x-admin-key': overrideKey
