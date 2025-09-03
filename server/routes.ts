@@ -257,6 +257,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Helper function to strip HTML tags and decode HTML entities
+  const cleanHtmlFromText = (text: string | null | undefined): string | null => {
+    if (!text) return null;
+    
+    // First decode HTML entities
+    let cleaned = he.decode(text);
+    
+    // Strip HTML tags
+    cleaned = cleaned
+      .replace(/<\/?[^>]+(>|$)/g, '') // Remove all HTML tags
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+    
+    return cleaned || null;
+  };
+
   // Community Events - ICS Import Cron Endpoint
   app.get("/api/community/cron/import-ics", async (req, res) => {
     try {
@@ -368,6 +384,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                (calendarEvent.organizer as any)?.val || 
                String(calendarEvent.organizer)) : null;
             
+            // Clean HTML from organizer field
+            organizer = cleanHtmlFromText(organizer);
+            
             const status = startAt >= oneDayAgo ? 'upcoming' : 'past';
             
             // Parse structured data from DESCRIPTION
@@ -431,7 +450,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   .map((tag: string) => tag.trim().toLowerCase())
                   .filter((tag: string) => tag.length > 0);
               } else if (organizerMatch) {
-                organizer = organizerMatch[1].trim();
+                organizer = cleanHtmlFromText(organizerMatch[1].trim());
               } else if (priceMatch) {
                 priceFrom = parseFloat(priceMatch[1]);
               } else if (featuredMatch) {
