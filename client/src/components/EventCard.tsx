@@ -16,6 +16,8 @@ export interface EventItem {
   soldOut?: boolean;
   waitlistUrl?: string;
   placeholder?: boolean;
+  organizer?: string;
+  source_url?: string;
 }
 
 function dateBadge(iso: string | null) {
@@ -104,6 +106,26 @@ export default function EventCard({ event }: EventCardProps) {
             <i className="fas fa-city text-accent"></i>
             <span data-testid={`event-city-${event.id}`}>{event.city}</span>
           </div>
+          {event.organizer && (
+            <div className="flex items-center gap-2">
+              <i className="fas fa-user text-accent"></i>
+              <span data-testid={`event-organizer-${event.id}`}>Organizer: {event.organizer}</span>
+            </div>
+          )}
+          {event.source_url && (
+            <div className="flex items-center gap-2">
+              <i className="fas fa-info-circle text-accent"></i>
+              <a 
+                href={event.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted hover:text-accent transition-colors duration-200 underline"
+                data-testid={`event-info-link-${event.id}`}
+              >
+                More Information
+              </a>
+            </div>
+          )}
         </div>
         
         {/* Ticket Button and Calendar */}

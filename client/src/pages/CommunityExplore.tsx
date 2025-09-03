@@ -35,6 +35,8 @@ interface CommunityEvent {
   sponsored: boolean;
   sponsored_until?: string;
   status?: string;
+  organizer?: string;
+  source_url?: string;
 }
 
 interface EventsResponse {

@@ -13,6 +13,8 @@ export interface EventItem {
   ticketTailorId?: string;
   soldOut?: boolean;
   waitlistUrl?: string;
+  organizer?: string;
+  source_url?: string;
 }
 
 export interface GalleryImage {
