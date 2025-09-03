@@ -93,6 +93,7 @@ export default function AdminLeads() {
                 onChange={(e) => setAdminKey(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && adminKey.trim() && checkAuth()}
                 className="h-12 text-center text-lg border-2 border-gray-700 bg-gray-800 text-white placeholder:text-gray-400 focus:border-orange-500"
+                autoComplete="new-password"
                 data-testid="input-admin-key"
               />
               
