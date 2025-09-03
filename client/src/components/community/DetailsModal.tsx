@@ -125,6 +125,43 @@ function EventInfo({
         </div>
       )}
 
+      {/* Organizer */}
+      {event.organizer && (
+        <div className="flex items-start gap-3">
+          <div className="w-5 h-5 mt-1 flex items-center justify-center">
+            <div className="w-4 h-4 rounded-full bg-amber-500/20 flex items-center justify-center">
+              <div className="w-2 h-2 bg-amber-500 rounded-full" />
+            </div>
+          </div>
+          <div>
+            <p className="text-white/70 text-sm">Organizer</p>
+            <p className="text-white font-medium">{event.organizer}</p>
+          </div>
+        </div>
+      )}
+
+      {/* More Information Link */}
+      {event.source_url && (
+        <div className="flex items-start gap-3">
+          <div className="w-5 h-5 mt-1 flex items-center justify-center">
+            <div className="w-4 h-4 rounded-full bg-amber-500/20 flex items-center justify-center">
+              <div className="w-2 h-2 bg-amber-500 rounded-full" />
+            </div>
+          </div>
+          <div>
+            <a
+              href={event.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-500 hover:text-amber-400 text-sm inline-flex items-center gap-1 underline decoration-transparent hover:decoration-current transition-colors"
+              data-testid="button-more-info"
+            >
+              More Information <ExternalLink className="w-3 h-3" aria-hidden="true" />
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Description */}
       {descriptionParagraphs.length > 0 && (
         <div className="space-y-3">

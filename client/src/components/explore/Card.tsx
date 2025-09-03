@@ -261,65 +261,41 @@ export default function Card({ item, onClick, index = 0, showFavorite = false, o
             {item.name}
           </h3>
           
-          <div className="space-y-1 mb-3">
-            <div className="flex items-center gap-2 text-white/90">
-              <MapPin className="w-4 h-4 shrink-0" />
-              <span className="text-sm truncate">
-                {item.type === 'event' 
-                  ? `${item.venue} • ${item.city}`
-                  : `${item.neighborhood ? `${item.neighborhood} • ` : ''}${item.city}`
-                }
-              </span>
-              
-              {item.type === 'place' && item.price_level && (
-                <>
-                  <span className="text-white/60">•</span>
-                  <span className="text-sm font-medium">
-                    {formatPriceLevel(item.price_level)}
-                  </span>
-                </>
-              )}
-            </div>
+          <div className="flex items-center gap-2 text-white/90 mb-3">
+            <MapPin className="w-4 h-4 shrink-0" />
+            <span className="text-sm truncate">
+              {item.type === 'event' 
+                ? `${item.venue} • ${item.city}`
+                : `${item.neighborhood ? `${item.neighborhood} • ` : ''}${item.city}`
+              }
+            </span>
             
-            {item.type === 'event' && item.organizer && (
-              <div className="flex items-center gap-2 text-white/80">
-                <span className="text-xs">By {item.organizer}</span>
-              </div>
+            {item.type === 'place' && item.price_level && (
+              <>
+                <span className="text-white/60">•</span>
+                <span className="text-sm font-medium">
+                  {formatPriceLevel(item.price_level)}
+                </span>
+              </>
             )}
           </div>
 
-          {/* Action CTAs */}
-          <div className="flex items-center gap-2">
-            {primaryAction.url && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (primaryAction.url) {
-                    window.open(primaryAction.url, '_blank', 'noopener,noreferrer');
-                  }
-                }}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-black text-sm rounded-lg hover:bg-primary/90 transition-colors font-medium"
-                data-testid={`button-primary-${item.type}-${item.id}`}
-              >
-                <ExternalLink className="w-3 h-3" />
-                {primaryAction.text}
-              </button>
-            )}
-            
-            {item.type === 'event' && item.source_url && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(item.source_url, '_blank', 'noopener,noreferrer');
-                }}
-                className="inline-flex items-center gap-1 px-3 py-1.5 bg-white/10 backdrop-blur-sm text-white text-sm rounded-lg hover:bg-white/20 transition-colors font-medium border border-white/20"
-                data-testid={`button-info-${item.id}`}
-              >
-                <ExternalLink className="w-3 h-3" />
-                More Info
-              </button>
-            )}
-          </div>
+          {/* Action CTA */}
+          {primaryAction.url && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (primaryAction.url) {
+                  window.open(primaryAction.url, '_blank', 'noopener,noreferrer');
+                }
+              }}
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-black text-sm rounded-lg hover:bg-primary/90 transition-colors font-medium"
+              data-testid={`button-primary-${item.type}-${item.id}`}
+            >
+              <ExternalLink className="w-3 h-3" />
+              {primaryAction.text}
+            </button>
+          )}
         </div>
       </div>
     </motion.div>
