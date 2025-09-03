@@ -210,7 +210,8 @@ export default function AdminPromote() {
         setSession({ isAdmin: true, loginTime: Date.now() });
         setShowLoginForm(false);
         setLoginPassword('');
-        loadData();
+        // Pass the admin key directly to ensure it's used immediately
+        loadData(serverAdminKey);
         toast({ title: "Logged in successfully" });
       } else {
         toast({ title: "Login failed", description: data.error, variant: "destructive" });
@@ -234,11 +235,18 @@ export default function AdminPromote() {
     }
   };
 
-  const loadData = async () => {
+  const loadData = async (overrideKey?: string) => {
     try {
+      // Use override key if provided, otherwise let adminFetch read from localStorage
+      const fetchOptions = overrideKey ? {
+        headers: {
+          'x-admin-key': overrideKey
+        }
+      } : {};
+      
       const [campaignsRes, tokensRes] = await Promise.all([
-        adminFetch(ENDPOINTS.ADMIN.CAMPAIGNS),
-        adminFetch(ENDPOINTS.ADMIN.PORTAL_TOKENS)
+        adminFetch(ENDPOINTS.ADMIN.CAMPAIGNS, fetchOptions),
+        adminFetch(ENDPOINTS.ADMIN.PORTAL_TOKENS, fetchOptions)
       ]);
 
       if (campaignsRes.ok) {
