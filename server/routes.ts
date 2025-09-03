@@ -291,17 +291,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Check if required columns exist by attempting a test query
       let hasNewColumns = false;
+      let hasAllDayColumn = false;
       try {
         const { error } = await supabase
           .from('community_events')
-          .select('canonical_key, source_uid')
+          .select('canonical_key, source_uid, is_all_day')
           .limit(1);
         
         if (!error) {
           hasNewColumns = true;
-          console.log('✓ Using canonical_key and source_uid for deduplication');
+          hasAllDayColumn = true;
+          console.log('✓ Using canonical_key, source_uid and is_all_day for deduplication');
         } else {
-          console.log('⚠️ Missing columns for deduplication - using legacy title-based matching');
+          // Try just is_all_day column
+          const { error: allDayError } = await supabase
+            .from('community_events')
+            .select('is_all_day')
+            .limit(1);
+          
+          if (!allDayError) {
+            hasAllDayColumn = true;
+            console.log('✓ Found is_all_day column');
+          }
+          console.log('⚠️ Some columns missing - using partial feature set');
         }
       } catch (e) {
         console.log('⚠️ Column check failed - using fallback mode');
@@ -627,6 +639,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               neighborhood: null,
               featured: featured, // v2.8 Use parsed featured value
             };
+            
+            // Debug all-day event detection
+            if (isAllDay) {
+              console.log(`Event "${title}" marked as all-day: isAllDay=${isAllDay}`);
+            }
 
             // Build upsert payload based on available columns
             const basePayload: any = {
@@ -656,7 +673,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               basePayload.source_hash = eventData.sourceHash;
               basePayload.source_uid = eventData.sourceUid;
               basePayload.canonical_key = eventData.canonicalKey;
+            }
+            
+            // Add is_all_day column separately as it might exist independently
+            if (hasAllDayColumn) {
               basePayload.is_all_day = eventData.isAllDay;
+              console.log(`Setting is_all_day=${eventData.isAllDay} for "${eventData.title}"`);
             }
 
             let upsertResult;

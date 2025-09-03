@@ -2,6 +2,96 @@
 // Handles timezone-aware formatting for Vancouver events
 
 /**
+ * Check if an event spans multiple days
+ * @param startIso - start time ISO string
+ * @param endIso - end time ISO string
+ * @param tz - timezone (default: America/Vancouver)
+ * @returns true if event spans multiple days
+ */
+export function isMultiDayEvent(
+  startIso: string,
+  endIso?: string,
+  tz: string = 'America/Vancouver'
+): boolean {
+  if (!startIso || !endIso) return false;
+  
+  try {
+    const timezone = tz || 'America/Vancouver';
+    const startDate = new Date(startIso);
+    const endDate = new Date(endIso);
+    
+    // Format dates to compare just the date portion
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    
+    const startDateStr = formatter.format(startDate);
+    const endDateStr = formatter.format(endDate);
+    
+    return startDateStr !== endDateStr;
+  } catch (error) {
+    console.error('Error checking multi-day event:', error);
+    return false;
+  }
+}
+
+/**
+ * Detect if an event is all-day based on time values
+ * All-day events are stored at noon (12:00 PM) in the timezone
+ * @param startIso - start time ISO string
+ * @param endIso - end time ISO string (optional)
+ * @param tz - timezone (default: America/Vancouver)
+ * @returns true if the event appears to be all-day
+ */
+export function detectAllDayEvent(
+  startIso: string,
+  endIso?: string,
+  tz: string = 'America/Vancouver'
+): boolean {
+  try {
+    const timezone = tz || 'America/Vancouver';
+    const startDate = new Date(startIso);
+    
+    // Format to get hour in the timezone
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false
+    });
+    
+    const startTime = formatter.format(startDate);
+    
+    // Check if start time is at noon (12:00)
+    if (startTime === '12:00') {
+      // For multi-day events, also check end time
+      if (endIso && isMultiDayEvent(startIso, endIso, tz)) {
+        const endDate = new Date(endIso);
+        const endTime = formatter.format(endDate);
+        return endTime === '12:00';
+      }
+      return true;
+    }
+    
+    // Also check for events where start and end are the same time
+    // (which might indicate an all-day event)
+    if (endIso && !isMultiDayEvent(startIso, endIso, tz)) {
+      const endDate = new Date(endIso);
+      const endTime = formatter.format(endDate);
+      return startTime === endTime && startTime === '12:00';
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error detecting all-day event:', error);
+    return false;
+  }
+}
+
+/**
  * Format event date for badge display
  * @param iso - ISO date string
  * @param tz - timezone (default: America/Vancouver)
@@ -48,7 +138,10 @@ export function formatDateBadge(iso: string, tz: string = 'America/Vancouver'): 
  * @returns "9:00 PM" or "All day"
  */
 export function formatTime(iso: string, tz: string = 'America/Vancouver', isAllDay: boolean = false): string {
-  if (isAllDay) {
+  // Use database flag if available, otherwise detect based on time
+  const isAllDayEvent = isAllDay || detectAllDayEvent(iso, undefined, tz);
+  
+  if (isAllDayEvent) {
     return 'All day';
   }
   
@@ -260,11 +353,64 @@ export function formatEventDateDisplay(
 }
 
 /**
+ * Detect if an event is all-day based on time values
+ * All-day events are stored at noon (12:00 PM) in the timezone
+ * @param startIso - start time ISO string
+ * @param endIso - end time ISO string (optional)
+ * @param tz - timezone (default: America/Vancouver)
+ * @returns true if the event appears to be all-day
+ */
+export function detectAllDayEvent(
+  startIso: string,
+  endIso?: string,
+  tz: string = 'America/Vancouver'
+): boolean {
+  try {
+    const timezone = tz || 'America/Vancouver';
+    const startDate = new Date(startIso);
+    
+    // Format to get hour in the timezone
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false
+    });
+    
+    const startTime = formatter.format(startDate);
+    
+    // Check if start time is at noon (12:00)
+    if (startTime === '12:00') {
+      // For multi-day events, also check end time
+      if (endIso && isMultiDayEvent(startIso, endIso, tz)) {
+        const endDate = new Date(endIso);
+        const endTime = formatter.format(endDate);
+        return endTime === '12:00';
+      }
+      return true;
+    }
+    
+    // Also check for events where start and end are the same time
+    // (which might indicate an all-day event)
+    if (endIso && !isMultiDayEvent(startIso, endIso, tz)) {
+      const endDate = new Date(endIso);
+      const endTime = formatter.format(endDate);
+      return startTime === endTime && startTime === '12:00';
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error detecting all-day event:', error);
+    return false;
+  }
+}
+
+/**
  * Format event time for modal display (handles multi-day events)
  * @param startIso - start time ISO string
  * @param endIso - end time ISO string (optional)
  * @param tz - timezone (default: America/Vancouver)
- * @param isAllDay - whether the event is all-day
+ * @param isAllDay - whether the event is all-day (from database)
  * @returns formatted time info
  */
 export function formatEventTime(
@@ -273,9 +419,12 @@ export function formatEventTime(
   tz: string = 'America/Vancouver', 
   isAllDay: boolean = false
 ): string {
+  // Use database flag if available, otherwise detect based on time
+  const isAllDayEvent = isAllDay || detectAllDayEvent(startIso, endIso, tz);
+  
   // For multi-day events, show different format
   if (endIso && isMultiDayEvent(startIso, endIso, tz)) {
-    if (isAllDay) {
+    if (isAllDayEvent) {
       return 'All day';
     }
     // For multi-day events with specific times, just show the time range
@@ -284,5 +433,5 @@ export function formatEventTime(
   }
   
   // Single day event
-  return formatTimeRange(startIso, endIso, tz, isAllDay);
+  return formatTimeRange(startIso, endIso, tz, isAllDayEvent);
 }
