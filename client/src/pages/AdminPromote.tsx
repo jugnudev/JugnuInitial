@@ -198,9 +198,10 @@ export default function AdminPromote() {
       const data = await response.json();
       
       if (data.ok) {
-        // Store the correct admin key for API authentication
-        localStorage.setItem('adminKey', 'jugnu-admin-dev-2025');
-        setAdminKey('jugnu-admin-dev-2025');
+        // Store the admin key returned from the server (environment-specific)
+        const serverAdminKey = data.adminKey || 'jugnu-admin-dev-2025';
+        localStorage.setItem('adminKey', serverAdminKey);
+        setAdminKey(serverAdminKey);
         setSession({ isAdmin: true, loginTime: Date.now() });
         setShowLoginForm(false);
         setLoginPassword('');

@@ -194,7 +194,10 @@ export function addAdminRoutes(app: Express) {
         userAgent: req.get('User-Agent')
       }, 'admin');
       
-      res.json({ ok: true });
+      // Return the correct admin key for this environment
+      const adminKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || 'jugnu-admin-dev-2025';
+      
+      res.json({ ok: true, adminKey });
     } catch (error) {
       console.error('Admin login error:', error);
       res.status(500).json({ ok: false, error: 'Login failed' });
