@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { getCalendarLinks } from "@/lib/calendar";
-import { formatEventDate, formatEventTime } from "@/utils/dateFormatters";
+import { formatEventDateDisplay, formatEventTime } from "@/utils/dateFormatters";
 
 interface CommunityEvent {
   id: string;
@@ -86,7 +86,7 @@ function EventInfo({
         <CalendarDays className="w-5 h-5 text-amber-500 mt-1" aria-hidden="true" />
         <div>
           <p className="text-white font-medium">
-            {formatEventDate(event.start_at, event.timezone)}
+            {formatEventDateDisplay(event.start_at, event.end_at, event.timezone)}
           </p>
         </div>
       </div>
