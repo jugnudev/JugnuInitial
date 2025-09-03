@@ -3498,7 +3498,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Store daily analytics (called manually from admin dashboard)
   app.post('/api/admin/analytics/store-daily', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    if (adminKey !== process.env.ADMIN_KEY) {
+    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ ok: false, error: 'Unauthorized' });
     }
     
@@ -3517,7 +3518,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get analytics data for dashboard
   app.get('/api/admin/analytics', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    if (adminKey !== process.env.ADMIN_KEY) {
+    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ ok: false, error: 'Unauthorized' });
     }
     
@@ -3661,7 +3663,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current session analytics (real-time)
   app.get('/api/admin/analytics/realtime', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    if (adminKey !== process.env.ADMIN_KEY) {
+    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ ok: false, error: 'Unauthorized' });
     }
     
@@ -3685,7 +3688,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export analytics data as CSV
   app.get('/api/admin/analytics/export', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    if (adminKey !== process.env.ADMIN_KEY) {
+    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ ok: false, error: 'Unauthorized' });
     }
     
