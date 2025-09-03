@@ -541,7 +541,7 @@ export function addQuotesRoutes(app: Express) {
     try {
       // Check admin auth
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (!adminKey || adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });
       }
@@ -564,7 +564,7 @@ export function addQuotesRoutes(app: Express) {
     try {
       // Check admin auth
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (!adminKey || adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });
       }
@@ -585,7 +585,7 @@ export function addQuotesRoutes(app: Express) {
     try {
       // Check admin auth
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (!adminKey || adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });
       }

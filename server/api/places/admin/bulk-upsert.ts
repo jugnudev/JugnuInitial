@@ -73,7 +73,7 @@ export async function POST(req: Request, res: Response) {
   try {
     // Check authentication
     const adminKey = req.headers['x-admin-key'] as string;
-    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
     
     if (!adminKey || !expectedKey || adminKey !== expectedKey) {
       return res.status(401).json({ 

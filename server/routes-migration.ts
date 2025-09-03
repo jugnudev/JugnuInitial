@@ -9,7 +9,7 @@ const supabase = getSupabaseAdmin();
 router.post('/api/admin/migrate-places-v12', async (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'];
-    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
     if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ 
         ok: false, 
@@ -76,7 +76,7 @@ router.post('/api/admin/migrate-places-v12', async (req, res) => {
 router.get('/api/admin/places-validation', async (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'];
-    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
     if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ 
         ok: false, 
@@ -152,7 +152,7 @@ router.get('/api/admin/places-validation', async (req, res) => {
 router.post('/api/admin/cleanup-invalid-places', async (req, res) => {
   try {
     const adminKey = req.headers['x-admin-key'];
-    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
     if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ 
         ok: false, 

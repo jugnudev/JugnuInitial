@@ -114,7 +114,7 @@ const auditLog = async (action: string, details: any, userId?: string) => {
 const requireAdminKey = (req: Request, res: Response, next: Function) => {
   const adminKey = req.headers['x-admin-key'];
   // Check the same keys that login endpoint returns
-  const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+  const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
   
   if (!expectedKey) {
     return res.status(500).json({ ok: false, error: 'Admin system not configured' });
@@ -151,7 +151,7 @@ export function addAdminRoutes(app: Express) {
   app.get('/api/admin/selftest', requireAdminKey, async (req: Request, res: Response) => {
     try {
       // Make internal request to the admin selftest with proper admin key
-      const adminKey = process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025';
+      const adminKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025';
       const response = await fetch(`http://localhost:5000/api/spotlight/admin/selftest`, {
         headers: {
           'x-admin-key': adminKey
@@ -196,7 +196,7 @@ export function addAdminRoutes(app: Express) {
       }, 'admin');
       
       // Return the correct admin key for this environment
-      const adminKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || 'jugnu-admin-dev-2025';
+      const adminKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025';
       
       res.json({ ok: true, adminKey });
     } catch (error) {

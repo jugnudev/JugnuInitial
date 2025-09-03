@@ -211,7 +211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/waitlist/export", async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (adminKey !== expectedKey) {
         return res.status(401).send("Unauthorized");
       }
@@ -279,7 +279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Require admin key
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: "unauthorized" });
       }
@@ -814,7 +814,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Schema Migration - Add columns and backfill categories
   app.post("/api/community/admin/migrate", async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
     if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ ok: false, error: "unauthorized" });
     }
@@ -902,7 +902,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Require admin key
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: "unauthorized" });
       }
@@ -976,7 +976,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Require admin key
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: "unauthorized" });
       }
@@ -1157,7 +1157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Require admin key
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: "unauthorized" });
       }
@@ -1213,7 +1213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Require admin key
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: "unauthorized" });
       }
@@ -1466,7 +1466,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Require admin key
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: "unauthorized" });
       }
@@ -1518,7 +1518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Debug endpoint to see all events in database
   app.get("/api/community/debug/all-events", async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
     if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ ok: false, error: "unauthorized" });
     }
@@ -1548,7 +1548,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Clear existing events and force fresh import with updated source_hash logic
   app.post("/api/community/admin/clear-and-reimport", async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
     if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ ok: false, error: "unauthorized" });
     }
@@ -1648,7 +1648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/community/admin/feature-requests", async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: "unauthorized" });
       }
@@ -1678,7 +1678,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/community/admin/feature-requests/approve", async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: "unauthorized" });
       }
@@ -1796,7 +1796,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/community/admin/feature-requests/reject", async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: "unauthorized" });
       }
@@ -2470,7 +2470,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/places/admin/upsert", async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: "unauthorized" });
       }
@@ -2682,7 +2682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/places/admin/feature", async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: "unauthorized" });
       }
@@ -3498,7 +3498,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Store daily analytics (called manually from admin dashboard)
   app.post('/api/admin/analytics/store-daily', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
     if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ ok: false, error: 'Unauthorized' });
     }
@@ -3518,7 +3518,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get analytics data for dashboard
   app.get('/api/admin/analytics', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
     if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ ok: false, error: 'Unauthorized' });
     }
@@ -3663,7 +3663,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get current session analytics (real-time)
   app.get('/api/admin/analytics/realtime', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
     if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ ok: false, error: 'Unauthorized' });
     }
@@ -3688,7 +3688,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Export analytics data as CSV
   app.get('/api/admin/analytics/export', async (req, res) => {
     const adminKey = req.headers['x-admin-key'];
-    const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
     if (!adminKey || adminKey !== expectedKey) {
       return res.status(401).json({ ok: false, error: 'Unauthorized' });
     }

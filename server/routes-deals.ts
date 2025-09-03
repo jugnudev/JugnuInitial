@@ -72,7 +72,7 @@ export function addDealsRoutes(app: Express) {
   app.get('/api/admin/deals', async (req, res) => {
     try {
       // Check admin authentication
-      const adminKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const adminKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       const isAuthenticated = req.session?.isAdmin || req.headers['x-admin-key'] === adminKey;
       if (!isAuthenticated) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });
@@ -114,7 +114,7 @@ export function addDealsRoutes(app: Express) {
   app.post('/api/admin/deals/create', async (req, res) => {
     try {
       // Check admin authentication
-      const adminKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const adminKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       const isAuthenticated = req.session?.isAdmin || req.headers['x-admin-key'] === adminKey;
       if (!isAuthenticated) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });
@@ -216,7 +216,7 @@ export function addDealsRoutes(app: Express) {
   app.put('/api/admin/deals/:id', async (req, res) => {
     try {
       // Check admin authentication
-      const adminKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const adminKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       const isAuthenticated = req.session?.isAdmin || req.headers['x-admin-key'] === adminKey;
       if (!isAuthenticated) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });
@@ -290,7 +290,7 @@ export function addDealsRoutes(app: Express) {
   app.delete('/api/admin/deals/:id', async (req, res) => {
     try {
       // Check admin authentication
-      const adminKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const adminKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       const isAuthenticated = req.session?.isAdmin || req.headers['x-admin-key'] === adminKey;
       if (!isAuthenticated) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });

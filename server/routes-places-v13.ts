@@ -11,7 +11,7 @@ export function addPlacesV13Routes(app: Express) {
   app.post('/api/places/admin/reclassify-worship', async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (!adminKey || adminKey !== expectedKey) {
         return res.status(401).json({ 
           ok: false, 
@@ -91,7 +91,7 @@ export function addPlacesV13Routes(app: Express) {
   app.post('/api/places/admin/enrich-photos', async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      const expectedKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD;
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
       if (!adminKey || adminKey !== expectedKey) {
         return res.status(401).json({ 
           ok: false, 
