@@ -22,8 +22,16 @@ const schema = z.object({
   endIso: z.string().min(1, "End date and time is required"),
   address: z.string().min(5, "Address is required"),
   city: z.string().min(1, "City is required"),
-  ticketLink: z.string().url("Please enter a valid ticket URL").optional().or(z.literal("")),
-  imageUrl: z.string().url("Please enter a valid image URL").optional().or(z.literal("")),
+  ticketLink: z.union([
+    z.literal("https://"),
+    z.literal(""),
+    z.string().url("Please enter a valid ticket URL")
+  ]).optional(),
+  imageUrl: z.union([
+    z.literal("https://"),
+    z.literal(""),
+    z.string().url("Please enter a valid image URL")
+  ]).optional(),
   message: z.string().optional(),
   rightsConfirmed: z.boolean().refine(val => val === true, "You must confirm you have rights to the imagery"),
   honeypot: z.string().max(0, "Bot detected") // Hidden field for spam prevention
@@ -48,7 +56,8 @@ export default function CommunityFeature() {
       rightsConfirmed: false,
       honeypot: "",
       eventUrl: "https://",
-      ticketLink: ""
+      ticketLink: "https://",
+      imageUrl: "https://"
     }
   });
 
@@ -343,7 +352,7 @@ export default function CommunityFeature() {
                   id="eventUrl"
                   type="url"
                   {...form.register("eventUrl")}
-                  placeholder="https://eventbrite.com/... or Instagram/website link"
+                  placeholder="eventbrite.com/... or Instagram/website link"
                   data-testid="input-event-url"
                 />
                 <p className="text-xs text-muted/80">Eventbrite, official website, or social media link</p>
@@ -358,7 +367,7 @@ export default function CommunityFeature() {
                   id="ticketLink"
                   type="url"
                   {...form.register("ticketLink")}
-                  placeholder="https://... (optional)"
+                  placeholder="example.com/tickets (optional)"
                   data-testid="input-ticket-link"
                 />
                 <p className="text-xs text-muted/80">Direct link to purchase tickets</p>
@@ -534,7 +543,7 @@ export default function CommunityFeature() {
                     id="imageUrl"
                     type="url"
                     {...form.register("imageUrl")}
-                    placeholder="https://... (optional if uploading image)"
+                    placeholder="example.com/image.jpg (optional if uploading image)"
                     disabled={!!imageFile}
                     data-testid="input-image-url"
                   />
