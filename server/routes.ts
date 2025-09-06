@@ -13,6 +13,9 @@ import { addPromoCodeRoutes } from './routes-promo-codes.js';
 import { createHash } from "crypto";
 import ical from "node-ical";
 import he from "he";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 
 // Helper function to create canonical key for deduplication
 function createCanonicalKey(title: string, startAt: Date, venue: string | null, isAllDay: boolean): string {
@@ -1589,10 +1592,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         event_url, 
         category, 
         title, 
-        start_iso, 
-        venue, 
+        start_iso,
+        end_iso,
+        address,
+        venue, // Keep for backward compatibility
         city, 
-        image_url, 
+        ticket_link,
+        image_url,
+        uploaded_image_url,
         message, 
         rights_confirmed,
         honeypot 
@@ -1604,7 +1611,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Validate required fields
-      if (!organizer_name || !email || !event_url || !category || !rights_confirmed) {
+      if (!organizer_name || !email || !event_url || !category || !title || !start_iso || !end_iso || !address || !city || !rights_confirmed) {
         return res.status(400).json({ ok: false, error: "Missing required fields" });
       }
 
@@ -1612,13 +1619,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         new URL(event_url);
         if (image_url) new URL(image_url);
+        if (ticket_link) new URL(ticket_link);
+        if (uploaded_image_url) new URL(uploaded_image_url);
       } catch {
         return res.status(400).json({ ok: false, error: "Invalid URL format" });
       }
 
       const supabase = getSupabaseAdmin();
 
-      // Insert feature request
+      // Insert feature request with new fields
       const { data, error } = await supabase
         .from('feature_requests')
         .insert({
@@ -1626,11 +1635,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: email.toLowerCase().trim(),
           event_url: event_url.trim(),
           category: category.toLowerCase(),
-          title: title?.trim() || null,
-          start_iso: start_iso || null,
-          venue: venue?.trim() || null,
-          city: city?.trim() || 'Vancouver, BC',
+          title: title.trim(),
+          start_iso: start_iso,
+          end_iso: end_iso || null,
+          address: address.trim(),
+          venue: venue?.trim() || address.trim(), // Fallback to address for backward compatibility
+          city: city.trim(),
+          ticket_link: ticket_link?.trim() || null,
           image_url: image_url?.trim() || null,
+          uploaded_image_url: uploaded_image_url?.trim() || null,
           message: message?.trim() || null,
           rights_confirmed: rights_confirmed,
           status: 'pending'
@@ -1643,10 +1656,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
         throw new Error('Failed to submit request');
       }
 
+      // Send email notification
+      try {
+        const { sendFeatureRequestNotification } = await import('./email');
+        await sendFeatureRequestNotification({
+          organizerName: organizer_name.trim(),
+          email: email.toLowerCase().trim(),
+          eventUrl: event_url.trim(),
+          category: category.toLowerCase(),
+          title: title.trim(),
+          startIso: start_iso,
+          endIso: end_iso,
+          address: address.trim(),
+          city: city.trim(),
+          ticketLink: ticket_link?.trim() || null,
+          imageUrl: image_url?.trim() || null,
+          uploadedImageUrl: uploaded_image_url?.trim() || null,
+          message: message?.trim() || null
+        });
+      } catch (emailError) {
+        console.error('Failed to send email notification:', emailError);
+        // Don't fail the request if email fails
+      }
+
       res.json({ ok: true, id: data.id });
     } catch (error) {
       console.error('Feature request error:', error);
       res.status(500).json({ ok: false, error: 'Failed to submit request' });
+    }
+  });
+
+  // v2.9 Image upload endpoint for featured event requests
+  const uploadDir = 'public/uploads/featured-events';
+  // Ensure upload directory exists
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+
+  const imageStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname);
+      cb(null, `event-${uniqueSuffix}${ext}`);
+    }
+  });
+
+  const imageUpload = multer({
+    storage: imageStorage,
+    limits: {
+      fileSize: 5 * 1024 * 1024 // 5MB limit
+    },
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = /jpeg|jpg|png|gif|webp/;
+      const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+      const mimetype = allowedTypes.test(file.mimetype);
+      
+      if (mimetype && extname) {
+        return cb(null, true);
+      } else {
+        cb(new Error('Only image files are allowed'));
+      }
+    }
+  });
+
+  app.post("/api/community/feature/upload-image", imageUpload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ ok: false, error: "No image uploaded" });
+      }
+
+      // Generate the public URL for the uploaded image
+      const imageUrl = `/uploads/featured-events/${req.file.filename}`;
+      
+      res.json({ 
+        ok: true, 
+        imageUrl: imageUrl,
+        filename: req.file.filename
+      });
+    } catch (error) {
+      console.error('Image upload error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to upload image' });
     }
   });
 

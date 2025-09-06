@@ -7,6 +7,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Serve uploaded files
+app.use('/uploads', express.static('public/uploads'));
+
 // Session middleware for admin authentication
 app.use(session({
   secret: process.env.SESSION_SECRET || 'dev-session-secret-change-in-production',
