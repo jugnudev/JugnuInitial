@@ -1729,17 +1729,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ ok: false, error: "No image uploaded" });
       }
 
-      // Generate the public URL for the uploaded image
-      const imageUrl = `/uploads/featured-events/${req.file.filename}`;
+      // Upload to Supabase storage
+      const { uploadFeaturedEventImage } = await import('./services/storageService');
+      const imageUrl = await uploadFeaturedEventImage(req.file);
       
       res.json({ 
         ok: true, 
         imageUrl: imageUrl,
-        filename: req.file.filename
+        filename: req.file.originalname
       });
     } catch (error) {
       console.error('Image upload error:', error);
-      res.status(500).json({ ok: false, error: 'Failed to upload image' });
+      res.status(500).json({ ok: false, error: error instanceof Error ? error.message : 'Failed to upload image' });
     }
   });
 

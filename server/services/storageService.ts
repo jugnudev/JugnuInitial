@@ -116,6 +116,59 @@ export async function uploadSponsorCreatives(
   }
 }
 
+// Upload featured event image
+export async function uploadFeaturedEventImage(
+  file: Express.Multer.File
+): Promise<string> {
+  const supabase = getStorageClient();
+  const bucketName = 'featured-events';
+  
+  // Validate file type
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  if (!allowedTypes.includes(file.mimetype)) {
+    throw new Error(`Invalid file type: ${file.mimetype}. Only JPEG, PNG, WebP, and GIF images are allowed.`);
+  }
+  
+  // Generate unique path with timestamp
+  const timestamp = Date.now();
+  const safeFilename = slugify(file.originalname, { lower: true, strict: true });
+  const path = `${timestamp}-${safeFilename}`;
+  
+  // Create bucket if it doesn't exist
+  const { data: bucketData, error: bucketError } = await supabase.storage.getBucket(bucketName);
+  if (bucketError && bucketError.message.includes('not found')) {
+    const { error: createError } = await supabase.storage.createBucket(bucketName, {
+      public: true, // Make the bucket public for easy access
+      fileSizeLimit: 5242880, // 5MB limit
+      allowedMimeTypes: allowedTypes
+    });
+    if (createError) {
+      console.error('Failed to create bucket:', createError);
+      throw new Error(`Failed to create storage bucket: ${createError.message}`);
+    }
+  }
+  
+  // Upload to Supabase Storage
+  const { data, error } = await supabase.storage
+    .from(bucketName)
+    .upload(path, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false
+    });
+  
+  if (error) {
+    console.error('Storage upload error:', error);
+    throw new Error(`Failed to upload file: ${error.message}`);
+  }
+  
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from(bucketName)
+    .getPublicUrl(data.path);
+  
+  return urlData.publicUrl;
+}
+
 // Generate signed URL for private assets (optional, for future use)
 export async function getSignedUrl(path: string, expiresIn: number = 300): Promise<string> {
   const supabase = getStorageClient();
