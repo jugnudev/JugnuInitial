@@ -3273,10 +3273,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Check if we need to reset for a new day
     checkAndResetDailyData();
     
-    // Use a combination of IP and user agent for more stable visitor tracking
+    // Create a more sophisticated visitor ID using multiple factors
     const userAgent = req.headers['user-agent'] || 'unknown';
     const ip = req.ip || req.connection?.remoteAddress || 'unknown';
-    const visitorId = `${ip}_${userAgent}`.slice(0, 200); // Limit length for memory efficiency
+    const acceptLanguage = req.headers['accept-language'] || '';
+    const acceptEncoding = req.headers['accept-encoding'] || '';
+    
+    // Create a fingerprint from multiple factors (privacy-friendly hash)
+    const crypto = require('crypto');
+    const fingerprint = crypto.createHash('md5')
+      .update(`${ip}_${userAgent}_${acceptLanguage}_${acceptEncoding}`)
+      .digest('hex')
+      .substring(0, 16); // Use first 16 chars for efficiency
+    
+    const visitorId = `v2_${fingerprint}`; // v2 prefix to distinguish from old format
     
     // Detect device type
     const device = userAgent.includes('Mobile') ? 'mobile' : 
@@ -3474,16 +3484,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }
   
-  // Automatic daily saving at midnight Pacific time and email at 6 PM PST
+  // Automatic saving every 10 minutes and email at 10 PM PST
   function scheduleAnalyticsSaving() {
     let lastEmailSentDate: string | null = null;
+    let lastSaveMinute: number | null = null;
     
     const checkAndSave = async () => {
       const now = new Date();
       const vancouverTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
       const todayStr = vancouverTime.toISOString().split('T')[0];
+      const currentMinute = Math.floor(vancouverTime.getMinutes() / 10) * 10; // Round down to nearest 10 minutes
       
-      // Check if it's midnight (00:00-00:05) Pacific time
+      // Save analytics every 10 minutes (at :00, :10, :20, :30, :40, :50)
+      if (vancouverTime.getMinutes() % 10 < 1 && lastSaveMinute !== currentMinute) {
+        lastSaveMinute = currentMinute;
+        console.log(`⏰ Auto-saving analytics at ${vancouverTime.toLocaleTimeString('en-US', { timeZone: 'America/Los_Angeles' })} PST`);
+        const success = await saveAnalyticsData(todayStr);
+        if (success) {
+          console.log(`✅ Analytics auto-saved successfully for ${todayStr}`);
+        } else {
+          console.error(`❌ Failed to auto-save analytics for ${todayStr}`);
+        }
+      }
+      
+      // Also save at midnight for yesterday's final data
       if (vancouverTime.getHours() === 0 && vancouverTime.getMinutes() < 5) {
         // Save yesterday's data
         const yesterday = new Date(vancouverTime);
@@ -3492,7 +3516,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Check if we haven't saved in the last hour
         if (!lastAnalyticsSaveTime || (now.getTime() - lastAnalyticsSaveTime.getTime()) > 3600000) {
-          console.log(`🕒 Midnight Pacific - Auto-saving analytics for ${yesterdayStr}`);
+          console.log(`🕒 Midnight Pacific - Final save for yesterday's analytics: ${yesterdayStr}`);
           await saveAnalyticsData(yesterdayStr);
         }
       }
@@ -3579,16 +3603,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     };
     
-    // Check every 5 minutes
-    setInterval(checkAndSave, 5 * 60 * 1000);
+    // Check every minute to ensure we catch the 10-minute intervals
+    setInterval(checkAndSave, 60 * 1000); // 1 minute
     
     // Also save on server startup if there's data from previous session
     setTimeout(async () => {
-      const today = new Date().toISOString().split('T')[0];
-      if (visitorSessions.size > 0 || dailyAnalytics.pages.size > 0) {
-        console.log('📊 Server startup - Saving unsaved analytics data');
-        await saveAnalyticsData(today);
+      const todayPST = getPSTDateString();
+      if (currentDayData.uniqueVisitorIds.size > 0 || currentDayData.totalPageviews > 0 || 
+          visitorSessions.size > 0 || dailyAnalytics.pages.size > 0) {
+        console.log('📊 Server startup - Saving any unsaved analytics data');
+        await saveAnalyticsData(todayPST);
       }
+      // Also run check immediately to start the 10-minute cycle
+      checkAndSave();
     }, 5000); // Wait 5 seconds after startup
   }
   
