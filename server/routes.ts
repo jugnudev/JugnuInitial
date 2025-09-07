@@ -1610,17 +1610,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ ok: false, error: "Invalid submission" });
       }
 
-      // Validate required fields
-      if (!organizer_name || !email || !event_url || !category || !title || !start_iso || !end_iso || !address || !city || !rights_confirmed) {
+      // Validate required fields (treat "https://" as empty for URL fields)
+      const hasValidEventUrl = event_url && event_url !== "https://";
+      if (!organizer_name || !email || !hasValidEventUrl || !category || !title || !start_iso || !end_iso || !address || !city || !rights_confirmed) {
         return res.status(400).json({ ok: false, error: "Missing required fields" });
       }
 
-      // Validate URLs
+      // Validate URLs (treat "https://" as empty/optional)
       try {
-        new URL(event_url);
-        if (image_url) new URL(image_url);
-        if (ticket_link) new URL(ticket_link);
-        if (uploaded_image_url) new URL(uploaded_image_url);
+        if (event_url && event_url !== "https://") new URL(event_url);
+        if (image_url && image_url !== "https://") new URL(image_url);
+        if (ticket_link && ticket_link !== "https://") new URL(ticket_link);
+        if (uploaded_image_url && uploaded_image_url !== "https://") new URL(uploaded_image_url);
       } catch {
         return res.status(400).json({ ok: false, error: "Invalid URL format" });
       }
@@ -1641,8 +1642,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           address: address.trim(),
           venue: venue?.trim() || address.trim(), // Fallback to address for backward compatibility
           city: city.trim(),
-          ticket_link: ticket_link?.trim() || null,
-          image_url: image_url?.trim() || null,
+          ticket_link: (ticket_link && ticket_link !== "https://") ? ticket_link.trim() : null,
+          image_url: (image_url && image_url !== "https://") ? image_url.trim() : null,
           uploaded_image_url: uploaded_image_url?.trim() || null,
           message: message?.trim() || null,
           rights_confirmed: rights_confirmed,
@@ -1669,8 +1670,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           endIso: end_iso,
           address: address.trim(),
           city: city.trim(),
-          ticketLink: ticket_link?.trim() || null,
-          imageUrl: image_url?.trim() || null,
+          ticketLink: (ticket_link && ticket_link !== "https://") ? ticket_link.trim() : null,
+          imageUrl: (image_url && image_url !== "https://") ? image_url.trim() : null,
           uploadedImageUrl: uploaded_image_url?.trim() || null,
           message: message?.trim() || null
         });
