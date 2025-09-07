@@ -404,7 +404,7 @@ export default function CommunityFeature() {
                     {...form.register("startIso")}
                     data-testid="input-start-date"
                   />
-                  <p className="text-xs text-muted/80">Vancouver timezone</p>
+                  <p className="text-xs text-muted/80">Vancouver timezone - Select date, time, and AM/PM</p>
                   {form.formState.errors.startIso && (
                     <p className="text-sm text-red-400">{form.formState.errors.startIso.message}</p>
                   )}
@@ -418,7 +418,7 @@ export default function CommunityFeature() {
                     {...form.register("endIso")}
                     data-testid="input-end-date"
                   />
-                  <p className="text-xs text-muted/80">Vancouver timezone</p>
+                  <p className="text-xs text-muted/80">Vancouver timezone - Select date, time, and AM/PM</p>
                   {form.formState.errors.endIso && (
                     <p className="text-sm text-red-400">{form.formState.errors.endIso.message}</p>
                   )}
