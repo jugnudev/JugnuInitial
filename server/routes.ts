@@ -3269,7 +3269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   };
 
   // Track visitor activity with enhanced analytics
-  app.post('/api/fireflies/ping', (req, res) => {
+  app.post('/api/fireflies/ping', async (req, res) => {
     // Check if we need to reset for a new day
     checkAndResetDailyData();
     
@@ -3280,8 +3280,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const acceptEncoding = req.headers['accept-encoding'] || '';
     
     // Create a fingerprint from multiple factors (privacy-friendly hash)
-    const crypto = require('crypto');
-    const fingerprint = crypto.createHash('md5')
+    const { createHash } = await import('crypto');
+    const fingerprint = createHash('md5')
       .update(`${ip}_${userAgent}_${acceptLanguage}_${acceptEncoding}`)
       .digest('hex')
       .substring(0, 16); // Use first 16 chars for efficiency
