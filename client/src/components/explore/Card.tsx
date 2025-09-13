@@ -1,5 +1,5 @@
 import { ExternalLink, MapPin, Calendar, Star, ImageIcon, Heart } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { formatPriceLevel } from "@/lib/taxonomy";
@@ -119,6 +119,12 @@ export default function Card({ item, onClick, index = 0, showFavorite = false, o
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const isSponsored = item.sponsored && (!item.sponsored_until || new Date(item.sponsored_until) > new Date());
+  
+  // Reset image states when image URL changes
+  useEffect(() => {
+    setImageError(false);
+    setImageLoading(true);
+  }, [item.image_url]);
   
   // Get date info for events
   const dateInfo = item.type === 'event' ? getDateBadgeInfo(item) : null;
