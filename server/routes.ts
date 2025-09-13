@@ -3528,20 +3528,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             const supabase = await getSupabaseAdmin();
             
-            // Get last 30 days of data for the email
+            // Get today's data (including current live data)
+            const todayData = {
+              day: todayStr,
+              unique_visitors: currentDayData.uniqueVisitorIds.size,
+              total_pageviews: currentDayData.totalPageviews,
+              new_visitors: currentDayData.newVisitorIds.size,
+              returning_visitors: currentDayData.returningVisitorIds.size,
+              device_breakdown: currentDayData.deviceBreakdown,
+              top_pages: Array.from(dailyAnalytics.pages.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10)
+                .map(([path, views]) => ({ path, views })),
+              top_referrers: Array.from(dailyAnalytics.referrers.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5)
+                .map(([referrer, count]) => ({ referrer, count }))
+            };
+            
+            // Get yesterday's data for comparison
+            const yesterday = new Date(vancouverTime);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            
+            const { data: yesterdayData } = await supabase
+              .from('visitor_analytics')
+              .select('*')
+              .eq('day', yesterdayStr)
+              .single();
+            
+            // Get last 7 days for weekly comparison
+            const weekAgo = new Date(vancouverTime);
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            
+            const { data: weekData } = await supabase
+              .from('visitor_analytics')
+              .select('*')
+              .gte('day', weekAgo.toISOString().split('T')[0])
+              .lte('day', todayStr)
+              .order('day', { ascending: false });
+            
+            // Get last 30 days of data for monthly summary
             const startDate = new Date(vancouverTime);
             startDate.setDate(startDate.getDate() - 30);
             
-            const { data } = await supabase
+            const { data: monthData } = await supabase
               .from('visitor_analytics')
               .select('*')
               .gte('day', startDate.toISOString().split('T')[0])
               .lte('day', todayStr)
               .order('day', { ascending: false });
             
-            if (data && data.length > 0) {
-              // Calculate totals and averages
-              const totals = data.reduce((acc, day) => ({
+            if (monthData && monthData.length > 0) {
+              // Calculate weekly averages
+              const weeklyAvg = weekData ? {
+                visitors: Math.round(weekData.reduce((sum, d) => sum + (d.unique_visitors || 0), 0) / weekData.length),
+                pageviews: Math.round(weekData.reduce((sum, d) => sum + (d.total_pageviews || 0), 0) / weekData.length)
+              } : { visitors: 0, pageviews: 0 };
+              
+              // Calculate monthly totals
+              const monthlyTotals = monthData.reduce((acc, day) => ({
                 visitors: acc.visitors + (day.unique_visitors || 0),
                 pageviews: acc.pageviews + (day.total_pageviews || 0),
                 newVisitors: acc.newVisitors + (day.new_visitors || 0),
@@ -3559,9 +3605,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 tablet: 0
               });
               
-              // Aggregate top pages
+              // Aggregate top pages for the month
               const topPagesMap = new Map<string, number>();
-              data.forEach(day => {
+              monthData.forEach(day => {
                 if (day.top_pages && Array.isArray(day.top_pages)) {
                   day.top_pages.forEach((page: any) => {
                     if (page.path) {
@@ -3571,7 +3617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 }
               });
               
-              const topPages = Array.from(topPagesMap.entries())
+              const monthlyTopPages = Array.from(topPagesMap.entries())
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 10)
                 .map(([path, views]) => ({ path, views }));
@@ -3579,22 +3625,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
               await sendDailyAnalyticsEmail({
                 recipientEmail: 'relations@thehouseofjugnu.com',
                 date: todayStr,
-                totalVisitors: totals.visitors,
-                totalPageviews: totals.pageviews,
-                avgVisitorsPerDay: Math.round(totals.visitors / data.length),
-                avgPageviewsPerDay: Math.round(totals.pageviews / data.length),
-                topPages,
+                // Today's data
+                todayVisitors: todayData.unique_visitors,
+                todayPageviews: todayData.total_pageviews,
+                todayNewVisitors: todayData.new_visitors,
+                todayReturningVisitors: todayData.returning_visitors,
+                todayDeviceBreakdown: todayData.device_breakdown,
+                todayTopPages: todayData.top_pages,
+                // Yesterday's data for comparison
+                yesterdayVisitors: yesterdayData?.unique_visitors || 0,
+                yesterdayPageviews: yesterdayData?.total_pageviews || 0,
+                // Weekly average
+                weeklyAvgVisitors: weeklyAvg.visitors,
+                weeklyAvgPageviews: weeklyAvg.pageviews,
+                // Monthly totals (30-day summary)
+                totalVisitors: monthlyTotals.visitors,
+                totalPageviews: monthlyTotals.pageviews,
+                avgVisitorsPerDay: Math.round(monthlyTotals.visitors / monthData.length),
+                avgPageviewsPerDay: Math.round(monthlyTotals.pageviews / monthData.length),
+                topPages: monthlyTopPages,
                 deviceBreakdown: {
-                  mobile: totals.mobile,
-                  desktop: totals.desktop,
-                  tablet: totals.tablet
+                  mobile: monthlyTotals.mobile,
+                  desktop: monthlyTotals.desktop,
+                  tablet: monthlyTotals.tablet
                 },
-                newVisitors: totals.newVisitors,
-                returningVisitors: totals.returningVisitors
+                newVisitors: monthlyTotals.newVisitors,
+                returningVisitors: monthlyTotals.returningVisitors
               });
               
               lastEmailSentDate = todayStr;
-              console.log(`📧 Daily analytics email sent for ${todayStr}`);
+              console.log(`📧 Comprehensive analytics email sent for ${todayStr}`);
             }
           } catch (error) {
             console.error('Error sending daily analytics email:', error);

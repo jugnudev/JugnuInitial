@@ -20,6 +20,24 @@ export interface OnboardingEmailData {
 export interface AnalyticsEmailData {
   recipientEmail: string;
   date: string;
+  // Today's data
+  todayVisitors: number;
+  todayPageviews: number;
+  todayNewVisitors: number;
+  todayReturningVisitors: number;
+  todayDeviceBreakdown: {
+    mobile: number;
+    desktop: number;
+    tablet: number;
+  };
+  todayTopPages: Array<{ path: string; views: number }>;
+  // Yesterday's data for comparison
+  yesterdayVisitors: number;
+  yesterdayPageviews: number;
+  // Weekly average
+  weeklyAvgVisitors: number;
+  weeklyAvgPageviews: number;
+  // Monthly totals (30-day summary)
   totalVisitors: number;
   totalPageviews: number;
   avgVisitorsPerDay: number;
@@ -73,15 +91,18 @@ export async function sendOnboardingEmail(data: OnboardingEmailData): Promise<vo
             .button {
               display: inline-block;
               background-color: #7c3aed;
-              color: white !important;
-              padding: 14px 32px;
+              color: white;
+              padding: 14px 28px;
               text-decoration: none;
               border-radius: 8px;
               font-weight: 600;
               margin: 20px 0;
             }
-            .button:hover {
-              background-color: #6d28d9;
+            .highlight {
+              background-color: #fef3c7;
+              padding: 2px 6px;
+              border-radius: 4px;
+              font-weight: 600;
             }
             .footer {
               margin-top: 40px;
@@ -89,18 +110,13 @@ export async function sendOnboardingEmail(data: OnboardingEmailData): Promise<vo
               border-top: 1px solid #f0f0f0;
               font-size: 14px;
               color: #666;
-              text-align: center;
-            }
-            .highlight {
-              background-color: #fef3c7;
-              padding: 2px 4px;
-              border-radius: 3px;
             }
           </style>
         </head>
         <body>
           <div class="header">
-            <h1 style="color: #7c3aed; margin: 0;">Welcome to Jugnu!</h1>
+            <h1 style="color: #7c3aed; margin: 0;">🎉 You're Approved!</h1>
+            <p style="color: #666; margin-top: 10px;">Complete your campaign setup to go live on Jugnu</p>
           </div>
           
           <div class="content">
@@ -111,7 +127,7 @@ export async function sendOnboardingEmail(data: OnboardingEmailData): Promise<vo
             <p>You can now complete your campaign setup by clicking the button below:</p>
             
             <div style="text-align: center;">
-              <a href="${data.onboardingLink}" class="button">Create Your Campaign</a>
+              <a href="${data.onboardingLink}" class="button">Complete Campaign Setup</a>
             </div>
             
             <p style="color: #666; font-size: 14px;">
@@ -181,6 +197,26 @@ export async function sendDailyAnalyticsEmail(data: AnalyticsEmailData): Promise
     return;
   }
 
+  // Calculate comparisons for today's data
+  const visitorChange = data.yesterdayVisitors > 0 
+    ? Math.round(((data.todayVisitors - data.yesterdayVisitors) / data.yesterdayVisitors) * 100)
+    : 0;
+  const pageviewChange = data.yesterdayPageviews > 0
+    ? Math.round(((data.todayPageviews - data.yesterdayPageviews) / data.yesterdayPageviews) * 100)
+    : 0;
+  
+  const visitorChangeSymbol = visitorChange > 0 ? '↑' : visitorChange < 0 ? '↓' : '→';
+  const pageviewChangeSymbol = pageviewChange > 0 ? '↑' : pageviewChange < 0 ? '↓' : '→';
+  const visitorChangeColor = visitorChange > 0 ? '#10b981' : visitorChange < 0 ? '#ef4444' : '#6b7280';
+  const pageviewChangeColor = pageviewChange > 0 ? '#10b981' : pageviewChange < 0 ? '#ef4444' : '#6b7280';
+
+  // Device breakdown for today
+  const todayTotalDevices = data.todayDeviceBreakdown.mobile + data.todayDeviceBreakdown.desktop + data.todayDeviceBreakdown.tablet;
+  const todayMobilePercent = todayTotalDevices > 0 ? Math.round((data.todayDeviceBreakdown.mobile / todayTotalDevices) * 100) : 0;
+  const todayDesktopPercent = todayTotalDevices > 0 ? Math.round((data.todayDeviceBreakdown.desktop / todayTotalDevices) * 100) : 0;
+  const todayTabletPercent = todayTotalDevices > 0 ? Math.round((data.todayDeviceBreakdown.tablet / todayTotalDevices) * 100) : 0;
+
+  // Device breakdown for month
   const totalDevices = data.deviceBreakdown.mobile + data.deviceBreakdown.desktop + data.deviceBreakdown.tablet;
   const mobilePercent = totalDevices > 0 ? Math.round((data.deviceBreakdown.mobile / totalDevices) * 100) : 0;
   const desktopPercent = totalDevices > 0 ? Math.round((data.deviceBreakdown.desktop / totalDevices) * 100) : 0;
@@ -192,7 +228,7 @@ export async function sendDailyAnalyticsEmail(data: AnalyticsEmailData): Promise
       email: EMAIL_FROM_ADDRESS,
       name: EMAIL_FROM_NAME
     },
-    subject: `Daily Analytics Report - ${data.date}`,
+    subject: `Analytics Report: ${data.todayVisitors} visitors today - ${data.date}`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -234,6 +270,29 @@ export async function sendDailyAnalyticsEmail(data: AnalyticsEmailData): Promise
             .content {
               padding: 30px;
             }
+            .today-section {
+              background: #fef3c7;
+              border: 2px solid #f59e0b;
+              border-radius: 12px;
+              padding: 20px;
+              margin-bottom: 30px;
+            }
+            .today-header {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              margin-bottom: 20px;
+            }
+            .today-title {
+              font-size: 20px;
+              font-weight: 700;
+              color: #92400e;
+            }
+            .today-date {
+              font-size: 14px;
+              color: #92400e;
+              opacity: 0.8;
+            }
             .metric-grid {
               display: grid;
               grid-template-columns: repeat(2, 1fr);
@@ -247,6 +306,10 @@ export async function sendDailyAnalyticsEmail(data: AnalyticsEmailData): Promise
               padding: 15px;
               text-align: center;
             }
+            .today-metric-card {
+              background: white;
+              border: 1px solid #fbbf24;
+            }
             .metric-label {
               font-size: 12px;
               color: #666;
@@ -258,6 +321,16 @@ export async function sendDailyAnalyticsEmail(data: AnalyticsEmailData): Promise
               font-size: 24px;
               font-weight: 600;
               color: #f97316;
+            }
+            .metric-change {
+              font-size: 14px;
+              font-weight: 500;
+              margin-top: 5px;
+            }
+            .metric-comparison {
+              font-size: 11px;
+              color: #666;
+              margin-top: 3px;
             }
             .section {
               margin: 30px 0;
@@ -315,37 +388,115 @@ export async function sendDailyAnalyticsEmail(data: AnalyticsEmailData): Promise
               color: #f97316;
               text-decoration: none;
             }
+            .divider {
+              height: 1px;
+              background: #e5e5e5;
+              margin: 30px 0;
+            }
           </style>
         </head>
         <body>
           <div class="container">
             <div class="header">
-              <h1>📊 Daily Analytics Report</h1>
+              <h1>📊 Analytics Report</h1>
               <p>${data.date}</p>
             </div>
             
             <div class="content">
-              <div class="metric-grid">
-                <div class="metric-card">
-                  <div class="metric-label">Total Visitors</div>
-                  <div class="metric-value">${data.totalVisitors.toLocaleString()}</div>
+              <!-- Today's Performance Section -->
+              <div class="today-section">
+                <div class="today-header">
+                  <div class="today-title">🌟 Today's Performance</div>
+                  <div class="today-date">${data.date}</div>
                 </div>
-                <div class="metric-card">
-                  <div class="metric-label">Total Pageviews</div>
-                  <div class="metric-value">${data.totalPageviews.toLocaleString()}</div>
+                
+                <div class="metric-grid">
+                  <div class="today-metric-card">
+                    <div class="metric-label">Visitors</div>
+                    <div class="metric-value">${data.todayVisitors.toLocaleString()}</div>
+                    <div class="metric-change" style="color: ${visitorChangeColor}">
+                      ${visitorChangeSymbol} ${Math.abs(visitorChange)}% vs yesterday
+                    </div>
+                    <div class="metric-comparison">
+                      Yesterday: ${data.yesterdayVisitors} | Weekly avg: ${data.weeklyAvgVisitors}
+                    </div>
+                  </div>
+                  <div class="today-metric-card">
+                    <div class="metric-label">Pageviews</div>
+                    <div class="metric-value">${data.todayPageviews.toLocaleString()}</div>
+                    <div class="metric-change" style="color: ${pageviewChangeColor}">
+                      ${pageviewChangeSymbol} ${Math.abs(pageviewChange)}% vs yesterday
+                    </div>
+                    <div class="metric-comparison">
+                      Yesterday: ${data.yesterdayPageviews} | Weekly avg: ${data.weeklyAvgPageviews}
+                    </div>
+                  </div>
+                  <div class="today-metric-card">
+                    <div class="metric-label">New Visitors</div>
+                    <div class="metric-value">${data.todayNewVisitors.toLocaleString()}</div>
+                  </div>
+                  <div class="today-metric-card">
+                    <div class="metric-label">Returning</div>
+                    <div class="metric-value">${data.todayReturningVisitors.toLocaleString()}</div>
+                  </div>
                 </div>
-                <div class="metric-card">
-                  <div class="metric-label">New Visitors</div>
-                  <div class="metric-value">${data.newVisitors.toLocaleString()}</div>
+
+                ${todayTotalDevices > 0 ? `
+                <div style="margin-top: 20px;">
+                  <div style="font-size: 14px; font-weight: 600; color: #92400e; margin-bottom: 10px;">Today's Device Usage</div>
+                  <div style="display: flex; gap: 15px; font-size: 13px;">
+                    <div>💻 Desktop: ${data.todayDeviceBreakdown.desktop} (${todayDesktopPercent}%)</div>
+                    <div>📱 Mobile: ${data.todayDeviceBreakdown.mobile} (${todayMobilePercent}%)</div>
+                    <div>📱 Tablet: ${data.todayDeviceBreakdown.tablet} (${todayTabletPercent}%)</div>
+                  </div>
                 </div>
-                <div class="metric-card">
-                  <div class="metric-label">Returning Visitors</div>
-                  <div class="metric-value">${data.returningVisitors.toLocaleString()}</div>
+                ` : ''}
+
+                ${data.todayTopPages && data.todayTopPages.length > 0 ? `
+                <div style="margin-top: 20px;">
+                  <div style="font-size: 14px; font-weight: 600; color: #92400e; margin-bottom: 10px;">Today's Top Pages</div>
+                  <table class="data-table" style="background: white;">
+                    <tbody>
+                      ${data.todayTopPages.slice(0, 3).map(page => `
+                        <tr>
+                          <td style="font-size: 13px;">${page.path}</td>
+                          <td style="text-align: right; font-weight: 600; font-size: 13px;">${page.views} views</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+                ` : ''}
+              </div>
+
+              <div class="divider"></div>
+
+              <!-- 30-Day Summary Section -->
+              <div class="section">
+                <div class="section-title">📈 30-Day Summary</div>
+                
+                <div class="metric-grid">
+                  <div class="metric-card">
+                    <div class="metric-label">Total Visitors</div>
+                    <div class="metric-value">${data.totalVisitors.toLocaleString()}</div>
+                  </div>
+                  <div class="metric-card">
+                    <div class="metric-label">Total Pageviews</div>
+                    <div class="metric-value">${data.totalPageviews.toLocaleString()}</div>
+                  </div>
+                  <div class="metric-card">
+                    <div class="metric-label">Avg per Day</div>
+                    <div class="metric-value">${data.avgVisitorsPerDay}</div>
+                  </div>
+                  <div class="metric-card">
+                    <div class="metric-label">Avg Pageviews</div>
+                    <div class="metric-value">${data.avgPageviewsPerDay}</div>
+                  </div>
                 </div>
               </div>
 
               <div class="section">
-                <div class="section-title">📱 Device Breakdown</div>
+                <div class="section-title">📱 30-Day Device Breakdown</div>
                 <div class="device-bar">
                   ${desktopPercent > 0 ? `<div class="device-segment" style="background: #3b82f6; width: ${desktopPercent}%">${desktopPercent}%</div>` : ''}
                   ${mobilePercent > 0 ? `<div class="device-segment" style="background: #f97316; width: ${mobilePercent}%">${mobilePercent}%</div>` : ''}
@@ -369,7 +520,7 @@ export async function sendDailyAnalyticsEmail(data: AnalyticsEmailData): Promise
 
               ${data.topPages.length > 0 ? `
               <div class="section">
-                <div class="section-title">📄 Top Pages</div>
+                <div class="section-title">📄 30-Day Top Pages</div>
                 <table class="data-table">
                   <thead>
                     <tr>
@@ -390,15 +541,15 @@ export async function sendDailyAnalyticsEmail(data: AnalyticsEmailData): Promise
               ` : ''}
 
               <div class="section">
-                <div class="section-title">📈 Daily Averages</div>
+                <div class="section-title">👥 30-Day Visitor Types</div>
                 <table class="data-table">
                   <tr>
-                    <td>Average Visitors per Day</td>
-                    <td style="text-align: right; font-weight: 600;">${data.avgVisitorsPerDay}</td>
+                    <td>New Visitors</td>
+                    <td style="text-align: right; font-weight: 600;">${data.newVisitors.toLocaleString()}</td>
                   </tr>
                   <tr>
-                    <td>Average Pageviews per Day</td>
-                    <td style="text-align: right; font-weight: 600;">${data.avgPageviewsPerDay}</td>
+                    <td>Returning Visitors</td>
+                    <td style="text-align: right; font-weight: 600;">${data.returningVisitors.toLocaleString()}</td>
                   </tr>
                 </table>
               </div>
@@ -415,25 +566,49 @@ export async function sendDailyAnalyticsEmail(data: AnalyticsEmailData): Promise
       </html>
     `,
     text: `
-Daily Analytics Report - ${data.date}
+Analytics Report - ${data.date}
 
-SUMMARY
+TODAY'S PERFORMANCE (${data.date})
+================================
+Visitors: ${data.todayVisitors.toLocaleString()} (${visitorChangeSymbol}${Math.abs(visitorChange)}% vs yesterday)
+Pageviews: ${data.todayPageviews.toLocaleString()} (${pageviewChangeSymbol}${Math.abs(pageviewChange)}% vs yesterday)
+New Visitors: ${data.todayNewVisitors.toLocaleString()}
+Returning Visitors: ${data.todayReturningVisitors.toLocaleString()}
+
+Yesterday's Numbers:
+- Visitors: ${data.yesterdayVisitors}
+- Pageviews: ${data.yesterdayPageviews}
+
+Weekly Average:
+- Visitors: ${data.weeklyAvgVisitors}
+- Pageviews: ${data.weeklyAvgPageviews}
+
+Today's Device Breakdown:
+Desktop: ${data.todayDeviceBreakdown.desktop} (${todayDesktopPercent}%)
+Mobile: ${data.todayDeviceBreakdown.mobile} (${todayMobilePercent}%)
+Tablet: ${data.todayDeviceBreakdown.tablet} (${todayTabletPercent}%)
+
+Today's Top Pages:
+${data.todayTopPages ? data.todayTopPages.slice(0, 3).map(page => `${page.path}: ${page.views} views`).join('\n') : 'No page data yet'}
+
+30-DAY SUMMARY
+==============
 Total Visitors: ${data.totalVisitors.toLocaleString()}
 Total Pageviews: ${data.totalPageviews.toLocaleString()}
-New Visitors: ${data.newVisitors.toLocaleString()}
-Returning Visitors: ${data.returningVisitors.toLocaleString()}
+Average Visitors per Day: ${data.avgVisitorsPerDay}
+Average Pageviews per Day: ${data.avgPageviewsPerDay}
 
-DEVICE BREAKDOWN
+30-Day Device Breakdown:
 Desktop: ${data.deviceBreakdown.desktop.toLocaleString()} (${desktopPercent}%)
 Mobile: ${data.deviceBreakdown.mobile.toLocaleString()} (${mobilePercent}%)
 Tablet: ${data.deviceBreakdown.tablet.toLocaleString()} (${tabletPercent}%)
 
-TOP PAGES
+30-Day Top Pages:
 ${data.topPages.slice(0, 5).map(page => `${page.path}: ${page.views.toLocaleString()} views`).join('\n')}
 
-DAILY AVERAGES
-Average Visitors per Day: ${data.avgVisitorsPerDay}
-Average Pageviews per Day: ${data.avgPageviewsPerDay}
+30-Day Visitor Types:
+New Visitors: ${data.newVisitors.toLocaleString()}
+Returning Visitors: ${data.returningVisitors.toLocaleString()}
 
 ---
 View full analytics dashboard at ${APP_BASE_URL}/admin/analytics
