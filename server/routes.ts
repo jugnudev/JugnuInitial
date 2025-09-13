@@ -3452,29 +3452,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .slice(0, 10)
         .map(([referrer, count]) => ({ referrer, count }));
       
-      // Store in database
+      // Store in database - matching actual Supabase table schema
+      const dataToSave = {
+        day: targetDate,
+        unique_visitors: uniqueVisitors,
+        pageviews: totalPageviews,  // Changed from total_pageviews to match table
+        device_types: isToday ? currentDayData.deviceBreakdown : dailyAnalytics.deviceCounts,  // Changed from device_breakdown to match table
+        top_pages: topPages,
+        referrers: topReferrers,  // Changed from top_referrers to match table
+        new_visitors: newVisitors,
+        returning_visitors: returningVisitors
+        // Removed avg_session_duration and visitor_ids as they don't exist in the table
+      };
+      
+      console.log(`📊 Attempting to save analytics for ${targetDate}:`, {
+        unique_visitors: dataToSave.unique_visitors,
+        pageviews: dataToSave.pageviews,
+        new_visitors: dataToSave.new_visitors,
+        returning_visitors: dataToSave.returning_visitors,
+        device_types: dataToSave.device_types
+      });
+      
       const { error } = await supabase
         .from('visitor_analytics')
-        .upsert({
-          day: targetDate,
-          unique_visitors: uniqueVisitors,
-          total_pageviews: totalPageviews,
-          device_breakdown: isToday ? currentDayData.deviceBreakdown : dailyAnalytics.deviceCounts,
-          top_pages: topPages,
-          top_referrers: topReferrers,
-          new_visitors: newVisitors,
-          returning_visitors: returningVisitors,
-          avg_session_duration: avgSessionDuration,
-          visitor_ids: isToday ? Array.from(currentDayData.uniqueVisitorIds) : []
-        }, {
+        .upsert(dataToSave, {
           onConflict: 'day'
         });
       
       if (!error) {
         lastAnalyticsSaveTime = new Date();
-        console.log(`✅ Analytics saved for ${targetDate} at ${lastAnalyticsSaveTime.toLocaleString('en-US', { timeZone: 'America/Vancouver' })}`);
+        console.log(`✅ Analytics successfully saved for ${targetDate} at ${lastAnalyticsSaveTime.toLocaleString('en-US', { timeZone: 'America/Vancouver' })}`);
+        console.log(`   Saved: ${uniqueVisitors} visitors, ${totalPageviews} pageviews`);
       } else {
-        console.error('Error storing analytics:', error);
+        console.error(`❌ Failed to save analytics for ${targetDate}:`, error);
+        console.error('   Attempted data:', JSON.stringify(dataToSave, null, 2));
       }
       
       return !error;
@@ -3532,15 +3543,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const todayData = {
               day: todayStr,
               unique_visitors: currentDayData.uniqueVisitorIds.size,
-              total_pageviews: currentDayData.totalPageviews,
+              pageviews: currentDayData.totalPageviews,  // Using 'pageviews' to match DB field
               new_visitors: currentDayData.newVisitorIds.size,
               returning_visitors: currentDayData.returningVisitorIds.size,
-              device_breakdown: currentDayData.deviceBreakdown,
+              device_types: currentDayData.deviceBreakdown,  // Using 'device_types' to match DB field
               top_pages: Array.from(dailyAnalytics.pages.entries())
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 10)
                 .map(([path, views]) => ({ path, views })),
-              top_referrers: Array.from(dailyAnalytics.referrers.entries())
+              referrers: Array.from(dailyAnalytics.referrers.entries())  // Using 'referrers' to match DB field
                 .sort((a, b) => b[1] - a[1])
                 .slice(0, 5)
                 .map(([referrer, count]) => ({ referrer, count }))
@@ -3583,18 +3594,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Calculate weekly averages
               const weeklyAvg = weekData ? {
                 visitors: Math.round(weekData.reduce((sum, d) => sum + (d.unique_visitors || 0), 0) / weekData.length),
-                pageviews: Math.round(weekData.reduce((sum, d) => sum + (d.total_pageviews || 0), 0) / weekData.length)
+                pageviews: Math.round(weekData.reduce((sum, d) => sum + (d.pageviews || 0), 0) / weekData.length)  // Changed from total_pageviews
               } : { visitors: 0, pageviews: 0 };
               
               // Calculate monthly totals
               const monthlyTotals = monthData.reduce((acc, day) => ({
                 visitors: acc.visitors + (day.unique_visitors || 0),
-                pageviews: acc.pageviews + (day.total_pageviews || 0),
+                pageviews: acc.pageviews + (day.pageviews || 0),  // Changed from total_pageviews
                 newVisitors: acc.newVisitors + (day.new_visitors || 0),
                 returningVisitors: acc.returningVisitors + (day.returning_visitors || 0),
-                mobile: acc.mobile + (day.device_breakdown?.mobile || 0),
-                desktop: acc.desktop + (day.device_breakdown?.desktop || 0),
-                tablet: acc.tablet + (day.device_breakdown?.tablet || 0)
+                mobile: acc.mobile + (day.device_types?.mobile || 0),  // Changed from device_breakdown
+                desktop: acc.desktop + (day.device_types?.desktop || 0),  // Changed from device_breakdown
+                tablet: acc.tablet + (day.device_types?.tablet || 0)  // Changed from device_breakdown
               }), {
                 visitors: 0,
                 pageviews: 0,
@@ -3627,14 +3638,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 date: todayStr,
                 // Today's data
                 todayVisitors: todayData.unique_visitors,
-                todayPageviews: todayData.total_pageviews,
+                todayPageviews: todayData.pageviews,  // Changed from total_pageviews
                 todayNewVisitors: todayData.new_visitors,
                 todayReturningVisitors: todayData.returning_visitors,
-                todayDeviceBreakdown: todayData.device_breakdown,
+                todayDeviceBreakdown: todayData.device_types,  // Changed from device_breakdown
                 todayTopPages: todayData.top_pages,
                 // Yesterday's data for comparison
                 yesterdayVisitors: yesterdayData?.unique_visitors || 0,
-                yesterdayPageviews: yesterdayData?.total_pageviews || 0,
+                yesterdayPageviews: yesterdayData?.pageviews || 0,  // Changed from total_pageviews
                 // Weekly average
                 weeklyAvgVisitors: weeklyAvg.visitors,
                 weeklyAvgPageviews: weeklyAvg.pageviews,
@@ -3690,12 +3701,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(401).json({ ok: false, error: 'Unauthorized' });
     }
     
-    const success = await saveAnalyticsData();
+    const targetDate = req.body?.date || getPSTDateString();
+    console.log(`📊 Manual save requested for ${targetDate}`);
+    
+    const success = await saveAnalyticsData(targetDate);
     if (success) {
       res.json({ 
         ok: true, 
         message: 'Analytics stored successfully',
-        lastSaved: lastAnalyticsSaveTime?.toISOString()
+        date: targetDate,
+        lastSaved: lastAnalyticsSaveTime?.toISOString(),
+        currentData: {
+          uniqueVisitors: currentDayData.uniqueVisitorIds.size,
+          pageviews: currentDayData.totalPageviews,
+          newVisitors: currentDayData.newVisitorIds.size,
+          returningVisitors: currentDayData.returningVisitorIds.size
+        }
       });
     } else {
       res.status(500).json({ ok: false, error: 'Failed to store analytics' });
@@ -3758,16 +3779,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const todayLiveData = {
         day: today,
         unique_visitors: currentDayData.uniqueVisitorIds.size,
-        total_pageviews: currentDayData.totalPageviews,
+        pageviews: currentDayData.totalPageviews,  // Changed from total_pageviews
         new_visitors: currentDayData.newVisitorIds.size,
         returning_visitors: currentDayData.returningVisitorIds.size,
-        avg_session_duration: avgSessionDuration,
-        device_breakdown: currentDayData.deviceBreakdown,
+        device_types: currentDayData.deviceBreakdown,  // Changed from device_breakdown
         top_pages: Array.from(dailyAnalytics.pages.entries())
           .sort((a, b) => b[1] - a[1])
           .slice(0, 10)
           .map(([path, views]) => ({ path, views })),
-        top_referrers: Array.from(dailyAnalytics.referrers.entries())
+        referrers: Array.from(dailyAnalytics.referrers.entries())  // Changed from top_referrers
           .sort((a, b) => b[1] - a[1])
           .slice(0, 10)
           .map(([referrer, count]) => ({ referrer, count }))
@@ -3788,12 +3808,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           analyticsData[todayIndex] = {
             ...analyticsData[todayIndex],
             unique_visitors: todayLiveData.unique_visitors,
-            total_pageviews: todayLiveData.total_pageviews,
-            device_breakdown: todayLiveData.device_breakdown,
+            pageviews: todayLiveData.pageviews,  // Changed from total_pageviews
+            device_types: todayLiveData.device_types,  // Changed from device_breakdown
             new_visitors: todayLiveData.new_visitors,
             returning_visitors: todayLiveData.returning_visitors,
             top_pages: todayLiveData.top_pages.length > 0 ? todayLiveData.top_pages : analyticsData[todayIndex].top_pages,
-            top_referrers: todayLiveData.top_referrers.length > 0 ? todayLiveData.top_referrers : analyticsData[todayIndex].top_referrers
+            referrers: todayLiveData.referrers.length > 0 ? todayLiveData.referrers : analyticsData[todayIndex].referrers  // Changed from top_referrers
           };
         } else if (startDateStr <= today && endDateStr >= today) {
           // Add today's live data if it's within the requested date range
@@ -3805,7 +3825,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate summary statistics using the merged data
       const summary = analyticsData.reduce((acc, day) => ({
         totalVisitors: acc.totalVisitors + (day.unique_visitors || 0),
-        totalPageviews: acc.totalPageviews + (day.total_pageviews || 0),
+        totalPageviews: acc.totalPageviews + (day.pageviews || 0),  // Changed from total_pageviews
         avgVisitorsPerDay: 0, // Will calculate after
         avgPageviewsPerDay: 0, // Will calculate after
       }), {
@@ -3914,17 +3934,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const csvRows = data?.map(day => {
         const topPage = day.top_pages?.[0] || {};
-        const deviceBreakdown = day.device_breakdown || {};
+        const deviceTypes = day.device_types || {};  // Changed from device_breakdown
         
         return [
           day.day,
           day.unique_visitors || 0,
-          day.total_pageviews || 0,
+          day.pageviews || 0,  // Changed from total_pageviews
           day.new_visitors || 0,
           day.returning_visitors || 0,
-          deviceBreakdown.desktop || 0,
-          deviceBreakdown.mobile || 0,
-          deviceBreakdown.tablet || 0,
+          deviceTypes.desktop || 0,  // Changed variable name
+          deviceTypes.mobile || 0,  // Changed variable name
+          deviceTypes.tablet || 0,  // Changed variable name
           topPage.path || '',
           topPage.views || 0
         ];
@@ -3933,12 +3953,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Add summary row
       const totals = data?.reduce((acc, day) => ({
         visitors: acc.visitors + (day.unique_visitors || 0),
-        pageviews: acc.pageviews + (day.total_pageviews || 0),
+        pageviews: acc.pageviews + (day.pageviews || 0),  // Changed from total_pageviews
         newVisitors: acc.newVisitors + (day.new_visitors || 0),
         returningVisitors: acc.returningVisitors + (day.returning_visitors || 0),
-        desktop: acc.desktop + (day.device_breakdown?.desktop || 0),
-        mobile: acc.mobile + (day.device_breakdown?.mobile || 0),
-        tablet: acc.tablet + (day.device_breakdown?.tablet || 0)
+        desktop: acc.desktop + (day.device_types?.desktop || 0),  // Changed from device_breakdown
+        mobile: acc.mobile + (day.device_types?.mobile || 0),  // Changed from device_breakdown
+        tablet: acc.tablet + (day.device_types?.tablet || 0)  // Changed from device_breakdown
       }), {
         visitors: 0,
         pageviews: 0,
