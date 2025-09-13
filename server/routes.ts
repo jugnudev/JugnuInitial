@@ -3153,14 +3153,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const VISITOR_TIMEOUT = 15 * 60 * 1000; // 15 minutes
   let lastAnalyticsSaveTime: Date | null = null;
   
-  // Get current PST date string
+  // Get current PST date string (Vancouver is in Pacific timezone)
   function getPSTDateString(date?: Date): string {
     const d = date || new Date();
-    const pstDate = new Date(d.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
-    const year = pstDate.getFullYear();
-    const month = String(pstDate.getMonth() + 1).padStart(2, '0');
-    const day = String(pstDate.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    // Get the date components in Vancouver/Pacific timezone
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: "America/Vancouver",
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    };
+    const parts = new Intl.DateTimeFormat('en-US', options).formatToParts(d);
+    const dateParts: Record<string, string> = {};
+    parts.forEach(part => {
+      if (part.type !== 'literal') {
+        dateParts[part.type] = part.value;
+      }
+    });
+    return `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
   }
   
   // Enhanced visitor tracking with detailed analytics
@@ -3497,31 +3507,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Automatic saving every 10 minutes and email at 10 PM PST
   function scheduleAnalyticsSaving() {
+    console.log('📊 scheduleAnalyticsSaving function called');
     let lastEmailSentDate: string | null = null;
-    let lastSaveMinute: number | null = null;
+    let lastAutoSaveTime = Date.now(); // Track actual last save time
+    const SAVE_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes in milliseconds
     
     const checkAndSave = async () => {
-      const now = new Date();
-      const vancouverTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
-      const todayStr = vancouverTime.toISOString().split('T')[0];
-      const currentMinute = Math.floor(vancouverTime.getMinutes() / 10) * 10; // Round down to nearest 10 minutes
+      const now = Date.now();
+      const timeSinceLastSave = now - lastAutoSaveTime;
+      const minutesSinceLastSave = Math.floor(timeSinceLastSave / 60000);
+      const secondsSinceLastSave = Math.floor(timeSinceLastSave / 1000);
       
-      // Save analytics every 10 minutes (at :00, :10, :20, :30, :40, :50)
-      if (vancouverTime.getMinutes() % 10 < 1 && lastSaveMinute !== currentMinute) {
-        lastSaveMinute = currentMinute;
-        console.log(`⏰ Auto-saving analytics at ${vancouverTime.toLocaleTimeString('en-US', { timeZone: 'America/Los_Angeles' })} PST`);
+      // Get current time in Vancouver/Pacific timezone for logging
+      const nowDate = new Date();
+      const vancouverTimeStr = nowDate.toLocaleString('en-US', { 
+        timeZone: 'America/Vancouver',
+        hour12: true,
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+      });
+      
+      // Detailed logging every minute
+      console.log(`📊 [Analytics Scheduler] ${vancouverTimeStr} - Running check (every minute)`);
+      console.log(`   └─ Time since last auto-save: ${minutesSinceLastSave}m ${secondsSinceLastSave % 60}s`);
+      console.log(`   └─ Next auto-save in: ${Math.max(0, 10 - minutesSinceLastSave)}m ${Math.max(0, 600 - secondsSinceLastSave) % 60}s`);
+      console.log(`   └─ Current stats: ${currentDayData.uniqueVisitorIds.size} visitors, ${currentDayData.totalPageviews} pageviews`)
+      
+      // Get today's date in PST
+      const todayStr = getPSTDateString();
+      
+      // Save analytics every 10 minutes based on elapsed time
+      if (timeSinceLastSave >= SAVE_INTERVAL_MS) {
+        console.log(`⏰ [AUTO-SAVE TRIGGERED] 10 minutes elapsed, initiating auto-save at ${vancouverTimeStr}`);
+        lastAutoSaveTime = now;
         const success = await saveAnalyticsData(todayStr);
         if (success) {
-          console.log(`✅ Analytics auto-saved successfully for ${todayStr}`);
+          console.log(`✅ [AUTO-SAVE SUCCESS] Analytics auto-saved for ${todayStr} at ${vancouverTimeStr}`);
+          console.log(`   └─ Next auto-save scheduled in 10 minutes`);
         } else {
-          console.error(`❌ Failed to auto-save analytics for ${todayStr}`);
+          console.error(`❌ [AUTO-SAVE FAILED] Failed to auto-save analytics for ${todayStr}`);
         }
       }
       
+      // Check current hour and minute in Vancouver timezone
+      const vancouverHour = parseInt(nowDate.toLocaleString('en-US', { timeZone: 'America/Vancouver', hour: 'numeric', hour12: false }));
+      const vancouverMinute = parseInt(nowDate.toLocaleString('en-US', { timeZone: 'America/Vancouver', minute: 'numeric' }));
+      
       // Also save at midnight for yesterday's final data
-      if (vancouverTime.getHours() === 0 && vancouverTime.getMinutes() < 5) {
+      if (vancouverHour === 0 && vancouverMinute < 5) {
         // Save yesterday's data
-        const yesterday = new Date(vancouverTime);
+        const yesterday = new Date(nowDate);
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = yesterday.toISOString().split('T')[0];
         
@@ -3533,7 +3570,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Check if it's 10 PM (22:00-22:05) Pacific time for daily email
-      if (vancouverTime.getHours() === 22 && vancouverTime.getMinutes() < 5) {
+      if (vancouverHour === 22 && vancouverMinute < 5) {
         // Only send if we haven't sent today
         if (lastEmailSentDate !== todayStr) {
           try {
@@ -3558,9 +3595,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             };
             
             // Get yesterday's data for comparison
-            const yesterday = new Date(vancouverTime);
+            const yesterday = new Date(nowDate);
             yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            const yesterdayStr = getPSTDateString(yesterday);
             
             const { data: yesterdayData } = await supabase
               .from('visitor_analytics')
@@ -3569,24 +3606,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
               .single();
             
             // Get last 7 days for weekly comparison
-            const weekAgo = new Date(vancouverTime);
+            const weekAgo = new Date(nowDate);
             weekAgo.setDate(weekAgo.getDate() - 7);
             
             const { data: weekData } = await supabase
               .from('visitor_analytics')
               .select('*')
-              .gte('day', weekAgo.toISOString().split('T')[0])
+              .gte('day', getPSTDateString(weekAgo))
               .lte('day', todayStr)
               .order('day', { ascending: false });
             
             // Get last 30 days of data for monthly summary
-            const startDate = new Date(vancouverTime);
+            const startDate = new Date(nowDate);
             startDate.setDate(startDate.getDate() - 30);
             
             const { data: monthData } = await supabase
               .from('visitor_analytics')
               .select('*')
-              .gte('day', startDate.toISOString().split('T')[0])
+              .gte('day', getPSTDateString(startDate))
               .lte('day', todayStr)
               .order('day', { ascending: false });
             
@@ -3674,24 +3711,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     };
     
-    // Check every minute to ensure we catch the 10-minute intervals
-    setInterval(checkAndSave, 60 * 1000); // 1 minute
+    // Check every minute to ensure we catch the save intervals and email time
+    console.log('⚙️ [Analytics Scheduler] Starting interval timer - will check every 60 seconds');
+    const intervalId = setInterval(checkAndSave, 60 * 1000); // 1 minute
+    console.log('✅ [Analytics Scheduler] Timer started with ID:', intervalId._idleTimeout || 'active')
     
     // Also save on server startup if there's data from previous session
+    console.log('📊 Setting up startup save timeout (5 seconds)');
     setTimeout(async () => {
+      console.log('📊 Startup timeout triggered');
       const todayPST = getPSTDateString();
+      console.log(`📊 Today PST: ${todayPST}`);
       if (currentDayData.uniqueVisitorIds.size > 0 || currentDayData.totalPageviews > 0 || 
           visitorSessions.size > 0 || dailyAnalytics.pages.size > 0) {
         console.log('📊 Server startup - Saving any unsaved analytics data');
         await saveAnalyticsData(todayPST);
+      } else {
+        console.log('📊 No analytics data to save on startup');
       }
-      // Also run check immediately to start the 10-minute cycle
+      // Don't reset lastAutoSaveTime here - let it stay at the initial value
+      // so the first auto-save happens 10 minutes after server start
+      // Also run check immediately to start checking for intervals
+      console.log('📊 Running initial checkAndSave');
       checkAndSave();
     }, 5000); // Wait 5 seconds after startup
   }
   
   // Start the scheduled saving
+  console.log('📊 [Analytics] Initializing auto-save scheduler...');
+  console.log('📊 [Analytics] Auto-save interval: 10 minutes');
+  console.log('📊 [Analytics] Email report time: 10:00 PM Pacific');
   scheduleAnalyticsSaving();
+  console.log('📊 [Analytics] Scheduler started successfully')
   
   // Store daily analytics (called manually from admin dashboard)
   app.post('/api/admin/analytics/store-daily', async (req, res) => {

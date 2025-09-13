@@ -20,12 +20,11 @@ interface AnalyticsResponse {
 interface AnalyticsData {
   day: string;
   unique_visitors: number;
-  total_pageviews: number;
+  pageviews: number;
   new_visitors: number;
   returning_visitors: number;
-  avg_session_duration: number;
   top_pages: Array<{ path: string; views: number }>;
-  top_referrers: Array<{ referrer: string; count: number }>;
+  referrers: Array<{ referrer: string; count: number }>;
   device_breakdown: {
     mobile: number;
     desktop: number;
@@ -45,7 +44,7 @@ interface AnalyticsSummary {
 const COLORS = ['#f97316', '#22c55e', '#3b82f6', '#a855f7', '#ef4444'];
 
 export default function AdminAnalytics() {
-  const [dateRange, setDateRange] = useState('30');
+  const [dateRange, setDateRange] = useState('today');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const { toast } = useToast();
@@ -102,10 +101,11 @@ export default function AdminAnalytics() {
     },
     onSuccess: (data) => {
       const lastSaved = data.lastSaved ? new Date(data.lastSaved).toLocaleString('en-US', { 
-        timeZone: 'America/Los_Angeles',
+        timeZone: 'America/Vancouver',
         dateStyle: 'short',
-        timeStyle: 'short'
-      }) + ' PST' : 'now';
+        timeStyle: 'short',
+        timeZoneName: 'short'
+      }) : 'now';
       toast({
         title: 'Analytics Stored',
         description: `Daily analytics saved at ${lastSaved}`,
@@ -213,9 +213,9 @@ export default function AdminAnalytics() {
 
   // Prepare chart data
   const chartData = analyticsData.map(day => ({
-    date: format(new Date(day.day), 'MMM d'),
+    date: format(new Date(day.day + 'T00:00:00'), 'MMM d'),
     visitors: day.unique_visitors,
-    pageviews: day.total_pageviews,
+    pageviews: day.pageviews,
     newVisitors: day.new_visitors,
     returningVisitors: day.returning_visitors
   }));
@@ -288,18 +288,20 @@ export default function AdminAnalytics() {
             {data?.lastSaved && (
               <div>
                 Last saved: {new Date(data.lastSaved).toLocaleString('en-US', { 
-                  timeZone: 'America/Los_Angeles',
+                  timeZone: 'America/Vancouver',
                   dateStyle: 'short',
-                  timeStyle: 'short'
-                })} PST
+                  timeStyle: 'short',
+                  timeZoneName: 'short'
+                })}
               </div>
             )}
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
               Auto-refreshes every minute (last: {lastRefresh.toLocaleTimeString('en-US', {
-                timeZone: 'America/Los_Angeles',
-                timeStyle: 'short'
-              })} PST)
+                timeZone: 'America/Vancouver',
+                timeStyle: 'short',
+                timeZoneName: 'short'
+              })})
             </div>
           </div>
         </div>
