@@ -100,12 +100,7 @@ export default function AdminAnalytics() {
       return response.json();
     },
     onSuccess: (data) => {
-      const lastSaved = data.lastSaved ? new Date(data.lastSaved).toLocaleString('en-US', { 
-        timeZone: 'America/Vancouver',
-        dateStyle: 'short',
-        timeStyle: 'short',
-        timeZoneName: 'short'
-      }) : 'now';
+      const lastSaved = data.lastSaved ? format(new Date(data.lastSaved), 'MMM d, h:mm a') : 'now';
       toast({
         title: 'Analytics Stored',
         description: `Daily analytics saved at ${lastSaved}`,
@@ -287,21 +282,12 @@ export default function AdminAnalytics() {
           <div className="flex gap-4 text-sm text-white/60">
             {data?.lastSaved && (
               <div>
-                Last saved: {new Date(data.lastSaved).toLocaleString('en-US', { 
-                  timeZone: 'America/Vancouver',
-                  dateStyle: 'short',
-                  timeStyle: 'short',
-                  timeZoneName: 'short'
-                })}
+                Last saved: {format(new Date(data.lastSaved), 'MMM d, h:mm a')}
               </div>
             )}
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              Auto-refreshes every minute (last: {lastRefresh.toLocaleTimeString('en-US', {
-                timeZone: 'America/Vancouver',
-                timeStyle: 'short',
-                timeZoneName: 'short'
-              })})
+              Auto-refreshes every minute (last: {format(lastRefresh, 'h:mm a')})
             </div>
           </div>
         </div>
