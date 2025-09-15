@@ -5,6 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Layout from "@/components/Layout";
 import FirefliesCounter from "@/components/FirefliesCounter";
+import { useEffect } from "react";
+import { initGA } from "./lib/analytics";
+import { useAnalytics } from "./hooks/use-analytics";
 import Home from "@/pages/home";
 import Story from "@/pages/Story";
 import Explore from "@/pages/Explore";
@@ -29,6 +32,9 @@ import Onboard from "@/pages/Onboard";
 import Deals from "@/pages/Deals";
 
 function Router() {
+  // Track page views when routes change - Google Analytics integration
+  useAnalytics();
+  
   return (
     <Layout>
       <Switch>
@@ -62,6 +68,16 @@ function Router() {
 }
 
 function App() {
+  // Initialize Google Analytics when app loads
+  useEffect(() => {
+    // Verify required environment variable is present
+    if (!import.meta.env.VITE_GA_MEASUREMENT_ID) {
+      console.warn('Missing required Google Analytics key: VITE_GA_MEASUREMENT_ID');
+    } else {
+      initGA();
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
