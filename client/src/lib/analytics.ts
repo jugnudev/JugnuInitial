@@ -37,17 +37,56 @@ export const initGA = () => {
   document.head.appendChild(script2);
 };
 
+// Get dynamic page title based on route
+export const getPageTitle = (path: string): string => {
+  const baseBrand = 'Jugnu';
+  
+  // Route to title mapping
+  const routeTitles: { [key: string]: string } = {
+    '/': `${baseBrand} - Find Your Frequency | South Asian Cultural Events Vancouver`,
+    '/events': `Events - ${baseBrand} | Vancouver South Asian Cultural Events`,
+    '/deals': `Deals - ${baseBrand} | Special Offers & Discounts`,
+    '/promote': `Promote Your Event - ${baseBrand} | Event Marketing Vancouver`,
+    '/story': `Our Story - ${baseBrand} | About Vancouver's Premier Cultural Events`,
+    '/saved': `Saved Events - ${baseBrand} | Your Bookmarked Events`,
+    '/waitlist': `Join Waitlist - ${baseBrand} | Be First to Know About Events`,
+    '/thank-you': `Thank You - ${baseBrand} | Registration Confirmed`,
+    '/privacy': `Privacy Policy - ${baseBrand}`,
+    '/terms': `Terms of Service - ${baseBrand}`,
+    '/admin/promote': `Admin Portal - ${baseBrand} | Promote Management`,
+    '/admin/leads': `Admin Portal - ${baseBrand} | Leads Management`, 
+    '/admin/analytics': `Admin Portal - ${baseBrand} | Analytics Dashboard`
+  };
+
+  // Check for dynamic routes
+  if (path.startsWith('/sponsor/')) {
+    return `Sponsor Portal - ${baseBrand} | Campaign Management`;
+  }
+  if (path.startsWith('/onboard/')) {
+    return `Onboarding - ${baseBrand} | Welcome to Our Platform`;
+  }
+  if (path.includes('/feature')) {
+    return `Feature Request - ${baseBrand} | Submit Your Event`;
+  }
+
+  // Return matched title or default
+  return routeTitles[path] || `${baseBrand} - Find Your Frequency | Vancouver South Asian Events`;
+};
+
 // Track page views - useful for single-page applications
-export const trackPageView = (url: string) => {
+export const trackPageView = (url: string, title?: string) => {
   if (typeof window === 'undefined' || !window.gtag) return;
   
   const measurementId = import.meta.env.VITE_GA_MEASUREMENT_ID;
   if (!measurementId) return;
   
-  window.gtag('config', measurementId, {
-    page_path: url,
-    page_title: document.title,
-    page_location: window.location.href
+  // Use provided title or generate dynamic title
+  const pageTitle = title || getPageTitle(url);
+  
+  window.gtag('event', 'page_view', {
+    page_title: pageTitle,
+    page_location: window.location.href,
+    page_path: url
   });
 };
 

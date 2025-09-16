@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
-import { trackPageView } from '../lib/analytics';
+import { trackPageView, getPageTitle } from '../lib/analytics';
 
 export const useAnalytics = () => {
   const [location] = useLocation();
@@ -8,7 +8,15 @@ export const useAnalytics = () => {
   
   useEffect(() => {
     if (location !== prevLocationRef.current) {
-      trackPageView(location);
+      // Get dynamic page title
+      const pageTitle = getPageTitle(location);
+      
+      // Update browser tab title
+      document.title = pageTitle;
+      
+      // Track page view with the dynamic title
+      trackPageView(location, pageTitle);
+      
       prevLocationRef.current = location;
     }
   }, [location]);
