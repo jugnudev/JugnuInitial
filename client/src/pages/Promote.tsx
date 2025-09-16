@@ -2288,9 +2288,9 @@ export default function Promote() {
 
             <Card className="p-6 bg-white/5 border-white/10 text-center">
               <Plus className="w-8 h-8 text-copper-500 mx-auto mb-3" />
-              <h4 className="font-medium text-white mb-2">Email Feature (100+ subscribers)</h4>
+              <h4 className="font-medium text-white mb-2">Email Feature (150+ subscribers)</h4>
               <p className="text-muted text-sm mb-3">Sponsor mention in our community email during your week</p>
-              <Badge className="bg-copper-500/20 text-copper-400">+CA$90</Badge>
+              <Badge className="bg-copper-500/20 text-copper-400">+CA$25</Badge>
             </Card>
 
             <Card className="p-6 bg-white/5 border-white/10 text-center">

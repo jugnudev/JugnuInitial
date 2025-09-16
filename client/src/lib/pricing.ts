@@ -62,7 +62,7 @@ export const PRICING_CONFIG = {
       globalPerks: GLOBAL_PERKS,
       features: [
         'Both placements for the same 7 days',
-        '1 Email Feature to our community list (100+ subscribers) during your week',
+        '1 Email Feature to our community list (150+ subscribers) during your week',
         '1 Instagram Story during your week (creative provided or simple template)',
         '__TOOLTIP__Delivery guarantee__We guarantee at least 2,000 viewable impressions and 225 clicks during your week. If we deliver less, we continue at no cost until the target is met.'
       ],
@@ -81,9 +81,9 @@ export const PRICING_CONFIG = {
       price: 10
     },
     email_feature: {
-      name: 'Email Feature (100+ subscribers)',
+      name: 'Email Feature (150+ subscribers)',
       description: 'Sponsor mention in our community email during your week',
-      price: 90
+      price: 25
     }
   },
   discounts: {

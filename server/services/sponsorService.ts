@@ -12,7 +12,7 @@ const PRICING = {
   },
   addOns: {
     ig_story: 10,
-    email_feature: 90
+    email_feature: 25
   }
 } as const;
 
