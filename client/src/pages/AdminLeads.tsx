@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import AdminLeadsList from '@/components/AdminLeadsList';
-import { Shield, Users, DollarSign, TrendingUp } from 'lucide-react';
+import { Shield, Users, DollarSign, TrendingUp, RefreshCcw } from 'lucide-react';
 
 export default function AdminLeads() {
+  const [refreshingEvents, setRefreshingEvents] = useState(false);
   const [adminKey, setAdminKey] = useState(() => {
     try {
       return localStorage.getItem('adminKey') || '';
@@ -135,17 +136,62 @@ export default function AdminLeads() {
               <h1 className="text-4xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">Sponsor Leads Management</h1>
               <p className="text-gray-300 mt-2 text-lg">Manage sponsor applications and track conversions</p>
             </div>
-            <Button
-              variant="outline"
-              className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
-              onClick={() => {
-                setAdminKey('');
-                setIsAuthenticated(false);
-              }}
-              data-testid="button-logout"
-            >
-              Logout
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={async () => {
+                  setRefreshingEvents(true);
+                  try {
+                    const { toast } = await import('@/hooks/use-toast');
+                    const response = await fetch('/api/admin/refresh-events', {
+                      method: 'POST',
+                      headers: {
+                        'x-admin-key': adminKey || ''
+                      }
+                    });
+                    
+                    if (response.ok) {
+                      const data = await response.json();
+                      toast({
+                        title: 'Events Refreshed',
+                        description: `Imported: ${data.imported}, Updated: ${data.updated}`,
+                      });
+                    } else {
+                      const error = await response.json();
+                      toast({
+                        title: 'Refresh Failed',
+                        description: error.error || 'Failed to refresh events',
+                        variant: 'destructive'
+                      });
+                    }
+                  } catch (error) {
+                    const { toast } = await import('@/hooks/use-toast');
+                    toast({
+                      title: 'Error',
+                      description: 'Failed to refresh events',
+                      variant: 'destructive'
+                    });
+                  } finally {
+                    setRefreshingEvents(false);
+                  }
+                }}
+                disabled={refreshingEvents}
+                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
+              >
+                <RefreshCcw className={`h-4 w-4 mr-2 ${refreshingEvents ? 'animate-spin' : ''}`} />
+                {refreshingEvents ? 'Refreshing...' : 'Refresh Events'}
+              </Button>
+              <Button
+                variant="outline"
+                className="border-gray-700 bg-gray-800 text-white hover:bg-gray-700"
+                onClick={() => {
+                  setAdminKey('');
+                  setIsAuthenticated(false);
+                }}
+                data-testid="button-logout"
+              >
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
         

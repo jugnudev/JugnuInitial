@@ -2997,6 +2997,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add onboarding routes for campaign creation
   registerOnboardingRoutes(app);
 
+  // Admin endpoint to refresh events from ICS feeds
+  app.post('/api/admin/refresh-events', async (req, res) => {
+    try {
+      // Validate admin key from frontend
+      const frontendAdminKey = req.headers['x-admin-key'] as string;
+      const validKeys = [
+        process.env.ADMIN_PASSWORD,
+        process.env.ADMIN_KEY,
+        process.env.EXPORT_ADMIN_KEY,
+        'jugnu-admin-dev-2025'
+      ].filter(Boolean);
+      
+      if (!frontendAdminKey || !validKeys.includes(frontendAdminKey)) {
+        return res.status(401).json({ 
+          ok: false, 
+          error: 'Unauthorized - invalid admin key' 
+        });
+      }
+
+      // Call the import-ics endpoint internally with the proper admin key
+      const adminKey = process.env.EXPORT_ADMIN_KEY || process.env.ADMIN_KEY || process.env.ADMIN_PASSWORD || 'jugnu-admin-dev-2025';
+      const protocol = req.protocol;
+      const host = req.get('host');
+      const importUrl = `${protocol}://${host}/api/community/cron/import-ics`;
+      
+      console.log(`[Admin Refresh Events] Calling import-ics endpoint: ${importUrl}`);
+      
+      const response = await fetch(importUrl, {
+        method: 'GET',
+        headers: {
+          'x-admin-key': adminKey,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        console.error(`[Admin Refresh Events] Import failed:`, data);
+        return res.status(response.status).json({ 
+          ok: false, 
+          error: data.error || 'Failed to refresh events' 
+        });
+      }
+
+      console.log(`[Admin Refresh Events] Import successful:`, data);
+      
+      // Return the import results
+      res.json({
+        ok: true,
+        imported: data.imported || 0,
+        updated: data.updated || 0,
+        markedPast: data.markedPast || 0,
+        message: data.message || 'Events refreshed successfully'
+      });
+
+    } catch (error) {
+      console.error('[Admin Refresh Events] Error:', error);
+      res.status(500).json({ 
+        ok: false, 
+        error: error instanceof Error ? error.message : 'Failed to refresh events' 
+      });
+    }
+  });
+
   // Dev-only routes that call admin endpoints server-side (no client secrets)
   if (process.env.NODE_ENV !== 'production') {
     const adminKey = process.env.EXPORT_ADMIN_KEY || 'dev-key-placeholder';

@@ -47,6 +47,7 @@ export default function AdminAnalytics() {
   const [dateRange, setDateRange] = useState('today');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [refreshingEvents, setRefreshingEvents] = useState(false);
   const { toast } = useToast();
 
   // Check authentication
@@ -115,6 +116,43 @@ export default function AdminAnalytics() {
       });
     }
   });
+
+  // Refresh events handler
+  const handleRefreshEvents = async () => {
+    setRefreshingEvents(true);
+    try {
+      const adminKey = localStorage.getItem('adminKey');
+      const response = await fetch('/api/admin/refresh-events', {
+        method: 'POST',
+        headers: {
+          'x-admin-key': adminKey || ''
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: 'Events Refreshed',
+          description: `Imported: ${data.imported}, Updated: ${data.updated}`,
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: 'Refresh Failed',
+          description: error.error || 'Failed to refresh events',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to refresh events',
+        variant: 'destructive'
+      });
+    } finally {
+      setRefreshingEvents(false);
+    }
+  };
 
   // Export CSV handler
   const handleExportCSV = async () => {
@@ -276,6 +314,15 @@ export default function AdminAnalytics() {
               >
                 <RefreshCcw className="w-4 h-4 mr-2" />
                 Store Today's Data
+              </Button>
+              <Button
+                onClick={handleRefreshEvents}
+                disabled={refreshingEvents}
+                variant="outline"
+                className="bg-black/40 border-copper-500/30 hover:bg-copper-600/20"
+              >
+                <RefreshCcw className={`w-4 h-4 mr-2 ${refreshingEvents ? 'animate-spin' : ''}`} />
+                {refreshingEvents ? 'Refreshing...' : 'Refresh Events'}
               </Button>
             </div>
           </div>

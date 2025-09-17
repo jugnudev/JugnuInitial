@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Plus, Edit, Trash2, Percent, DollarSign, Calendar, Gift } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, Percent, DollarSign, Calendar, Gift, RefreshCcw } from 'lucide-react';
 
 interface PromoCode {
   id?: string;
@@ -40,6 +40,7 @@ const PACKAGE_OPTIONS = [
 export default function AdminPromoCodes() {
   const [editingPromo, setEditingPromo] = useState<PromoCode | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [refreshingEvents, setRefreshingEvents] = useState(false);
   const [adminKey] = useState(() => {
     try {
       return localStorage.getItem('adminKey') || '';
@@ -261,6 +262,42 @@ export default function AdminPromoCodes() {
     return new Date(date) > new Date();
   };
 
+  // Refresh events handler
+  const handleRefreshEvents = async () => {
+    setRefreshingEvents(true);
+    try {
+      const response = await fetch('/api/admin/refresh-events', {
+        method: 'POST',
+        headers: {
+          'x-admin-key': adminKey || ''
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: 'Events Refreshed',
+          description: `Imported: ${data.imported}, Updated: ${data.updated}`,
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: 'Refresh Failed',
+          description: error.error || 'Failed to refresh events',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to refresh events',
+        variant: 'destructive'
+      });
+    } finally {
+      setRefreshingEvents(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -275,13 +312,24 @@ export default function AdminPromoCodes() {
         <h2 className="font-fraunces text-lg sm:text-xl font-bold text-white">
           Promo Codes ({promoCodes.length})
         </h2>
-        <Button 
-          onClick={() => openDialog()}
-          className="bg-copper-500 hover:bg-copper-600 text-black"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          New Promo Code
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => openDialog()}
+            className="bg-copper-500 hover:bg-copper-600 text-black"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Promo Code
+          </Button>
+          <Button
+            onClick={handleRefreshEvents}
+            disabled={refreshingEvents}
+            variant="outline"
+            className="bg-white/5 border-white/20 hover:bg-white/10"
+          >
+            <RefreshCcw className={`w-4 h-4 mr-2 ${refreshingEvents ? 'animate-spin' : ''}`} />
+            {refreshingEvents ? 'Refreshing...' : 'Refresh Events'}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4">

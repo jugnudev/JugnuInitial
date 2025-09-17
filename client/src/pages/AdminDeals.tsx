@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Loader2, Plus, Edit, Trash2, ExternalLink } from 'lucide-react';
+import { Loader2, Plus, Edit, Trash2, ExternalLink, RefreshCcw } from 'lucide-react';
 
 interface Deal {
   id?: string;
@@ -56,6 +56,7 @@ const SLOT_CONFIG = [
 export default function AdminDeals() {
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [refreshingEvents, setRefreshingEvents] = useState(false);
   const [adminKey] = useState(() => {
     try {
       return localStorage.getItem('adminKey') || '';
@@ -269,6 +270,42 @@ export default function AdminDeals() {
   // Create a map for quick slot lookup
   const slotMap = new Map(deals.map((deal: Deal) => [deal.slot, deal]));
 
+  // Refresh events handler
+  const handleRefreshEvents = async () => {
+    setRefreshingEvents(true);
+    try {
+      const response = await fetch('/api/admin/refresh-events', {
+        method: 'POST',
+        headers: {
+          'x-admin-key': adminKey || ''
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: 'Events Refreshed',
+          description: `Imported: ${data.imported}, Updated: ${data.updated}`,
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: 'Refresh Failed',
+          description: error.error || 'Failed to refresh events',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to refresh events',
+        variant: 'destructive'
+      });
+    } finally {
+      setRefreshingEvents(false);
+    }
+  };
+
   // Get recommended image size for current slot
   const getImageRecommendation = () => {
     const config = SLOT_CONFIG.find(c => c.slot === formData.slot);
@@ -286,13 +323,24 @@ export default function AdminDeals() {
           <h2 className="text-2xl font-bold text-white">Deals Management</h2>
           <p className="text-sm text-white/60 mt-1">Manage your premium deals moodboard</p>
         </div>
-        <Button 
-          onClick={() => openDialog()}
-          className="bg-copper-500 hover:bg-copper-600"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          New Deal
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => openDialog()}
+            className="bg-copper-500 hover:bg-copper-600"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Deal
+          </Button>
+          <Button
+            onClick={handleRefreshEvents}
+            disabled={refreshingEvents}
+            variant="outline"
+            className="bg-white/5 border-white/20 hover:bg-white/10"
+          >
+            <RefreshCcw className={`h-4 w-4 mr-2 ${refreshingEvents ? 'animate-spin' : ''}`} />
+            {refreshingEvents ? 'Refreshing...' : 'Refresh Events'}
+          </Button>
+        </div>
       </div>
 
       {/* Slot Grid Visualization */}

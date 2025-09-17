@@ -108,6 +108,7 @@ export default function AdminPromote() {
   const [runningTest, setRunningTest] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
   const [activeTab, setActiveTab] = useState('campaigns');
+  const [refreshingEvents, setRefreshingEvents] = useState(false);
   
   // Get campaign ID from URL query parameter
   const urlParams = new URLSearchParams(window.location.search);
@@ -533,6 +534,42 @@ export default function AdminPromote() {
     }
   };
 
+  // Refresh events handler
+  const handleRefreshEvents = async () => {
+    setRefreshingEvents(true);
+    try {
+      const response = await fetch('/api/admin/refresh-events', {
+        method: 'POST',
+        headers: {
+          'x-admin-key': adminKey || ''
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        toast({
+          title: 'Events Refreshed',
+          description: `Imported: ${data.imported}, Updated: ${data.updated}`,
+        });
+      } else {
+        const error = await response.json();
+        toast({
+          title: 'Refresh Failed',
+          description: error.error || 'Failed to refresh events',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to refresh events',
+        variant: 'destructive'
+      });
+    } finally {
+      setRefreshingEvents(false);
+    }
+  };
+
   const generatePortalToken = async (campaignId: string) => {
     try {
       const response = await adminFetch(ENDPOINTS.ADMIN.PORTAL_TOKENS, {
@@ -716,6 +753,17 @@ export default function AdminPromote() {
             {/* Mobile header actions - 2 icons + More */}
             <div className="flex items-center gap-2 sm:hidden">
               <Button
+                onClick={handleRefreshEvents}
+                disabled={refreshingEvents}
+                variant="outline"
+                size="sm"
+                className="border-copper-500/50 text-copper-400 hover:bg-copper-500/20 h-11 w-11 p-0"
+                data-testid="refresh-events-button-mobile"
+                title="Refresh Events"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshingEvents ? 'animate-spin' : ''}`} />
+              </Button>
+              <Button
                 onClick={runSelfTest}
                 variant="outline"
                 size="sm"
@@ -758,6 +806,18 @@ export default function AdminPromote() {
 
             {/* Desktop header actions */}
             <div className="hidden sm:flex items-center gap-2 md:gap-4 overflow-x-auto">
+              <Button
+                onClick={handleRefreshEvents}
+                disabled={refreshingEvents}
+                variant="outline"
+                size="sm"
+                className="border-copper-500/50 text-copper-400 hover:bg-copper-500/20 h-11 whitespace-nowrap"
+                data-testid="refresh-events-button"
+              >
+                <RefreshCw className={`w-4 h-4 mr-2 ${refreshingEvents ? 'animate-spin' : ''}`} />
+                <span className="hidden md:inline">{refreshingEvents ? 'Refreshing...' : 'Refresh Events'}</span>
+                <span className="md:hidden">{refreshingEvents ? '...' : 'Refresh'}</span>
+              </Button>
               <Button
                 onClick={openTestPreview}
                 variant="outline"
