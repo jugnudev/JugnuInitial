@@ -381,8 +381,8 @@ export default function AdminDeals() {
                   <div className="text-xs text-copper-400 font-medium">{label}</div>
                   {deal && (
                     <>
-                      <div className="text-sm mt-2 font-bold text-white">{(deal as Deal).brand}</div>
-                      <div className="text-xs text-white/60 truncate px-4">{(deal as Deal).title}</div>
+                      <div className="text-sm mt-2 font-bold text-white">{deal.brand}</div>
+                      <div className="text-xs text-white/60 truncate px-4">{deal.title}</div>
                     </>
                   )}
                   {!deal && (
