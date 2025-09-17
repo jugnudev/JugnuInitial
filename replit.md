@@ -25,7 +25,7 @@ Preferred communication style: Simple, everyday language.
 ### Data Management
 - **Static Data**: Events and gallery images served from local JSON files.
 - **Event Logic**: UI conditionally renders based on purchasable events.
-- **Community Events System**: Automated import from Google Calendar ICS feeds, parsing structured descriptions for event details. Includes category filtering, monthly feed display, and featured event handling.
+- **Community Events System**: Automated import from Google Calendar ICS feeds with full bidirectional sync (adds, updates, and removes events). Parses structured descriptions for event details. Includes category filtering, monthly feed display, and featured event handling.
 - **Waitlist Mode**: Single TBA event routes to a dedicated `/waitlist` page.
 
 ### Responsive Design & Mobile Experience
@@ -43,6 +43,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Admin & Sponsorship Systems
 - **Admin API**: Key-based system for managing campaigns, portal tokens, and onboarding.
+- **Refresh Events**: All admin pages now include "Refresh Events" button to manually trigger calendar sync, properly removing deleted events from source.
 - **Portal Token System**: UUID-based secure tokens with legacy hex token support for backward compatibility. Tokens are created in Supabase with 90-day expiration and validated via `/api/spotlight/portal/:tokenId` endpoint.
 - **Admin Authentication**: `x-admin-key` header authentication with audit logging.
 - **Lead Management**: Full CRUD operations for sponsor leads including delete functionality with confirmation dialog.
