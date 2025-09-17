@@ -321,9 +321,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const urls = icsUrls.split(',').map(url => url.trim()).filter(Boolean);
       let imported = 0;
       let updated = 0;
+      let deleted = 0;
 
       const timezone = process.env.CITY_TZ || 'America/Vancouver';
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      
+      // Track all source_uids seen in the current sync
+      const currentSyncSourceUids = new Set<string>();
 
       for (const url of urls) {
         try {
@@ -339,6 +343,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
             const title = calendarEvent.summary || 'Untitled Event';
             const sourceUid = calendarEvent.uid || null; // ICS VEVENT UID when present
+            
+            // Track this source UID if present
+            if (sourceUid) {
+              currentSyncSourceUids.add(sourceUid);
+            }
             
             // Detect all-day events and handle timezone properly
             let startAt = new Date(calendarEvent.start);
@@ -812,8 +821,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .neq('status', 'past');
 
       const markedPast = markedPastCount || 0;
+      
+      // Delete events that are no longer in the source calendar
+      // Only if we have source_uid column and found events with source_uids
+      if (hasNewColumns && currentSyncSourceUids.size > 0) {
+        // First, get all events with source_uid that are NOT past
+        const { data: eventsWithSourceUid, error: fetchError } = await supabase
+          .from('community_events')
+          .select('id, title, source_uid')
+          .not('source_uid', 'is', null)
+          .neq('status', 'past');
+        
+        if (!fetchError && eventsWithSourceUid) {
+          // Find events to delete (have source_uid but not in current sync)
+          const eventsToDelete = eventsWithSourceUid.filter(event => 
+            event.source_uid && !currentSyncSourceUids.has(event.source_uid)
+          );
+          
+          if (eventsToDelete.length > 0) {
+            // Log which events are being deleted
+            console.log(`Deleting ${eventsToDelete.length} events no longer in source calendar:`);
+            eventsToDelete.forEach(event => {
+              console.log(`  - Deleting: ${event.title} (source_uid: ${event.source_uid})`);
+            });
+            
+            // Delete the events
+            const idsToDelete = eventsToDelete.map(e => e.id);
+            const { error: deleteError, count: deleteCount } = await supabase
+              .from('community_events')
+              .delete()
+              .in('id', idsToDelete);
+            
+            if (deleteError) {
+              console.error('Error deleting removed events:', deleteError);
+            } else {
+              deleted = deleteCount || eventsToDelete.length;
+              console.log(`✓ Deleted ${deleted} events that were removed from source calendar`);
+            }
+          }
+        } else if (fetchError) {
+          console.error('Error fetching events for deletion check:', fetchError);
+        }
+      }
 
-      res.json({ ok: true, imported, updated, markedPast });
+      res.json({ ok: true, imported, updated, markedPast, deleted });
     } catch (error) {
       console.error("ICS import error:", error);
       res.status(500).json({ ok: false, error: "server_error" });
