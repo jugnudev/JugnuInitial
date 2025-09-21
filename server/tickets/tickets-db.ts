@@ -183,9 +183,15 @@ export class TicketsDB {
 
   async getTiersByEvent(eventId: string): Promise<TicketsTier[]> {
     const query = `
-      SELECT * FROM tickets_tiers 
-      WHERE event_id = $1 
-      ORDER BY sort_order ASC, price_cents ASC
+      SELECT 
+        t.*,
+        COALESCE(COUNT(tk.id), 0)::integer as sold_count
+      FROM tickets_tiers t
+      LEFT JOIN tickets_tickets tk ON tk.tier_id = t.id 
+        AND tk.status IN ('valid', 'used')
+      WHERE t.event_id = $1
+      GROUP BY t.id
+      ORDER BY t.sort_order ASC, t.price_cents ASC
     `;
     const result = await pool.query(query, [eventId]);
     return result.rows;
@@ -195,6 +201,16 @@ export class TicketsDB {
     const query = 'SELECT * FROM tickets_tiers WHERE id = $1';
     const result = await pool.query(query, [id]);
     return result.rows[0] || null;
+  }
+
+  async getTierSoldCount(tierId: string): Promise<number> {
+    const query = `
+      SELECT COUNT(*)::integer as count
+      FROM tickets_tickets
+      WHERE tier_id = $1 AND status IN ('valid', 'used')
+    `;
+    const result = await pool.query(query, [tierId]);
+    return result.rows[0].count || 0;
   }
 
   // ============ ORDERS ============

@@ -21,9 +21,9 @@ interface Event {
   id: string;
   slug: string;
   title: string;
-  subtitle: string | null;
+  summary: string | null;
   description: string | null;
-  imageUrl: string | null;
+  coverUrl: string | null;
   startAt: Date;
   endAt: Date | null;
   venue: string;
@@ -130,10 +130,10 @@ export function TicketsEventListPage() {
                 className="overflow-hidden hover:shadow-lg transition-shadow"
                 data-testid={`card-event-${event.id}`}
               >
-                {event.imageUrl && (
+                {event.coverUrl && (
                   <div className="aspect-video relative">
                     <img 
-                      src={event.imageUrl} 
+                      src={event.coverUrl} 
                       alt={event.title}
                       className="w-full h-full object-cover"
                       data-testid={`img-event-${event.id}`}
@@ -160,9 +160,9 @@ export function TicketsEventListPage() {
                       </Badge>
                     )}
                   </div>
-                  {event.subtitle && (
+                  {event.summary && (
                     <CardDescription className="text-sm">
-                      {event.subtitle}
+                      {event.summary}
                     </CardDescription>
                   )}
                 </CardHeader>

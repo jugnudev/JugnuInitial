@@ -21,8 +21,8 @@ interface Tier {
   priceCents: number;
   capacity: number | null;
   soldCount: number;
-  salesOpenAt: Date | null;
-  salesCloseAt: Date | null;
+  salesStartAt: Date | null;
+  salesEndAt: Date | null;
   maxPerOrder: number;
   minPerOrder: number;
 }
@@ -31,9 +31,9 @@ interface Event {
   id: string;
   slug: string;
   title: string;
-  subtitle: string | null;
+  summary: string | null;
   description: string | null;
-  imageUrl: string | null;
+  coverUrl: string | null;
   startAt: Date;
   endAt: Date | null;
   venue: string;
@@ -223,10 +223,10 @@ export function TicketsEventDetailPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           {/* Event Header */}
-          {event.imageUrl && (
+          {event.coverUrl && (
             <div className="aspect-video relative mb-8 rounded-lg overflow-hidden">
               <img 
-                src={event.imageUrl} 
+                src={event.coverUrl} 
                 alt={event.title}
                 className="w-full h-full object-cover"
                 data-testid="img-event-header"
@@ -236,8 +236,8 @@ export function TicketsEventDetailPage() {
           
           <div className="mb-8">
             <h1 className="text-4xl font-fraunces mb-2">{event.title}</h1>
-            {event.subtitle && (
-              <p className="text-xl text-muted-foreground mb-4">{event.subtitle}</p>
+            {event.summary && (
+              <p className="text-xl text-muted-foreground mb-4">{event.summary}</p>
             )}
             
             <div className="flex flex-wrap gap-4 text-sm">

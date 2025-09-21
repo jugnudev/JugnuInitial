@@ -90,6 +90,28 @@ export class TicketsStorage {
     throw new Error('Not implemented yet');
   }
 
+  async checkTierAvailability(tierId: string, quantity: number): Promise<boolean> {
+    // Validate quantity is within tier limits
+    const tier = await this.getTierById(tierId);
+    if (!tier) return false;
+    
+    if (tier.maxPerOrder && quantity > tier.maxPerOrder) {
+      return false;
+    }
+    
+    // Check inventory if tier has capacity limit
+    if (tier.capacity) {
+      // Count sold tickets for this tier
+      const soldCount = await ticketsDB.getTierSoldCount(tierId);
+      const available = tier.capacity - soldCount;
+      if (available < quantity) {
+        return false;
+      }
+    }
+    
+    return true;
+  }
+
   // ============ ORDERS ============
   async createOrder(data: InsertTicketsOrder): Promise<TicketsOrder> {
     return ticketsDB.createOrder(data);

@@ -50,6 +50,32 @@ const requireOrganizer = async (req: Request & { session?: any }, res: Response,
   next();
 };
 
+// Helper function to convert snake_case to camelCase
+const toCamelCase = (obj: any): any => {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(toCamelCase);
+  }
+  
+  if (obj instanceof Date || typeof obj !== 'object') {
+    return obj;
+  }
+  
+  // Check if it's a Date string (ISO format)
+  if (typeof obj === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(obj)) {
+    return obj;
+  }
+  
+  return Object.keys(obj).reduce((result, key) => {
+    const camelKey = key.replace(/_([a-z])/g, (g) => g[1].toUpperCase());
+    result[camelKey] = toCamelCase(obj[key]);
+    return result;
+  }, {} as any);
+};
+
 export function addTicketsRoutes(app: Express) {
   // ============ PUBLIC ENDPOINTS ============
   
@@ -65,11 +91,16 @@ export function addTicketsRoutes(app: Express) {
       const eventsWithTiers = await Promise.all(
         events.map(async (event) => {
           const tiers = await ticketsStorage.getTiersByEvent(event.id);
+          console.log('[Tickets] Tiers for event:', event.id, tiers.slice(0, 1));
           return { ...event, tiers };
         })
       );
       
-      res.json({ ok: true, events: eventsWithTiers });
+      // Convert to camelCase for frontend
+      const camelCaseEvents = toCamelCase(eventsWithTiers);
+      console.log('[Tickets] Transformed events:', JSON.stringify(camelCaseEvents[0], null, 2).slice(0, 500));
+      
+      res.json({ ok: true, events: camelCaseEvents });
     } catch (error) {
       console.error('Error fetching public events:', error);
       res.status(500).json({ ok: false, error: 'Failed to fetch events' });
@@ -87,9 +118,12 @@ export function addTicketsRoutes(app: Express) {
       const tiers = await ticketsStorage.getTiersByEvent(event.id);
       const organizer = await ticketsStorage.getOrganizerById(event.organizerId);
       
+      // Convert to camelCase for frontend
+      const camelCaseEvent = toCamelCase({ ...event, tiers });
+      
       res.json({ 
         ok: true, 
-        event: { ...event, tiers },
+        event: camelCaseEvent,
         organizer: {
           id: organizer?.id,
           businessName: organizer?.businessName
