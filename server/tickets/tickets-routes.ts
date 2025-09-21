@@ -57,7 +57,9 @@ export function addTicketsRoutes(app: Express) {
   app.get('/api/tickets/events/public', requireTicketing, async (req: Request, res: Response) => {
     try {
       const { city } = req.query;
+      console.log('[Tickets] Getting public events, city filter:', city);
       const events = await ticketsStorage.getPublicEvents(city as string);
+      console.log('[Tickets] Found events:', events.length, events);
       
       // Add tier information
       const eventsWithTiers = await Promise.all(
