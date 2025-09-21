@@ -84,7 +84,7 @@ export function TicketsEventDetailPage() {
       if (cart.length === 0) throw new Error("Your cart is empty");
       if (!buyerName || !buyerEmail) throw new Error("Please fill in your details");
       
-      const response = await apiRequest('/api/tickets/checkout/session', 'POST', {
+      const response = await apiRequest('POST', '/api/tickets/checkout/session', {
         eventId: data?.event.id,
         items: cart,
         buyerEmail,
