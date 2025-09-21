@@ -30,6 +30,8 @@ import AdminLeads from "@/pages/AdminLeads";
 import AdminAnalytics from "@/pages/AdminAnalytics";
 import Onboard from "@/pages/Onboard";
 import Deals from "@/pages/Deals";
+import { TicketsEventListPage } from "@/pages/TicketsEventListPage";
+import { TicketsOrganizerDashboard } from "@/pages/TicketsOrganizerDashboard";
 
 function Router() {
   // Track page views when routes change - Google Analytics integration
@@ -61,6 +63,15 @@ function Router() {
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms" component={Terms} />
         <Route path="/dev/places-sync" component={DevPlacesSync} />
+        
+        {/* Ticketing Routes - Only visible if ENABLE_TICKETING is true */}
+        {import.meta.env.VITE_ENABLE_TICKETING === 'true' && (
+          <>
+            <Route path="/tickets" component={TicketsEventListPage} />
+            <Route path="/tickets/organizer/dashboard" component={TicketsOrganizerDashboard} />
+          </>
+        )}
+        
         <Route component={NotFound} />
       </Switch>
     </Layout>
