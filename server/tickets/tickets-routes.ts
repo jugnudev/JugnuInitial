@@ -179,7 +179,7 @@ export function addTicketsRoutes(app: Express) {
       }
       
       // Validate organizer
-      const organizer = await ticketsStorage.getOrganizerById(event.organizerId);
+      const organizer = await ticketsStorage.getOrganizerById(event.organizer_id || event.organizerId);
       if (!organizer) {
         return res.status(400).json({ ok: false, error: 'Event organizer not found' });
       }
