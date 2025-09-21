@@ -133,7 +133,7 @@ export function TicketsOrganizerDashboard() {
     );
   }
 
-  const organizer: Organizer = data?.organizer;
+  const organizer: Organizer | undefined = data?.organizer;
   const events: Event[] = data?.events || [];
 
   // Calculate stats
@@ -160,12 +160,12 @@ export function TicketsOrganizerDashboard() {
         <div className="mb-8">
           <h1 className="text-4xl font-fraunces mb-2">Organizer Dashboard</h1>
           <p className="text-lg text-muted-foreground">
-            Welcome back, {organizer.businessName}
+            Welcome back, {organizer?.businessName}
           </p>
         </div>
 
         {/* Stripe Connect Status */}
-        {organizer.status === 'pending' && (
+        {organizer?.status === 'pending' && (
           <Card className="mb-8 border-yellow-200 bg-yellow-50">
             <CardHeader>
               <CardTitle className="text-yellow-900">Complete Your Setup</CardTitle>

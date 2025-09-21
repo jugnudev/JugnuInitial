@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import express from "express";
 import { ticketsStorage } from "./tickets-storage";
 import { StripeService, stripe } from "./stripe-service";
 import { nanoid } from 'nanoid';
@@ -238,48 +239,68 @@ export function addTicketsRoutes(app: Express) {
 
   // ============ WEBHOOK ============
   
-  // Stripe webhook handler
-  app.post('/api/tickets/webhooks/stripe', async (req: Request, res: Response) => {
-    if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
-      return res.status(400).json({ ok: false, error: 'Stripe not configured' });
-    }
-    
-    const sig = req.headers['stripe-signature'] as string;
-    
-    try {
-      const event = StripeService.verifyWebhookSignature(req.body, sig);
-      if (!event) {
-        return res.status(400).json({ ok: false, error: 'Invalid signature' });
+  // Stripe webhook handler - MUST use raw body for signature verification
+  app.post('/api/tickets/webhooks/stripe', 
+    express.raw({ type: 'application/json' }), 
+    async (req: Request, res: Response) => {
+      if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) {
+        return res.status(400).json({ ok: false, error: 'Stripe not configured' });
       }
       
-      // Log webhook
-      await ticketsStorage.createWebhook({
-        kind: event.type,
-        payloadJson: event as any,
-        status: 'pending'
-      });
-      
-      // Process based on event type
-      switch (event.type) {
-        case 'checkout.session.completed':
-          await handleCheckoutCompleted(event.data.object as any);
-          break;
-        
-        case 'payment_intent.succeeded':
-          // Additional payment confirmation
-          break;
-        
-        case 'charge.refunded':
-          await handleRefund(event.data.object as any);
-          break;
+      const sig = req.headers['stripe-signature'] as string;
+      if (!sig) {
+        return res.status(400).json({ ok: false, error: 'Missing stripe-signature header' });
       }
       
-      res.json({ received: true });
-    } catch (error) {
-      console.error('Webhook error:', error);
-      res.status(400).json({ ok: false, error: 'Webhook processing failed' });
-    }
-  });
+      try {
+        // Verify webhook signature with raw body
+        const event = StripeService.verifyWebhookSignature(req.body, sig);
+        if (!event) {
+          return res.status(400).json({ ok: false, error: 'Invalid signature' });
+        }
+        
+        // Log webhook
+        const webhookId = nanoid();
+        await ticketsStorage.createWebhook({
+          id: webhookId,
+          kind: event.type,
+          payloadJson: event as any,
+          status: 'pending'
+        });
+        
+        // Process based on event type
+        try {
+          switch (event.type) {
+            case 'checkout.session.completed':
+              await handleCheckoutCompleted(event.data.object as any);
+              await ticketsStorage.markWebhookProcessed(webhookId);
+              break;
+            
+            case 'payment_intent.succeeded':
+              // Additional payment confirmation - already handled by checkout.session.completed
+              await ticketsStorage.markWebhookProcessed(webhookId);
+              break;
+            
+            case 'charge.refunded':
+              await handleRefund(event.data.object as any);
+              await ticketsStorage.markWebhookProcessed(webhookId);
+              break;
+            
+            default:
+              // Unknown event type - mark as processed
+              await ticketsStorage.markWebhookProcessed(webhookId);
+          }
+        } catch (processingError: any) {
+          await ticketsStorage.markWebhookProcessed(webhookId, processingError.message);
+          throw processingError;
+        }
+        
+        res.json({ received: true });
+      } catch (error) {
+        console.error('Webhook error:', error);
+        res.status(400).json({ ok: false, error: 'Webhook processing failed' });
+      }
+    });
 
   // ============ ORGANIZER ENDPOINTS ============
   

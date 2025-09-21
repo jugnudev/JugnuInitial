@@ -96,8 +96,8 @@ export function TicketsEventDetailPage() {
       
       return response;
     },
-    onSuccess: (result) => {
-      if (result.checkoutUrl) {
+    onSuccess: (result: any) => {
+      if (result?.checkoutUrl) {
         // Redirect to Stripe checkout
         window.location.href = result.checkoutUrl;
       } else {
