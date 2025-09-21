@@ -40,6 +40,7 @@ function createCanonicalKey(title: string, startAt: Date, venue: string | null, 
 }
 
 import { insertCommunityEventSchema, updateCommunityEventSchema, visitorAnalytics, insertVisitorAnalyticsSchema } from "@shared/schema";
+import { addTicketsRoutes } from "./tickets/tickets-routes";
 import { importFromGoogle, importFromYelp, reverifyAllPlaces } from "./lib/places-sync.js";
 import { matchAndEnrichPlaces, inactivateUnmatchedPlaces, getPlaceMatchingStats } from "./lib/place-matcher.js";
 import { sendDailyAnalyticsEmail } from "./services/emailService";
@@ -4180,6 +4181,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ ok: false, error: 'Failed to export analytics' });
     }
   });
+
+  // Add ticketing routes if enabled
+  if (process.env.ENABLE_TICKETING === 'true') {
+    addTicketsRoutes(app);
+  }
 
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
