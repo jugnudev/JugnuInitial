@@ -533,10 +533,10 @@ export default function SponsorPortal() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="text-center">
               {/* Plan Next Campaign */}
-              <div className="text-center lg:text-left">
-                <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
+              <div className="inline-block">
+                <div className="flex items-center justify-center gap-3 mb-4">
                   <div className="w-12 h-12 bg-copper-500/20 rounded-xl flex items-center justify-center">
                     <Rocket className="w-6 h-6 text-copper-400" />
                   </div>
@@ -558,60 +558,6 @@ export default function SponsorPortal() {
                   Plan Your Next Campaign
                   <ExternalLink className="w-4 h-4 ml-2" />
                 </Button>
-              </div>
-
-              {/* Weekly Summary Subscription */}
-              <div className="text-center lg:text-left">
-                <div className="flex items-center justify-center lg:justify-start gap-3 mb-4">
-                  <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-6 h-6 text-blue-400" />
-                  </div>
-                  <h3 className="font-fraunces text-2xl font-bold text-white">
-                    Weekly Performance Updates
-                  </h3>
-                </div>
-                <p className="text-muted text-lg mb-6 leading-relaxed">
-                  Get campaign progress delivered to your inbox. Weekly summaries 
-                  include impressions, clicks, CTR trends, and performance insights.
-                </p>
-                
-                {/* Email subscription form - only show if feature is enabled */}
-                <div className="space-y-4">
-                  <div className="flex gap-3">
-                    <input
-                      type="email"
-                      placeholder="Enter your email for weekly updates"
-                      value={emailSubscription}
-                      onChange={(e) => setEmailSubscription(e.target.value)}
-                      className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50"
-                      data-testid="email-subscription-input"
-                    />
-                  </div>
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={() => handleWeeklySummary(true)}
-                      disabled={!emailSubscription.trim() || subscribing}
-                      variant="outline"
-                      className="flex-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-                      data-testid="subscribe-weekly"
-                    >
-                      {subscribing ? 'Subscribing...' : 'Subscribe'}
-                    </Button>
-                    <Button
-                      onClick={() => handleWeeklySummary(false)}
-                      disabled={!emailSubscription.trim() || subscribing}
-                      variant="outline"
-                      className="flex-1 border-red-500/30 text-red-400 hover:bg-red-500/10"
-                      data-testid="unsubscribe-weekly"
-                    >
-                      Unsubscribe
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted">
-                    Weekly emails sent only while your campaign is active. 
-                    Unsubscribe anytime using your portal link.
-                  </p>
-                </div>
               </div>
             </div>
 
