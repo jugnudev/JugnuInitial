@@ -96,3 +96,13 @@ Preferred communication style: Simple, everyday language.
 - **Google Calendar**: ICS feed parsing for community events.
 - **Calendar Export**: Google Calendar and ICS file generation for event adds.
 - **Creative Asset Storage**: Supabase Storage for sponsor creative uploads with automatic URL generation.
+- **Stripe**: Payment processing for ticketing system with Connect support for multi-vendor marketplace.
+
+### Ticketing System (Phase 0 - In Development)
+- **Feature Flag**: ENABLE_TICKETING environment variable controls visibility.
+- **Database Schema**: Complete `tickets_*` table structure with full isolation from existing features.
+- **Storage Layer**: Supabase-based storage for all ticketing entities (organizers, events, tiers, orders, tickets).
+- **Routes**: API endpoints at `/api/tickets/*` for event management, checkout, and validation.
+- **Frontend Pages**: Event list at `/tickets` and organizer dashboard at `/tickets/organizer/dashboard`.
+- **Stripe Integration**: Checkout sessions, webhook handling, and Connect onboarding for organizers.
+- **Architecture**: Multi-vendor marketplace design enabling event organizers to sell tickets with platform fees.

@@ -31,6 +31,7 @@ import AdminAnalytics from "@/pages/AdminAnalytics";
 import Onboard from "@/pages/Onboard";
 import Deals from "@/pages/Deals";
 import { TicketsEventListPage } from "@/pages/TicketsEventListPage";
+import { TicketsEventDetailPage } from "@/pages/TicketsEventDetailPage";
 import { TicketsOrganizerDashboard } from "@/pages/TicketsOrganizerDashboard";
 
 function Router() {
@@ -68,6 +69,7 @@ function Router() {
         {import.meta.env.VITE_ENABLE_TICKETING === 'true' && (
           <>
             <Route path="/tickets" component={TicketsEventListPage} />
+            <Route path="/tickets/event/:slug" component={TicketsEventDetailPage} />
             <Route path="/tickets/organizer/dashboard" component={TicketsOrganizerDashboard} />
           </>
         )}
