@@ -9,6 +9,16 @@ import type {
   InsertTicketsOrder,
   InsertTicketsDiscount
 } from '@shared/schema';
+import {
+  checkoutSessionSchema,
+  createEventSchema,
+  updateEventSchema,
+  createTierSchema,
+  organizerSignupSchema,
+  validateDiscountSchema,
+  validateTicketSchema,
+  refundSchema
+} from './validation';
 
 // Check if ticketing is enabled
 const isTicketingEnabled = () => process.env.ENABLE_TICKETING === 'true';
@@ -21,19 +31,18 @@ const requireTicketing = (req: Request, res: Response, next: any) => {
   next();
 };
 
-// Middleware to check organizer auth (simplified for MVP)
-const requireOrganizer = async (req: Request, res: Response, next: any) => {
-  // For MVP, we'll use a simple header-based auth
-  // In production, this should be session-based
-  const organizerId = req.headers['x-organizer-id'] as string;
+// Middleware to check organizer auth - uses session
+const requireOrganizer = async (req: Request & { session?: any }, res: Response, next: any) => {
+  // Check session for organizer authentication
+  const organizerId = req.session?.organizerId;
   
   if (!organizerId) {
-    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    return res.status(401).json({ ok: false, error: 'Please log in as an organizer' });
   }
   
   const organizer = await ticketsStorage.getOrganizerById(organizerId);
   if (!organizer || organizer.status !== 'active') {
-    return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    return res.status(401).json({ ok: false, error: 'Organizer account not active' });
   }
   
   (req as any).organizer = organizer;
@@ -92,7 +101,8 @@ export function addTicketsRoutes(app: Express) {
   // Check discount code
   app.post('/api/tickets/discounts/validate', requireTicketing, async (req: Request, res: Response) => {
     try {
-      const { eventId, code } = req.body;
+      const validated = validateDiscountSchema.parse(req.body);
+      const { eventId, code } = validated;
       
       const discount = await ticketsStorage.getDiscountByCode(eventId, code);
       if (!discount) {
@@ -111,6 +121,8 @@ export function addTicketsRoutes(app: Express) {
   // Create checkout session
   app.post('/api/tickets/checkout/session', requireTicketing, async (req: Request, res: Response) => {
     try {
+      // Validate and sanitize input
+      const validated = checkoutSessionSchema.parse(req.body);
       const { 
         eventId, 
         items, // Array of { tierId, quantity }
@@ -119,7 +131,7 @@ export function addTicketsRoutes(app: Express) {
         buyerPhone,
         discountCode,
         returnUrl 
-      } = req.body;
+      } = validated;
       
       // Validate event
       const event = await ticketsStorage.getEventById(eventId);
@@ -272,9 +284,10 @@ export function addTicketsRoutes(app: Express) {
   // ============ ORGANIZER ENDPOINTS ============
   
   // Create/connect organizer account
-  app.post('/api/tickets/organizers/connect', requireTicketing, async (req: Request, res: Response) => {
+  app.post('/api/tickets/organizers/connect', requireTicketing, async (req: Request & { session?: any }, res: Response) => {
     try {
-      const { userId, businessName, businessEmail, returnUrl, refreshUrl } = req.body;
+      const validated = organizerSignupSchema.parse(req.body);
+      const { userId, businessName, businessEmail, returnUrl, refreshUrl } = validated;
       
       // Check if organizer already exists
       let organizer = await ticketsStorage.getOrganizerByUserId(userId);
@@ -302,7 +315,10 @@ export function addTicketsRoutes(app: Express) {
         }
       }
       
-      // Test mode without Stripe
+      // Test mode without Stripe - set session
+      req.session = req.session || {};
+      req.session.organizerId = organizer.id;
+      
       res.json({ 
         ok: true, 
         organizerId: organizer.id, 
@@ -332,10 +348,11 @@ export function addTicketsRoutes(app: Express) {
   app.post('/api/tickets/events', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
     try {
       const organizer = (req as any).organizer;
+      const validated = createEventSchema.parse(req.body);
       const eventData: InsertTicketsEvent = {
-        ...req.body,
+        ...validated,
         organizerId: organizer.id,
-        status: 'draft'
+        status: validated.status || 'draft'
       };
       
       const event = await ticketsStorage.createEvent(eventData);
@@ -356,7 +373,8 @@ export function addTicketsRoutes(app: Express) {
         return res.status(404).json({ ok: false, error: 'Event not found' });
       }
       
-      const updated = await ticketsStorage.updateEvent(req.params.id, req.body);
+      const validated = updateEventSchema.parse(req.body);
+      const updated = await ticketsStorage.updateEvent(req.params.id, validated);
       res.json({ ok: true, event: updated });
     } catch (error) {
       console.error('Update event error:', error);
@@ -374,8 +392,9 @@ export function addTicketsRoutes(app: Express) {
         return res.status(404).json({ ok: false, error: 'Event not found' });
       }
       
+      const validated = createTierSchema.parse(req.body);
       const tierData: InsertTicketsTier = {
-        ...req.body,
+        ...validated,
         eventId: event.id
       };
       
@@ -428,7 +447,8 @@ export function addTicketsRoutes(app: Express) {
   // Validate/scan ticket
   app.post('/api/tickets/validate', requireTicketing, async (req: Request, res: Response) => {
     try {
-      const { qrToken, apiKey } = req.body;
+      const validated = validateTicketSchema.parse(req.body);
+      const { qrToken, apiKey } = validated;
       
       // TODO: Validate API key for event
       
@@ -531,7 +551,8 @@ export function addTicketsRoutes(app: Express) {
   // Request refund
   app.post('/api/tickets/orders/:orderId/refund', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
     try {
-      const { amountCents, reason } = req.body;
+      const validated = refundSchema.parse(req.body);
+      const { amountCents, reason } = validated;
       const order = await ticketsStorage.getOrderById(req.params.orderId);
       
       if (!order) {

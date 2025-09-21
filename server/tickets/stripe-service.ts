@@ -47,35 +47,37 @@ export class StripeService {
     discountAmountCents: number = 0
   ): CalculatedPricing {
     // Calculate subtotal
-    const subtotalCents = items.reduce((sum, item) => 
+    const rawSubtotalCents = items.reduce((sum, item) => 
       sum + (item.tier.priceCents * item.quantity), 0
-    ) - discountAmountCents;
+    );
+    
+    // Clamp discount to prevent negative totals
+    const effectiveDiscountCents = Math.min(discountAmountCents, rawSubtotalCents);
+    const subtotalCents = Math.max(0, rawSubtotalCents - effectiveDiscountCents);
 
-    // Calculate service fee (if buyer pays)
-    const feeStructure = (event.feeStructure as any) || { type: 'buyer_pays', serviceFeePercent: 5 };
-    const feesCents = feeStructure.type === 'buyer_pays' 
-      ? Math.round(subtotalCents * (feeStructure.serviceFeePercent / 100))
-      : 0;
+    // Calculate platform fee (always 2.5% + $0.50 per ticket for platform)
+    const ticketCount = items.reduce((sum, item) => sum + item.quantity, 0);
+    const feesCents = Math.round(subtotalCents * 0.025 + ticketCount * 50);
 
-    // Calculate taxes
+    // Calculate taxes on subtotal (not including platform fee)
     const taxSettings = (event.taxSettings as any) || { collectTax: true, gstPercent: 5, pstPercent: 7 };
     let gstCents = 0;
     let pstCents = 0;
     
     if (taxSettings.collectTax) {
-      const taxableAmount = subtotalCents + feesCents;
-      gstCents = Math.round(taxableAmount * (taxSettings.gstPercent / 100));
+      gstCents = Math.round(subtotalCents * (taxSettings.gstPercent / 100));
       pstCents = event.province === 'BC' 
-        ? Math.round(taxableAmount * (taxSettings.pstPercent / 100))
+        ? Math.round(subtotalCents * (taxSettings.pstPercent / 100))
         : 0;
     }
 
     const taxCents = gstCents + pstCents;
-    const totalCents = subtotalCents + feesCents + taxCents;
+    // Total charged to customer (subtotal + tax, platform fee handled via application_fee_amount)
+    const totalCents = subtotalCents + taxCents;
 
     return {
       subtotalCents,
-      feesCents,
+      feesCents, // Platform's application fee, not added to total
       taxCents,
       totalCents,
       taxBreakdown: {
@@ -111,21 +113,7 @@ export class StripeService {
       quantity: item.quantity,
     }));
 
-    // Add service fee as a line item if buyer pays
-    const feeStructure = (event.feeStructure as any) || { type: 'buyer_pays', serviceFeePercent: 5 };
-    if (feeStructure.type === 'buyer_pays' && order.feesCents > 0) {
-      lineItems.push({
-        price_data: {
-          currency: 'cad',
-          product_data: {
-            name: 'Service Fee',
-            description: `${feeStructure.serviceFeePercent}% platform fee`,
-          },
-          unit_amount: order.feesCents,
-        },
-        quantity: 1,
-      });
-    }
+    // Do not add service fee as a line item - use application_fee_amount instead
 
     // Create metadata for webhook processing
     const metadata: CheckoutSessionMetadata = {
@@ -146,23 +134,17 @@ export class StripeService {
         payment_method_types: ['card'],
         line_items: lineItems,
         mode: 'payment',
-        success_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: returnUrl,
+        success_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}&success=true`,
+        cancel_url: `${returnUrl}?cancelled=true`,
         customer_email: order.buyerEmail,
         metadata: metadata as any,
-        // Application fee for platform (if organizer absorbs fee)
-        payment_intent_data: feeStructure.type === 'organizer_absorbs' && order.feesCents > 0
-          ? {
-              application_fee_amount: order.feesCents,
-              transfer_data: {
-                destination: organizer.stripeAccountId,
-              },
-            }
-          : undefined,
-        // Direct payment to connected account
-        ...(organizer.stripeAccountId && {
-          stripe_account: organizer.stripeAccountId,
-        }),
+        // Use destination charges with application fee for platform
+        payment_intent_data: {
+          application_fee_amount: order.feesCents, // Platform always gets this fee
+          transfer_data: {
+            destination: organizer.stripeAccountId,
+          },
+        },
       });
 
       return session;
