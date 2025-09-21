@@ -1,5 +1,26 @@
 import { createClient } from '@supabase/supabase-js';
 import { nanoid } from 'nanoid';
+
+// Helper function to convert camelCase to snake_case for database inserts
+const toSnakeCase = (obj: any): any => {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(toSnakeCase);
+  }
+  
+  if (obj instanceof Date || typeof obj !== 'object') {
+    return obj;
+  }
+  
+  return Object.keys(obj).reduce((result, key) => {
+    const snakeKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    result[snakeKey] = toSnakeCase(obj[key]);
+    return result;
+  }, {} as any);
+};
 import type {
   TicketsOrganizer,
   TicketsEvent,
@@ -230,9 +251,11 @@ export class TicketsSupabaseDB {
   // ============ ORDERS ============
   async createOrder(data: InsertTicketsOrder & { id?: string }): Promise<TicketsOrder> {
     const orderId = data.id || nanoid();
+    const snakeCaseData = toSnakeCase({ ...data, id: orderId });
+    
     const { data: order, error } = await supabase
       .from('tickets_orders')
-      .insert({ ...data, id: orderId })
+      .insert(snakeCaseData)
       .select()
       .single();
     
@@ -241,9 +264,11 @@ export class TicketsSupabaseDB {
   }
 
   async createOrderItem(data: InsertTicketsOrderItem): Promise<TicketsOrderItem> {
+    const snakeCaseData = toSnakeCase(data);
+    
     const { data: item, error } = await supabase
       .from('tickets_order_items')
-      .insert(data)
+      .insert(snakeCaseData)
       .select()
       .single();
     
@@ -252,9 +277,11 @@ export class TicketsSupabaseDB {
   }
 
   async createTicket(data: InsertTicketsTicket): Promise<TicketsTicket> {
+    const snakeCaseData = toSnakeCase(data);
+    
     const { data: ticket, error } = await supabase
       .from('tickets_tickets')
-      .insert(data)
+      .insert(snakeCaseData)
       .select()
       .single();
     
