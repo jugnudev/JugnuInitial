@@ -46,10 +46,22 @@ export class StripeService {
     event: TicketsEvent,
     discountAmountCents: number = 0
   ): CalculatedPricing {
+    console.log('StripeService.calculatePricing called with:');
+    console.log('- items:', items);
+    console.log('- event:', event);
+    console.log('- discountAmountCents:', discountAmountCents);
+    
     // Calculate subtotal
-    const rawSubtotalCents = items.reduce((sum, item) => 
-      sum + (item.tier.priceCents * item.quantity), 0
-    );
+    const rawSubtotalCents = items.reduce((sum, item) => {
+      // Handle both camelCase and snake_case field names
+      const priceInCents = item.tier.priceCents || item.tier.price_cents;
+      console.log(`Processing item: tier.priceCents=${item.tier.priceCents}, tier.price_cents=${item.tier.price_cents}, using=${priceInCents}, quantity=${item.quantity}`);
+      const itemTotal = priceInCents * item.quantity;
+      console.log(`Item total: ${itemTotal}`);
+      return sum + itemTotal;
+    }, 0);
+    
+    console.log('Raw subtotal cents:', rawSubtotalCents);
     
     // Clamp discount to prevent negative totals
     const effectiveDiscountCents = Math.min(discountAmountCents, rawSubtotalCents);

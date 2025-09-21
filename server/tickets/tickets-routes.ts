@@ -229,7 +229,7 @@ export function addTicketsRoutes(app: Express) {
         feesCents: pricing.feesCents,
         taxCents: pricing.taxCents,
         totalCents: pricing.totalCents,
-        currency: 'CAD',
+        // currency defaults to 'CAD' in database
         discountCode,
         discountAmountCents
       });
@@ -583,17 +583,26 @@ export function addTicketsRoutes(app: Express) {
   // Get order details
   app.get('/api/tickets/orders/:orderId', requireTicketing, async (req: Request, res: Response) => {
     try {
+      console.log('Fetching order:', req.params.orderId);
       const order = await ticketsStorage.getOrderById(req.params.orderId);
       if (!order) {
+        console.log('Order not found:', req.params.orderId);
         return res.status(404).json({ ok: false, error: 'Order not found' });
       }
       
+      console.log('Found order:', order);
+      
       // TODO: Validate ownership
       
+      console.log('Fetching order items for order:', order.id);
       const items = await ticketsStorage.getOrderItems(order.id);
+      console.log('Found order items:', items);
+      
+      console.log('Fetching tickets for order items...');
       const tickets = await Promise.all(
         items.map(item => ticketsStorage.getTicketsByOrderItem(item.id))
       );
+      console.log('Found tickets:', tickets);
       
       res.json({ 
         ok: true, 

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { nanoid } from 'nanoid';
+import { randomUUID } from 'crypto';
 
 // Helper function to convert camelCase to snake_case for database inserts
 const toSnakeCase = (obj: any): any => {
@@ -250,8 +250,11 @@ export class TicketsSupabaseDB {
 
   // ============ ORDERS ============
   async createOrder(data: InsertTicketsOrder & { id?: string }): Promise<TicketsOrder> {
-    const orderId = data.id || nanoid();
+    const orderId = data.id || randomUUID();
     const snakeCaseData = toSnakeCase({ ...data, id: orderId });
+    
+    console.log('Original order data:', data);
+    console.log('Transformed snake_case data:', snakeCaseData);
     
     const { data: order, error } = await supabase
       .from('tickets_orders')
@@ -259,7 +262,10 @@ export class TicketsSupabaseDB {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error('Order creation error:', error);
+      throw error;
+    }
     return order;
   }
 
