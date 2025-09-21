@@ -91,14 +91,16 @@ export function addTicketsRoutes(app: Express) {
       const eventsWithTiers = await Promise.all(
         events.map(async (event) => {
           const tiers = await ticketsStorage.getTiersByEvent(event.id);
-          console.log('[Tickets] Tiers for event:', event.id, tiers.slice(0, 1));
+          console.log('[Tickets] Tiers for event:', event.id, tiers.length, 'tiers found');
           return { ...event, tiers };
         })
       );
       
       // Convert to camelCase for frontend
       const camelCaseEvents = toCamelCase(eventsWithTiers);
-      console.log('[Tickets] Transformed events:', JSON.stringify(camelCaseEvents[0], null, 2).slice(0, 500));
+      if (camelCaseEvents.length > 0) {
+        console.log('[Tickets] First transformed event:', JSON.stringify(camelCaseEvents[0], null, 2).slice(0, 500));
+      }
       
       res.json({ ok: true, events: camelCaseEvents });
     } catch (error) {
