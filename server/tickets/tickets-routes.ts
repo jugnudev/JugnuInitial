@@ -84,7 +84,7 @@ export function addTicketsRoutes(app: Express) {
     try {
       const { city } = req.query;
       console.log('[Tickets] Getting public events, city filter:', city);
-      const events = await ticketsStorage.getPublicEvents(city as string);
+      const events = await ticketsStorage.getPublicEvents();
       console.log('[Tickets] Found events:', events.length, events);
       
       // Add tier information
@@ -118,7 +118,7 @@ export function addTicketsRoutes(app: Express) {
       }
       
       const tiers = await ticketsStorage.getTiersByEvent(event.id);
-      const organizer = await ticketsStorage.getOrganizerById(event.organizerId);
+      const organizer = await ticketsStorage.getOrganizerById(event.organizer_id || event.organizerId);
       
       // Convert to camelCase for frontend
       const camelCaseEvent = toCamelCase({ ...event, tiers });
