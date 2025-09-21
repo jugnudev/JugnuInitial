@@ -1,0 +1,263 @@
+North Star
+
+Objective: Let organizers sell tickets through Jugnu (multi-tier, fees, refunds, analytics) while not impacting existing features.
+
+Strategy: Ship as a separate module (own DB tables, API, routes, env flags, queues) that integrates at the edges (links, widgets) and can be turned off with a single flag.
+
+Isolation & Safety First
+
+Feature flags: ENABLE_TICKETING=false (global kill-switch) + granular flags (checkout, refunds, scanning, payouts).
+
+Namespacing: All code under /tickets (pages) and /api/tickets/* (APIs). All DB tables prefixed with tickets_.
+
+Separate migrations: Ticketing migrations live in their own folder; they don’t alter existing tables.
+
+Shadow services: Own background queue (webhook processing, emails, PDF generation) so failures don’t cascade.
+
+Idempotency & retries: All write endpoints accept Idempotency-Key. Webhooks are idempotent.
+
+Observability: Dedicated logs/metrics: tickets.*. Health checks for each subsystem.
+
+Compliance & Payments (Canada, BC)
+
+Processor: Stripe Connect (Canada) – “Standard” accounts for organizers to handle KYC, or “Express” if you need more control.
+
+PCI scope: SAQ-A only (use Stripe Checkout / Payment Element; no card data on your servers).
+
+Taxes: Canada GST (5%) + BC PST (7%) where applicable. Start with Stripe Tax (on or off per event) to calculate/collect; store tax breakdown per order.
+
+Refunds/Chargebacks: Use Stripe’s refund/ dispute APIs; keep internal state transitions.
+
+Receipting: Email receipts with tax lines; legal entity info.
+
+Privacy & law: PIPA (BC) / PIPEDA; clear ToS, refund policy, data retention; consent for marketing.
+
+MVP Scope (Phase 1, revenue capable)
+
+User stories
+
+Organizer creates an event and ticket tiers; connects Stripe; publishes checkout link.
+
+Buyer purchases; receives e-ticket (QR/PDF), email confirmation.
+
+Organizer sees sales dashboard; can export CSV; request refunds; scan tickets at door.
+
+Surfaces
+
+Public: /tickets/events, /tickets/e/:slug, /tickets/checkout/:eventId/:tierId, /tickets/order/:orderId
+
+Organizer portal: /tickets/organizer/* (orders, payouts, settings)
+
+Admin: /tickets/admin/* (moderation, overrides)
+
+Check-in PWA: /tickets/checkin (camera scan, offline cache)
+
+Core features
+
+Event setup (title, description, venue, dates, capacity, cover image)
+
+Ticket tiers (name, price, quantity, sales window, per-order limits)
+
+Fees model (your service fee %) + tax calculation
+
+Checkout (Stripe Checkout first; Payment Element later for inline)
+
+Orders & line items; QR code e-tickets; email delivery
+
+Basic refunds/cancels; per-order and per-line partial
+
+Sales dashboard: gross/net, fees, tax, units sold, remaining
+
+Guest list export; check-in (QR) with status change
+
+Data Model (tables; all new)
+
+tickets_organizers (id, user_id, stripe_account_id, status, created_at)
+
+tickets_events (id, organizer_id, slug, title, summary, description, venue, city, province, start_at, end_at, status[draft/published/archived], cover_url, allow_refunds_until, created_at, updated_at)
+
+tickets_tiers (id, event_id, name, price_cents, currency, capacity, max_per_order, sales_start_at, sales_end_at, visibility[public/hidden], sort, created_at)
+
+tickets_orders (id, event_id, buyer_email, buyer_name, status[pending/paid/refunded/partially_refunded/canceled], subtotal_cents, fees_cents, tax_cents, total_cents, currency, stripe_payment_intent, placed_at, created_at)
+
+tickets_order_items (id, order_id, tier_id, qty, unit_price_cents, tax_cents, fees_cents)
+
+tickets_tickets (id, order_item_id, tier_id, serial, qr_token, status[valid/used/refunded/canceled], used_at)
+
+tickets_discounts (id, event_id, code, type[percent/fixed], value, max_uses, used_count, starts_at, ends_at, status)
+
+tickets_webhooks (id, kind, payload_json, processed_at, status, error)
+
+tickets_audit (id, actor_type[user/organizer/admin/system], actor_id, action, target_type, target_id, meta_json, created_at)
+
+Indexes on foreign keys; unique constraints: events.slug, tickets_tickets.qr_token, discounts(event_id, code).
+
+Payment & Fees
+
+Fee strategy: e.g., buyer pays service fee (visible at checkout) OR organizer absorbs (set per event). Store fee rules on tickets_events.
+
+Payouts: Stripe Connect transfers to organizer account; your fee captured as application fee.
+
+Refund policy: Enforce allow_refunds_until and admin override.
+
+APIs (all under /api/tickets/*)
+
+Organizer
+
+POST /organizers/connect → returns Stripe Connect onboarding link
+
+GET /organizers/me → organizer profile & status
+
+Events & Tiers
+
+POST /events / PATCH /events/:id / GET /events/:id / GET /events/public?city=…
+
+POST /events/:id/tiers / PATCH /tiers/:id / DELETE /tiers/:id
+
+Checkout
+
+POST /checkout/session → validates inventory, discount, tax, fees; creates Stripe Checkout Session; returns url
+
+Webhooks: POST /webhooks/stripe (payment_intent.succeeded / checkout.session.completed / charge.refunded)
+
+Orders & Tickets
+
+GET /orders/:id (owner only)
+
+POST /orders/:id/refund (organizer/admin; partial allowed)
+
+GET /tickets/:ticketId/qrcode (PNG/SVG)
+
+POST /tickets/validate (scanning endpoint; bearer key)
+
+Discounts
+
+POST /events/:id/discounts / PATCH /discounts/:id / GET /events/:id/discounts
+
+Analytics
+
+GET /events/:id/metrics (time series sold, revenue, fees, tax, refunds)
+
+GET /events/:id/export.csv (orders/tickets)
+
+Security:
+
+Organizer endpoints: auth + organizer owns resource.
+
+Public endpoints: read only.
+
+Admin endpoints: service role.
+
+Scanning: separate API key (per event) with least privilege.
+
+Email & Docs
+
+Emails: order confirmation (tickets attached), refund confirmation, reminder (24h before start).
+
+PDF Tickets: HTML→PDF; include QR code + event info; brandable.
+
+QR Token: random 32–48 char or UUIDv4; verify server-side; single-use mark.
+
+Check-in (PWA)
+
+Camera scanner (barcode/QR) → calls /tickets/validate
+
+Offline cache of attendee list (optional V1.1)
+
+Status feedback: valid / already used / refunded / not found
+
+Batch lookup by name/email as fallback
+
+Admin & Fraud Controls
+
+Manual order create/comp (guest list)
+
+Inventory override
+
+Refund override and notes
+
+Basic fraud signals: too many attempts, velocity checks, email domain rules (log only at MVP)
+
+UX Integration (without breaking current site)
+
+Add “Buy Tickets” CTA on existing event pages only if event has published tiers and ENABLE_TICKETING=true.
+
+Keep current events flow unchanged; new ticketing pages sit under /tickets/*.
+
+Sponsor placements remain unaffected; you can later cross-sell “Promote this event” during organizer onboarding.
+
+Rollout Plan
+
+Phase 0 – Skeleton (dev only)
+
+Tables/migrations (no changes to existing schema)
+
+Basic organizer portal + Stripe Connect test
+
+Create event/tier; generate test checkout session; handle webhook; mark order paid; generate QR; send email
+
+Phase 1 – MVP (internal beta)
+
+Discounts, refunds, check-in PWA, CSV export, analytics dashboard
+
+Taxes via Stripe Tax (toggleable)
+
+Errors surfaced in organizer portal; admin overrides
+
+Phase 1.1 – Hardening
+
+Rate limits, idempotency, retry/backoff, dead-letter queue for webhooks
+
+Monitoring dashboards & alerts
+
+Content moderation for public event pages
+
+Phase 2 – Enhancements
+
+Seating/sections (optional), waitlist, invite-only codes, team access for organizers, affiliate links, split payouts.
+
+Test Plan (end-to-end)
+
+Happy path: create event/tier → checkout → webhook → email ticket → scan valid.
+
+Edge: inventory boundary (last seat) → oversell prevention.
+
+Refunds: partial & full; ticket status transitions.
+
+Discounts: percent/fixed; expiry; max uses.
+
+Taxes: GST/PST on/off; refund tax math.
+
+Payouts: fee captured; funds arrive in organizer account (sandbox).
+
+Security: webhook signature, rate limit, auth separation, QR replay detection.
+
+Chaos: kill Stripe briefly; ensure retries & consistency.
+
+What to tell the Replit agent (starter prompt)
+
+Implement isolated Jugnu Ticketing MVP (do not break existing features):
+
+Add a feature-flagged module under /tickets and /api/tickets/*. Do not modify existing tables.
+
+Create new tables (prefix tickets_): organizers, events, tiers, orders, order_items, tickets, discounts, webhooks, audit (per spec I provide).
+
+Integrate Stripe Connect (CA) with Checkout (no card data on our server). Store stripe_account_id on organizers.
+
+Build organizer portal pages to create/publish events and tiers; connect Stripe; view orders; export CSV; request refunds.
+
+Build public pages for event detail and Checkout redirect; order confirmation page; generate & email PDF tickets with QR.
+
+Add Stripe webhook handler for payment success/refunds. Persist orders, line items, tickets, and state transitions idempotently.
+
+Create check-in PWA at /tickets/checkin (scan QR → validate → mark used).
+
+Add analytics endpoint & simple dashboard (time series sold, revenue, refunds).
+
+Keep current site unchanged; only show “Buy Tickets” on an event page if ENABLE_TICKETING=true and event has published tiers.
+
+Add tests or a “self-test” admin action that simulates an order in Stripe test mode and verifies the full pipeline.
+
+Document env vars (STRIPE keys, flags, email provider), and provide a rollback plan (flags).
+
+Prioritize idempotency, rate limits, and logs. Do not block existing sponsor pages, events listings, or portals.

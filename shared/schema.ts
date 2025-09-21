@@ -205,6 +205,148 @@ export const sponsorLeads = pgTable("sponsor_leads", {
   adminNotes: text("admin_notes")
 });
 
+// ============================================
+// TICKETING MODULE TABLES (Completely Isolated)
+// ============================================
+
+// Organizers who can create and manage ticketed events
+export const ticketsOrganizers = pgTable("tickets_organizers", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id),
+  stripeAccountId: text("stripe_account_id").unique(),
+  status: text("status").notNull().default("pending"), // pending | active | suspended
+  businessName: text("business_name"),
+  businessEmail: text("business_email"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+});
+
+// Ticketed events created by organizers
+export const ticketsEvents = pgTable("tickets_events", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizerId: uuid("organizer_id").notNull().references(() => ticketsOrganizers.id),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  summary: text("summary"),
+  description: text("description"),
+  venue: text("venue"),
+  city: text("city").notNull().default("Vancouver"),
+  province: text("province").notNull().default("BC"),
+  startAt: timestamp("start_at", { withTimezone: true }).notNull(),
+  endAt: timestamp("end_at", { withTimezone: true }),
+  status: text("status").notNull().default("draft"), // draft | published | archived
+  coverUrl: text("cover_url"),
+  allowRefundsUntil: timestamp("allow_refunds_until", { withTimezone: true }),
+  feeStructure: jsonb("fee_structure").default(sql`'{"type": "buyer_pays", "serviceFeePercent": 5}'::jsonb`),
+  taxSettings: jsonb("tax_settings").default(sql`'{"collectTax": true, "gstPercent": 5, "pstPercent": 7}'::jsonb`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+});
+
+// Ticket tiers/types for events (General Admission, VIP, Early Bird, etc.)
+export const ticketsTiers = pgTable("tickets_tiers", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: uuid("event_id").notNull().references(() => ticketsEvents.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  priceCents: integer("price_cents").notNull(),
+  currency: text("currency").notNull().default("CAD"),
+  capacity: integer("capacity"),
+  maxPerOrder: integer("max_per_order").default(10),
+  salesStartAt: timestamp("sales_start_at", { withTimezone: true }),
+  salesEndAt: timestamp("sales_end_at", { withTimezone: true }),
+  visibility: text("visibility").notNull().default("public"), // public | hidden
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+});
+
+// Orders placed by buyers
+export const ticketsOrders = pgTable("tickets_orders", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: uuid("event_id").notNull().references(() => ticketsEvents.id),
+  buyerEmail: text("buyer_email").notNull(),
+  buyerName: text("buyer_name"),
+  buyerPhone: text("buyer_phone"),
+  status: text("status").notNull().default("pending"), // pending | paid | refunded | partially_refunded | canceled
+  subtotalCents: integer("subtotal_cents").notNull(),
+  feesCents: integer("fees_cents").notNull().default(0),
+  taxCents: integer("tax_cents").notNull().default(0),
+  totalCents: integer("total_cents").notNull(),
+  currency: text("currency").notNull().default("CAD"),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  stripeCheckoutSessionId: text("stripe_checkout_session_id"),
+  discountCode: text("discount_code"),
+  discountAmountCents: integer("discount_amount_cents").default(0),
+  refundedAmountCents: integer("refunded_amount_cents").default(0),
+  placedAt: timestamp("placed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+});
+
+// Line items within orders
+export const ticketsOrderItems = pgTable("tickets_order_items", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: uuid("order_id").notNull().references(() => ticketsOrders.id, { onDelete: 'cascade' }),
+  tierId: uuid("tier_id").notNull().references(() => ticketsTiers.id),
+  quantity: integer("quantity").notNull(),
+  unitPriceCents: integer("unit_price_cents").notNull(),
+  taxCents: integer("tax_cents").notNull().default(0),
+  feesCents: integer("fees_cents").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+});
+
+// Individual tickets with QR codes
+export const ticketsTickets = pgTable("tickets_tickets", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderItemId: uuid("order_item_id").notNull().references(() => ticketsOrderItems.id, { onDelete: 'cascade' }),
+  tierId: uuid("tier_id").notNull().references(() => ticketsTiers.id),
+  serial: text("serial").notNull(),
+  qrToken: text("qr_token").notNull().unique(),
+  status: text("status").notNull().default("valid"), // valid | used | refunded | canceled
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  scannedBy: text("scanned_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+});
+
+// Discount codes for events
+export const ticketsDiscounts = pgTable("tickets_discounts", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: uuid("event_id").notNull().references(() => ticketsEvents.id, { onDelete: 'cascade' }),
+  code: text("code").notNull(),
+  type: text("type").notNull(), // percent | fixed
+  value: numeric("value").notNull(), // percentage (0-100) or fixed amount in cents
+  maxUses: integer("max_uses"),
+  usedCount: integer("used_count").notNull().default(0),
+  startsAt: timestamp("starts_at", { withTimezone: true }),
+  endsAt: timestamp("ends_at", { withTimezone: true }),
+  status: text("status").notNull().default("active"), // active | expired | exhausted
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+});
+
+// Webhook processing log
+export const ticketsWebhooks = pgTable("tickets_webhooks", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  kind: text("kind").notNull(), // stripe_payment | stripe_refund | etc.
+  payloadJson: jsonb("payload_json").notNull(),
+  processedAt: timestamp("processed_at", { withTimezone: true }),
+  status: text("status").notNull().default("pending"), // pending | processed | failed
+  error: text("error"),
+  retryCount: integer("retry_count").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+});
+
+// Audit log for all ticketing actions
+export const ticketsAudit = pgTable("tickets_audit", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  actorType: text("actor_type").notNull(), // user | organizer | admin | system
+  actorId: text("actor_id"),
+  action: text("action").notNull(), // event_created | ticket_purchased | refund_issued | etc.
+  targetType: text("target_type"), // event | order | ticket | etc.
+  targetId: text("target_id"),
+  metaJson: jsonb("meta_json"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -261,6 +403,54 @@ export const insertVisitorAnalyticsSchema = createInsertSchema(visitorAnalytics)
   updatedAt: true,
 });
 
+// Ticketing Insert Schemas
+export const insertTicketsOrganizerSchema = createInsertSchema(ticketsOrganizers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTicketsEventSchema = createInsertSchema(ticketsEvents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTicketsTierSchema = createInsertSchema(ticketsTiers).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTicketsOrderSchema = createInsertSchema(ticketsOrders).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTicketsOrderItemSchema = createInsertSchema(ticketsOrderItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTicketsTicketSchema = createInsertSchema(ticketsTickets).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTicketsDiscountSchema = createInsertSchema(ticketsDiscounts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTicketsWebhookSchema = createInsertSchema(ticketsWebhooks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTicketsAuditSchema = createInsertSchema(ticketsAudit).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -287,3 +477,23 @@ export type SponsorLead = typeof sponsorLeads.$inferSelect;
 export type InsertSponsorLead = z.infer<typeof insertSponsorLeadSchema>;
 export type VisitorAnalytics = typeof visitorAnalytics.$inferSelect;
 export type InsertVisitorAnalytics = z.infer<typeof insertVisitorAnalyticsSchema>;
+
+// Ticketing Type Exports
+export type TicketsOrganizer = typeof ticketsOrganizers.$inferSelect;
+export type InsertTicketsOrganizer = z.infer<typeof insertTicketsOrganizerSchema>;
+export type TicketsEvent = typeof ticketsEvents.$inferSelect;
+export type InsertTicketsEvent = z.infer<typeof insertTicketsEventSchema>;
+export type TicketsTier = typeof ticketsTiers.$inferSelect;
+export type InsertTicketsTier = z.infer<typeof insertTicketsTierSchema>;
+export type TicketsOrder = typeof ticketsOrders.$inferSelect;
+export type InsertTicketsOrder = z.infer<typeof insertTicketsOrderSchema>;
+export type TicketsOrderItem = typeof ticketsOrderItems.$inferSelect;
+export type InsertTicketsOrderItem = z.infer<typeof insertTicketsOrderItemSchema>;
+export type TicketsTicket = typeof ticketsTickets.$inferSelect;
+export type InsertTicketsTicket = z.infer<typeof insertTicketsTicketSchema>;
+export type TicketsDiscount = typeof ticketsDiscounts.$inferSelect;
+export type InsertTicketsDiscount = z.infer<typeof insertTicketsDiscountSchema>;
+export type TicketsWebhook = typeof ticketsWebhooks.$inferSelect;
+export type InsertTicketsWebhook = z.infer<typeof insertTicketsWebhookSchema>;
+export type TicketsAudit = typeof ticketsAudit.$inferSelect;
+export type InsertTicketsAudit = z.infer<typeof insertTicketsAuditSchema>;
