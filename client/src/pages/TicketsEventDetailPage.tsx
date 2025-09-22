@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { apiRequest } from "@/lib/queryClient";
+import EmbeddedCheckout from "@/components/EmbeddedCheckout";
 
 interface Tier {
   id: string;
@@ -66,6 +67,9 @@ export function TicketsEventDetailPage() {
   const [buyerEmail, setBuyerEmail] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [showEmbeddedCheckout, setShowEmbeddedCheckout] = useState(false);
+  const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
+  const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
 
   // Email validation helper
   const isValidEmail = (email: string) => {
@@ -85,9 +89,58 @@ export function TicketsEventDetailPage() {
     enabled: isEnabled && !!slug
   });
 
+  // Embedded Payment Intent mutation
+  const paymentIntentMutation = useMutation({
+    mutationFn: async () => {
+      console.log('[EmbeddedCheckout] Starting Payment Intent creation');
+      if (cart.length === 0) throw new Error("Your cart is empty");
+      if (!buyerName || !buyerEmail) throw new Error("Please fill in your details");
+      
+      const response = await apiRequest('POST', '/api/tickets/checkout/payment-intent', {
+        eventId: data?.event.id,
+        items: cart,
+        buyerEmail,
+        buyerName,
+        buyerPhone,
+        discountCode: discountCode || undefined
+      });
+      
+      const result = await response.json();
+      console.log('[EmbeddedCheckout] Payment Intent response:', result);
+      return result;
+    },
+    onSuccess: (result: any) => {
+      console.log('[EmbeddedCheckout] Payment Intent created successfully');
+      if (result?.clientSecret && result?.orderId) {
+        setPaymentClientSecret(result.clientSecret);
+        setCurrentOrderId(result.orderId);
+        setShowEmbeddedCheckout(true);
+        setIsCheckingOut(false);
+      } else {
+        console.error('[EmbeddedCheckout] Invalid response:', result);
+        toast({
+          title: "Checkout failed",
+          description: "Unable to create payment session",
+          variant: "destructive"
+        });
+        setIsCheckingOut(false);
+      }
+    },
+    onError: (error: any) => {
+      console.error('[EmbeddedCheckout] Payment Intent error:', error);
+      toast({
+        title: "Checkout failed",
+        description: error.message || "Please try again",
+        variant: "destructive"
+      });
+      setIsCheckingOut(false);
+    }
+  });
+
+  // Legacy hosted checkout mutation (fallback)
   const checkoutMutation = useMutation({
     mutationFn: async () => {
-      console.log('[Checkout] Starting checkout mutation');
+      console.log('[Checkout] Starting hosted checkout mutation');
       if (cart.length === 0) throw new Error("Your cart is empty");
       if (!buyerName || !buyerEmail) throw new Error("Please fill in your details");
       
@@ -243,9 +296,43 @@ export function TicketsEventDetailPage() {
   const total = subtotal + tax + fees;
 
   const handleCheckout = () => {
-    console.log('[Checkout] handleCheckout called, cart:', cart);
+    console.log('[EmbeddedCheckout] handleCheckout called, cart:', cart);
     setIsCheckingOut(true);
-    checkoutMutation.mutate();
+    
+    // Use embedded checkout by default, fallback to hosted checkout if needed
+    paymentIntentMutation.mutate();
+  };
+
+  // Handle embedded checkout success
+  const handlePaymentSuccess = () => {
+    console.log('[EmbeddedCheckout] Payment successful!');
+    
+    // Clear cart and reset state
+    setCart([]);
+    setBuyerName("");
+    setBuyerEmail("");
+    setBuyerPhone("");
+    setDiscountCode("");
+    setShowEmbeddedCheckout(false);
+    setPaymentClientSecret(null);
+    setCurrentOrderId(null);
+    
+    // Show success message
+    toast({
+      title: "Payment Successful!",
+      description: "Your tickets have been purchased successfully. Check your email for confirmation.",
+      variant: "default"
+    });
+  };
+
+  // Handle embedded checkout error
+  const handlePaymentError = (error: string) => {
+    console.error('[EmbeddedCheckout] Payment error:', error);
+    toast({
+      title: "Payment Failed",
+      description: error,
+      variant: "destructive"
+    });
   };
 
   // Get the lowest tier price for hero display
@@ -608,6 +695,44 @@ export function TicketsEventDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Embedded Checkout Modal */}
+      {showEmbeddedCheckout && paymentClientSecret && currentOrderId && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 overflow-y-auto">
+          <div className="min-h-screen flex items-center justify-center p-4">
+            <div className="bg-background rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b border-gray-700">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-fraunces text-white">Complete Your Purchase</h2>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => {
+                      setShowEmbeddedCheckout(false);
+                      setPaymentClientSecret(null);
+                      setCurrentOrderId(null);
+                    }}
+                    className="text-gray-400 hover:text-white"
+                    data-testid="button-close-checkout"
+                  >
+                    ✕
+                  </Button>
+                </div>
+                <p className="text-gray-400 mt-2">Secure payment powered by Stripe</p>
+              </div>
+              
+              <div className="p-6">
+                <EmbeddedCheckout
+                  clientSecret={paymentClientSecret}
+                  orderId={currentOrderId}
+                  onSuccess={handlePaymentSuccess}
+                  onError={handlePaymentError}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

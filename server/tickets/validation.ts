@@ -24,6 +24,20 @@ export const checkoutSessionSchema = z.object({
   }, 'Return URL must be from same origin')
 });
 
+// Payment Intent validation (for embedded checkout - no returnUrl needed)
+export const paymentIntentSchema = z.object({
+  eventId: z.string().uuid(),
+  items: z.array(z.object({
+    tierId: z.string().uuid(),
+    quantity: z.number().int().min(1).max(10)
+  })).min(1).max(10),
+  buyerEmail: z.string().email(),
+  buyerName: z.string().min(1).max(100),
+  buyerPhone: z.string().optional(),
+  discountCode: z.string().optional()
+  // Note: No returnUrl needed for embedded checkout
+});
+
 // Event creation/update validation
 export const createEventSchema = z.object({
   title: z.string().min(1).max(200),

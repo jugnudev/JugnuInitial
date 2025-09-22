@@ -12,6 +12,7 @@ import type {
 } from '@shared/schema';
 import {
   checkoutSessionSchema,
+  paymentIntentSchema,
   createEventSchema,
   updateEventSchema,
   createTierSchema,
@@ -205,8 +206,13 @@ export function addTicketsRoutes(app: Express) {
         // Create a minimal organizer object for test mode
         organizer = { 
           id: 'test-organizer', 
+          userId: null,
           stripeAccountId: null,
-          businessName: 'Test Organizer' 
+          status: 'active',
+          businessName: 'Test Organizer',
+          businessEmail: 'test@example.com',
+          createdAt: new Date(),
+          updatedAt: new Date()
         };
       }
       
@@ -305,6 +311,138 @@ export function addTicketsRoutes(app: Express) {
     } catch (error: any) {
       console.error('Checkout error:', error);
       res.status(500).json({ ok: false, error: error.message || 'Checkout failed' });
+    }
+  });
+
+  // Create Payment Intent for embedded checkout
+  app.post('/api/tickets/checkout/payment-intent', requireTicketing, async (req: Request, res: Response) => {
+    try {
+      // Validate and sanitize input (specific schema for Payment Intent - no returnUrl needed)
+      const validated = paymentIntentSchema.parse(req.body);
+      const { 
+        eventId, 
+        items, 
+        buyerEmail, 
+        buyerName, 
+        buyerPhone,
+        discountCode
+      } = validated;
+      
+      // Validate event
+      const event = await ticketsStorage.getEventById(eventId);
+      if (!event || event.status !== 'published') {
+        return res.status(404).json({ ok: false, error: 'Event not available' });
+      }
+      
+      // Validate organizer
+      let organizer = null;
+      if (event.organizerId) {
+        console.log('[PaymentIntent] Looking up organizer:', event.organizerId);
+        organizer = await ticketsStorage.getOrganizerById(event.organizerId);
+        if (!organizer) {
+          console.log('[PaymentIntent] Organizer not found for ID:', event.organizerId);
+          return res.status(400).json({ ok: false, error: 'Event organizer not found' });
+        }
+      } else {
+        console.log('[PaymentIntent] No organizerId found on event, creating test organizer');
+        organizer = { 
+          id: 'test-organizer', 
+          userId: null,
+          stripeAccountId: null,
+          status: 'active',
+          businessName: 'Test Organizer',
+          businessEmail: 'test@example.com',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+      }
+      
+      // Validate and fetch tiers
+      const tierData = await Promise.all(
+        items.map(async (item: any) => {
+          const tier = await ticketsStorage.getTierById(item.tierId);
+          if (!tier) throw new Error(`Tier ${item.tierId} not found`);
+          
+          // Check availability
+          const available = await ticketsStorage.checkTierAvailability(tier.id, item.quantity);
+          if (!available) throw new Error(`Not enough tickets available for ${tier.name}`);
+          
+          return { tier, quantity: item.quantity };
+        })
+      );
+      
+      // Check discount if provided
+      let discountAmountCents = 0;
+      if (discountCode) {
+        const discount = await ticketsStorage.getDiscountByCode(eventId, discountCode);
+        if (discount) {
+          const subtotal = tierData.reduce((sum, item) => 
+            sum + (item.tier.priceCents * item.quantity), 0
+          );
+          
+          if (discount.type === 'percent') {
+            discountAmountCents = Math.round(subtotal * (Number(discount.value) / 100));
+          } else {
+            discountAmountCents = Number(discount.value);
+          }
+        }
+      }
+      
+      // Calculate pricing
+      const pricing = StripeService.calculatePricing(tierData, event, discountAmountCents);
+      
+      // Create order in database
+      const order = await ticketsStorage.createOrder({
+        eventId,
+        buyerEmail,
+        buyerName,
+        buyerPhone,
+        status: 'pending',
+        subtotalCents: pricing.subtotalCents,
+        feesCents: pricing.feesCents,
+        taxCents: pricing.taxCents,
+        totalCents: pricing.totalCents,
+        discountCode,
+        discountAmountCents
+      });
+      
+      console.log('[PaymentIntent] Creating Payment Intent for order:', order.id);
+      console.log('[PaymentIntent] Stripe available:', !!stripe);
+      
+      if (!stripe) {
+        return res.status(400).json({ 
+          ok: false, 
+          error: 'Stripe not configured - embedded checkout requires Stripe' 
+        });
+      }
+      
+      // Create Payment Intent for embedded checkout
+      const paymentIntent = await StripeService.createPaymentIntent(
+        tierData,
+        event,
+        organizer,
+        order
+      );
+      
+      if (!paymentIntent) {
+        throw new Error('Failed to create Payment Intent');
+      }
+      
+      // Update order with Payment Intent ID
+      await ticketsStorage.updateOrder(order.id, {
+        stripePaymentIntentId: paymentIntent.id
+      });
+      
+      res.json({
+        ok: true,
+        orderId: order.id,
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id
+      });
+      
+    } catch (error: any) {
+      console.error('[PaymentIntent] Error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Payment Intent creation failed' });
     }
   });
 

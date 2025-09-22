@@ -13,7 +13,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 
 export const stripe = process.env.STRIPE_SECRET_KEY 
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2024-09-30.acacia",
+      apiVersion: "2025-08-27.basil",
     })
   : null;
 
@@ -46,18 +46,16 @@ export class StripeService {
     event: TicketsEvent,
     discountAmountCents: number = 0
   ): CalculatedPricing {
-    console.log('StripeService.calculatePricing called with:');
-    console.log('- items:', items);
-    console.log('- event:', event);
-    console.log('- discountAmountCents:', discountAmountCents);
-    
     // Calculate subtotal
     const rawSubtotalCents = items.reduce((sum, item) => {
-      // Handle both camelCase and snake_case field names
-      const priceInCents = item.tier.priceCents || item.tier.price_cents;
-      console.log(`Processing item: tier.priceCents=${item.tier.priceCents}, tier.price_cents=${item.tier.price_cents}, using=${priceInCents}, quantity=${item.quantity}`);
+      // Handle both camelCase and snake_case field names for database compatibility
+      let priceInCents = item.tier.priceCents;
+      if (priceInCents === undefined) {
+        // Fallback to snake_case if camelCase field is missing
+        priceInCents = (item.tier as any).price_cents;
+      }
+      
       const itemTotal = priceInCents * item.quantity;
-      console.log(`Item total: ${itemTotal}`);
       return sum + itemTotal;
     }, 0);
     
@@ -114,7 +112,7 @@ export class StripeService {
     }
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map(item => {
-      const priceInCents = item.tier.priceCents || item.tier.price_cents;
+      const priceInCents = item.tier.priceCents;
       if (!priceInCents || priceInCents <= 0) {
         throw new Error(`Invalid price for tier ${item.tier.name}: ${priceInCents}`);
       }
@@ -144,7 +142,7 @@ export class StripeService {
       tierInfo: JSON.stringify(items.map(item => ({
         tierId: item.tier.id,
         quantity: item.quantity,
-        unitPriceCents: item.tier.priceCents || item.tier.price_cents
+        unitPriceCents: item.tier.priceCents
       })))
     };
 
@@ -259,6 +257,78 @@ export class StripeService {
       return refund;
     } catch (error) {
       console.error('Error processing refund:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a Payment Intent for embedded checkout
+   */
+  static async createPaymentIntent(
+    items: Array<{ tier: TicketsTier; quantity: number }>,
+    event: TicketsEvent,
+    organizer: TicketsOrganizer,
+    order: TicketsOrder
+  ): Promise<Stripe.PaymentIntent | null> {
+    if (!stripe) return null;
+
+    console.log('[StripeService] Creating Payment Intent for embedded checkout');
+    console.log('- Order ID:', order.id);
+    console.log('- Event ID:', event.id);
+    console.log('- Organizer ID:', organizer.id);
+    console.log('- Has Stripe Connect:', !!organizer.stripeAccountId);
+
+    try {
+      // Calculate pricing
+      const pricing = StripeService.calculatePricing(items, event, 0);
+      
+      // Create metadata for payment processing
+      const metadata: CheckoutSessionMetadata = {
+        orderId: order.id,
+        eventId: event.id,
+        organizerId: organizer.id,
+        buyerEmail: order.buyerEmail,
+        buyerName: order.buyerName || '',
+        tierInfo: JSON.stringify(items.map(item => ({
+          tierId: item.tier.id,
+          quantity: item.quantity,
+          unitPriceCents: item.tier.priceCents
+        })))
+      };
+
+      // Create Payment Intent with marketplace flow or direct charge
+      const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
+        amount: pricing.totalCents,
+        currency: 'cad',
+        payment_method_types: ['card'],
+        metadata: metadata as any,
+        description: `Tickets for ${event.title}`,
+        receipt_email: order.buyerEmail,
+        // Hold funds until after event for marketplace model
+        capture_method: 'automatic',
+        // Use confirmation_method: 'automatic' to allow frontend confirmation
+        confirmation_method: 'automatic'
+      };
+
+      // Add marketplace flow if organizer has Stripe Connect
+      if (organizer.stripeAccountId) {
+        console.log('[StripeService] Using marketplace model with Stripe Connect');
+        paymentIntentParams.application_fee_amount = order.feesCents;
+        paymentIntentParams.transfer_data = {
+          destination: organizer.stripeAccountId,
+        };
+        paymentIntentParams.on_behalf_of = organizer.stripeAccountId;
+      } else {
+        console.log('[StripeService] Using direct charge model (no Connect account)');
+        // Direct charge - platform keeps all money including fees
+      }
+
+      const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
+
+      console.log('[StripeService] Payment Intent created:', paymentIntent.id);
+      return paymentIntent;
+    } catch (error) {
+      console.error('[StripeService] Error creating Payment Intent:', error);
       throw error;
     }
   }
