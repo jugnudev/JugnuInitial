@@ -450,52 +450,80 @@ export function TicketsEventDetailPage() {
               
               {/* Mobile-Optimized Content */}
               <div className="premium-surface-elevated p-4 md:p-6 rounded-lg border border-gray-700">
-                {/* Always visible summary */}
-                <div className="space-y-3">
-                  {event.description.split('\n').slice(0, 2).map((paragraph, index) => {
-                    if (paragraph.trim() === '') return null;
-                    return (
-                      <p key={index} className="text-gray-300 leading-relaxed text-base">
-                        {paragraph}
-                      </p>
-                    );
-                  })}
-                </div>
-                
-                {/* Expandable content on mobile, always visible on desktop */}
-                <div className={`${isDescriptionExpanded ? 'block' : 'hidden'} md:block mt-4 space-y-3`}>
-                  {event.description.split('\n').slice(2).map((paragraph, index) => {
-                    if (paragraph.trim() === '') {
-                      return <div key={index + 2} className="h-2" />; // Reduced spacing
-                    }
-                    
-                    if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
-                      return (
-                        <h3 key={index + 2} className="text-lg font-fraunces font-bold text-white mt-4 mb-2 flex items-center gap-2">
-                          <div className="w-1 h-4 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full" />
-                          {paragraph.replace(/\*\*/g, '')}
-                        </h3>
-                      );
-                    }
-                    
-                    if (paragraph.startsWith('- ')) {
-                      return (
-                        <div key={index + 2} className="flex items-start gap-3 mb-2">
-                          <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-2 flex-shrink-0" />
-                          <p className="text-gray-300 leading-relaxed text-sm">
-                            {paragraph.substring(2)}
-                          </p>
+                {/* Parse and filter paragraphs */}
+                {(() => {
+                  const allParagraphs = event.description.split('\n').filter(p => p.trim() !== '');
+                  const previewParagraphs = allParagraphs.slice(0, 2);
+                  const remainingParagraphs = allParagraphs.slice(2);
+                  
+                  return (
+                    <>
+                      {/* Always visible summary (first 2 non-empty paragraphs) */}
+                      <div className="space-y-3">
+                        {previewParagraphs.map((paragraph, index) => {
+                          if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+                            return (
+                              <h3 key={index} className="text-lg font-fraunces font-bold text-white flex items-center gap-2">
+                                <div className="w-1 h-4 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full" />
+                                {paragraph.replace(/\*\*/g, '')}
+                              </h3>
+                            );
+                          }
+                          
+                          if (paragraph.startsWith('- ')) {
+                            return (
+                              <div key={index} className="flex items-start gap-3">
+                                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-2 flex-shrink-0" />
+                                <p className="text-gray-300 leading-relaxed text-sm">
+                                  {paragraph.substring(2)}
+                                </p>
+                              </div>
+                            );
+                          }
+                          
+                          return (
+                            <p key={index} className="text-gray-300 leading-relaxed text-base">
+                              {paragraph}
+                            </p>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Expandable content on mobile, always visible on desktop */}
+                      {remainingParagraphs.length > 0 && (
+                        <div className={`${isDescriptionExpanded ? 'block' : 'hidden'} md:block mt-4 space-y-3`}>
+                          {remainingParagraphs.map((paragraph, index) => {
+                            if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+                              return (
+                                <h3 key={index + 100} className="text-lg font-fraunces font-bold text-white mt-4 mb-2 flex items-center gap-2">
+                                  <div className="w-1 h-4 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full" />
+                                  {paragraph.replace(/\*\*/g, '')}
+                                </h3>
+                              );
+                            }
+                            
+                            if (paragraph.startsWith('- ')) {
+                              return (
+                                <div key={index + 100} className="flex items-start gap-3 mb-2">
+                                  <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-2 flex-shrink-0" />
+                                  <p className="text-gray-300 leading-relaxed text-sm">
+                                    {paragraph.substring(2)}
+                                  </p>
+                                </div>
+                              );
+                            }
+                            
+                            return (
+                              <p key={index + 100} className="text-gray-300 leading-relaxed text-base">
+                                {paragraph}
+                              </p>
+                            );
+                          })}
                         </div>
-                      );
-                    }
-                    
-                    return (
-                      <p key={index + 2} className="text-gray-300 leading-relaxed text-base">
-                        {paragraph}
-                      </p>
-                    );
-                  })}
-                </div>
+                      )}
+                    </>
+                  );
+                })()}
                 
                 {/* Compact Event Highlights */}
                 <div className="mt-4 pt-4 border-t border-gray-700">
