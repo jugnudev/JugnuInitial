@@ -43,23 +43,40 @@ import type {
 } from '@shared/schema';
 
 // Initialize Supabase client using the same method as main system
-const supabase = getSupabaseAdmin();
+let supabase: any = null;
+
+const getSupabase = () => {
+  if (!supabase) {
+    supabase = getSupabaseAdmin();
+    console.log('[Tickets] Initialized Supabase connection');
+  }
+  return supabase;
+};
 
 export class TicketsSupabaseDB {
   // ============ ORGANIZERS ============
   async createOrganizer(data: InsertTicketsOrganizer): Promise<TicketsOrganizer> {
-    const { data: organizer, error } = await supabase
+    console.log('[DEBUG] Creating organizer with data:', data);
+    
+    const client = getSupabase();
+    const { data: organizer, error } = await client
       .from('tickets_organizers')
       .insert(data)
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.log('[DEBUG] Database error in createOrganizer:', error);
+      throw error;
+    }
+    
+    console.log('[DEBUG] Organizer created successfully:', organizer?.id);
     return organizer;
   }
 
   async getOrganizerById(id: string): Promise<TicketsOrganizer | null> {
-    const { data, error } = await supabase
+    const client = getSupabase();
+    const { data, error } = await client
       .from('tickets_organizers')
       .select('*')
       .eq('id', id)
@@ -70,21 +87,37 @@ export class TicketsSupabaseDB {
   }
 
   async getOrganizerByUserId(userId: string): Promise<TicketsOrganizer | null> {
-    const { data, error } = await supabase
+    console.log('[DEBUG] Attempting to find organizer for userId:', userId);
+    console.log('[DEBUG] Using getSupabase() for connection...');
+    
+    const client = getSupabase();
+    const { data, error } = await client
       .from('tickets_organizers')
       .select('*')
       .eq('user_id', userId)
       .single();
     
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    if (error) {
+      console.log('[DEBUG] Database error in getOrganizerByUserId:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      
+      if (error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    }
+    
+    console.log('[DEBUG] Organizer lookup result:', data ? 'found' : 'not found');
     return data;
   }
 
   async getOrganizerByEmail(email: string): Promise<TicketsOrganizer | null> {
-    const { data, error } = await supabase
+    const client = getSupabase();
+    const { data, error } = await client
       .from('tickets_organizers')
       .select('*')
-      .eq('email', email)
+      .eq('business_email', email)  // Fixed: use business_email not email
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
@@ -92,7 +125,8 @@ export class TicketsSupabaseDB {
   }
 
   async getOrganizerByStripeAccount(stripeAccountId: string): Promise<TicketsOrganizer | null> {
-    const { data, error } = await supabase
+    const client = getSupabase();
+    const { data, error } = await client
       .from('tickets_organizers')
       .select('*')
       .eq('stripe_account_id', stripeAccountId)

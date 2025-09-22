@@ -636,7 +636,11 @@ export function addTicketsRoutes(app: Express) {
   app.post('/api/tickets/organizers/connect', requireTicketing, async (req: Request & { session?: any }, res: Response) => {
     try {
       const validated = organizerSignupSchema.parse(req.body);
-      const { userId, businessName, businessEmail, returnUrl, refreshUrl } = validated;
+      const { businessName, businessEmail, firstName, lastName, returnUrl, refreshUrl } = validated;
+      
+      // Get userId from session - for now we'll create a test user ID since we don't have auth yet
+      const userId = req.session?.userId || 'test-user-' + Math.random().toString(36).substr(2, 9);
+      console.log('[DEBUG] Using userId:', userId);
       
       // Check if organizer already exists
       console.log('[DEBUG] Attempting to find organizer for userId:', userId);
@@ -653,12 +657,14 @@ export function addTicketsRoutes(app: Express) {
       
       if (!organizer) {
         // Create new organizer
+        console.log('[DEBUG] Creating new organizer...');
         organizer = await ticketsStorage.createOrganizer({
           userId,
           businessName,
           businessEmail,
           status: 'pending'
         });
+        console.log('[DEBUG] Organizer created with ID:', organizer.id);
       }
       
       // Generate Stripe Connect onboarding link
