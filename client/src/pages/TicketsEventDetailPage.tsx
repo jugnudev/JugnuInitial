@@ -101,8 +101,9 @@ export function TicketsEventDetailPage() {
         returnUrl: window.location.origin + `/tickets/order/success`
       });
       
-      console.log('[Checkout] API response:', response);
-      return response;
+      const result = await response.json();
+      console.log('[Checkout] API response:', result);
+      return result;
     },
     onSuccess: (result: any) => {
       console.log('[Checkout] onSuccess called with:', result);
