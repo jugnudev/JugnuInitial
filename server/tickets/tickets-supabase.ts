@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '../supabaseAdmin';
 import { randomUUID } from 'crypto';
 
 // Helper function to convert camelCase to snake_case for database inserts
@@ -42,20 +42,8 @@ import type {
   InsertTicketsAudit
 } from '@shared/schema';
 
-// Initialize Supabase client with service role key for backend operations
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing Supabase configuration. Please set SUPABASE_URL and SUPABASE_SERVICE_KEY environment variables.');
-}
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false
-  }
-});
+// Initialize Supabase client using the same method as main system
+const supabase = getSupabaseAdmin();
 
 export class TicketsSupabaseDB {
   // ============ ORGANIZERS ============

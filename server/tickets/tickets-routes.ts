@@ -600,6 +600,38 @@ export function addTicketsRoutes(app: Express) {
 
   // ============ ORGANIZER ENDPOINTS ============
   
+  // Test endpoint to debug database connection
+  app.get('/api/tickets/debug/test-connection', requireTicketing, async (req: Request, res: Response) => {
+    try {
+      console.log('[TEST] Testing Supabase connection...');
+      
+      // Test basic query first
+      const result = await ticketsStorage.getOrganizerById('test-id');
+      console.log('[TEST] Basic query result:', result);
+      
+      // Test user_id query directly
+      const testUserId = 'test-user-123';
+      const orgByUserId = await ticketsStorage.getOrganizerByUserId(testUserId);
+      console.log('[TEST] getOrganizerByUserId result:', orgByUserId);
+      
+      res.json({ 
+        ok: true, 
+        message: 'Connection test completed', 
+        testResults: {
+          basicQuery: result ? 'found' : 'not found',
+          userIdQuery: orgByUserId ? 'found' : 'not found'
+        }
+      });
+    } catch (error) {
+      console.error('[TEST] Connection test error:', error);
+      res.status(500).json({ 
+        ok: false, 
+        error: 'Connection test failed',
+        details: error
+      });
+    }
+  });
+  
   // Create/connect organizer account
   app.post('/api/tickets/organizers/connect', requireTicketing, async (req: Request & { session?: any }, res: Response) => {
     try {
@@ -607,7 +639,17 @@ export function addTicketsRoutes(app: Express) {
       const { userId, businessName, businessEmail, returnUrl, refreshUrl } = validated;
       
       // Check if organizer already exists
-      let organizer = await ticketsStorage.getOrganizerByUserId(userId);
+      console.log('[DEBUG] Attempting to find organizer for userId:', userId);
+      console.log('[DEBUG] Testing ticketsStorage connection...');
+      
+      let organizer;
+      try {
+        organizer = await ticketsStorage.getOrganizerByUserId(userId);
+        console.log('[DEBUG] Found existing organizer:', organizer ? 'YES' : 'NO');
+      } catch (dbError) {
+        console.error('[DEBUG] Database error in getOrganizerByUserId:', dbError);
+        throw dbError;
+      }
       
       if (!organizer) {
         // Create new organizer
