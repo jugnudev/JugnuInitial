@@ -236,7 +236,7 @@ export function addTicketsRoutes(app: Express) {
         const discount = await ticketsStorage.getDiscountByCode(eventId, discountCode);
         if (discount) {
           const subtotal = tierData.reduce((sum, item) => 
-            sum + (item.tier.priceCents * item.quantity), 0
+            sum + (StripeService.getUnitPriceCents(item.tier) * item.quantity), 0
           );
           
           if (discount.type === 'percent') {
@@ -377,7 +377,7 @@ export function addTicketsRoutes(app: Express) {
         const discount = await ticketsStorage.getDiscountByCode(eventId, discountCode);
         if (discount) {
           const subtotal = tierData.reduce((sum, item) => 
-            sum + (item.tier.priceCents * item.quantity), 0
+            sum + (StripeService.getUnitPriceCents(item.tier) * item.quantity), 0
           );
           
           if (discount.type === 'percent') {

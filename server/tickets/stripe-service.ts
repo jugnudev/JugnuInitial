@@ -39,6 +39,25 @@ export interface CalculatedPricing {
 
 export class StripeService {
   /**
+   * Get unit price in cents from a tier object, handling both camelCase and snake_case field names
+   */
+  static getUnitPriceCents(tier: TicketsTier): number {
+    // Handle both camelCase and snake_case field names for database compatibility
+    let priceInCents = tier.priceCents;
+    if (priceInCents === undefined) {
+      // Fallback to snake_case if camelCase field is missing
+      priceInCents = (tier as any).price_cents;
+    }
+    
+    // Ensure we have a valid price
+    if (priceInCents === undefined || priceInCents === null || isNaN(priceInCents)) {
+      throw new Error(`Invalid tier price: ${priceInCents} for tier ${tier.id}`);
+    }
+    
+    return priceInCents;
+  }
+
+  /**
    * Calculate fees and taxes for an order
    */
   static calculatePricing(
@@ -48,13 +67,7 @@ export class StripeService {
   ): CalculatedPricing {
     // Calculate subtotal
     const rawSubtotalCents = items.reduce((sum, item) => {
-      // Handle both camelCase and snake_case field names for database compatibility
-      let priceInCents = item.tier.priceCents;
-      if (priceInCents === undefined) {
-        // Fallback to snake_case if camelCase field is missing
-        priceInCents = (item.tier as any).price_cents;
-      }
-      
+      const priceInCents = StripeService.getUnitPriceCents(item.tier);
       const itemTotal = priceInCents * item.quantity;
       return sum + itemTotal;
     }, 0);
@@ -112,7 +125,7 @@ export class StripeService {
     }
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map(item => {
-      const priceInCents = item.tier.priceCents;
+      const priceInCents = StripeService.getUnitPriceCents(item.tier);
       if (!priceInCents || priceInCents <= 0) {
         throw new Error(`Invalid price for tier ${item.tier.name}: ${priceInCents}`);
       }
@@ -142,7 +155,7 @@ export class StripeService {
       tierInfo: JSON.stringify(items.map(item => ({
         tierId: item.tier.id,
         quantity: item.quantity,
-        unitPriceCents: item.tier.priceCents
+        unitPriceCents: StripeService.getUnitPriceCents(item.tier)
       })))
     };
 
@@ -292,7 +305,7 @@ export class StripeService {
         tierInfo: JSON.stringify(items.map(item => ({
           tierId: item.tier.id,
           quantity: item.quantity,
-          unitPriceCents: item.tier.priceCents
+          unitPriceCents: StripeService.getUnitPriceCents(item.tier)
         })))
       };
 
