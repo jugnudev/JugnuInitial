@@ -247,56 +247,106 @@ export function TicketsEventDetailPage() {
     checkoutMutation.mutate();
   };
 
+  // Get the lowest tier price for hero display
+  const getStartingPrice = () => {
+    const prices = event.tiers.map(tier => tier.priceCents);
+    return Math.min(...prices);
+  };
+
+  const startingPrice = getStartingPrice();
+  const availableTiers = event.tiers.filter(tier => {
+    const { available } = getTierAvailability(tier);
+    return available;
+  });
+
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          {/* Event Header */}
-          {event.coverUrl && (
-            <div className="aspect-video relative mb-8 rounded-lg overflow-hidden">
-              <img 
-                src={event.coverUrl} 
-                alt={event.title}
-                className="w-full h-full object-cover"
-                data-testid="img-event-header"
-              />
-            </div>
-          )}
+      {/* Premium Cinematic Hero */}
+      {event.coverUrl && (
+        <div className="relative aspect-[16/9] lg:aspect-[21/9] overflow-hidden premium-fade-in">
+          {/* Hero Image */}
+          <img 
+            src={event.coverUrl} 
+            alt={event.title}
+            className="w-full h-full object-cover"
+            data-testid="img-event-hero"
+          />
           
-          <div className="mb-8">
-            <h1 className="text-4xl font-fraunces mb-2">{event.title}</h1>
-            {event.summary && (
-              <p className="text-xl text-muted-foreground mb-4">{event.summary}</p>
-            )}
-            
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <span>{format(eventDate, 'EEEE, MMMM d, yyyy')}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <span>{format(eventDate, 'h:mm a')}</span>
-                {event.endAt && (
-                  <span> - {format(new Date(event.endAt), 'h:mm a')}</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-muted-foreground" />
-                <span>{event.venue}, {event.city}, {event.province}</span>
-              </div>
+          {/* Premium Gradient Overlays */}
+          <div className="absolute inset-0 premium-hero-gradient" />
+          <div className="absolute inset-0 premium-hero-vignette" />
+          
+          {/* Hero Content */}
+          <div className="absolute inset-0 flex flex-col justify-between p-4 md:p-8 lg:p-12">
+            {/* Top Row - Badges */}
+            <div className="flex flex-wrap gap-2 justify-start">
+              {availableTiers.length > 0 ? (
+                <div className="premium-price-pill">
+                  From ${(startingPrice / 100).toFixed(0)}
+                </div>
+              ) : (
+                <div className="premium-badge-sold-out">
+                  Sold Out
+                </div>
+              )}
+              
+              {organizer.businessName && (
+                <div className="bg-black/40 backdrop-blur-sm text-white px-3 py-1 rounded-full text-sm font-medium border border-white/20">
+                  {organizer.businessName}
+                </div>
+              )}
             </div>
             
-            {event.description && (
-              <div className="mt-6 prose prose-sm max-w-none">
-                <p className="whitespace-pre-wrap">{event.description}</p>
+            {/* Bottom Row - Event Info */}
+            <div className="space-y-4">
+              <div className="max-w-4xl">
+                <h1 className="text-3xl md:text-5xl lg:text-6xl font-fraunces text-white font-bold leading-tight mb-4 drop-shadow-lg">
+                  {event.title}
+                </h1>
+                
+                {event.summary && (
+                  <p className="text-lg md:text-xl text-white/90 mb-6 drop-shadow-sm max-w-2xl leading-relaxed">
+                    {event.summary}
+                  </p>
+                )}
+                
+                {/* Key Event Details */}
+                <div className="flex flex-wrap gap-4 md:gap-6 text-white/90">
+                  <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-2 rounded-full text-sm font-medium border border-white/20">
+                    <Calendar className="w-4 h-4" />
+                    <span>{format(eventDate, 'MMM d, yyyy')}</span>
+                  </div>
+                  <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-2 rounded-full text-sm font-medium border border-white/20">
+                    <Clock className="w-4 h-4" />
+                    <span>{format(eventDate, 'h:mm a')}</span>
+                    {event.endAt && (
+                      <span> - {format(new Date(event.endAt), 'h:mm a')}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-2 rounded-full text-sm font-medium border border-white/20">
+                    <MapPin className="w-4 h-4" />
+                    <span>{event.venue}</span>
+                  </div>
+                </div>
               </div>
-            )}
-            
-            <div className="mt-4 text-sm text-muted-foreground">
-              Organized by {organizer.businessName}
             </div>
           </div>
+        </div>
+      )}
+
+      <div className="container mx-auto px-4 py-8 lg:py-12">
+        <div className="max-w-6xl mx-auto">
+          {/* Event Description - Premium Card */}
+          {event.description && (
+            <div className="premium-surface-elevated mb-8 p-6 lg:p-8 premium-slide-up">
+              <h2 className="text-2xl font-fraunces mb-4 text-white">About This Event</h2>
+              <div className="prose prose-lg prose-invert max-w-none">
+                <p className="whitespace-pre-wrap text-gray-300 leading-relaxed">
+                  {event.description}
+                </p>
+              </div>
+            </div>
+          )}
 
           <Separator className="mb-8" />
 
@@ -383,151 +433,175 @@ export function TicketsEventDetailPage() {
                 );
               })}
               
-              {/* Discount Code */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Discount Code</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Enter code"
-                      value={discountCode}
-                      onChange={(e) => setDiscountCode(e.target.value)}
-                      data-testid="input-discount-code"
-                    />
-                    <Button variant="outline" data-testid="button-apply-discount">
-                      Apply
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Premium Discount Code */}
+              <div className="premium-surface-elevated p-6">
+                <h3 className="text-xl font-semibold text-white mb-4">Discount Code</h3>
+                <div className="flex gap-3">
+                  <Input
+                    placeholder="Enter discount code"
+                    value={discountCode}
+                    onChange={(e) => setDiscountCode(e.target.value)}
+                    className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+                    data-testid="input-discount-code"
+                  />
+                  <Button 
+                    variant="outline" 
+                    className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                    data-testid="button-apply-discount"
+                  >
+                    Apply
+                  </Button>
+                </div>
+              </div>
             </div>
 
-            {/* Order Summary */}
+            {/* Premium Order Summary */}
             <div className="space-y-4">
-              <Card className="sticky top-4">
-                <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {cart.length === 0 ? (
-                    <p className="text-muted-foreground text-center py-4">
-                      No tickets selected
-                    </p>
-                  ) : (
-                    <>
-                      <div className="space-y-2">
-                        {cart.map(item => {
-                          const tier = event.tiers.find(t => t.id === item.tierId);
-                          if (!tier) return null;
-                          
-                          return (
-                            <div key={item.tierId} className="flex justify-between text-sm">
-                              <span>{tier.name} × {item.quantity}</span>
-                              <span>${((tier.priceCents * item.quantity) / 100).toFixed(2)}</span>
+              <div className="premium-surface-glass sticky top-4 p-6">
+                <h3 className="text-2xl font-fraunces mb-6 text-white">Order Summary</h3>
+                
+                {cart.length === 0 ? (
+                  <div className="text-center py-8">
+                    <ShoppingCart className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+                    <p className="text-gray-400">No tickets selected</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Selected Tickets */}
+                    <div className="space-y-3">
+                      {cart.map(item => {
+                        const tier = event.tiers.find(t => t.id === item.tierId);
+                        if (!tier) return null;
+                        
+                        return (
+                          <div key={item.tierId} className="flex justify-between items-center py-2">
+                            <div>
+                              <div className="text-white font-medium">{tier.name}</div>
+                              <div className="text-gray-400 text-sm">{item.quantity} ticket{item.quantity !== 1 ? 's' : ''}</div>
                             </div>
-                          );
-                        })}
-                      </div>
-                      
-                      <Separator />
-                      
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span>Subtotal</span>
-                          <span>${(subtotal / 100).toFixed(2)}</span>
-                        </div>
-                        {(event.hasGST || event.hasPST) && (
-                          <div className="flex justify-between">
-                            <span>Tax {event.hasGST && event.hasPST ? '(GST + PST)' : event.hasGST ? '(GST)' : '(PST)'}</span>
-                            <span>${(tax / 100).toFixed(2)}</span>
+                            <div className="text-white font-semibold">
+                              ${((tier.priceCents * item.quantity) / 100).toFixed(2)}
+                            </div>
                           </div>
-                        )}
-                        <div className="flex justify-between">
-                          <span>Service Fee</span>
-                          <span>${(fees / 100).toFixed(2)}</span>
-                        </div>
+                        );
+                      })}
+                    </div>
+                    
+                    <div className="border-t border-gray-700 pt-4 space-y-3">
+                      <div className="flex justify-between text-gray-300">
+                        <span>Subtotal</span>
+                        <span>${(subtotal / 100).toFixed(2)}</span>
                       </div>
-                      
-                      <Separator />
-                      
-                      <div className="flex justify-between font-bold text-lg">
+                      {(event.hasGST || event.hasPST) && (
+                        <div className="flex justify-between text-gray-300">
+                          <span>Tax {event.hasGST && event.hasPST ? '(GST + PST)' : event.hasGST ? '(GST)' : '(PST)'}</span>
+                          <span>${(tax / 100).toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-gray-300">
+                        <span>Service Fee</span>
+                        <span>${(fees / 100).toFixed(2)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="border-t border-gray-700 pt-4">
+                      <div className="flex justify-between items-center text-xl font-bold text-white">
                         <span>Total</span>
                         <span>${(total / 100).toFixed(2)} CAD</span>
                       </div>
+                    </div>
+                    
+                    {/* Premium Buyer Information */}
+                    <div className="border-t border-gray-700 pt-6 space-y-4">
+                      <h4 className="text-lg font-semibold text-white mb-4">Your Details</h4>
                       
-                      {/* Buyer Information */}
-                      <div className="space-y-3">
-                        <Label htmlFor="buyerName">Your Name *</Label>
-                        <Input
-                          id="buyerName"
-                          value={buyerName}
-                          onChange={(e) => setBuyerName(e.target.value)}
-                          placeholder="John Doe"
-                          required
-                          data-testid="input-buyer-name"
-                        />
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="buyerName" className="text-gray-300 mb-2 block">Full Name *</Label>
+                          <Input
+                            id="buyerName"
+                            value={buyerName}
+                            onChange={(e) => setBuyerName(e.target.value)}
+                            placeholder="John Doe"
+                            required
+                            className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+                            data-testid="input-buyer-name"
+                          />
+                        </div>
                         
-                        <Label htmlFor="buyerEmail">Email *</Label>
-                        <Input
-                          id="buyerEmail"
-                          type="email"
-                          value={buyerEmail}
-                          onChange={(e) => setBuyerEmail(e.target.value)}
-                          placeholder="john@example.com"
-                          required
-                          className={buyerEmail && !isValidEmail(buyerEmail) ? "border-red-500 ring-red-500" : ""}
-                          data-testid="input-buyer-email"
-                        />
-                        {buyerEmail && !isValidEmail(buyerEmail) && (
-                          <p className="text-sm text-red-500 mt-1">Please enter a valid email address</p>
-                        )}
+                        <div>
+                          <Label htmlFor="buyerEmail" className="text-gray-300 mb-2 block">Email Address *</Label>
+                          <Input
+                            id="buyerEmail"
+                            type="email"
+                            value={buyerEmail}
+                            onChange={(e) => setBuyerEmail(e.target.value)}
+                            placeholder="john@example.com"
+                            required
+                            className={`bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 ${buyerEmail && !isValidEmail(buyerEmail) ? "border-red-500 ring-red-500" : ""}`}
+                            data-testid="input-buyer-email"
+                          />
+                          {buyerEmail && !isValidEmail(buyerEmail) && (
+                            <p className="text-sm text-red-400 mt-2">Please enter a valid email address</p>
+                          )}
+                        </div>
                         
-                        <Label htmlFor="buyerPhone">Phone (optional)</Label>
-                        <Input
-                          id="buyerPhone"
-                          type="tel"
-                          value={buyerPhone}
-                          onChange={(e) => setBuyerPhone(e.target.value)}
-                          placeholder="+1 (604) 123-4567"
-                          data-testid="input-buyer-phone"
-                        />
+                        <div>
+                          <Label htmlFor="buyerPhone" className="text-gray-300 mb-2 block">Phone Number (optional)</Label>
+                          <Input
+                            id="buyerPhone"
+                            type="tel"
+                            value={buyerPhone}
+                            onChange={(e) => setBuyerPhone(e.target.value)}
+                            placeholder="+1 (604) 123-4567"
+                            className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+                            data-testid="input-buyer-phone"
+                          />
+                        </div>
                       </div>
-                      
-                      <Button 
-                        className="w-full"
-                        size="lg"
-                        onClick={handleCheckout}
-                        disabled={isCheckingOut || cart.length === 0 || !buyerName || !isValidEmail(buyerEmail)}
-                        data-testid="button-checkout"
-                      >
-                        {isCheckingOut ? (
-                          "Processing..."
-                        ) : (
-                          <>
-                            <ShoppingCart className="w-4 h-4 mr-2" />
-                            Proceed to Checkout
-                          </>
-                        )}
-                      </Button>
-                      
-                      <p className="text-xs text-muted-foreground text-center">
-                        Powered by Stripe. Your payment info is secure.
-                      </p>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
+                    </div>
+                    
+                    {/* Premium Checkout Button */}
+                    <Button 
+                      className="premium-button w-full text-lg py-6 mt-6"
+                      onClick={handleCheckout}
+                      disabled={isCheckingOut || cart.length === 0 || !buyerName || !isValidEmail(buyerEmail)}
+                      data-testid="button-checkout"
+                    >
+                      {isCheckingOut ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          Processing...
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 font-semibold">
+                          <ShoppingCart className="w-5 h-5" />
+                          Proceed to Checkout • ${(total / 100).toFixed(2)} CAD
+                        </div>
+                      )}
+                    </Button>
+                  </div>
+                )}
+                
+                <div className="border-t border-gray-700 pt-4 mt-6">
+                  <p className="text-xs text-gray-400 text-center">
+                    Powered by Stripe. Your payment info is secure.
+                  </p>
+                </div>
+              </div>
               
               {/* Event Policies */}
               {event.refundPolicy && (
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertDescription className="text-sm">
-                    <strong>Refund Policy:</strong> {event.refundPolicy}
-                  </AlertDescription>
-                </Alert>
+                <div className="premium-surface-elevated p-4 mt-4">
+                  <div className="flex items-start gap-3">
+                    <Info className="h-5 w-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-gray-300">
+                        <span className="font-semibold text-white">Refund Policy:</span> {event.refundPolicy}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           </div>
