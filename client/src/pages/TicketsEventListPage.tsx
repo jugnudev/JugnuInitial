@@ -119,25 +119,25 @@ export function TicketsEventListPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 md:px-4 py-6 md:py-12 mobile-container">
         {/* Premium Hero Section */}
-        <div className="text-center mb-16 premium-fade-in">
+        <div className="text-center mb-8 md:mb-16 premium-fade-in mobile-hero-spacing">
           <div className="inline-flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-full px-6 py-2 mb-6">
             <div className="w-2 h-2 bg-gradient-to-r from-orange-400 to-orange-600 rounded-full animate-pulse" />
             <span className="text-sm font-medium text-orange-300">Live Events</span>
           </div>
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-fraunces font-bold text-white mb-6 leading-tight">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-fraunces font-bold text-white mb-4 md:mb-6 leading-tight mobile-hero-title">
             Premium 
             <span className="bg-gradient-to-r from-orange-400 via-orange-500 to-orange-600 bg-clip-text text-transparent">
               Events
             </span>
           </h1>
-          <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed mobile-hero-subtitle">
             Discover and purchase tickets for the finest cultural experiences in Metro Vancouver
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-8">
           {events.map((event: Event, index: number) => {
             const eventDate = new Date(event.startAt);
             const lowestPrice = getLowestPrice(event);
@@ -193,7 +193,7 @@ export function TicketsEventListPage() {
                 </div>
                 
                 {/* Premium Content */}
-                <div className="premium-surface-elevated rounded-b-2xl p-6 space-y-4">
+                <div className="premium-surface-elevated rounded-b-2xl p-4 md:p-6 space-y-3 md:space-y-4 mobile-event-card">
                   {/* Title and Summary */}
                   <div>
                     <h3 className="text-xl font-fraunces font-bold text-white mb-2 line-clamp-2 group-hover:text-orange-300 transition-colors">

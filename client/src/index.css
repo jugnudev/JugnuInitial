@@ -724,4 +724,152 @@
       animation: none;
     }
   }
+
+  /* Mobile Optimizations */
+  @media (max-width: 768px) {
+    /* Mobile-first hero typography */
+    .mobile-hero-title {
+      font-size: 2.5rem; /* text-4xl equivalent */
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+    }
+    
+    .mobile-hero-subtitle {
+      font-size: 1.125rem; /* text-lg equivalent */
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+    
+    /* Mobile container improvements */
+    .mobile-container {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+    
+    /* Mobile hero section spacing */
+    .mobile-hero-spacing {
+      padding-top: 3rem;
+      padding-bottom: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    /* Mobile event card optimizations */
+    .mobile-event-card {
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    /* Mobile event detail optimizations */
+    .mobile-event-hero {
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+    }
+    
+    .mobile-event-title {
+      font-size: 2rem;
+      line-height: 1.2;
+      margin-bottom: 1rem;
+    }
+    
+    /* Mobile grid improvements */
+    .mobile-single-col {
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    
+    /* Mobile order summary */
+    .mobile-order-summary {
+      position: relative;
+      top: 0;
+      padding: 1.25rem;
+    }
+    
+    /* Mobile touch targets */
+    .mobile-touch-target {
+      min-height: 44px;
+      min-width: 44px;
+      padding: 0.75rem;
+    }
+    
+    /* Mobile form improvements */
+    .mobile-form-input {
+      padding: 0.875rem;
+      font-size: 1rem;
+      border-radius: 0.5rem;
+    }
+    
+    /* Mobile tier card improvements */
+    .mobile-tier-card {
+      padding: 1.25rem;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    
+    /* Mobile pricing display */
+    .mobile-price-display {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    
+    /* Mobile quantity controls */
+    .mobile-quantity-controls {
+      justify-content: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    
+    /* Mobile highlight cards */
+    .mobile-highlight-single {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    
+    /* Mobile description improvements */
+    .mobile-description {
+      padding: 1rem;
+    }
+    
+    /* Mobile cart item spacing */
+    .mobile-cart-spacing {
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--premium-border);
+    }
+    
+    /* Mobile checkout button */
+    .mobile-checkout-btn {
+      padding: 1rem 2rem;
+      font-size: 1.125rem;
+      width: 100%;
+      margin-top: 1rem;
+    }
+  }
+  
+  /* Tablet optimizations */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .tablet-grid-cols-2 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .tablet-padding {
+      padding: 1.5rem;
+    }
+  }
+
+  /* Better touch targets for all screen sizes */
+  .premium-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--motion-medium) var(--motion-ease-out);
+  }
+  
+  .premium-touch-target:hover {
+    transform: scale(1.05);
+  }
+  
+  .premium-touch-target:active {
+    transform: scale(0.95);
+  }
 }
