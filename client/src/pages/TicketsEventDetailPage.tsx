@@ -67,6 +67,12 @@ export function TicketsEventDetailPage() {
   const [buyerPhone, setBuyerPhone] = useState("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
+  // Email validation helper
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return email.length > 0 && emailRegex.test(email);
+  };
+
   // Check if ticketing is enabled
   const isEnabled = import.meta.env.VITE_ENABLE_TICKETING === 'true';
   
@@ -81,6 +87,7 @@ export function TicketsEventDetailPage() {
 
   const checkoutMutation = useMutation({
     mutationFn: async () => {
+      console.log('[Checkout] Starting checkout mutation');
       if (cart.length === 0) throw new Error("Your cart is empty");
       if (!buyerName || !buyerEmail) throw new Error("Please fill in your details");
       
@@ -94,17 +101,38 @@ export function TicketsEventDetailPage() {
         returnUrl: window.location.origin + `/tickets/order/success`
       });
       
+      console.log('[Checkout] API response:', response);
       return response;
     },
     onSuccess: (result: any) => {
+      console.log('[Checkout] onSuccess called with:', result);
       if (result?.checkoutUrl) {
-        // Redirect to Stripe checkout
-        window.location.href = result.checkoutUrl;
+        console.log('[Checkout] checkoutUrl found:', result.checkoutUrl, 'testMode:', result.testMode);
+        if (result.testMode) {
+          // Test mode - show success message instead of redirect
+          console.log('[Checkout] Showing test mode success message');
+          toast({
+            title: "Test Mode Checkout",
+            description: `Order created successfully! Order ID: ${result.orderId}`,
+            variant: "default"
+          });
+          setIsCheckingOut(false);
+          // Clear the cart after successful test checkout
+          setCart([]);
+          console.log('[Checkout] Cart cleared, checkout state reset');
+        } else {
+          // Live Stripe checkout - redirect
+          console.log('[Checkout] Redirecting to Stripe checkout');
+          window.location.href = result.checkoutUrl;
+        }
       } else {
+        console.log('[Checkout] No checkoutUrl in response');
         toast({
-          title: "Checkout started",
-          description: "Redirecting to payment..."
+          title: "Checkout failed",
+          description: "Unable to create checkout session",
+          variant: "destructive"
         });
+        setIsCheckingOut(false);
       }
     },
     onError: (error: any) => {
@@ -214,6 +242,7 @@ export function TicketsEventDetailPage() {
   const total = subtotal + tax + fees;
 
   const handleCheckout = () => {
+    console.log('[Checkout] handleCheckout called, cart:', cart);
     setIsCheckingOut(true);
     checkoutMutation.mutate();
   };
@@ -448,8 +477,12 @@ export function TicketsEventDetailPage() {
                           onChange={(e) => setBuyerEmail(e.target.value)}
                           placeholder="john@example.com"
                           required
+                          className={buyerEmail && !isValidEmail(buyerEmail) ? "border-red-500 ring-red-500" : ""}
                           data-testid="input-buyer-email"
                         />
+                        {buyerEmail && !isValidEmail(buyerEmail) && (
+                          <p className="text-sm text-red-500 mt-1">Please enter a valid email address</p>
+                        )}
                         
                         <Label htmlFor="buyerPhone">Phone (optional)</Label>
                         <Input
@@ -466,7 +499,7 @@ export function TicketsEventDetailPage() {
                         className="w-full"
                         size="lg"
                         onClick={handleCheckout}
-                        disabled={isCheckingOut || cart.length === 0 || !buyerName || !buyerEmail}
+                        disabled={isCheckingOut || cart.length === 0 || !buyerName || !isValidEmail(buyerEmail)}
                         data-testid="button-checkout"
                       >
                         {isCheckingOut ? (
