@@ -388,18 +388,18 @@ export function TicketsEventDetailPage() {
             {/* Bottom Row - Event Info */}
             <div className="space-y-4">
               <div className="max-w-4xl">
-                <h1 className="text-3xl md:text-5xl lg:text-6xl font-fraunces text-white font-bold leading-tight mb-4 drop-shadow-lg">
+                <h1 className="text-2xl md:text-5xl lg:text-6xl font-fraunces text-white font-bold leading-tight mb-3 md:mb-4 drop-shadow-lg mobile-event-title">
                   {event.title}
                 </h1>
                 
                 {event.summary && (
-                  <p className="text-lg md:text-xl text-white/90 mb-6 drop-shadow-sm max-w-2xl leading-relaxed">
+                  <p className="text-base md:text-xl text-white/90 mb-4 md:mb-6 drop-shadow-sm max-w-2xl leading-relaxed">
                     {event.summary}
                   </p>
                 )}
                 
                 {/* Key Event Details */}
-                <div className="flex flex-wrap gap-4 md:gap-6 text-white/90">
+                <div className="flex flex-wrap gap-2 md:gap-6 text-white/90">
                   <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-2 rounded-full text-sm font-medium border border-white/20">
                     <Calendar className="w-4 h-4" />
                     <span>{format(eventDate, 'MMM d, yyyy')}</span>
@@ -422,11 +422,11 @@ export function TicketsEventDetailPage() {
         </div>
       )}
 
-      <div className="container mx-auto px-4 py-8 lg:py-12">
+      <div className="container mx-auto px-4 py-6 md:py-8 lg:py-12 mobile-container">
         <div className="max-w-6xl mx-auto">
           {/* Premium Event Description */}
           {event.description && (
-            <div className="premium-description-card mb-12 premium-slide-up">
+            <div className="premium-description-card mb-8 md:mb-12 premium-slide-up mobile-description">
               <div className="premium-description-header">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="premium-section-icon">
@@ -476,8 +476,8 @@ export function TicketsEventDetailPage() {
                 </div>
                 
                 {/* Event Highlights Section */}
-                <div className="premium-highlights-section mt-8">
-                  <div className="grid md:grid-cols-2 gap-6">
+                <div className="premium-highlights-section mt-6 md:mt-8">
+                  <div className="grid md:grid-cols-2 gap-4 md:gap-6 mobile-highlight-single">
                     <div className="premium-highlight-card">
                       <div className="flex items-center gap-3 mb-3">
                         <Calendar className="w-5 h-5 text-orange-400" />
@@ -517,11 +517,11 @@ export function TicketsEventDetailPage() {
           <Separator className="mb-8" />
 
           {/* Premium Ticket Selection */}
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-3 gap-6 md:gap-8 mobile-single-col">
             <div className="lg:col-span-2 space-y-6">
               <div className="premium-fade-in">
-                <h2 className="text-3xl font-fraunces font-bold text-white mb-2">Select Your Tickets</h2>
-                <p className="text-gray-400 text-lg">Choose from our premium ticket tiers</p>
+                <h2 className="text-2xl md:text-3xl font-fraunces font-bold text-white mb-2">Select Your Tickets</h2>
+                <p className="text-gray-400 text-base md:text-lg">Choose from our premium ticket tiers</p>
               </div>
               
               <div className="space-y-4">
@@ -537,10 +537,10 @@ export function TicketsEventDetailPage() {
                       data-testid={`card-tier-${tier.id}`}
                     >
                       {/* Tier Header */}
-                      <div className="flex justify-between items-start mb-4">
+                      <div className="flex flex-col md:flex-row md:justify-between md:items-start mb-4 gap-3">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <h3 className="text-xl font-fraunces font-bold text-white">{tier.name}</h3>
+                            <h3 className="text-lg md:text-xl font-fraunces font-bold text-white">{tier.name}</h3>
                             {remaining !== null && remaining < 10 && remaining > 0 && (
                               <div className="premium-badge-low">
                                 Only {remaining} left!
@@ -559,21 +559,21 @@ export function TicketsEventDetailPage() {
                           )}
                         </div>
                         
-                        <div className="text-right ml-6">
-                          <div className="text-3xl font-bold text-white mb-1">
+                        <div className="text-center md:text-right md:ml-6 mobile-price-display">
+                          <div className="text-2xl md:text-3xl font-bold text-white mb-1">
                             ${(tier.priceCents / 100).toFixed(0)}
-                            <span className="text-lg text-gray-400">.{String(tier.priceCents % 100).padStart(2, '0')}</span>
+                            <span className="text-base md:text-lg text-gray-400">.{String(tier.priceCents % 100).padStart(2, '0')}</span>
                           </div>
                           <div className="text-sm text-gray-500">per ticket</div>
                         </div>
                       </div>
                       
                       {/* Tier Controls */}
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mobile-tier-card">
                         {available ? (
                           <>
                             {/* Premium Quantity Controls */}
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-3 mobile-quantity-controls">
                               <div className="flex items-center bg-gray-800/50 rounded-full border border-gray-600">
                                 <Button
                                   variant="ghost"
