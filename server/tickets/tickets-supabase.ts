@@ -254,6 +254,8 @@ export class TicketsSupabaseDB {
     const snakeCaseData = toSnakeCase({ ...data, id: orderId });
     
     console.log('Creating order with ID:', orderId, 'for event:', data.eventId);
+    console.log('Original data:', JSON.stringify(data, null, 2));
+    console.log('Snake case data:', JSON.stringify(snakeCaseData, null, 2));
     
     const { data: order, error } = await supabase
       .from('tickets_orders')
@@ -265,6 +267,18 @@ export class TicketsSupabaseDB {
       console.error('Order creation error:', error);
       throw error;
     }
+    
+    console.log('Order created successfully:', JSON.stringify(order, null, 2));
+    
+    // Immediately verify the order exists by trying to fetch it
+    console.log('Verifying order creation by fetching it back...');
+    const verification = await this.getOrderById(orderId);
+    if (verification) {
+      console.log('Order verification successful:', verification.id);
+    } else {
+      console.error('Order verification failed! Order not found immediately after creation');
+    }
+    
     return order;
   }
 
@@ -322,13 +336,62 @@ export class TicketsSupabaseDB {
   }
 
   async getOrderById(orderId: string): Promise<TicketsOrder | null> {
+    console.log('Fetching order from Supabase with ID:', orderId);
+    
     const { data, error } = await supabase
       .from('tickets_orders')
       .select('*')
       .eq('id', orderId)
       .single();
     
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    if (error) {
+      console.log('Supabase error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      
+      if (error.code !== 'PGRST116') {
+        console.error('Non-404 error:', error);
+        throw error;
+      } else {
+        console.log('Order not found in Supabase (PGRST116)');
+      }
+    } else {
+      console.log('Order found in Supabase:', data);
+    }
+    
+    return data;
+  }
+
+  async getOrderByPaymentIntent(paymentIntentId: string): Promise<TicketsOrder | null> {
+    console.log('Fetching order from Supabase with Payment Intent ID:', paymentIntentId);
+    
+    const { data, error } = await supabase
+      .from('tickets_orders')
+      .select('*')
+      .eq('stripe_payment_intent_id', paymentIntentId)
+      .single();
+    
+    if (error) {
+      console.log('Supabase error details for Payment Intent lookup:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
+      
+      if (error.code !== 'PGRST116') {
+        console.error('Non-404 error in Payment Intent lookup:', error);
+        throw error;
+      } else {
+        console.log('Order not found in Supabase by Payment Intent (PGRST116)');
+      }
+    } else {
+      console.log('Order found in Supabase by Payment Intent:', data);
+    }
+    
     return data;
   }
 
