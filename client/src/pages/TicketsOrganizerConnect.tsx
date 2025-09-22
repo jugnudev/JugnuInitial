@@ -8,6 +8,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, AlertCircle, ExternalLink, ArrowRight, Settings, CreditCard } from "lucide-react";
 
+// Generate a UUID v4 format for demo purposes
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 interface Organizer {
   id: string;
   businessName: string;
@@ -82,7 +91,7 @@ export function TicketsOrganizerConnect() {
           'x-organizer-id': organizerId
         },
         body: JSON.stringify({
-          userId: 'demo-user',
+          userId: generateUUID(), // Generate proper UUID for validation
           businessName: data?.organizer?.businessName || '',
           businessEmail: data?.organizer?.businessEmail || '',
           returnUrl: `${window.location.origin}/tickets/organizer/connect?success=true`,

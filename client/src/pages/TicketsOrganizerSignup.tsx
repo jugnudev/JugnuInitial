@@ -12,6 +12,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, Mail, User, ArrowRight } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { nanoid } from "nanoid";
+
+// Generate a UUID v4 format for demo purposes
+const generateUUID = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
 
 const organizerSignupSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters"),
@@ -43,7 +53,7 @@ export function TicketsOrganizerSignup() {
   const signupMutation = useMutation({
     mutationFn: async (data: OrgangizerSignupForm) => {
       const response = await apiRequest('POST', '/api/tickets/organizers/connect', {
-        userId: 'demo-user', // For MVP, using demo user ID
+        userId: generateUUID(), // Generate proper UUID for validation
         businessName: data.businessName,
         businessEmail: data.businessEmail,
         returnUrl: `${window.location.origin}/tickets/organizer/dashboard`,

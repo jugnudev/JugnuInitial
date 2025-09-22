@@ -81,6 +81,17 @@ export class TicketsSupabaseDB {
     return data;
   }
 
+  async getOrganizerByUserId(userId: string): Promise<TicketsOrganizer | null> {
+    const { data, error } = await supabase
+      .from('tickets_organizers')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    return data;
+  }
+
   async getOrganizerByEmail(email: string): Promise<TicketsOrganizer | null> {
     const { data, error } = await supabase
       .from('tickets_organizers')
