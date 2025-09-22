@@ -70,6 +70,7 @@ export function TicketsEventDetailPage() {
   const [showEmbeddedCheckout, setShowEmbeddedCheckout] = useState(false);
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
   // Email validation helper
   const isValidEmail = (email: string) => {
@@ -424,88 +425,100 @@ export function TicketsEventDetailPage() {
 
       <div className="container mx-auto px-4 py-6 md:py-8 lg:py-12 mobile-container">
         <div className="max-w-6xl mx-auto">
-          {/* Premium Event Description */}
+          {/* Mobile-Optimized Event Description */}
           {event.description && (
-            <div className="premium-description-card mb-8 md:mb-12 premium-slide-up mobile-description">
-              <div className="premium-description-header">
-                <div className="flex items-center gap-3 mb-6">
+            <div className="mb-6 md:mb-8 premium-slide-up">
+              {/* Compact Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
                   <div className="premium-section-icon">
                     <Info className="w-5 h-5 text-orange-400" />
                   </div>
-                  <h2 className="text-3xl font-fraunces font-bold text-white">About This Event</h2>
+                  <h2 className="text-xl md:text-2xl font-fraunces font-bold text-white">About This Event</h2>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                  className="text-orange-400 hover:text-orange-300 hover:bg-gray-800/50 md:hidden"
+                  data-testid="button-expand-description"
+                >
+                  <ChevronRight className={`w-4 h-4 transition-transform ${isDescriptionExpanded ? 'rotate-90' : ''}`} />
+                  {isDescriptionExpanded ? 'Less' : 'More'}
+                </Button>
               </div>
               
-              <div className="premium-description-content">
-                <div className="prose prose-lg prose-invert max-w-none">
-                  {event.description.split('\n').map((paragraph, index) => {
-                    // Handle different content types
-                    if (paragraph.trim() === '') {
-                      return <div key={index} className="h-4" />; // Spacing
-                    }
-                    
-                    if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
-                      // Bold headers
-                      return (
-                        <h3 key={index} className="text-xl font-fraunces font-bold text-white mt-8 mb-4 flex items-center gap-2">
-                          <div className="w-1 h-6 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full" />
-                          {paragraph.replace(/\*\*/g, '')}
-                        </h3>
-                      );
-                    }
-                    
-                    if (paragraph.startsWith('- ')) {
-                      // Bullet points
-                      return (
-                        <div key={index} className="flex items-start gap-3 mb-3">
-                          <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-2 flex-shrink-0" />
-                          <p className="text-gray-300 leading-relaxed">
-                            {paragraph.substring(2)}
-                          </p>
-                        </div>
-                      );
-                    }
-                    
-                    // Regular paragraphs
+              {/* Mobile-Optimized Content */}
+              <div className="premium-surface-elevated p-4 md:p-6 rounded-lg border border-gray-700">
+                {/* Always visible summary */}
+                <div className="space-y-3">
+                  {event.description.split('\n').slice(0, 2).map((paragraph, index) => {
+                    if (paragraph.trim() === '') return null;
                     return (
-                      <p key={index} className="text-gray-300 leading-relaxed mb-4 text-lg">
+                      <p key={index} className="text-gray-300 leading-relaxed text-base">
                         {paragraph}
                       </p>
                     );
                   })}
                 </div>
                 
-                {/* Event Highlights Section */}
-                <div className="premium-highlights-section mt-6 md:mt-8">
-                  <div className="grid md:grid-cols-2 gap-4 md:gap-6 mobile-highlight-single">
-                    <div className="premium-highlight-card">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Calendar className="w-5 h-5 text-orange-400" />
-                        <h4 className="font-semibold text-white">Event Details</h4>
+                {/* Expandable content on mobile, always visible on desktop */}
+                <div className={`${isDescriptionExpanded ? 'block' : 'hidden'} md:block mt-4 space-y-3`}>
+                  {event.description.split('\n').slice(2).map((paragraph, index) => {
+                    if (paragraph.trim() === '') {
+                      return <div key={index + 2} className="h-2" />; // Reduced spacing
+                    }
+                    
+                    if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+                      return (
+                        <h3 key={index + 2} className="text-lg font-fraunces font-bold text-white mt-4 mb-2 flex items-center gap-2">
+                          <div className="w-1 h-4 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full" />
+                          {paragraph.replace(/\*\*/g, '')}
+                        </h3>
+                      );
+                    }
+                    
+                    if (paragraph.startsWith('- ')) {
+                      return (
+                        <div key={index + 2} className="flex items-start gap-3 mb-2">
+                          <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-2 flex-shrink-0" />
+                          <p className="text-gray-300 leading-relaxed text-sm">
+                            {paragraph.substring(2)}
+                          </p>
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <p key={index + 2} className="text-gray-300 leading-relaxed text-base">
+                        {paragraph}
+                      </p>
+                    );
+                  })}
+                </div>
+                
+                {/* Compact Event Highlights */}
+                <div className="mt-4 pt-4 border-t border-gray-700">
+                  <div className="grid md:grid-cols-2 gap-3 md:gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Calendar className="w-4 h-4 text-orange-400" />
+                        <h4 className="font-semibold text-white text-sm">When & Where</h4>
                       </div>
-                      <div className="space-y-2 text-gray-300">
-                        <p>{format(eventDate, 'EEEE, MMMM d, yyyy')}</p>
-                        <p>{format(eventDate, 'h:mm a')} {event.endAt && `- ${format(new Date(event.endAt), 'h:mm a')}`}</p>
+                      <div className="text-sm text-gray-300 space-y-1">
+                        <p>{format(eventDate, 'MMM d, yyyy • h:mm a')}</p>
                         <p>{event.venue}</p>
-                        {event.address && <p className="text-sm text-gray-400">{event.address}</p>}
                       </div>
                     </div>
                     
-                    <div className="premium-highlight-card">
-                      <div className="flex items-center gap-3 mb-3">
-                        <Users className="w-5 h-5 text-orange-400" />
-                        <h4 className="font-semibold text-white">Ticket Information</h4>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Users className="w-4 h-4 text-orange-400" />
+                        <h4 className="font-semibold text-white text-sm">Tickets</h4>
                       </div>
-                      <div className="space-y-2 text-gray-300">
-                        <p>{event.tiers.length} ticket tier{event.tiers.length > 1 ? 's' : ''} available</p>
-                        {event.tiers.length > 0 && (
-                          <p>Starting from ${Math.min(...event.tiers.map(t => t.priceCents)) / 100}</p>
-                        )}
-                        {(event.hasGST || event.hasPST) && (
-                          <p className="text-sm text-gray-400">
-                            Plus taxes {event.hasGST && event.hasPST ? '(GST + PST)' : event.hasGST ? '(GST)' : '(PST)'}
-                          </p>
-                        )}
+                      <div className="text-sm text-gray-300 space-y-1">
+                        <p>From ${Math.min(...event.tiers.map(t => t.priceCents)) / 100}</p>
+                        <p>{event.tiers.length} tier{event.tiers.length > 1 ? 's' : ''} available</p>
                       </div>
                     </div>
                   </div>
@@ -607,21 +620,6 @@ export function TicketsEventDetailPage() {
                               )}
                             </div>
                             
-                            {/* Quick Add Buttons */}
-                            <div className="flex gap-2">
-                              {[1, 2, 4].map(num => (
-                                <Button
-                                  key={num}
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => updateTierQuantity(tier.id, num)}
-                                  disabled={remaining !== null && num > remaining}
-                                  className="h-8 px-3 text-xs bg-gray-800/30 border-gray-600 text-gray-300 hover:text-white hover:bg-gray-700 premium-touch-target"
-                                >
-                                  {num}
-                                </Button>
-                              ))}
-                            </div>
                           </>
                         ) : (
                           <div className="premium-badge-sold-out flex-1 text-center py-3">
