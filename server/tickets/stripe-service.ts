@@ -109,8 +109,8 @@ export class StripeService {
     order: TicketsOrder,
     returnUrl: string
   ): Promise<Stripe.Checkout.Session | null> {
-    if (!stripe || !organizer.stripeAccountId) {
-      throw new Error('Stripe not configured or organizer not connected');
+    if (!stripe) {
+      throw new Error('Stripe not configured');
     }
 
     const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map(item => {
@@ -176,13 +176,17 @@ export class StripeService {
         cancel_url: `${returnUrl}?cancelled=true`,
         customer_email: order.buyerEmail,
         metadata: metadata as any,
-        // Use destination charges with application fee for platform
-        payment_intent_data: {
-          application_fee_amount: order.feesCents, // Platform always gets this fee
-          transfer_data: {
-            destination: organizer.stripeAccountId,
+        // Use direct charges if no connected account, otherwise use destination charges
+        ...(organizer.stripeAccountId ? {
+          payment_intent_data: {
+            application_fee_amount: order.feesCents, // Platform gets this fee
+            transfer_data: {
+              destination: organizer.stripeAccountId,
+            },
           },
-        },
+        } : {
+          // Direct charge - platform keeps all fees
+        }),
       });
 
       return session;

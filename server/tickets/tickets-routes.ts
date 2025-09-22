@@ -266,8 +266,8 @@ export function addTicketsRoutes(app: Express) {
       console.log('Organizer stripeAccountId:', organizer.stripeAccountId);
       console.log('Test mode condition: !stripe =', !stripe, '|| !organizer.stripeAccountId =', !organizer.stripeAccountId);
       
-      if (!stripe || !organizer.stripeAccountId) {
-        console.log('Using test mode - Stripe not configured for organizer');
+      if (!stripe) {
+        console.log('Using test mode - Stripe not configured');
         const testResponse = {
           ok: true,
           orderId: order.id,
