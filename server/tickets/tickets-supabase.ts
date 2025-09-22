@@ -253,8 +253,7 @@ export class TicketsSupabaseDB {
     const orderId = data.id || randomUUID();
     const snakeCaseData = toSnakeCase({ ...data, id: orderId });
     
-    console.log('Original order data:', data);
-    console.log('Transformed snake_case data:', snakeCaseData);
+    console.log('Creating order with ID:', orderId, 'for event:', data.eventId);
     
     const { data: order, error } = await supabase
       .from('tickets_orders')
@@ -320,6 +319,54 @@ export class TicketsSupabaseDB {
     
     if (error) throw error;
     return order;
+  }
+
+  async getOrderById(orderId: string): Promise<TicketsOrder | null> {
+    const { data, error } = await supabase
+      .from('tickets_orders')
+      .select('*')
+      .eq('id', orderId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    return data;
+  }
+
+  async updateOrder(orderId: string, data: Partial<Omit<InsertTicketsOrder, 'id'>>): Promise<TicketsOrder> {
+    const snakeCaseData = toSnakeCase({
+      ...data,
+      updated_at: new Date().toISOString()
+    });
+
+    const { data: order, error } = await supabase
+      .from('tickets_orders')
+      .update(snakeCaseData)
+      .eq('id', orderId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return order;
+  }
+
+  async getOrderItems(orderId: string): Promise<TicketsOrderItem[]> {
+    const { data, error } = await supabase
+      .from('tickets_order_items')
+      .select('*')
+      .eq('order_id', orderId);
+    
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getTicketsByOrderItem(orderItemId: string): Promise<TicketsTicket[]> {
+    const { data, error } = await supabase
+      .from('tickets_tickets')
+      .select('*')
+      .eq('order_item_id', orderItemId);
+    
+    if (error) throw error;
+    return data || [];
   }
 
   // ============ DISCOUNTS ============

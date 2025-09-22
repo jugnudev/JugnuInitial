@@ -126,8 +126,7 @@ export class TicketsStorage {
   }
 
   async getOrderById(id: string): Promise<TicketsOrder | null> {
-    // Implementation needed
-    throw new Error('Not implemented yet');
+    return ticketsDB.getOrderById(id);
   }
 
   async getOrderByCheckoutSession(sessionId: string): Promise<TicketsOrder | null> {
@@ -148,14 +147,12 @@ export class TicketsStorage {
     return ticketsDB.markOrderPaid(orderId, paymentIntentId);
   }
 
-  async getOrderItemsByOrder(orderId: string): Promise<TicketsOrderItem[]> {
-    // Implementation needed
-    throw new Error('Not implemented yet');
+  async getOrderItems(orderId: string): Promise<TicketsOrderItem[]> {
+    return ticketsDB.getOrderItems(orderId);
   }
 
   async getTicketsByOrderItem(orderItemId: string): Promise<TicketsTicket[]> {
-    // Implementation needed
-    throw new Error('Not implemented yet');
+    return ticketsDB.getTicketsByOrderItem(orderItemId);
   }
 
   async validateTicket(qrToken: string): Promise<TicketsTicket | null> {
@@ -173,9 +170,8 @@ export class TicketsStorage {
     throw new Error('Not implemented yet');
   }
 
-  async updateOrderStatus(orderId: string, status: string, refundedAmountCents?: number): Promise<void> {
-    // Implementation needed
-    throw new Error('Not implemented yet');
+  async updateOrder(orderId: string, data: Partial<InsertTicketsOrder>): Promise<TicketsOrder> {
+    return ticketsDB.updateOrder(orderId, data);
   }
 
   // ============ DISCOUNTS ============

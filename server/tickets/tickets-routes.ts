@@ -235,7 +235,10 @@ export function addTicketsRoutes(app: Express) {
       });
       
       // Create Stripe checkout session
+      console.log('Creating checkout session for order:', order.id);
+      
       if (!stripe || !organizer.stripeAccountId) {
+        console.log('Using test mode - Stripe not configured for organizer');
         // For testing without Stripe
         return res.json({
           ok: true,

@@ -13,7 +13,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 
 export const stripe = process.env.STRIPE_SECRET_KEY 
   ? new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: "2025-08-27.basil",
+      apiVersion: "2024-09-30.acacia",
     })
   : null;
 
@@ -113,17 +113,24 @@ export class StripeService {
       throw new Error('Stripe not configured or organizer not connected');
     }
 
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map(item => ({
-      price_data: {
-        currency: 'cad',
-        product_data: {
-          name: `${event.title} - ${item.tier.name}`,
-          description: event.summary || undefined,
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map(item => {
+      const priceInCents = item.tier.priceCents || item.tier.price_cents;
+      if (!priceInCents || priceInCents <= 0) {
+        throw new Error(`Invalid price for tier ${item.tier.name}: ${priceInCents}`);
+      }
+      
+      return {
+        price_data: {
+          currency: 'cad',
+          product_data: {
+            name: `${event.title} - ${item.tier.name}`,
+            description: event.summary || undefined,
+          },
+          unit_amount: priceInCents,
         },
-        unit_amount: item.tier.priceCents,
-      },
-      quantity: item.quantity,
-    }));
+        quantity: item.quantity,
+      };
+    });
 
     // Do not add service fee as a line item - use application_fee_amount instead
 
@@ -137,14 +144,33 @@ export class StripeService {
       tierInfo: JSON.stringify(items.map(item => ({
         tierId: item.tier.id,
         quantity: item.quantity,
-        unitPriceCents: item.tier.priceCents
+        unitPriceCents: item.tier.priceCents || item.tier.price_cents
       })))
     };
+
+    // Calculate pricing to get tax amounts
+    const pricing = StripeService.calculatePricing(items, event, 0);
+    
+    // Add tax as a separate line item since we're handling taxes manually
+    const taxLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
+    if (pricing.taxCents > 0) {
+      taxLineItems.push({
+        price_data: {
+          currency: 'cad',
+          product_data: {
+            name: 'Taxes',
+            description: `GST/PST for ${event.title}`,
+          },
+          unit_amount: pricing.taxCents,
+        },
+        quantity: 1,
+      });
+    }
 
     try {
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
-        line_items: lineItems,
+        line_items: [...lineItems, ...taxLineItems],
         mode: 'payment',
         success_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}&success=true`,
         cancel_url: `${returnUrl}?cancelled=true`,
