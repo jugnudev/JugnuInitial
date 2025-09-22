@@ -133,6 +133,10 @@ export class TicketsStorage {
     return ticketsDB.getOrderByCheckoutSession(sessionId);
   }
 
+  async getOrderByPaymentIntent(paymentIntentId: string): Promise<TicketsOrder | null> {
+    return ticketsDB.getOrderByPaymentIntent(paymentIntentId);
+  }
+
   async getOrdersByEvent(eventId: string): Promise<TicketsOrder[]> {
     // Implementation needed
     throw new Error('Not implemented yet');
@@ -195,6 +199,22 @@ export class TicketsStorage {
 
   async markWebhookProcessed(id: string, error?: string): Promise<void> {
     return ticketsDB.markWebhookProcessed(id, error);
+  }
+
+  async logWebhookEvent(data: {
+    eventId: string;
+    eventType: string;
+    processed: boolean;
+    error?: string;
+    data: string;
+  }): Promise<void> {
+    return ticketsDB.createWebhook({
+      eventId: data.eventId,
+      eventType: data.eventType,
+      processed: data.processed,
+      error: data.error,
+      data: data.data
+    });
   }
 
   // ============ AUDIT ============

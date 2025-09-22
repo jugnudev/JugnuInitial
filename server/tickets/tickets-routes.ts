@@ -406,6 +406,19 @@ export function addTicketsRoutes(app: Express) {
         discountAmountCents
       });
       
+      // Create order items for each tier (critical for webhook ticket creation)
+      console.log('[PaymentIntent] Creating order items for order:', order.id);
+      for (const item of tierData) {
+        await ticketsStorage.createOrderItem({
+          orderId: order.id,
+          tierId: item.tier.id,
+          quantity: item.quantity,
+          unitPriceCents: StripeService.getUnitPriceCents(item.tier),
+          taxCents: 0, // Tax is calculated at order level
+          feesCents: 0  // Fees are calculated at order level
+        });
+      }
+      
       console.log('[PaymentIntent] Creating Payment Intent for order:', order.id);
       console.log('[PaymentIntent] Stripe available:', !!stripe);
       
@@ -486,7 +499,12 @@ export function addTicketsRoutes(app: Express) {
               break;
             
             case 'payment_intent.succeeded':
-              // Additional payment confirmation - already handled by checkout.session.completed
+              await handlePaymentIntentSucceeded(event.data.object as any);
+              await ticketsStorage.markWebhookProcessed(webhookId);
+              break;
+              
+            case 'payment_intent.payment_failed':
+              await handlePaymentIntentFailed(event.data.object as any);
               await ticketsStorage.markWebhookProcessed(webhookId);
               break;
             
@@ -635,6 +653,7 @@ export function addTicketsRoutes(app: Express) {
       res.status(500).json({ ok: false, error: 'Failed to create tier' });
     }
   });
+
 
   // Get event orders
   app.get('/api/tickets/events/:eventId/orders', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
@@ -900,4 +919,78 @@ async function handleRefund(charge: any) {
     console.error('Error handling refund:', error);
     throw error;
   }
+}
+
+// Helper function to handle Payment Intent succeeded (for embedded checkout)
+async function handlePaymentIntentSucceeded(paymentIntent: any) {
+  try {
+    console.log(`[Webhook] Processing Payment Intent succeeded: ${paymentIntent.id}`);
+    
+    // Find order by Payment Intent ID
+    const order = await ticketsStorage.getOrderByPaymentIntent(paymentIntent.id);
+    if (!order) {
+      console.warn(`[Webhook] No order found for Payment Intent: ${paymentIntent.id}`);
+      return;
+    }
+
+    // Check if already processed (idempotency)
+    if (order.status === 'paid') {
+      console.log(`[Webhook] Order ${order.id} already marked as paid, skipping`);
+      return;
+    }
+
+    // Mark order as paid
+    await ticketsStorage.markOrderPaid(order.id, paymentIntent.id);
+    
+    // Create individual tickets for the order
+    await createTicketsForPaidOrder(order.id);
+    
+    console.log(`[Webhook] Successfully processed Payment Intent for order: ${order.id}`);
+  } catch (error) {
+    console.error('Error handling Payment Intent succeeded:', error);
+    throw error;
+  }
+}
+
+// Helper function to handle Payment Intent failed
+async function handlePaymentIntentFailed(paymentIntent: any) {
+  try {
+    console.log(`[Webhook] Processing Payment Intent failed: ${paymentIntent.id}`);
+    
+    // Find order and mark as failed
+    const order = await ticketsStorage.getOrderByPaymentIntent(paymentIntent.id);
+    if (order && order.status !== 'failed') {
+      await ticketsStorage.updateOrder(order.id, { status: 'failed' });
+      console.log(`[Webhook] Marked order ${order.id} as failed`);
+    }
+  } catch (error) {
+    console.error('Error handling Payment Intent failed:', error);
+    throw error;
+  }
+}
+
+// Helper function to create tickets for a paid order
+async function createTicketsForPaidOrder(orderId: string): Promise<void> {
+  console.log(`[TicketCreation] Creating tickets for paid order: ${orderId}`);
+  
+  // Get order items
+  const orderItems = await ticketsStorage.getOrderItems(orderId);
+  
+  for (const orderItem of orderItems) {
+    // Create individual tickets for each quantity
+    for (let i = 0; i < orderItem.quantity; i++) {
+      const serial = `${orderItem.tierId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const qrToken = `qr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      await ticketsStorage.createTicket({
+        orderItemId: orderItem.id,
+        tierId: orderItem.tierId,
+        serial,
+        qrToken,
+        status: 'valid'
+      });
+    }
+  }
+  
+  console.log(`[TicketCreation] Created ${orderItems.reduce((sum, item) => sum + item.quantity, 0)} tickets for order: ${orderId}`);
 }
