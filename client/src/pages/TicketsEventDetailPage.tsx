@@ -580,7 +580,7 @@ export function TicketsEventDetailPage() {
                                   size="sm"
                                   onClick={() => updateTierQuantity(tier.id, Math.max(0, quantity - 1))}
                                   disabled={quantity === 0}
-                                  className="h-10 w-10 rounded-full text-gray-300 hover:text-white hover:bg-gray-700"
+                                  className="h-10 w-10 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 premium-touch-target mobile-touch-target"
                                   data-testid={`button-minus-${tier.id}`}
                                 >
                                   -
@@ -593,7 +593,7 @@ export function TicketsEventDetailPage() {
                                   size="sm"
                                   onClick={() => updateTierQuantity(tier.id, quantity + 1)}
                                   disabled={remaining !== null && quantity >= remaining}
-                                  className="h-10 w-10 rounded-full text-gray-300 hover:text-white hover:bg-gray-700"
+                                  className="h-10 w-10 rounded-full text-gray-300 hover:text-white hover:bg-gray-700 premium-touch-target mobile-touch-target"
                                   data-testid={`button-plus-${tier.id}`}
                                 >
                                   +
@@ -616,7 +616,7 @@ export function TicketsEventDetailPage() {
                                   size="sm"
                                   onClick={() => updateTierQuantity(tier.id, num)}
                                   disabled={remaining !== null && num > remaining}
-                                  className="h-8 px-3 text-xs bg-gray-800/30 border-gray-600 text-gray-300 hover:text-white hover:bg-gray-700"
+                                  className="h-8 px-3 text-xs bg-gray-800/30 border-gray-600 text-gray-300 hover:text-white hover:bg-gray-700 premium-touch-target"
                                 >
                                   {num}
                                 </Button>
@@ -665,8 +665,8 @@ export function TicketsEventDetailPage() {
             </div>
 
             {/* Premium Order Summary */}
-            <div className="space-y-6">
-              <div className="premium-order-summary sticky top-4 premium-slide-up" style={{ animationDelay: "300ms" }}>
+            <div className="space-y-4 md:space-y-6">
+              <div className="premium-order-summary sticky top-4 premium-slide-up mobile-order-summary" style={{ animationDelay: "300ms" }}>
                 {/* Header */}
                 <div className="premium-summary-header">
                   <h3 className="text-2xl font-fraunces font-bold text-white">Order Summary</h3>
@@ -694,7 +694,7 @@ export function TicketsEventDetailPage() {
                         if (!tier) return null;
                         
                         return (
-                          <div key={item.tierId} className="premium-cart-item" style={{ animationDelay: `${400 + index * 50}ms` }}>
+                          <div key={item.tierId} className="premium-cart-item mobile-cart-spacing" style={{ animationDelay: `${400 + index * 50}ms` }}>
                             <div className="flex justify-between items-start">
                               <div className="flex-1">
                                 <h4 className="text-white font-semibold text-base">{tier.name}</h4>
@@ -755,22 +755,22 @@ export function TicketsEventDetailPage() {
                         Your Information
                       </h4>
                       
-                      <div className="space-y-4">
+                      <div className="space-y-3 md:space-y-4">
                         <div>
-                          <Label htmlFor="buyerName" className="text-gray-300 mb-2 block font-medium">Full Name *</Label>
+                          <Label htmlFor="buyerName" className="text-gray-300 mb-2 block font-medium text-sm md:text-base">Full Name *</Label>
                           <Input
                             id="buyerName"
                             value={buyerName}
                             onChange={(e) => setBuyerName(e.target.value)}
                             placeholder="Enter your full name"
                             required
-                            className="premium-input"
+                            className="premium-input mobile-form-input"
                             data-testid="input-buyer-name"
                           />
                         </div>
                         
                         <div>
-                          <Label htmlFor="buyerEmail" className="text-gray-300 mb-2 block font-medium">Email Address *</Label>
+                          <Label htmlFor="buyerEmail" className="text-gray-300 mb-2 block font-medium text-sm md:text-base">Email Address *</Label>
                           <Input
                             id="buyerEmail"
                             type="email"
@@ -778,7 +778,7 @@ export function TicketsEventDetailPage() {
                             onChange={(e) => setBuyerEmail(e.target.value)}
                             placeholder="your@email.com"
                             required
-                            className={`premium-input ${buyerEmail && !isValidEmail(buyerEmail) ? "border-red-500 ring-red-500/20 focus:border-red-500" : ""}`}
+                            className={`premium-input mobile-form-input ${buyerEmail && !isValidEmail(buyerEmail) ? "border-red-500 ring-red-500/20 focus:border-red-500" : ""}`}
                             data-testid="input-buyer-email"
                           />
                           {buyerEmail && !isValidEmail(buyerEmail) && (
@@ -790,14 +790,14 @@ export function TicketsEventDetailPage() {
                         </div>
                         
                         <div>
-                          <Label htmlFor="buyerPhone" className="text-gray-300 mb-2 block font-medium">Phone Number <span className="text-gray-500">(optional)</span></Label>
+                          <Label htmlFor="buyerPhone" className="text-gray-300 mb-2 block font-medium text-sm md:text-base">Phone Number <span className="text-gray-500">(optional)</span></Label>
                           <Input
                             id="buyerPhone"
                             type="tel"
                             value={buyerPhone}
                             onChange={(e) => setBuyerPhone(e.target.value)}
                             placeholder="+1 (604) 123-4567"
-                            className="premium-input"
+                            className="premium-input mobile-form-input"
                             data-testid="input-buyer-phone"
                           />
                         </div>
@@ -806,7 +806,7 @@ export function TicketsEventDetailPage() {
                     
                     {/* Premium Checkout Button */}
                     <Button 
-                      className="premium-checkout-button w-full"
+                      className="premium-checkout-button w-full mobile-checkout-btn premium-touch-target"
                       onClick={handleCheckout}
                       disabled={isCheckingOut || cart.length === 0 || !buyerName || !isValidEmail(buyerEmail)}
                       data-testid="button-checkout"
