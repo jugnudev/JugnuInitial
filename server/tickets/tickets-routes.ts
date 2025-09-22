@@ -529,6 +529,75 @@ export function addTicketsRoutes(app: Express) {
       }
     });
 
+  // ============ TEST ENDPOINTS (Development Only) ============
+  
+  // Test endpoint to simulate successful payment - only for development/testing
+  if (process.env.NODE_ENV === 'development') {
+    app.post('/api/tickets/test/simulate-payment/:orderId', requireTicketing, async (req: Request, res: Response) => {
+      try {
+        const { orderId } = req.params;
+        
+        // Get the order  
+        const order = await ticketsStorage.getOrderById(orderId);
+        if (!order) {
+          return res.status(404).json({ ok: false, error: 'Order not found' });
+        }
+        
+        if (order.status !== 'pending') {
+          return res.status(400).json({ ok: false, error: 'Order is not in pending status' });
+        }
+        
+        // Check for payment intent ID (could be snake_case or camelCase)
+        const paymentIntentId = order.stripePaymentIntentId || (order as any).stripe_payment_intent_id;
+        if (!paymentIntentId) {
+          return res.status(400).json({ ok: false, error: 'Order missing payment intent ID' });
+        }
+        
+        // Simulate successful payment intent
+        const mockPaymentIntent = {
+          id: paymentIntentId,
+          status: 'succeeded',
+          amount: order.totalCents,
+          currency: 'cad'
+        };
+        
+        // Process using the same webhook handler
+        console.log(`[Test] Simulating successful payment for order: ${orderId}`);
+        console.log(`[Test] Mock PaymentIntent:`, mockPaymentIntent);
+        
+        try {
+          await handlePaymentIntentSucceeded(mockPaymentIntent);
+          console.log(`[Test] handlePaymentIntentSucceeded completed successfully`);
+        } catch (handlerError: any) {
+          console.error('[Test] handlePaymentIntentSucceeded failed:', handlerError);
+          throw handlerError;
+        }
+        
+        // Get updated order
+        const updatedOrder = await ticketsStorage.getOrderById(orderId);
+        console.log(`[Test] Updated order status: ${updatedOrder?.status}`);
+        
+        res.json({ 
+          ok: true, 
+          message: 'Payment simulated successfully',
+          order: updatedOrder
+        });
+        
+      } catch (error: any) {
+        console.error('Test payment simulation error details:', {
+          message: error?.message || 'Unknown error',
+          stack: error?.stack || 'No stack trace',
+          orderId
+        });
+        res.status(500).json({ 
+          ok: false, 
+          error: 'Failed to simulate payment',
+          details: error?.message || 'Unknown error occurred'
+        });
+      }
+    });
+  }
+
   // ============ ORGANIZER ENDPOINTS ============
   
   // Create/connect organizer account
@@ -881,7 +950,7 @@ async function handleCheckoutCompleted(session: any) {
     // TODO: Send email with tickets
     
     // Log audit
-    await ticketsStorage.createAuditLog({
+    await ticketsStorage.createAudit({
       actorType: 'system',
       actorId: 'stripe',
       action: 'order_completed',
@@ -906,7 +975,7 @@ async function handleRefund(charge: any) {
     // TODO: Mark tickets as refunded
     
     // Log audit
-    await ticketsStorage.createAuditLog({
+    await ticketsStorage.createAudit({
       actorType: 'system',
       actorId: 'stripe',
       action: 'refund_processed',

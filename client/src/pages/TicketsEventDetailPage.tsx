@@ -424,225 +424,380 @@ export function TicketsEventDetailPage() {
 
       <div className="container mx-auto px-4 py-8 lg:py-12">
         <div className="max-w-6xl mx-auto">
-          {/* Event Description - Premium Card */}
+          {/* Premium Event Description */}
           {event.description && (
-            <div className="premium-surface-elevated mb-8 p-6 lg:p-8 premium-slide-up">
-              <h2 className="text-2xl font-fraunces mb-4 text-white">About This Event</h2>
-              <div className="prose prose-lg prose-invert max-w-none">
-                <p className="whitespace-pre-wrap text-gray-300 leading-relaxed">
-                  {event.description}
-                </p>
+            <div className="premium-description-card mb-12 premium-slide-up">
+              <div className="premium-description-header">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="premium-section-icon">
+                    <Info className="w-5 h-5 text-orange-400" />
+                  </div>
+                  <h2 className="text-3xl font-fraunces font-bold text-white">About This Event</h2>
+                </div>
+              </div>
+              
+              <div className="premium-description-content">
+                <div className="prose prose-lg prose-invert max-w-none">
+                  {event.description.split('\n').map((paragraph, index) => {
+                    // Handle different content types
+                    if (paragraph.trim() === '') {
+                      return <div key={index} className="h-4" />; // Spacing
+                    }
+                    
+                    if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+                      // Bold headers
+                      return (
+                        <h3 key={index} className="text-xl font-fraunces font-bold text-white mt-8 mb-4 flex items-center gap-2">
+                          <div className="w-1 h-6 bg-gradient-to-b from-orange-400 to-orange-600 rounded-full" />
+                          {paragraph.replace(/\*\*/g, '')}
+                        </h3>
+                      );
+                    }
+                    
+                    if (paragraph.startsWith('- ')) {
+                      // Bullet points
+                      return (
+                        <div key={index} className="flex items-start gap-3 mb-3">
+                          <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-2 flex-shrink-0" />
+                          <p className="text-gray-300 leading-relaxed">
+                            {paragraph.substring(2)}
+                          </p>
+                        </div>
+                      );
+                    }
+                    
+                    // Regular paragraphs
+                    return (
+                      <p key={index} className="text-gray-300 leading-relaxed mb-4 text-lg">
+                        {paragraph}
+                      </p>
+                    );
+                  })}
+                </div>
+                
+                {/* Event Highlights Section */}
+                <div className="premium-highlights-section mt-8">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="premium-highlight-card">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Calendar className="w-5 h-5 text-orange-400" />
+                        <h4 className="font-semibold text-white">Event Details</h4>
+                      </div>
+                      <div className="space-y-2 text-gray-300">
+                        <p>{format(eventDate, 'EEEE, MMMM d, yyyy')}</p>
+                        <p>{format(eventDate, 'h:mm a')} {event.endAt && `- ${format(new Date(event.endAt), 'h:mm a')}`}</p>
+                        <p>{event.venue}</p>
+                        {event.address && <p className="text-sm text-gray-400">{event.address}</p>}
+                      </div>
+                    </div>
+                    
+                    <div className="premium-highlight-card">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Users className="w-5 h-5 text-orange-400" />
+                        <h4 className="font-semibold text-white">Ticket Information</h4>
+                      </div>
+                      <div className="space-y-2 text-gray-300">
+                        <p>{event.tiers.length} ticket tier{event.tiers.length > 1 ? 's' : ''} available</p>
+                        {event.tiers.length > 0 && (
+                          <p>Starting from ${Math.min(...event.tiers.map(t => t.priceCents)) / 100}</p>
+                        )}
+                        {(event.hasGST || event.hasPST) && (
+                          <p className="text-sm text-gray-400">
+                            Plus taxes {event.hasGST && event.hasPST ? '(GST + PST)' : event.hasGST ? '(GST)' : '(PST)'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
 
           <Separator className="mb-8" />
 
-          {/* Ticket Selection */}
+          {/* Premium Ticket Selection */}
           <div className="grid lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-4">
-              <h2 className="text-2xl font-fraunces mb-4">Select Tickets</h2>
+            <div className="lg:col-span-2 space-y-6">
+              <div className="premium-fade-in">
+                <h2 className="text-3xl font-fraunces font-bold text-white mb-2">Select Your Tickets</h2>
+                <p className="text-gray-400 text-lg">Choose from our premium ticket tiers</p>
+              </div>
               
-              {event.tiers.map(tier => {
-                const { available, remaining } = getTierAvailability(tier);
-                const quantity = getTierQuantity(tier.id);
-                
-                return (
-                  <Card 
-                    key={tier.id}
-                    className={!available ? "opacity-60" : ""}
-                    data-testid={`card-tier-${tier.id}`}
-                  >
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
+              <div className="space-y-4">
+                {event.tiers.map((tier, index) => {
+                  const { available, remaining } = getTierAvailability(tier);
+                  const quantity = getTierQuantity(tier.id);
+                  
+                  return (
+                    <div 
+                      key={tier.id}
+                      className={`premium-tier-card ${!available ? "premium-tier-sold-out" : ""} premium-slide-up`}
+                      style={{ animationDelay: `${index * 100}ms` }}
+                      data-testid={`card-tier-${tier.id}`}
+                    >
+                      {/* Tier Header */}
+                      <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
-                          <CardTitle className="text-lg">{tier.name}</CardTitle>
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-xl font-fraunces font-bold text-white">{tier.name}</h3>
+                            {remaining !== null && remaining < 10 && remaining > 0 && (
+                              <div className="premium-badge-low">
+                                Only {remaining} left!
+                              </div>
+                            )}
+                            {remaining !== null && remaining >= 10 && (
+                              <div className="premium-badge-available">
+                                {remaining} available
+                              </div>
+                            )}
+                          </div>
                           {tier.description && (
-                            <CardDescription className="mt-1">
+                            <p className="text-gray-400 leading-relaxed">
                               {tier.description}
-                            </CardDescription>
+                            </p>
                           )}
                         </div>
-                        <div className="text-right">
-                          <div className="text-2xl font-bold">
-                            ${(tier.priceCents / 100).toFixed(2)}
+                        
+                        <div className="text-right ml-6">
+                          <div className="text-3xl font-bold text-white mb-1">
+                            ${(tier.priceCents / 100).toFixed(0)}
+                            <span className="text-lg text-gray-400">.{String(tier.priceCents % 100).padStart(2, '0')}</span>
                           </div>
-                          {remaining !== null && (
-                            <Badge variant={remaining < 10 ? "destructive" : "secondary"}>
-                              {remaining} left
-                            </Badge>
-                          )}
+                          <div className="text-sm text-gray-500">per ticket</div>
                         </div>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      {available ? (
-                        <div className="flex items-center gap-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateTierQuantity(tier.id, Math.max(0, quantity - 1))}
-                            disabled={quantity === 0}
-                            data-testid={`button-minus-${tier.id}`}
-                          >
-                            -
-                          </Button>
-                          <Input
-                            type="number"
-                            value={quantity}
-                            onChange={(e) => updateTierQuantity(tier.id, parseInt(e.target.value) || 0)}
-                            className="w-20 text-center"
-                            min={0}
-                            max={tier.maxPerOrder}
-                            data-testid={`input-quantity-${tier.id}`}
-                          />
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => updateTierQuantity(tier.id, quantity + 1)}
-                            disabled={remaining !== null && quantity >= remaining}
-                            data-testid={`button-plus-${tier.id}`}
-                          >
-                            +
-                          </Button>
-                          {quantity > 0 && (
-                            <span className="text-sm text-muted-foreground">
-                              = ${((tier.priceCents * quantity) / 100).toFixed(2)}
-                            </span>
-                          )}
-                        </div>
-                      ) : (
-                        <Badge variant="destructive" className="w-full justify-center py-2">
-                          SOLD OUT
-                        </Badge>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                      
+                      {/* Tier Controls */}
+                      <div className="flex items-center justify-between">
+                        {available ? (
+                          <>
+                            {/* Premium Quantity Controls */}
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center bg-gray-800/50 rounded-full border border-gray-600">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => updateTierQuantity(tier.id, Math.max(0, quantity - 1))}
+                                  disabled={quantity === 0}
+                                  className="h-10 w-10 rounded-full text-gray-300 hover:text-white hover:bg-gray-700"
+                                  data-testid={`button-minus-${tier.id}`}
+                                >
+                                  -
+                                </Button>
+                                <div className="px-4 py-2 min-w-[3rem] text-center">
+                                  <span className="text-lg font-semibold text-white">{quantity}</span>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => updateTierQuantity(tier.id, quantity + 1)}
+                                  disabled={remaining !== null && quantity >= remaining}
+                                  className="h-10 w-10 rounded-full text-gray-300 hover:text-white hover:bg-gray-700"
+                                  data-testid={`button-plus-${tier.id}`}
+                                >
+                                  +
+                                </Button>
+                              </div>
+                              
+                              {quantity > 0 && (
+                                <div className="premium-total-badge">
+                                  Total: ${((tier.priceCents * quantity) / 100).toFixed(2)}
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Quick Add Buttons */}
+                            <div className="flex gap-2">
+                              {[1, 2, 4].map(num => (
+                                <Button
+                                  key={num}
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => updateTierQuantity(tier.id, num)}
+                                  disabled={remaining !== null && num > remaining}
+                                  className="h-8 px-3 text-xs bg-gray-800/30 border-gray-600 text-gray-300 hover:text-white hover:bg-gray-700"
+                                >
+                                  {num}
+                                </Button>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <div className="premium-badge-sold-out flex-1 text-center py-3">
+                            SOLD OUT
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
               
-              {/* Premium Discount Code */}
-              <div className="premium-surface-elevated p-6">
-                <h3 className="text-xl font-semibold text-white mb-4">Discount Code</h3>
+              {/* Premium Discount Code Section */}
+              <div className="premium-surface-elevated p-6 premium-slide-up" style={{ animationDelay: `${event.tiers.length * 100 + 200}ms` }}>
+                <div className="flex items-center gap-3 mb-4">
+                  <Tag className="w-5 h-5 text-orange-400" />
+                  <h3 className="text-xl font-semibold text-white">Have a Discount Code?</h3>
+                </div>
                 <div className="flex gap-3">
                   <Input
-                    placeholder="Enter discount code"
+                    placeholder="Enter your discount code"
                     value={discountCode}
                     onChange={(e) => setDiscountCode(e.target.value)}
-                    className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+                    className="bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
                     data-testid="input-discount-code"
                   />
                   <Button 
                     variant="outline" 
-                    className="bg-gray-800 border-gray-600 text-white hover:bg-gray-700"
+                    className="premium-button-secondary"
                     data-testid="button-apply-discount"
                   >
                     Apply
                   </Button>
                 </div>
+                {discountCode && (
+                  <p className="text-sm text-gray-400 mt-2">
+                    Discount will be applied at checkout
+                  </p>
+                )}
               </div>
             </div>
 
             {/* Premium Order Summary */}
-            <div className="space-y-4">
-              <div className="premium-surface-glass sticky top-4 p-6">
-                <h3 className="text-2xl font-fraunces mb-6 text-white">Order Summary</h3>
+            <div className="space-y-6">
+              <div className="premium-order-summary sticky top-4 premium-slide-up" style={{ animationDelay: "300ms" }}>
+                {/* Header */}
+                <div className="premium-summary-header">
+                  <h3 className="text-2xl font-fraunces font-bold text-white">Order Summary</h3>
+                  {cart.length > 0 && (
+                    <div className="premium-cart-count">
+                      {cart.reduce((sum, item) => sum + item.quantity, 0)} item{cart.reduce((sum, item) => sum + item.quantity, 0) !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                </div>
                 
                 {cart.length === 0 ? (
-                  <div className="text-center py-8">
-                    <ShoppingCart className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-400">No tickets selected</p>
+                  <div className="premium-empty-cart">
+                    <div className="premium-empty-cart-icon">
+                      <ShoppingCart className="w-8 h-8 text-gray-500" />
+                    </div>
+                    <h4 className="text-lg font-semibold text-gray-300 mb-2">Your cart is empty</h4>
+                    <p className="text-gray-500">Select tickets to get started</p>
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {/* Selected Tickets */}
+                    {/* Selected Tickets with Premium Design */}
                     <div className="space-y-3">
-                      {cart.map(item => {
+                      {cart.map((item, index) => {
                         const tier = event.tiers.find(t => t.id === item.tierId);
                         if (!tier) return null;
                         
                         return (
-                          <div key={item.tierId} className="flex justify-between items-center py-2">
-                            <div>
-                              <div className="text-white font-medium">{tier.name}</div>
-                              <div className="text-gray-400 text-sm">{item.quantity} ticket{item.quantity !== 1 ? 's' : ''}</div>
-                            </div>
-                            <div className="text-white font-semibold">
-                              ${((tier.priceCents * item.quantity) / 100).toFixed(2)}
+                          <div key={item.tierId} className="premium-cart-item" style={{ animationDelay: `${400 + index * 50}ms` }}>
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <h4 className="text-white font-semibold text-base">{tier.name}</h4>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-gray-400 text-sm">{item.quantity} ticket{item.quantity !== 1 ? 's' : ''}</span>
+                                  <span className="text-gray-500">•</span>
+                                  <span className="text-gray-400 text-sm">${(tier.priceCents / 100).toFixed(2)} each</span>
+                                </div>
+                              </div>
+                              <div className="text-right ml-4">
+                                <div className="text-lg font-bold text-white">
+                                  ${((tier.priceCents * item.quantity) / 100).toFixed(2)}
+                                </div>
+                              </div>
                             </div>
                           </div>
                         );
                       })}
                     </div>
                     
-                    <div className="border-t border-gray-700 pt-4 space-y-3">
-                      <div className="flex justify-between text-gray-300">
-                        <span>Subtotal</span>
-                        <span>${(subtotal / 100).toFixed(2)}</span>
-                      </div>
-                      {(event.hasGST || event.hasPST) && (
+                    {/* Premium Pricing Breakdown */}
+                    <div className="premium-pricing-section">
+                      <div className="space-y-3">
                         <div className="flex justify-between text-gray-300">
-                          <span>Tax {event.hasGST && event.hasPST ? '(GST + PST)' : event.hasGST ? '(GST)' : '(PST)'}</span>
-                          <span>${(tax / 100).toFixed(2)}</span>
+                          <span>Subtotal</span>
+                          <span className="font-semibold">${(subtotal / 100).toFixed(2)}</span>
                         </div>
-                      )}
-                      <div className="flex justify-between text-gray-300">
-                        <span>Service Fee</span>
-                        <span>${(fees / 100).toFixed(2)}</span>
+                        {(event.hasGST || event.hasPST) && (
+                          <div className="flex justify-between text-gray-300">
+                            <span>Tax {event.hasGST && event.hasPST ? '(GST + PST)' : event.hasGST ? '(GST)' : '(PST)'}</span>
+                            <span className="font-semibold">${(tax / 100).toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-gray-300">
+                          <span>Service Fee</span>
+                          <span className="font-semibold">${(fees / 100).toFixed(2)}</span>
+                        </div>
                       </div>
                     </div>
                     
-                    <div className="border-t border-gray-700 pt-4">
-                      <div className="flex justify-between items-center text-xl font-bold text-white">
-                        <span>Total</span>
-                        <span>${(total / 100).toFixed(2)} CAD</span>
+                    {/* Premium Total */}
+                    <div className="premium-total-section">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xl font-bold text-white">Total</span>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-white">
+                            ${(total / 100).toFixed(2)}
+                          </div>
+                          <div className="text-sm text-gray-400">CAD</div>
+                        </div>
                       </div>
                     </div>
                     
                     {/* Premium Buyer Information */}
-                    <div className="border-t border-gray-700 pt-6 space-y-4">
-                      <h4 className="text-lg font-semibold text-white mb-4">Your Details</h4>
+                    <div className="premium-buyer-section">
+                      <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 bg-orange-400 rounded-full" />
+                        Your Information
+                      </h4>
                       
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="buyerName" className="text-gray-300 mb-2 block">Full Name *</Label>
+                          <Label htmlFor="buyerName" className="text-gray-300 mb-2 block font-medium">Full Name *</Label>
                           <Input
                             id="buyerName"
                             value={buyerName}
                             onChange={(e) => setBuyerName(e.target.value)}
-                            placeholder="John Doe"
+                            placeholder="Enter your full name"
                             required
-                            className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+                            className="premium-input"
                             data-testid="input-buyer-name"
                           />
                         </div>
                         
                         <div>
-                          <Label htmlFor="buyerEmail" className="text-gray-300 mb-2 block">Email Address *</Label>
+                          <Label htmlFor="buyerEmail" className="text-gray-300 mb-2 block font-medium">Email Address *</Label>
                           <Input
                             id="buyerEmail"
                             type="email"
                             value={buyerEmail}
                             onChange={(e) => setBuyerEmail(e.target.value)}
-                            placeholder="john@example.com"
+                            placeholder="your@email.com"
                             required
-                            className={`bg-gray-800 border-gray-600 text-white placeholder:text-gray-400 ${buyerEmail && !isValidEmail(buyerEmail) ? "border-red-500 ring-red-500" : ""}`}
+                            className={`premium-input ${buyerEmail && !isValidEmail(buyerEmail) ? "border-red-500 ring-red-500/20 focus:border-red-500" : ""}`}
                             data-testid="input-buyer-email"
                           />
                           {buyerEmail && !isValidEmail(buyerEmail) && (
-                            <p className="text-sm text-red-400 mt-2">Please enter a valid email address</p>
+                            <p className="text-sm text-red-400 mt-2 flex items-center gap-1">
+                              <span className="w-1 h-1 bg-red-400 rounded-full" />
+                              Please enter a valid email address
+                            </p>
                           )}
                         </div>
                         
                         <div>
-                          <Label htmlFor="buyerPhone" className="text-gray-300 mb-2 block">Phone Number (optional)</Label>
+                          <Label htmlFor="buyerPhone" className="text-gray-300 mb-2 block font-medium">Phone Number <span className="text-gray-500">(optional)</span></Label>
                           <Input
                             id="buyerPhone"
                             type="tel"
                             value={buyerPhone}
                             onChange={(e) => setBuyerPhone(e.target.value)}
                             placeholder="+1 (604) 123-4567"
-                            className="bg-gray-800 border-gray-600 text-white placeholder:text-gray-400"
+                            className="premium-input"
                             data-testid="input-buyer-phone"
                           />
                         </div>
@@ -651,30 +806,39 @@ export function TicketsEventDetailPage() {
                     
                     {/* Premium Checkout Button */}
                     <Button 
-                      className="premium-button w-full text-lg py-6 mt-6"
+                      className="premium-checkout-button w-full"
                       onClick={handleCheckout}
                       disabled={isCheckingOut || cart.length === 0 || !buyerName || !isValidEmail(buyerEmail)}
                       data-testid="button-checkout"
                     >
                       {isCheckingOut ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                          Processing...
+                          <span className="font-semibold">Processing your order...</span>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2 font-semibold">
-                          <ShoppingCart className="w-5 h-5" />
-                          Proceed to Checkout • ${(total / 100).toFixed(2)} CAD
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-3">
+                            <ShoppingCart className="w-5 h-5" />
+                            <span className="font-bold text-lg">Secure Checkout</span>
+                          </div>
+                          <div className="text-lg font-bold">
+                            ${(total / 100).toFixed(2)} CAD
+                          </div>
                         </div>
                       )}
                     </Button>
                   </div>
                 )}
                 
-                <div className="border-t border-gray-700 pt-4 mt-6">
-                  <p className="text-xs text-gray-400 text-center">
-                    Powered by Stripe. Your payment info is secure.
-                  </p>
+                {/* Security Footer */}
+                <div className="premium-security-footer">
+                  <div className="flex items-center justify-center gap-2 text-gray-400">
+                    <div className="w-3 h-3 rounded-full bg-green-500/20 border border-green-500/30 flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                    </div>
+                    <p className="text-xs">Secured by Stripe • Your payment info is protected</p>
+                  </div>
                 </div>
               </div>
               
