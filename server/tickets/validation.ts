@@ -76,13 +76,12 @@ export const updateTierSchema = createTierSchema.partial();
 
 // Organizer signup validation (MoR Model - simplified)
 export const organizerSignupSchema = z.object({
-  businessName: z.string().min(1).max(200),
-  businessEmail: z.string().email(),
-  firstName: z.string().min(1).max(100).optional(),
-  lastName: z.string().min(1).max(100).optional(),
-  // MoR Model: Optional payout preferences (defaults applied in backend)
-  payoutMethod: z.enum(['etransfer', 'wire', 'check']).optional(),
-  payoutEmail: z.string().email().optional() // If not provided, uses businessEmail
+  // MoR Model: Simplified signup with basic info only
+  name: z.string().min(1).max(200), // Organizer display name
+  email: z.string().email(), // Primary contact email
+  // Optional payout preferences (defaults applied in backend)
+  payoutMethod: z.enum(['etransfer', 'paypal', 'manual']).optional(),
+  payoutEmail: z.string().email().optional() // If not provided, uses email
 });
 
 // Discount validation

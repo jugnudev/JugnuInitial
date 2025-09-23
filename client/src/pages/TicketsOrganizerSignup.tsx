@@ -24,13 +24,13 @@ const generateUUID = () => {
 };
 
 const organizerSignupSchema = z.object({
-  businessName: z.string().min(2, "Business name must be at least 2 characters"),
-  businessEmail: z.string().email("Please enter a valid email address"),
-  firstName: z.string().min(2, "First name must be at least 2 characters"),
-  lastName: z.string().min(2, "Last name must be at least 2 characters"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email address"),
+  payoutMethod: z.enum(['etransfer', 'paypal', 'manual']).optional(),
+  payoutEmail: z.string().email("Please enter a valid email address").optional(),
 });
 
-type OrgangizerSignupForm = z.infer<typeof organizerSignupSchema>;
+type OrganizerSignupForm = z.infer<typeof organizerSignupSchema>;
 
 export function TicketsOrganizerSignup() {
   const [, setLocation] = useLocation();
@@ -40,24 +40,23 @@ export function TicketsOrganizerSignup() {
   // Check if ticketing is enabled
   const isEnabled = import.meta.env.VITE_ENABLE_TICKETING === 'true';
 
-  const form = useForm<OrgangizerSignupForm>({
+  const form = useForm<OrganizerSignupForm>({
     resolver: zodResolver(organizerSignupSchema),
     defaultValues: {
-      businessName: "",
-      businessEmail: "",
-      firstName: "",
-      lastName: "",
+      name: "",
+      email: "",
+      payoutMethod: undefined,
+      payoutEmail: "",
     },
   });
 
   const signupMutation = useMutation({
-    mutationFn: async (data: OrgangizerSignupForm) => {
-      const response = await apiRequest('POST', '/api/tickets/organizers/connect', {
-        userId: generateUUID(), // Generate proper UUID for validation
-        businessName: data.businessName,
-        businessEmail: data.businessEmail,
-        returnUrl: `${window.location.origin}/tickets/organizer/dashboard`,
-        refreshUrl: `${window.location.origin}/tickets/organizer/connect`
+    mutationFn: async (data: OrganizerSignupForm) => {
+      const response = await apiRequest('POST', '/api/tickets/organizers/signup', {
+        name: data.name,
+        email: data.email,
+        payoutMethod: data.payoutMethod || 'etransfer',
+        payoutEmail: data.payoutEmail || data.email
       });
       
       const result = await response.json();
@@ -72,21 +71,13 @@ export function TicketsOrganizerSignup() {
         localStorage.setItem('ticketsOrganizerId', result.organizerId);
       }
       
-      if (result.onboardingUrl) {
-        // Redirect to Stripe Connect onboarding
-        window.location.href = result.onboardingUrl;
-      } else if (result.testMode) {
-        // Test mode - go directly to dashboard
-        toast({
-          title: "Account created successfully!",
-          description: "Welcome to the organizer dashboard.",
-          variant: "default"
-        });
-        setLocation('/tickets/organizer/dashboard');
-      } else {
-        // Go to connect page for manual setup
-        setLocation('/tickets/organizer/connect');
-      }
+      // MoR Model: Go directly to dashboard (no Connect onboarding needed)
+      toast({
+        title: "Account created successfully!",
+        description: "Welcome to the organizer dashboard. You can start creating events immediately.",
+        variant: "default"
+      });
+      setLocation('/tickets/organizer/dashboard');
     },
     onError: (error: any) => {
       console.error('[OrganizerSignup] Error:', error);
@@ -99,7 +90,7 @@ export function TicketsOrganizerSignup() {
     }
   });
 
-  const onSubmit = (data: OrgangizerSignupForm) => {
+  const onSubmit = (data: OrganizerSignupForm) => {
     console.log('[OrganizerSignup] Submitting:', data);
     setIsSubmitting(true);
     signupMutation.mutate(data);
@@ -139,106 +130,109 @@ export function TicketsOrganizerSignup() {
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  {/* Business Information */}
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <Building2 className="w-5 h-5 text-orange-400" />
-                      Business Information
-                    </h3>
-                    
-                    <FormField
-                      control={form.control}
-                      name="businessName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-white">Business Name</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Your business or organization name"
-                              className="mobile-form-input bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
-                              data-testid="input-business-name"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="businessEmail"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-white">Business Email</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="email"
-                              placeholder="contact@yourbusiness.com"
-                              className="mobile-form-input bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
-                              data-testid="input-business-email"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  {/* Personal Information */}
+                  {/* Basic Information */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                       <User className="w-5 h-5 text-orange-400" />
                       Your Information
                     </h3>
                     
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="firstName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-white">First Name</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="John"
-                                className="mobile-form-input bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
-                                data-testid="input-first-name"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-white">Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Your name or organization name"
+                              className="mobile-form-input bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
+                              data-testid="input-name"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                      <FormField
-                        control={form.control}
-                        name="lastName"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-white">Last Name</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="Doe"
-                                className="mobile-form-input bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
-                                data-testid="input-last-name"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-white">Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="your@email.com"
+                              className="mobile-form-input bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
+                              data-testid="input-email"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Payout Settings (Optional) */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Building2 className="w-5 h-5 text-orange-400" />
+                      Payout Preferences (Optional)
+                    </h3>
+                    
+                    <FormField
+                      control={form.control}
+                      name="payoutMethod"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-white">Preferred Payout Method</FormLabel>
+                          <FormControl>
+                            <select
+                              {...field}
+                              className="w-full mobile-form-input bg-gray-800/50 border-gray-600 text-white focus:border-orange-500 focus:ring-orange-500/20 rounded-md p-3"
+                              data-testid="select-payout-method"
+                            >
+                              <option value="">Select method (default: e-transfer)</option>
+                              <option value="etransfer">E-Transfer</option>
+                              <option value="paypal">PayPal</option>
+                              <option value="manual">Manual/Other</option>
+                            </select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="payoutEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-white">Payout Email (if different)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="Leave blank to use your main email"
+                              className="mobile-form-input bg-gray-800/50 border-gray-600 text-white placeholder:text-gray-400 focus:border-orange-500 focus:ring-orange-500/20"
+                              data-testid="input-payout-email"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
 
                   {/* Information Alert */}
-                  <Alert className="border-blue-200 bg-blue-50 text-blue-900">
+                  <Alert className="border-green-200 bg-green-50 text-green-900">
                     <Mail className="h-4 w-4" />
                     <AlertDescription>
-                      After creating your account, you'll be guided through Stripe Connect setup to start receiving payments.
+                      Your account will be active immediately after creation. Start creating events and selling tickets right away!
                     </AlertDescription>
                   </Alert>
 
