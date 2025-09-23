@@ -639,7 +639,7 @@ export function addTicketsRoutes(app: Express) {
       const { businessName, businessEmail, firstName, lastName, returnUrl, refreshUrl } = validated;
       
       // Get userId from session - for now we'll create a test user ID since we don't have auth yet
-      const userId = req.session?.userId || 'test-user-' + Math.random().toString(36).substr(2, 9);
+      const userId = req.session?.userId || 'test-user-1';
       console.log('[DEBUG] Using userId:', userId);
       
       // Check if organizer already exists

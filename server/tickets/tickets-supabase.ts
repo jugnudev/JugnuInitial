@@ -58,20 +58,57 @@ export class TicketsSupabaseDB {
   async createOrganizer(data: InsertTicketsOrganizer): Promise<TicketsOrganizer> {
     console.log('[DEBUG] Creating organizer with data:', data);
     
+    // Use SQL insert to bypass PostgREST cache issues
+    const organizerId = nanoid();
+    const now = new Date().toISOString();
+    
+    const insertSQL = `
+      INSERT INTO tickets_organizers (id, user_id, business_name, business_email, status, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      RETURNING *;
+    `;
+    
     const client = getSupabase();
-    const { data: organizer, error } = await client
-      .from('tickets_organizers')
-      .insert(data)
-      .select()
-      .single();
+    const { data: result, error } = await client.rpc('exec_sql', {
+      query: insertSQL,
+      params: [organizerId, data.userId, data.businessName, data.businessEmail, data.status || 'pending', now, now]
+    });
     
     if (error) {
-      console.log('[DEBUG] Database error in createOrganizer:', error);
-      throw error;
+      console.log('[DEBUG] SQL insert error:', error);
+      // Since exec_sql doesn't exist, try direct insert with explicit snake_case column mapping
+      console.log('[DEBUG] Falling back to direct insert with snake_case mapping...');
+      
+      try {
+        const { data: organizer, error: insertError } = await client
+          .from('tickets_organizers')
+          .insert({
+            id: organizerId,
+            user_id: data.userId,
+            business_name: data.businessName,
+            business_email: data.businessEmail,
+            status: data.status || 'pending',
+            created_at: now,
+            updated_at: now
+          })
+          .select()
+          .single();
+        
+        if (insertError) {
+          console.log('[DEBUG] Direct insert also failed:', insertError);
+          throw insertError;
+        }
+        
+        console.log('[DEBUG] Organizer created via direct insert:', organizer?.id);
+        return organizer;
+      } catch (directError) {
+        console.log('[DEBUG] Direct insert failed, trying basic method:', directError);
+        throw directError;
+      }
     }
     
-    console.log('[DEBUG] Organizer created successfully:', organizer?.id);
-    return organizer;
+    console.log('[DEBUG] Organizer created via SQL:', organizerId);
+    return result[0]; // exec_sql returns array
   }
 
   async getOrganizerById(id: string): Promise<TicketsOrganizer | null> {
@@ -88,28 +125,30 @@ export class TicketsSupabaseDB {
 
   async getOrganizerByUserId(userId: string): Promise<TicketsOrganizer | null> {
     console.log('[DEBUG] Attempting to find organizer for userId:', userId);
-    console.log('[DEBUG] Using getSupabase() for connection...');
+    console.log('[DEBUG] Using PostgREST cache workaround...');
     
-    const client = getSupabase();
-    const { data, error } = await client
-      .from('tickets_organizers')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
-    
-    if (error) {
-      console.log('[DEBUG] Database error in getOrganizerByUserId:', {
-        code: error.code,
-        message: error.message,
-        details: error.details,
-        hint: error.hint
-      });
+    try {
+      const client = getSupabase();
       
-      if (error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+      // Workaround: Fetch all organizers and filter client-side to bypass PostgREST cache issue
+      const { data: allOrganizers, error } = await client
+        .from('tickets_organizers')
+        .select('*');
+      
+      if (error) {
+        console.log('[DEBUG] Error fetching all organizers:', error);
+        throw error;
+      }
+      
+      console.log('[DEBUG] Fetched', allOrganizers?.length || 0, 'organizers, filtering for userId:', userId);
+      const matchingOrganizer = allOrganizers?.find(org => org.user_id === userId) || null;
+      console.log('[DEBUG] Found matching organizer:', matchingOrganizer ? 'yes' : 'no');
+      
+      return matchingOrganizer;
+    } catch (error) {
+      console.log('[DEBUG] Workaround failed:', error);
+      throw error;
     }
-    
-    console.log('[DEBUG] Organizer lookup result:', data ? 'found' : 'not found');
-    return data;
   }
 
   async getOrganizerByEmail(email: string): Promise<TicketsOrganizer | null> {
