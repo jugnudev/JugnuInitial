@@ -21,6 +21,7 @@ const toSnakeCase = (obj: any): any => {
     return result;
   }, {} as any);
 };
+import { nanoid } from 'nanoid';
 import type {
   TicketsOrganizer,
   TicketsEvent,
