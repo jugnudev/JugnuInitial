@@ -43,6 +43,7 @@ import { TicketsOrganizerPayouts } from "@/pages/TicketsOrganizerPayouts";
 import { TicketsOrganizerSettings } from "@/pages/TicketsOrganizerSettings";
 import { CommunitiesSigninPage } from "@/pages/CommunitiesSigninPage";
 import { CommunitiesSignupPage } from "@/pages/CommunitiesSignupPage";
+import { CommunitiesProfilePage } from "@/pages/CommunitiesProfilePage";
 
 function Router() {
   // Track page views when routes change - Google Analytics integration
@@ -103,7 +104,7 @@ function Router() {
             <Route path="/account" component={() => { window.location.href = '/account/signin'; return null; }} />
             <Route path="/account/signin" component={CommunitiesSigninPage} />
             <Route path="/account/signup" component={CommunitiesSignupPage} />
-            <Route path="/account/profile" component={() => <div>Communities Profile Page</div>} />
+            <Route path="/account/profile" component={CommunitiesProfilePage} />
             <Route path="/account/apply-organizer" component={() => <div>Communities Apply Organizer Page</div>} />
             <Route path="/community/admin/organizers" component={() => <div>Communities Admin Organizers Page</div>} />
           </>

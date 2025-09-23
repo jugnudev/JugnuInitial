@@ -10,7 +10,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@lib/queryClient';
+import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 
 const signupSchema = z.object({
@@ -116,11 +116,15 @@ export function CommunitiesSignupPage() {
   });
 
   const verifyMutation = useMutation({
-    mutationFn: (data: VerifyFormData) => 
-      apiRequest('/api/account/verify-code', { 
+    mutationFn: (data: VerifyFormData) => {
+      if (!signupData?.email) {
+        throw new Error('Email not found. Please return to signup form.');
+      }
+      return apiRequest('/api/account/verify-code', { 
         method: 'POST', 
-        body: { email: signupData?.email, code: data.code } 
-      }),
+        body: { email: signupData.email, code: data.code } 
+      });
+    },
     onSuccess: (data) => {
       if (data.ok) {
         toast({
