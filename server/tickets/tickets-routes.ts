@@ -885,6 +885,99 @@ export function addTicketsRoutes(app: Express) {
     }
   });
 
+  // Duplicate event
+  app.post('/api/tickets/events/:eventId/duplicate', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
+    try {
+      const organizer = (req as any).organizer;
+      const eventId = req.params.eventId;
+      
+      console.log(`[Duplicate] Starting duplicate for eventId: ${eventId}, organizerId: ${organizer.id}`);
+      
+      const rawEvent = await ticketsStorage.getEventById(eventId);
+      console.log(`[Duplicate] Raw event lookup result:`, rawEvent ? `Found event with organizer_id: ${(rawEvent as any).organizer_id}` : 'Event not found');
+      
+      // Apply toCamelCase transformation like other endpoints
+      const originalEvent = rawEvent ? toCamelCase(rawEvent) : null;
+      console.log(`[Duplicate] After toCamelCase:`, originalEvent ? `Event with organizerId: ${originalEvent.organizerId}` : 'Event not found');
+      
+      if (!originalEvent) {
+        console.log(`[Duplicate] Event ${eventId} not found in database`);
+        return res.status(404).json({ ok: false, error: 'Event not found' });
+      }
+      
+      if (originalEvent.organizerId !== organizer.id) {
+        console.log(`[Duplicate] Organizer ownership mismatch - event organizer: ${originalEvent.organizerId}, requesting organizer: ${organizer.id}`);
+        return res.status(404).json({ ok: false, error: 'Event not found' });
+      }
+      
+      // Generate new slug from original title with uniqueness retry
+      const baseSlug = originalEvent.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      
+      let duplicatedEvent = null;
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (!duplicatedEvent && attempts < maxAttempts) {
+        attempts++;
+        const suffix = Math.random().toString(36).substring(2, 8);
+        const slug = `${baseSlug}-copy-${suffix}`;
+        
+        const eventData: InsertTicketsEvent = {
+          title: `${originalEvent.title} (Copy)`,
+          summary: originalEvent.summary,
+          description: originalEvent.description,
+          venue: originalEvent.venue,
+          city: originalEvent.city,
+          province: originalEvent.province,
+          startAt: originalEvent.startAt,
+          endAt: originalEvent.endAt,
+          organizerId: organizer.id,
+          slug: slug,
+          status: 'draft' // Always create duplicates as drafts
+        };
+        
+        try {
+          duplicatedEvent = await ticketsStorage.createEvent(eventData);
+        } catch (error: any) {
+          // If slug conflict, retry with new suffix
+          if (error.code === '23505' && error.detail?.includes('slug')) {
+            if (attempts >= maxAttempts) {
+              throw new Error('Failed to generate unique slug after multiple attempts');
+            }
+            continue;
+          }
+          throw error;
+        }
+      }
+      
+      // Also duplicate the tiers
+      const originalTiers = await ticketsStorage.getTiersByEvent(originalEvent.id);
+      for (const tier of originalTiers) {
+        const tierData: InsertTicketsTier = {
+          name: tier.name,
+          priceCents: tier.priceCents,
+          currency: tier.currency,
+          capacity: tier.capacity,
+          maxPerOrder: tier.maxPerOrder,
+          salesStartAt: tier.salesStartAt,
+          salesEndAt: tier.salesEndAt,
+          visibility: tier.visibility,
+          sortOrder: tier.sortOrder,
+          eventId: duplicatedEvent.id
+        };
+        await ticketsStorage.createTier(tierData);
+      }
+      
+      res.json({ ok: true, event: duplicatedEvent });
+    } catch (error) {
+      console.error('Duplicate event error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to duplicate event' });
+    }
+  });
+
   // Create tier
   app.post('/api/tickets/events/:eventId/tiers', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
     try {
