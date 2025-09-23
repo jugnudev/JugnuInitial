@@ -1,0 +1,21 @@
+Apply these guardrails to this task and all follow-ups:
+* Do not break or change any existing features (events, deals, sponsors/portal, ticketing, admin, etc.).
+* Put all new Communities work behind flags: server ENABLE_COMMUNITIES=false and client VITE_ENABLE_COMMUNITIES=false. The UI and routes should not be visible/indexed when the flags are false (use noindex meta + robots for routes).
+* Posts must be members-only. There are no public posts. Non-members may only see the community shell and a “request to join / sign in” gate.
+* If database tables are needed, generate the schema yourself and output a single SQL file I can paste into Supabase. Assume Supabase/PostgREST/RLS.
+* All endpoints return JSON only, are authz-checked, and are documented with example curl calls.
+* Premium, on-brand, responsive UI. Avoid regressions, add sensible tests/self-test if helpful.
+
+Accounts & Organizer Approval (high-level request)
+I want two account types with minimal friction:
+* User account (regular site user).
+* Organizer/Business account (must be approved by a Jugnu admin before gaining organizer powers).
+Please audit what’s already in the repo (we might already have organizer/business bits) and then implement or reuse:
+* Sign-in/up/profile for users (simple, clean UX, different info fields for users to fill in in their account section).
+* We could allow sign in via email and send a code for ease. (Or google sign in - whatever makes more sense).
+* Organizer application flow: user submits business name/website; any admin in our existing admin UI can approve/reject.
+* Endpoints like:
+    * POST /api/account/apply-organizer
+    * GET /api/account/me (include role, organizer application status)
+    * POST /api/account/admin/organizers/:id/approve and /reject (admin-only)
+Remember: everything is flag-gated (ENABLE_COMMUNITIES, VITE_ENABLE_COMMUNITIES) and must not affect other features. If tables are needed, output a single SQL I can run. Provide short curl examples for each endpoint.

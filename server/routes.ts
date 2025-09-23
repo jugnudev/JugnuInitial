@@ -41,6 +41,7 @@ function createCanonicalKey(title: string, startAt: Date, venue: string | null, 
 
 import { insertCommunityEventSchema, updateCommunityEventSchema, visitorAnalytics, insertVisitorAnalyticsSchema } from "@shared/schema";
 import { addTicketsRoutes } from "./tickets/tickets-routes";
+import { addCommunitiesRoutes } from "./communities/communities-routes";
 import { importFromGoogle, importFromYelp, reverifyAllPlaces } from "./lib/places-sync.js";
 import { matchAndEnrichPlaces, inactivateUnmatchedPlaces, getPlaceMatchingStats } from "./lib/place-matcher.js";
 import { sendDailyAnalyticsEmail } from "./services/emailService";
@@ -98,17 +99,32 @@ Disallow: /api/
 Disallow: /admin/
 Disallow: /sponsor/`;
 
-    // When ticketing is disabled, also disallow /tickets routes
+    // Build dynamic disallow rules for disabled features
+    let dynamicDisallows = '';
+    
     if (process.env.ENABLE_TICKETING !== 'true') {
-      const robotsWithTicketsBlocked = baseRobots + `
+      dynamicDisallows += `
 
 # Ticketing disabled - block all ticketing routes
 Disallow: /tickets
 Disallow: /tickets/*`;
-      
       console.log('[Ticketing] Disabled - robots.txt blocking /tickets* routes');
+    }
+
+    if (process.env.ENABLE_COMMUNITIES !== 'true') {
+      dynamicDisallows += `
+
+# Communities disabled - block all community routes
+Disallow: /community
+Disallow: /community/*
+Disallow: /account
+Disallow: /account/*`;
+      console.log('[Communities] Disabled - robots.txt blocking /community* and /account* routes');
+    }
+
+    if (dynamicDisallows) {
       res.setHeader('Content-Type', 'text/plain');
-      return res.send(robotsWithTicketsBlocked);
+      return res.send(baseRobots + dynamicDisallows);
     }
 
     res.setHeader('Content-Type', 'text/plain');
@@ -138,6 +154,17 @@ Disallow: /tickets/*`;
       );
     } else {
       console.log('[Ticketing] Disabled - sitemap.xml excluding /tickets* routes');
+    }
+
+    // Only include Communities URLs when Communities is enabled
+    if (process.env.ENABLE_COMMUNITIES === 'true') {
+      sitemapUrls.push(
+        '<url><loc>' + baseUrl + '/community</loc><changefreq>daily</changefreq><priority>0.9</priority></url>',
+        '<url><loc>' + baseUrl + '/account/signin</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>',
+        '<url><loc>' + baseUrl + '/account/signup</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>'
+      );
+    } else {
+      console.log('[Communities] Disabled - sitemap.xml excluding /community* and /account* routes');
     }
 
     const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -4245,6 +4272,57 @@ Disallow: /tickets/*`;
       res.status(500).json({ ok: false, error: 'Failed to export analytics' });
     }
   });
+
+  // Add Communities routes if enabled
+  if (process.env.ENABLE_COMMUNITIES === 'true') {
+    addCommunitiesRoutes(app);
+  } else {
+    // When Communities is disabled, intercept all Communities endpoints
+    
+    // API routes must return JSON disabled response
+    app.all('/api/account*', (req, res) => {
+      console.log(`[Communities] Disabled - API route ${req.path} blocked by ENABLE_COMMUNITIES flag`);
+      res.status(404).json({ ok: false, disabled: true });
+    });
+
+    app.all('/api/community*', (req, res) => {
+      console.log(`[Communities] Disabled - API route ${req.path} blocked by ENABLE_COMMUNITIES flag`);
+      res.status(404).json({ ok: false, disabled: true });
+    });
+    
+    // Page routes return 404 + noindex
+    app.get('/community*', (req, res) => {
+      console.log(`[Communities] Disabled - Page route ${req.path} blocked by ENABLE_COMMUNITIES flag`);
+      res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="robots" content="noindex, nofollow">
+          <title>Page Not Found</title>
+        </head>
+        <body>
+          <h1>404 - Page Not Found</h1>
+        </body>
+        </html>
+      `);
+    });
+
+    app.get('/account*', (req, res) => {
+      console.log(`[Communities] Disabled - Page route ${req.path} blocked by ENABLE_COMMUNITIES flag`);
+      res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="robots" content="noindex, nofollow">
+          <title>Page Not Found</title>
+        </head>
+        <body>
+          <h1>404 - Page Not Found</h1>
+        </body>
+        </html>
+      `);
+    });
+  }
 
   // Add ticketing routes if enabled
   if (process.env.ENABLE_TICKETING === 'true') {
