@@ -67,7 +67,7 @@ export class TicketsSupabaseDB {
       business_name: data.businessName,
       email: data.businessEmail,          // Fill the NOT NULL email column
       business_email: data.businessEmail, // Also fill business_email for consistency
-      status: data.status || 'pending'
+      status: data.status || 'active'     // MoR model: organizers are active by default
     };
     
     console.log('[DEBUG] Inserting with snake_case data (auto UUID):', insertData);
@@ -88,11 +88,16 @@ export class TicketsSupabaseDB {
   }
 
   async getOrganizerById(id: string): Promise<TicketsOrganizer | null> {
+    console.log('[DEBUG] getOrganizerById called with ID:', id);
+    
     const { data, error } = await this.client
       .from('tickets_organizers')
       .select('*')
       .eq('id', id)
       .single();
+    
+    console.log('[DEBUG] getOrganizerById query result - data:', data);
+    console.log('[DEBUG] getOrganizerById query result - error:', error);
     
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
     return data;
@@ -148,9 +153,10 @@ export class TicketsSupabaseDB {
   }
 
   async updateOrganizer(id: string, data: Partial<InsertTicketsOrganizer>): Promise<TicketsOrganizer> {
+    const snakeCaseData = toSnakeCase(data);
     const { data: organizer, error } = await this.client
       .from('tickets_organizers')
-      .update(data)
+      .update(snakeCaseData)
       .eq('id', id)
       .select()
       .single();
@@ -161,9 +167,10 @@ export class TicketsSupabaseDB {
 
   // ============ EVENTS ============
   async createEvent(data: InsertTicketsEvent): Promise<TicketsEvent> {
+    const snakeCaseData = toSnakeCase(data);
     const { data: event, error } = await this.client
       .from('tickets_events')
-      .insert(data)
+      .insert(snakeCaseData)
       .select()
       .single();
     

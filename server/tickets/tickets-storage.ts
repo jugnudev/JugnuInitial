@@ -44,6 +44,10 @@ export class TicketsStorage {
     return ticketsDB.updateOrganizerPayoutSettings(id, settings);
   }
 
+  async updateOrganizer(id: string, data: Partial<InsertTicketsOrganizer>): Promise<TicketsOrganizer> {
+    return ticketsDB.updateOrganizer(id, data);
+  }
+
   // ============ EVENTS ============
   async createEvent(data: InsertTicketsEvent): Promise<TicketsEvent> {
     return ticketsDB.createEvent(data);

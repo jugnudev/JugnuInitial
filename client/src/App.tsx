@@ -32,6 +32,7 @@ import Onboard from "@/pages/Onboard";
 import Deals from "@/pages/Deals";
 import { TicketsEventListPage } from "@/pages/TicketsEventListPage";
 import { TicketsEventDetailPage } from "@/pages/TicketsEventDetailPage";
+import { TicketsEventCreatePage } from "@/pages/TicketsEventCreatePage";
 import { TicketsOrganizerDashboard } from "@/pages/TicketsOrganizerDashboard";
 import { TicketsOrganizerSignup } from "@/pages/TicketsOrganizerSignup";
 import { TicketsOrganizerConnect } from "@/pages/TicketsOrganizerConnect";
@@ -73,6 +74,7 @@ function Router() {
             <Route path="/tickets" component={TicketsEventListPage} />
             <Route path="/tickets/event/:slug" component={TicketsEventDetailPage} />
             <Route path="/tickets/organizer/dashboard" component={TicketsOrganizerDashboard} />
+            <Route path="/tickets/organizer/events/new" component={TicketsEventCreatePage} />
             <Route path="/tickets/organizer/signup" component={TicketsOrganizerSignup} />
             <Route path="/tickets/organizer/connect" component={TicketsOrganizerConnect} />
           </>

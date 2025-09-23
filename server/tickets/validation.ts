@@ -41,19 +41,11 @@ export const paymentIntentSchema = z.object({
 // Event creation/update validation
 export const createEventSchema = z.object({
   title: z.string().min(1).max(200),
-  subtitle: z.string().max(200).optional(),
   description: z.string().max(5000).optional(),
-  imageUrl: z.string().url().optional(),
   startAt: z.string().datetime(),
-  endAt: z.string().datetime().optional(),
   venue: z.string().min(1).max(200),
-  address: z.string().max(500).optional(),
   city: z.string().min(1).max(100),
   province: z.string().length(2),
-  maxCapacity: z.number().int().min(1).optional(),
-  refundPolicy: z.string().max(1000).optional(),
-  hasGST: z.boolean().default(true),
-  hasPST: z.boolean().default(true),
   status: z.enum(['draft', 'published', 'archived']).default('draft')
 });
 

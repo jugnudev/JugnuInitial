@@ -677,6 +677,17 @@ export function addTicketsRoutes(app: Express) {
           legalName: name // Use the provided name as legal name
         });
         console.log('[MoR Signup] Organizer created with ID:', organizer.id);
+      } else {
+        // Existing organizer found - ensure they're active for MoR model
+        console.log('[MoR Signup] Found existing organizer, ensuring active status...');
+        console.log('[MoR Signup] Current organizer status:', organizer.status);
+        if (organizer.status !== 'active') {
+          console.log('[MoR Signup] Status is not active, updating to active...');
+          organizer = await ticketsStorage.updateOrganizer(organizer.id, { status: 'active' });
+          console.log('[MoR Signup] Updated organizer status to active:', organizer.status);
+        } else {
+          console.log('[MoR Signup] Organizer already active, no update needed');
+        }
       }
       
       // MoR Model: No Stripe Connect onboarding needed
@@ -757,8 +768,13 @@ export function addTicketsRoutes(app: Express) {
       const organizer = (req as any).organizer;
       const requestedId = req.params.id;
       
+      console.log('[DEBUG] Balance endpoint - organizer.id:', JSON.stringify(organizer.id), 'type:', typeof organizer.id);
+      console.log('[DEBUG] Balance endpoint - requestedId:', JSON.stringify(requestedId), 'type:', typeof requestedId);
+      console.log('[DEBUG] Balance endpoint - comparison result:', organizer.id === requestedId);
+      
       // Ensure organizer can only access their own balance
       if (organizer.id !== requestedId) {
+        console.log('[DEBUG] Balance endpoint - Access denied due to ID mismatch');
         return res.status(403).json({ ok: false, error: 'Access denied' });
       }
       
@@ -776,8 +792,13 @@ export function addTicketsRoutes(app: Express) {
       const organizer = (req as any).organizer;
       const requestedId = req.params.id;
       
+      console.log('[DEBUG] Payouts endpoint - organizer.id:', JSON.stringify(organizer.id), 'type:', typeof organizer.id);
+      console.log('[DEBUG] Payouts endpoint - requestedId:', JSON.stringify(requestedId), 'type:', typeof requestedId);
+      console.log('[DEBUG] Payouts endpoint - comparison result:', organizer.id === requestedId);
+      
       // Ensure organizer can only access their own payouts
       if (organizer.id !== requestedId) {
+        console.log('[DEBUG] Payouts endpoint - Access denied due to ID mismatch');
         return res.status(403).json({ ok: false, error: 'Access denied' });
       }
       
@@ -794,13 +815,43 @@ export function addTicketsRoutes(app: Express) {
     try {
       const organizer = (req as any).organizer;
       const validated = createEventSchema.parse(req.body);
-      const eventData: InsertTicketsEvent = {
-        ...validated,
-        organizerId: organizer.id,
-        status: validated.status || 'draft'
-      };
       
-      const event = await ticketsStorage.createEvent(eventData);
+      // Generate slug from title with uniqueness retry
+      const baseSlug = validated.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      
+      let event = null;
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (!event && attempts < maxAttempts) {
+        attempts++;
+        const suffix = Math.random().toString(36).substring(2, 8);
+        const slug = `${baseSlug}-${suffix}`;
+        
+        const eventData: InsertTicketsEvent = {
+          ...validated,
+          organizerId: organizer.id,
+          slug: slug,
+          status: validated.status || 'draft'
+        };
+        
+        try {
+          event = await ticketsStorage.createEvent(eventData);
+        } catch (error: any) {
+          // If slug conflict, retry with new suffix
+          if (error.code === '23505' && error.detail?.includes('slug')) {
+            if (attempts >= maxAttempts) {
+              throw new Error('Failed to generate unique slug after multiple attempts');
+            }
+            continue;
+          }
+          throw error;
+        }
+      }
+      
       res.json({ ok: true, event });
     } catch (error) {
       console.error('Create event error:', error);
