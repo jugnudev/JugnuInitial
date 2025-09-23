@@ -184,8 +184,8 @@ export class TicketsStorage {
   async markTicketUsed(ticketId: string, scannedBy?: string): Promise<void> {
     await this.updateTicket(ticketId, {
       status: 'used',
-      checkedInAt: new Date(),
-      checkedInBy: scannedBy || 'staff'
+      usedAt: new Date(),
+      scannedBy: scannedBy || 'staff'
     });
   }
 
@@ -222,18 +222,16 @@ export class TicketsStorage {
   }
 
   async logWebhookEvent(data: {
-    eventId: string;
     eventType: string;
     processed: boolean;
     error?: string;
     data: string;
   }): Promise<void> {
     return ticketsDB.createWebhook({
-      eventId: data.eventId,
-      eventType: data.eventType,
-      processed: data.processed,
-      error: data.error,
-      data: data.data
+      kind: data.eventType,
+      payloadJson: JSON.parse(data.data),
+      status: data.processed ? 'processed' : 'pending',
+      error: data.error
     });
   }
 
@@ -296,6 +294,130 @@ export class TicketsStorage {
     } catch (error) {
       console.error('Error cleaning up expired reservations:', error);
     }
+  }
+
+  // ============ LEDGER & PAYOUT SYSTEM ============
+  
+  // Ledger operations
+  async createLedgerEntry(data: {
+    organizerId: string;
+    orderId?: string;
+    payoutId?: string;
+    type: string;
+    amountCents: number;
+    description?: string;
+    status?: string;
+  }): Promise<void> {
+    return ticketsDB.createLedgerEntry({
+      organizerId: data.organizerId,
+      orderId: data.orderId,
+      payoutId: data.payoutId,
+      type: data.type,
+      amountCents: data.amountCents,
+      currency: 'CAD',
+      description: data.description
+    });
+  }
+
+  async getLedgerEntryByOrderId(orderId: string): Promise<any | null> {
+    return ticketsDB.getLedgerEntryByOrderId(orderId);
+  }
+
+  async getLedgerEntriesByOrganizer(organizerId: string): Promise<any[]> {
+    return ticketsDB.getLedgerEntriesByOrganizer(organizerId);
+  }
+
+  async getOrganizerBalance(organizerId: string): Promise<number> {
+    return ticketsDB.getOrganizerBalance(organizerId);
+  }
+
+  async getUnpaidLedgerEntries(organizerId: string): Promise<any[]> {
+    return ticketsDB.getUnpaidLedgerEntries(organizerId);
+  }
+
+  // Payout operations - SECURE: Server-computed totals
+  async createAndFinalizePayout(data: {
+    organizerId: string;
+    periodStart: Date;
+    periodEnd: Date;
+    method: string;
+    reference?: string;
+    notes?: string;
+  }): Promise<any> {
+    return ticketsDB.createAndFinalizePayout({
+      organizerId: data.organizerId,
+      periodStart: data.periodStart.toISOString(),
+      periodEnd: data.periodEnd.toISOString(),
+      method: data.method,
+      reference: data.reference,
+      notes: data.notes
+    });
+  }
+
+  // Legacy create payout - deprecated
+  async createPayout(data: {
+    organizerId: string;
+    periodStart: Date;
+    periodEnd: Date;
+    totalCents: number;
+    method: string;
+    reference?: string;
+    notes?: string;
+  }): Promise<any> {
+    return ticketsDB.createPayout({
+      organizerId: data.organizerId,
+      periodStart: data.periodStart.toISOString().split('T')[0], // Convert to date string
+      periodEnd: data.periodEnd.toISOString().split('T')[0],
+      totalCents: data.totalCents,
+      currency: 'CAD',
+      method: data.method,
+      reference: data.reference,
+      status: 'draft',
+      notes: data.notes
+    });
+  }
+
+  async getPayoutsByOrganizer(organizerId: string): Promise<any[]> {
+    return ticketsDB.getPayoutsByOrganizer(organizerId);
+  }
+
+  async updatePayoutStatus(payoutId: string, status: string, reference?: string): Promise<void> {
+    return ticketsDB.updatePayoutStatus(payoutId, status, reference);
+  }
+
+  async markPayoutPaid(payoutId: string, reference: string): Promise<void> {
+    return ticketsDB.markPayoutPaid(payoutId, reference);
+  }
+
+  async getAllPendingPayouts(): Promise<any[]> {
+    return ticketsDB.getAllPendingPayouts();
+  }
+
+  // Analytics and aggregation
+  async getOrganizerRevenueSummary(organizerId: string): Promise<{
+    totalEarned: number;
+    totalPaidOut: number;
+    pendingBalance: number;
+    lastPayoutDate?: Date;
+  }> {
+    const balance = await this.getOrganizerBalance(organizerId);
+    const payouts = await this.getPayoutsByOrganizer(organizerId);
+    
+    const totalPaidOut = payouts
+      .filter(p => p.status === 'paid')
+      .reduce((sum, p) => sum + p.totalCents, 0);
+    
+    const totalEarned = balance + totalPaidOut;
+    const lastPayout = payouts
+      .filter(p => p.status === 'paid' && p.paidAt)
+      .sort((a, b) => new Date(b.paidAt).getTime() - new Date(a.paidAt).getTime())[0];
+
+    return {
+      totalEarned,
+      totalPaidOut,
+      pendingBalance: balance,
+      lastPayoutDate: lastPayout?.paidAt ? new Date(lastPayout.paidAt) : undefined
+    };
   }
 }
 

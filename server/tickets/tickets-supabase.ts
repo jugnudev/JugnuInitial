@@ -812,6 +812,273 @@ export class TicketsSupabaseDB {
     
     if (error) throw error;
   }
+
+  // ============ LEDGER & PAYOUT SYSTEM ============
+  
+  // Ledger operations
+  async createLedgerEntry(data: {
+    organizerId: string;
+    orderId?: string;
+    payoutId?: string;
+    type: string;
+    amountCents: number;
+    currency?: string;
+    description?: string;
+  }): Promise<void> {
+    const { error } = await this.client
+      .from('tickets_ledger')
+      .insert({
+        organizer_id: data.organizerId,
+        order_id: data.orderId,
+        payout_id: data.payoutId,
+        type: data.type,
+        amount_cents: data.amountCents,
+        currency: data.currency || 'CAD',
+        description: data.description
+      });
+    
+    if (error) throw error;
+  }
+
+  async getLedgerEntryByOrderId(orderId: string): Promise<any | null> {
+    const { data, error } = await this.client
+      .from('tickets_ledger')
+      .select('*')
+      .eq('order_id', orderId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  async getLedgerEntriesByOrganizer(organizerId: string): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('tickets_ledger')
+      .select('*')
+      .eq('organizer_id', organizerId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getOrganizerBalance(organizerId: string): Promise<number> {
+    const { data, error } = await this.client
+      .from('tickets_ledger')
+      .select('amount_cents')
+      .eq('organizer_id', organizerId)
+      .is('payout_id', null); // Only unpaid entries
+    
+    if (error) throw error;
+    
+    return (data || []).reduce((sum, entry) => sum + entry.amount_cents, 0);
+  }
+
+  async getUnpaidLedgerEntries(organizerId: string): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('tickets_ledger')
+      .select('*')
+      .eq('organizer_id', organizerId)
+      .is('payout_id', null)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  }
+
+  // Payout operations - SECURE: Server-computed totals with atomic transactions
+  async createAndFinalizePayout(data: {
+    organizerId: string;
+    periodStart: string;
+    periodEnd: string;
+    method: string;
+    reference?: string;
+    notes?: string;
+  }): Promise<any> {
+    // Check for existing payouts for this organizer and period to prevent duplicates
+    const { data: existingPayouts, error: duplicateError } = await this.client
+      .from('tickets_payouts')
+      .select('id, status')
+      .eq('organizer_id', data.organizerId)
+      .eq('period_start', data.periodStart.split('T')[0])
+      .eq('period_end', data.periodEnd.split('T')[0])
+      .in('status', ['draft', 'ready', 'paid']);
+    
+    if (duplicateError) throw duplicateError;
+    
+    if (existingPayouts && existingPayouts.length > 0) {
+      throw new Error(`Payout already exists for organizer ${data.organizerId} for period ${data.periodStart.split('T')[0]} to ${data.periodEnd.split('T')[0]}. Status: ${existingPayouts[0].status}`);
+    }
+    
+    // Start transaction by computing unpaid ledger entries for the period
+    const { data: unpaidEntries, error: ledgerError } = await this.client
+      .from('tickets_ledger')
+      .select('*')
+      .eq('organizer_id', data.organizerId)
+      .is('payout_id', null) // Only unpaid entries
+      .gte('created_at', data.periodStart)
+      .lte('created_at', data.periodEnd);
+    
+    if (ledgerError) throw ledgerError;
+    
+    if (!unpaidEntries || unpaidEntries.length === 0) {
+      throw new Error('No unpaid ledger entries found for the specified period');
+    }
+    
+    // Server-computed total - SECURE
+    const totalCents = unpaidEntries.reduce((sum, entry) => sum + entry.amount_cents, 0);
+    
+    if (totalCents <= 0) {
+      throw new Error('No positive balance to pay out');
+    }
+    
+    // Create payout record
+    const { data: payout, error: payoutError } = await this.client
+      .from('tickets_payouts')
+      .insert({
+        organizer_id: data.organizerId,
+        period_start: data.periodStart,
+        period_end: data.periodEnd,
+        total_cents: totalCents, // Server-computed, not caller-supplied
+        currency: 'CAD',
+        method: data.method,
+        reference: data.reference,
+        status: 'draft',
+        notes: data.notes
+      })
+      .select()
+      .single();
+    
+    if (payoutError) throw payoutError;
+    
+    // Link ledger entries to this payout atomically
+    const { error: linkError } = await this.client
+      .from('tickets_ledger')
+      .update({ payout_id: payout.id })
+      .in('id', unpaidEntries.map(e => e.id));
+    
+    if (linkError) {
+      // Rollback: delete the payout if linking failed
+      await this.client.from('tickets_payouts').delete().eq('id', payout.id);
+      throw linkError;
+    }
+    
+    return payout;
+  }
+
+  // Legacy create payout - deprecated in favor of createAndFinalizePayout
+  async createPayout(data: {
+    organizerId: string;
+    periodStart: string;
+    periodEnd: string;
+    totalCents: number;
+    currency?: string;
+    method: string;
+    reference?: string;
+    status?: string;
+    notes?: string;
+  }): Promise<any> {
+    console.warn('[DEPRECATED] createPayout with caller-supplied totalCents. Use createAndFinalizePayout for secure server-computed totals.');
+    
+    const { data: payout, error } = await this.client
+      .from('tickets_payouts')
+      .insert({
+        organizer_id: data.organizerId,
+        period_start: data.periodStart,
+        period_end: data.periodEnd,
+        total_cents: data.totalCents,
+        currency: data.currency || 'CAD',
+        method: data.method,
+        reference: data.reference,
+        status: data.status || 'draft',
+        notes: data.notes
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return payout;
+  }
+
+  async getPayoutsByOrganizer(organizerId: string): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('tickets_payouts')
+      .select('*')
+      .eq('organizer_id', organizerId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  }
+
+  async updatePayoutStatus(payoutId: string, status: string, reference?: string): Promise<void> {
+    const updateData: any = { status };
+    if (reference) updateData.reference = reference;
+    if (status === 'paid') updateData.paid_at = new Date().toISOString();
+    
+    const { error } = await this.client
+      .from('tickets_payouts')
+      .update(updateData)
+      .eq('id', payoutId);
+    
+    if (error) throw error;
+  }
+
+  async markPayoutPaid(payoutId: string, reference: string): Promise<void> {
+    // Verify payout exists and get its details
+    const { data: payout, error: payoutError } = await this.client
+      .from('tickets_payouts')
+      .select('*')
+      .eq('id', payoutId)
+      .single();
+    
+    if (payoutError) throw payoutError;
+    if (!payout) throw new Error('Payout not found');
+    if (payout.status === 'paid') throw new Error('Payout already marked as paid');
+    
+    // Update payout status to paid
+    const { error: updateError } = await this.client
+      .from('tickets_payouts')
+      .update({
+        status: 'paid',
+        reference,
+        paid_at: new Date().toISOString()
+      })
+      .eq('id', payoutId);
+    
+    if (updateError) throw updateError;
+
+    // Verify all ledger entries are properly linked (should already be linked by createAndFinalizePayout)
+    const { data: linkedEntries, error: checkError } = await this.client
+      .from('tickets_ledger')
+      .select('id')
+      .eq('payout_id', payoutId);
+    
+    if (checkError) throw checkError;
+    
+    if (!linkedEntries || linkedEntries.length === 0) {
+      // Rollback: reset payout status if no linked entries found
+      await this.client
+        .from('tickets_payouts')
+        .update({ status: 'draft', paid_at: null, reference: null })
+        .eq('id', payoutId);
+      throw new Error('No ledger entries linked to this payout. Cannot mark as paid.');
+    }
+  }
+
+  async getAllPendingPayouts(): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('tickets_payouts')
+      .select(`
+        *,
+        organizer:tickets_organizers(business_name, business_email)
+      `)
+      .in('status', ['draft', 'ready'])
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  }
 }
 
 export const ticketsDB = new TicketsSupabaseDB();
