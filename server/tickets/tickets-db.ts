@@ -213,6 +213,130 @@ export class TicketsDB {
     return result.rows[0].count || 0;
   }
 
+  async updateTier(id: string, data: Partial<InsertTicketsTier>): Promise<TicketsTier> {
+    // Build dynamic update query
+    const fields = [];
+    const values = [];
+    let paramCount = 1;
+    
+    for (const [key, value] of Object.entries(data)) {
+      // Convert camelCase to snake_case
+      const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+      fields.push(`${snakeKey} = $${paramCount}`);
+      values.push(value);
+      paramCount++;
+    }
+    
+    fields.push(`updated_at = NOW()`);
+    values.push(id);
+    
+    const query = `
+      UPDATE tickets_tiers 
+      SET ${fields.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING *
+    `;
+    
+    const result = await pool.query(query, values);
+    return result.rows[0];
+  }
+
+  async deleteTier(id: string): Promise<void> {
+    // Check if tier has any sold tickets
+    const soldCount = await this.getTierSoldCount(id);
+    if (soldCount > 0) {
+      throw new Error('Cannot delete tier with sold tickets');
+    }
+    
+    const query = 'DELETE FROM tickets_tiers WHERE id = $1';
+    await pool.query(query, [id]);
+  }
+
+  async getEventMetrics(eventId: string): Promise<{
+    totalOrders: number;
+    totalRevenue: number;
+    totalTickets: number;
+    ticketsByStatus: Record<string, number>;
+    salesByTier: Array<{ tierName: string; soldCount: number; revenue: number }>;
+  }> {
+    // Get total orders and revenue
+    const orderMetricsQuery = `
+      SELECT 
+        COUNT(*)::integer as total_orders,
+        COALESCE(SUM(total_cents), 0)::bigint as total_revenue
+      FROM tickets_orders 
+      WHERE event_id = $1 AND status = 'paid'
+    `;
+    const orderMetrics = await pool.query(orderMetricsQuery, [eventId]);
+
+    // Get ticket counts by status
+    const ticketStatusQuery = `
+      SELECT 
+        t.status,
+        COUNT(*)::integer as count
+      FROM tickets_tickets t
+      JOIN tickets_tiers tier ON tier.id = t.tier_id
+      WHERE tier.event_id = $1
+      GROUP BY t.status
+    `;
+    const ticketStatusResult = await pool.query(ticketStatusQuery, [eventId]);
+    
+    const ticketsByStatus: Record<string, number> = {};
+    let totalTickets = 0;
+    ticketStatusResult.rows.forEach(row => {
+      ticketsByStatus[row.status] = row.count;
+      totalTickets += row.count;
+    });
+
+    // Get sales by tier
+    const tierSalesQuery = `
+      SELECT 
+        tier.name as tier_name,
+        COUNT(t.id)::integer as sold_count,
+        COALESCE(SUM(oi.unit_price_cents * oi.quantity), 0)::bigint as revenue
+      FROM tickets_tiers tier
+      LEFT JOIN tickets_tickets t ON t.tier_id = tier.id AND t.status IN ('valid', 'used')
+      LEFT JOIN tickets_order_items oi ON oi.tier_id = tier.id
+      LEFT JOIN tickets_orders o ON o.id = oi.order_id AND o.status = 'paid'
+      WHERE tier.event_id = $1
+      GROUP BY tier.id, tier.name
+      ORDER BY tier.sort_order ASC, tier.price_cents ASC
+    `;
+    const tierSalesResult = await pool.query(tierSalesQuery, [eventId]);
+
+    return {
+      totalOrders: orderMetrics.rows[0].total_orders,
+      totalRevenue: Number(orderMetrics.rows[0].total_revenue),
+      totalTickets,
+      ticketsByStatus,
+      salesByTier: tierSalesResult.rows.map(row => ({
+        tierName: row.tier_name,
+        soldCount: row.sold_count,
+        revenue: Number(row.revenue)
+      }))
+    };
+  }
+
+  async getOrdersByEvent(eventId: string): Promise<TicketsOrder[]> {
+    const query = `
+      SELECT * FROM tickets_orders 
+      WHERE event_id = $1
+      ORDER BY created_at DESC
+    `;
+    const result = await pool.query(query, [eventId]);
+    return result.rows;
+  }
+
+  async getOrdersByBuyer(email: string): Promise<TicketsOrder[]> {
+    const query = `
+      SELECT * FROM tickets_orders 
+      WHERE buyer_email = $1
+      ORDER BY created_at DESC
+    `;
+    const result = await pool.query(query, [email]);
+    return result.rows;
+  }
+
   // ============ ORDERS ============
   async createOrder(data: InsertTicketsOrder & { id?: string }): Promise<TicketsOrder> {
     const id = data.id || nanoid();

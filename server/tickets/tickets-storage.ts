@@ -81,13 +81,11 @@ export class TicketsStorage {
   }
 
   async updateTier(id: string, data: Partial<InsertTicketsTier>): Promise<TicketsTier> {
-    // Implementation would be similar to updateEvent
-    throw new Error('Not implemented yet');
+    return ticketsDB.updateTier(id, data);
   }
 
   async deleteTier(id: string): Promise<void> {
-    // Implementation needed
-    throw new Error('Not implemented yet');
+    return ticketsDB.deleteTier(id);
   }
 
   async checkTierAvailability(tierId: string, quantity: number): Promise<boolean> {
@@ -138,13 +136,21 @@ export class TicketsStorage {
   }
 
   async getOrdersByEvent(eventId: string): Promise<TicketsOrder[]> {
-    // Implementation needed
-    throw new Error('Not implemented yet');
+    return ticketsDB.getOrdersByEvent(eventId);
   }
 
   async getOrdersByBuyer(email: string): Promise<TicketsOrder[]> {
-    // Implementation needed
-    throw new Error('Not implemented yet');
+    return ticketsDB.getOrdersByBuyer(email);
+  }
+
+  async getEventMetrics(eventId: string): Promise<{
+    totalOrders: number;
+    totalRevenue: number;
+    totalTickets: number;
+    ticketsByStatus: Record<string, number>;
+    salesByTier: Array<{ tierName: string; soldCount: number; revenue: number }>;
+  }> {
+    return ticketsDB.getEventMetrics(eventId);
   }
 
   async markOrderPaid(orderId: string, paymentIntentId: string): Promise<TicketsOrder> {

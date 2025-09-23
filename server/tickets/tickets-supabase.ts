@@ -510,6 +510,152 @@ export class TicketsSupabaseDB {
     return data || [];
   }
 
+  // ============ MISSING ADMIN FUNCTIONS ============
+  async updateOrganizerStripeAccount(id: string, stripeAccountId: string): Promise<TicketsOrganizer> {
+    const { data, error } = await supabase
+      .from('tickets_organizers')
+      .update({ 
+        stripe_account_id: stripeAccountId, 
+        status: 'active',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+
+  async updateTier(id: string, data: Partial<InsertTicketsTier>): Promise<TicketsTier> {
+    const snakeCaseData = toSnakeCase({
+      ...data,
+      updated_at: new Date().toISOString()
+    });
+
+    const { data: tier, error } = await supabase
+      .from('tickets_tiers')
+      .update(snakeCaseData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return tier;
+  }
+
+  async deleteTier(id: string): Promise<void> {
+    // Check if tier has any sold tickets first
+    const { data: tickets, error: checkError } = await supabase
+      .from('tickets_tickets')
+      .select('id')
+      .eq('tier_id', id)
+      .eq('status', 'valid')
+      .limit(1);
+
+    if (checkError) throw checkError;
+    
+    if (tickets && tickets.length > 0) {
+      throw new Error('Cannot delete tier with sold tickets');
+    }
+    
+    const { error } = await supabase
+      .from('tickets_tiers')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
+  async getEventMetrics(eventId: string): Promise<{
+    totalOrders: number;
+    totalRevenue: number;
+    totalTickets: number;
+    ticketsByStatus: Record<string, number>;
+    salesByTier: Array<{ tierName: string; soldCount: number; revenue: number }>;
+  }> {
+    // Get basic metrics using SQL function calls
+    const { data: orderMetrics, error: orderError } = await supabase.rpc('get_event_order_metrics', {
+      event_id: eventId
+    });
+
+    // Fallback to manual queries if RPC doesn't exist
+    if (orderError && orderError.code === 'PGRST202') {
+      // Manual implementation
+      const { data: orders } = await supabase
+        .from('tickets_orders')
+        .select('total_cents')
+        .eq('event_id', eventId)
+        .eq('status', 'paid');
+
+      const totalOrders = orders?.length || 0;
+      const totalRevenue = orders?.reduce((sum, order) => sum + (order.total_cents || 0), 0) || 0;
+
+      // Get tickets by status
+      const { data: tickets } = await supabase
+        .from('tickets_tickets')
+        .select('status, tickets_tiers!inner(event_id)')
+        .eq('tickets_tiers.event_id', eventId);
+
+      const ticketsByStatus: Record<string, number> = {};
+      let totalTickets = 0;
+      tickets?.forEach(ticket => {
+        ticketsByStatus[ticket.status] = (ticketsByStatus[ticket.status] || 0) + 1;
+        totalTickets++;
+      });
+
+      // Get sales by tier
+      const { data: tiers } = await supabase
+        .from('tickets_tiers')
+        .select(`
+          name,
+          tickets_tickets(id),
+          tickets_order_items(quantity, unit_price_cents, tickets_orders!inner(status))
+        `)
+        .eq('event_id', eventId);
+
+      const salesByTier = tiers?.map(tier => ({
+        tierName: tier.name,
+        soldCount: tier.tickets_tickets?.length || 0,
+        revenue: tier.tickets_order_items?.reduce((sum: number, item: any) => 
+          item.tickets_orders.status === 'paid' ? sum + (item.quantity * item.unit_price_cents) : sum, 0) || 0
+      })) || [];
+
+      return {
+        totalOrders,
+        totalRevenue,
+        totalTickets,
+        ticketsByStatus,
+        salesByTier
+      };
+    }
+
+    if (orderError) throw orderError;
+    return orderMetrics;
+  }
+
+  async getOrdersByEvent(eventId: string): Promise<TicketsOrder[]> {
+    const { data, error } = await supabase
+      .from('tickets_orders')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getOrdersByBuyer(email: string): Promise<TicketsOrder[]> {
+    const { data, error } = await supabase
+      .from('tickets_orders')
+      .select('*')
+      .eq('buyer_email', email)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  }
+
   // ============ DISCOUNTS ============
   async getDiscountByCode(eventId: string, code: string): Promise<TicketsDiscount | null> {
     const { data, error } = await supabase
