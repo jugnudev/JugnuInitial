@@ -641,7 +641,7 @@ export function addTicketsRoutes(app: Express) {
   app.post('/api/tickets/organizers/signup', requireTicketing, async (req: Request & { session?: any }, res: Response) => {
     try {
       const validated = organizerSignupSchema.parse(req.body);
-      const { businessName, businessEmail, firstName, lastName } = validated;
+      const { businessName, businessEmail, firstName, lastName, payoutMethod, payoutEmail } = validated;
       
       // Get userId from session - for now we'll create a test user ID since we don't have auth yet
       const userId = req.session?.userId || 'test-user-1';
@@ -666,9 +666,9 @@ export function addTicketsRoutes(app: Express) {
           businessEmail,
           email: businessEmail, // Required for MoR payouts
           status: 'active', // MoR model: active immediately
-          payoutMethod: 'etransfer', // Default payout method
-          payoutEmail: businessEmail, // Use business email for payouts
-          legalName: `${firstName} ${lastName}`.trim() || businessName
+          payoutMethod: payoutMethod || 'etransfer', // User preference or default
+          payoutEmail: payoutEmail || businessEmail, // User preference or business email
+          legalName: [firstName, lastName].filter(Boolean).join(' ').trim() || businessName
         });
         console.log('[MoR Signup] Organizer created with ID:', organizer.id);
       }
