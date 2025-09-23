@@ -508,6 +508,11 @@ export function addTicketsRoutes(app: Express) {
               await ticketsStorage.markWebhookProcessed(webhookId);
               break;
             
+            case 'charge.succeeded':
+              await handleChargeSucceeded(event.data.object as any);
+              await ticketsStorage.markWebhookProcessed(webhookId);
+              break;
+            
             case 'charge.refunded':
               await handleRefund(event.data.object as any);
               await ticketsStorage.markWebhookProcessed(webhookId);
@@ -952,12 +957,27 @@ async function handleCheckoutCompleted(session: any) {
     const metadata = session.metadata;
     if (!metadata?.orderId) return;
     
-    // Update order status
+    console.log(`[MoR Webhook] Processing checkout completion for order: ${metadata.orderId}`);
+    
+    // Get the order to calculate financial data
+    const order = await ticketsStorage.getOrderById(metadata.orderId);
+    if (!order) {
+      console.error(`[MoR Webhook] Order not found: ${metadata.orderId}`);
+      return;
+    }
+    
+    // MoR Model: Defer financial tracking to charge.succeeded webhook for accuracy
+    // This handler focuses on order status and ticket creation
+    console.log(`[MoR Webhook] Marking order as paid, charge.succeeded will handle fees`);
+    
+    // Update order status only - financial data will come from charge.succeeded
     await ticketsStorage.updateOrder(metadata.orderId, {
       status: 'paid',
       stripePaymentIntentId: session.payment_intent,
       placedAt: new Date()
     });
+    
+    // Note: Ledger entry will be created by charge.succeeded handler with accurate fees
     
     // Parse tier info and create order items and tickets
     const tierInfo = JSON.parse(metadata.tierInfo || '[]');
@@ -987,15 +1007,20 @@ async function handleCheckoutCompleted(session: any) {
     
     // TODO: Send email with tickets
     
-    // Log audit
+    // Log audit (financial data will be logged by charge.succeeded)
     await ticketsStorage.createAudit({
       actorType: 'system',
       actorId: 'stripe',
       action: 'order_completed',
       targetType: 'order',
       targetId: metadata.orderId,
-      metaJson: { sessionId: session.id }
+      metaJson: { 
+        sessionId: session.id,
+        note: 'Financial tracking deferred to charge.succeeded webhook'
+      }
     });
+    
+    console.log(`[MoR Webhook] Successfully processed checkout completion for order: ${metadata.orderId}`);
     
   } catch (error) {
     console.error('Error handling checkout completion:', error);
@@ -1003,14 +1028,167 @@ async function handleCheckoutCompleted(session: any) {
   }
 }
 
+// Helper function to handle charge succeeded (most reliable fee tracking)
+async function handleChargeSucceeded(charge: any) {
+  try {
+    console.log(`[MoR Webhook] Processing charge succeeded: ${charge.id}`);
+    
+    // Find order by payment intent ID
+    const order = await ticketsStorage.getOrderByPaymentIntent(charge.payment_intent);
+    if (!order) {
+      console.warn(`[MoR Webhook] No order found for payment intent: ${charge.payment_intent}`);
+      return;
+    }
+    
+    // Robust idempotency check: if already processed by this charge OR has ledger entry
+    if (order.stripeChargeId === charge.id) {
+      console.log(`[MoR Webhook] Order ${order.id} already processed for charge ${charge.id}, skipping`);
+      return;
+    }
+    
+    // Additional safety: check for existing ledger entry (prevents double-creation)
+    const event = await ticketsStorage.getEventById(order.eventId);
+    if (event?.organizerId) {
+      const existingLedger = await ticketsStorage.getLedgerEntryByOrderId(order.id);
+      if (existingLedger && order.stripeChargeId) {
+        console.log(`[MoR Webhook] Order ${order.id} already has ledger entry and charge data, skipping`);
+        return;
+      }
+    }
+    
+    // Get actual Stripe fees from charge (most reliable source)
+    let stripeFeeCents = 0;
+    let feeStatus = 'actual';
+    
+    if (charge.balance_transaction) {
+      try {
+        const balanceTransaction = await stripe!.balanceTransactions.retrieve(charge.balance_transaction);
+        stripeFeeCents = balanceTransaction.fee;
+        console.log(`[MoR Webhook] Retrieved precise fees - Stripe: ${stripeFeeCents}¢`);
+      } catch (error) {
+        console.error('[MoR Webhook] Error fetching balance transaction:', error);
+        // Fallback to estimating fees (approximately 2.9% + 30¢)
+        stripeFeeCents = Math.round(charge.amount * 0.029 + 30);
+        feeStatus = 'estimated';
+        console.log(`[MoR Webhook] Using estimated fees - Stripe: ${stripeFeeCents}¢ (${feeStatus})`);
+      }
+    } else {
+      // No balance transaction yet, estimate fees
+      stripeFeeCents = Math.round(charge.amount * 0.029 + 30);
+      feeStatus = 'estimated';
+      console.log(`[MoR Webhook] No balance transaction, using estimated fees - Stripe: ${stripeFeeCents}¢ (${feeStatus})`);
+    }
+    
+    // Calculate net amount for organizer (MoR model: use subtotal, not Stripe net)
+    // Organizer gets: subtotal - platform fee (taxes excluded from payout)
+    const netToOrganizerCents = Math.max(0, order.subtotalCents - order.feesCents);
+    
+    console.log(`[MoR Webhook] Financial tracking - Subtotal: ${order.subtotalCents}¢, Stripe: ${stripeFeeCents}¢, Platform: ${order.feesCents}¢, Net to Organizer: ${netToOrganizerCents}¢`);
+    
+    // Atomic operation: Update order and create ledger entry together
+    try {
+      // Update order with authoritative financial data
+      await ticketsStorage.updateOrder(order.id, {
+        stripeChargeId: charge.id,
+        stripeFeeCents,
+        platformFeeCents: order.feesCents,
+        netToOrganizerCents,
+        payoutStatus: 'pending'
+      });
+      
+      // Create ledger entry if organizer exists (this should be atomic with order update)
+      if (event?.organizerId) {
+        const existingLedger = await ticketsStorage.getLedgerEntryByOrderId(order.id);
+        if (!existingLedger) {
+          await ticketsStorage.createLedgerEntry({
+            organizerId: event.organizerId,
+            orderId: order.id,
+            type: 'sale',
+            description: `Ticket sale - Order ${order.id}`,
+            amountCents: netToOrganizerCents,
+            status: 'pending'
+          });
+          console.log(`[MoR Webhook] Created ledger entry for organizer ${event.organizerId}`);
+        } else {
+          console.log(`[MoR Webhook] Ledger entry already exists for order ${order.id}`);
+        }
+      }
+    } catch (error) {
+      console.error(`[MoR Webhook] Error in atomic financial update for order ${order.id}:`, error);
+      throw error;
+    }
+    
+    // Log audit with complete financial data
+    await ticketsStorage.createAudit({
+      actorType: 'system',
+      actorId: 'stripe',
+      action: 'charge_succeeded',
+      targetType: 'order',
+      targetId: order.id,
+      metaJson: { 
+        chargeId: charge.id,
+        stripeFeeCents,
+        platformFeeCents: order.feesCents,
+        netToOrganizerCents,
+        subtotalCents: order.subtotalCents
+      }
+    });
+    
+    console.log(`[MoR Webhook] Successfully processed charge for order: ${order.id}`);
+    
+  } catch (error) {
+    console.error('Error handling charge succeeded:', error);
+    throw error;
+  }
+}
+
 // Helper function to handle refunds
 async function handleRefund(charge: any) {
   try {
-    // Find order by payment intent
-    // TODO: Implement finding order by payment intent
+    console.log(`[MoR Webhook] Processing refund for charge: ${charge.id}`);
     
-    // Update ticket statuses
-    // TODO: Mark tickets as refunded
+    // Find order by charge ID
+    const order = await ticketsStorage.getOrderByChargeId(charge.id);
+    if (!order) {
+      console.warn(`[MoR Webhook] No order found for charge: ${charge.id}`);
+      return;
+    }
+    
+    const refundAmountCents = charge.amount_refunded;
+    console.log(`[MoR Webhook] Refunding ${refundAmountCents}¢ for order: ${order.id}`);
+    
+    // Calculate net refund to organizer (refund amount minus proportional platform fee)
+    const refundRatio = refundAmountCents / order.totalCents;
+    const platformFeeRefundCents = Math.round(order.platformFeeCents * refundRatio);
+    const organizerRefundCents = refundAmountCents - platformFeeRefundCents;
+    
+    // Update order with refund data
+    await ticketsStorage.updateOrder(order.id, {
+      status: refundAmountCents >= order.totalCents ? 'refunded' : 'partially_refunded',
+      refundAmountCents: refundAmountCents,
+      refundedAt: new Date()
+    });
+    
+    // Create negative ledger entry for the refund
+    const event = await ticketsStorage.getEventById(order.eventId);
+    if (event?.organizerId) {
+      await ticketsStorage.createLedgerEntry({
+        organizerId: event.organizerId,
+        orderId: order.id,
+        type: 'refund',
+        description: `Refund - Order ${order.id}`,
+        amountCents: -organizerRefundCents, // Negative amount for refund
+        status: 'completed'
+      });
+    }
+    
+    // Update ticket statuses for full refund
+    if (refundAmountCents >= order.totalCents) {
+      const tickets = await ticketsStorage.getTicketsByOrderId(order.id);
+      for (const ticket of tickets) {
+        await ticketsStorage.updateTicket(ticket.id, { status: 'refunded' });
+      }
+    }
     
     // Log audit
     await ticketsStorage.createAudit({
@@ -1019,8 +1197,15 @@ async function handleRefund(charge: any) {
       action: 'refund_processed',
       targetType: 'charge',
       targetId: charge.id,
-      metaJson: { amount: charge.amount_refunded }
+      metaJson: { 
+        amount: refundAmountCents,
+        orderId: order.id,
+        organizerRefundCents,
+        platformFeeRefundCents
+      }
     });
+    
+    console.log(`[MoR Webhook] Successfully processed refund for order: ${order.id}`);
     
   } catch (error) {
     console.error('Error handling refund:', error);
@@ -1031,28 +1216,38 @@ async function handleRefund(charge: any) {
 // Helper function to handle Payment Intent succeeded (for embedded checkout)
 async function handlePaymentIntentSucceeded(paymentIntent: any) {
   try {
-    console.log(`[Webhook] Processing Payment Intent succeeded: ${paymentIntent.id}`);
+    console.log(`[MoR Webhook] Processing Payment Intent succeeded: ${paymentIntent.id}`);
     
     // Find order by Payment Intent ID
     const order = await ticketsStorage.getOrderByPaymentIntent(paymentIntent.id);
     if (!order) {
-      console.warn(`[Webhook] No order found for Payment Intent: ${paymentIntent.id}`);
+      console.warn(`[MoR Webhook] No order found for Payment Intent: ${paymentIntent.id}`);
       return;
     }
 
     // Check if already processed (idempotency)
     if (order.status === 'paid') {
-      console.log(`[Webhook] Order ${order.id} already marked as paid, skipping`);
+      console.log(`[MoR Webhook] Order ${order.id} already marked as paid, skipping`);
       return;
     }
 
-    // Mark order as paid
-    await ticketsStorage.markOrderPaid(order.id, paymentIntent.id);
+    // MoR Model: Defer financial tracking to charge.succeeded webhook for accuracy
+    // This handler focuses on order status and ticket creation
+    console.log(`[MoR Webhook] Marking order as paid, charge.succeeded will handle fees`);
+    
+    // Update order status only - financial data will come from charge.succeeded
+    await ticketsStorage.updateOrder(order.id, {
+      status: 'paid',
+      stripePaymentIntentId: paymentIntent.id,
+      placedAt: new Date()
+    });
+    
+    // Note: Ledger entry will be created by charge.succeeded handler with accurate fees
     
     // Create individual tickets for the order
     await createTicketsForPaidOrder(order.id);
     
-    console.log(`[Webhook] Successfully processed Payment Intent for order: ${order.id}`);
+    console.log(`[MoR Webhook] Successfully processed Payment Intent for order: ${order.id}`);
   } catch (error) {
     console.error('Error handling Payment Intent succeeded:', error);
     throw error;
