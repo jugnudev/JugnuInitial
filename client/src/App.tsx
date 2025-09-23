@@ -45,6 +45,7 @@ import { CommunitiesSigninPage } from "@/pages/CommunitiesSigninPage";
 import { CommunitiesSignupPage } from "@/pages/CommunitiesSignupPage";
 import { CommunitiesProfilePage } from "@/pages/CommunitiesProfilePage";
 import { CommunitiesOrganizerApplicationPage } from "@/pages/CommunitiesOrganizerApplicationPage";
+import AdminOrganizers from "@/pages/AdminOrganizers";
 
 function Router() {
   // Track page views when routes change - Google Analytics integration
@@ -107,7 +108,7 @@ function Router() {
             <Route path="/account/signup" component={CommunitiesSignupPage} />
             <Route path="/account/profile" component={CommunitiesProfilePage} />
             <Route path="/account/apply-organizer" component={CommunitiesOrganizerApplicationPage} />
-            <Route path="/community/admin/organizers" component={() => <div>Communities Admin Organizers Page</div>} />
+            <Route path="/community/admin/organizers" component={AdminOrganizers} />
           </>
         )}
         
