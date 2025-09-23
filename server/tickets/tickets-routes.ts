@@ -714,7 +714,14 @@ export function addTicketsRoutes(app: Express) {
       const organizer = (req as any).organizer;
       const events = await ticketsStorage.getEventsByOrganizer(organizer.id);
       
-      res.json({ ok: true, organizer, events });
+      console.log('[DEBUG] Events before toCamelCase:', events.length > 0 ? JSON.stringify(events[0], null, 2).slice(0, 300) : 'No events');
+      
+      // Convert events to camelCase for frontend consistency
+      const camelCaseEvents = toCamelCase(events);
+      
+      console.log('[DEBUG] Events after toCamelCase:', camelCaseEvents.length > 0 ? JSON.stringify(camelCaseEvents[0], null, 2).slice(0, 300) : 'No events');
+      
+      res.json({ ok: true, organizer, events: camelCaseEvents });
     } catch (error) {
       console.error('Get organizer error:', error);
       res.status(500).json({ ok: false, error: 'Failed to fetch organizer info' });
