@@ -55,6 +55,8 @@ const getSupabase = () => {
 };
 
 export class TicketsSupabaseDB {
+  private client = getSupabase();
+
   // ============ ORGANIZERS ============
   async createOrganizer(data: InsertTicketsOrganizer): Promise<TicketsOrganizer> {
     console.log('[DEBUG] Creating organizer with data:', data);
@@ -69,8 +71,7 @@ export class TicketsSupabaseDB {
       RETURNING *;
     `;
     
-    const client = getSupabase();
-    const { data: result, error } = await client.rpc('exec_sql', {
+    const { data: result, error } = await this.client.rpc('exec_sql', {
       query: insertSQL,
       params: [organizerId, data.userId, data.businessName, data.businessEmail, data.status || 'pending', now, now]
     });
@@ -94,7 +95,7 @@ export class TicketsSupabaseDB {
         
         console.log('[DEBUG] Inserting with snake_case data:', insertData);
         
-        const { data: organizer, error: insertError } = await client
+        const { data: organizer, error: insertError } = await this.client
           .from('tickets_organizers')
           .insert(insertData)
           .select()
@@ -118,8 +119,7 @@ export class TicketsSupabaseDB {
   }
 
   async getOrganizerById(id: string): Promise<TicketsOrganizer | null> {
-    const client = getSupabase();
-    const { data, error } = await client
+    const { data, error } = await this.client
       .from('tickets_organizers')
       .select('*')
       .eq('id', id)
@@ -134,10 +134,9 @@ export class TicketsSupabaseDB {
     console.log('[DEBUG] Using PostgREST cache workaround...');
     
     try {
-      const client = getSupabase();
       
       // Workaround: Fetch all organizers and filter client-side to bypass PostgREST cache issue
-      const { data: allOrganizers, error } = await client
+      const { data: allOrganizers, error } = await this.client
         .from('tickets_organizers')
         .select('*');
       
@@ -158,8 +157,7 @@ export class TicketsSupabaseDB {
   }
 
   async getOrganizerByEmail(email: string): Promise<TicketsOrganizer | null> {
-    const client = getSupabase();
-    const { data, error } = await client
+    const { data, error } = await this.client
       .from('tickets_organizers')
       .select('*')
       .eq('business_email', email)  // Fixed: use business_email not email
@@ -170,8 +168,7 @@ export class TicketsSupabaseDB {
   }
 
   async getOrganizerByStripeAccount(stripeAccountId: string): Promise<TicketsOrganizer | null> {
-    const client = getSupabase();
-    const { data, error } = await client
+    const { data, error } = await this.client
       .from('tickets_organizers')
       .select('*')
       .eq('stripe_account_id', stripeAccountId)
@@ -182,7 +179,7 @@ export class TicketsSupabaseDB {
   }
 
   async updateOrganizer(id: string, data: Partial<InsertTicketsOrganizer>): Promise<TicketsOrganizer> {
-    const { data: organizer, error } = await supabase
+    const { data: organizer, error } = await this.client
       .from('tickets_organizers')
       .update(data)
       .eq('id', id)
@@ -195,7 +192,7 @@ export class TicketsSupabaseDB {
 
   // ============ EVENTS ============
   async createEvent(data: InsertTicketsEvent): Promise<TicketsEvent> {
-    const { data: event, error } = await supabase
+    const { data: event, error } = await this.client
       .from('tickets_events')
       .insert(data)
       .select()
@@ -206,7 +203,7 @@ export class TicketsSupabaseDB {
   }
 
   async getEventById(id: string): Promise<TicketsEvent | null> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_events')
       .select('*')
       .eq('id', id)
@@ -217,7 +214,7 @@ export class TicketsSupabaseDB {
   }
 
   async getEventBySlug(slug: string): Promise<TicketsEvent | null> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_events')
       .select('*')
       .eq('slug', slug)
@@ -228,7 +225,7 @@ export class TicketsSupabaseDB {
   }
 
   async getPublicEvents(): Promise<TicketsEvent[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_events')
       .select('*')
       .eq('status', 'published')
@@ -240,7 +237,7 @@ export class TicketsSupabaseDB {
   }
 
   async getEventsByOrganizer(organizerId: string): Promise<TicketsEvent[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_events')
       .select('*')
       .eq('organizer_id', organizerId)
@@ -251,7 +248,7 @@ export class TicketsSupabaseDB {
   }
 
   async updateEvent(id: string, data: Partial<InsertTicketsEvent>): Promise<TicketsEvent> {
-    const { data: event, error } = await supabase
+    const { data: event, error } = await this.client
       .from('tickets_events')
       .update(data)
       .eq('id', id)
@@ -264,7 +261,7 @@ export class TicketsSupabaseDB {
 
   // ============ TIERS ============
   async createTier(data: InsertTicketsTier): Promise<TicketsTier> {
-    const { data: tier, error } = await supabase
+    const { data: tier, error } = await this.client
       .from('tickets_tiers')
       .insert(data)
       .select()
@@ -276,7 +273,7 @@ export class TicketsSupabaseDB {
 
   async getTiersByEvent(eventId: string): Promise<TicketsTier[]> {
     // Get tiers with sold count
-    const { data: tiers, error: tiersError } = await supabase
+    const { data: tiers, error: tiersError } = await this.client
       .from('tickets_tiers')
       .select('*')
       .eq('event_id', eventId)
@@ -287,7 +284,7 @@ export class TicketsSupabaseDB {
     
     // Get sold counts for each tier
     const tiersWithCounts = await Promise.all((tiers || []).map(async (tier) => {
-      const { count, error: countError } = await supabase
+      const { count, error: countError } = await this.client
         .from('tickets_tickets')
         .select('*', { count: 'exact', head: true })
         .eq('tier_id', tier.id)
@@ -305,7 +302,7 @@ export class TicketsSupabaseDB {
   }
 
   async getTierById(id: string): Promise<TicketsTier | null> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_tiers')
       .select('*')
       .eq('id', id)
@@ -316,7 +313,7 @@ export class TicketsSupabaseDB {
   }
 
   async getTierSoldCount(tierId: string): Promise<number> {
-    const { count, error } = await supabase
+    const { count, error } = await this.client
       .from('tickets_tickets')
       .select('*', { count: 'exact', head: true })
       .eq('tier_id', tierId)
@@ -335,7 +332,7 @@ export class TicketsSupabaseDB {
     console.log('Original data:', JSON.stringify(data, null, 2));
     console.log('Snake case data:', JSON.stringify(snakeCaseData, null, 2));
     
-    const { data: order, error } = await supabase
+    const { data: order, error } = await this.client
       .from('tickets_orders')
       .insert(snakeCaseData)
       .select()
@@ -363,7 +360,7 @@ export class TicketsSupabaseDB {
   async createOrderItem(data: InsertTicketsOrderItem): Promise<TicketsOrderItem> {
     const snakeCaseData = toSnakeCase(data);
     
-    const { data: item, error } = await supabase
+    const { data: item, error } = await this.client
       .from('tickets_order_items')
       .insert(snakeCaseData)
       .select()
@@ -376,7 +373,7 @@ export class TicketsSupabaseDB {
   async createTicket(data: InsertTicketsTicket): Promise<TicketsTicket> {
     const snakeCaseData = toSnakeCase(data);
     
-    const { data: ticket, error } = await supabase
+    const { data: ticket, error } = await this.client
       .from('tickets_tickets')
       .insert(snakeCaseData)
       .select()
@@ -387,7 +384,7 @@ export class TicketsSupabaseDB {
   }
 
   async getOrderByCheckoutSession(sessionId: string): Promise<TicketsOrder | null> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_orders')
       .select('*')
       .eq('stripe_checkout_session_id', sessionId)
@@ -398,7 +395,7 @@ export class TicketsSupabaseDB {
   }
 
   async markOrderPaid(orderId: string, paymentIntentId: string): Promise<TicketsOrder> {
-    const { data: order, error } = await supabase
+    const { data: order, error } = await this.client
       .from('tickets_orders')
       .update({
         status: 'paid',
@@ -416,7 +413,7 @@ export class TicketsSupabaseDB {
   async getOrderById(orderId: string): Promise<TicketsOrder | null> {
     console.log('Fetching order from Supabase with ID:', orderId);
     
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_orders')
       .select('*')
       .eq('id', orderId)
@@ -446,7 +443,7 @@ export class TicketsSupabaseDB {
   async getOrderByPaymentIntent(paymentIntentId: string): Promise<TicketsOrder | null> {
     console.log('Fetching order from Supabase with Payment Intent ID:', paymentIntentId);
     
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_orders')
       .select('*')
       .eq('stripe_payment_intent_id', paymentIntentId)
@@ -479,7 +476,7 @@ export class TicketsSupabaseDB {
       updated_at: new Date().toISOString()
     });
 
-    const { data: order, error } = await supabase
+    const { data: order, error } = await this.client
       .from('tickets_orders')
       .update(snakeCaseData)
       .eq('id', orderId)
@@ -491,7 +488,7 @@ export class TicketsSupabaseDB {
   }
 
   async getOrderItems(orderId: string): Promise<TicketsOrderItem[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_order_items')
       .select('*')
       .eq('order_id', orderId);
@@ -501,7 +498,7 @@ export class TicketsSupabaseDB {
   }
 
   async getTicketsByOrderItem(orderItemId: string): Promise<TicketsTicket[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_tickets')
       .select('*')
       .eq('order_item_id', orderItemId);
@@ -511,7 +508,7 @@ export class TicketsSupabaseDB {
   }
 
   async getTicketByQR(qrToken: string): Promise<TicketsTicket | null> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_tickets')
       .select('*')
       .eq('qr_token', qrToken)
@@ -527,7 +524,7 @@ export class TicketsSupabaseDB {
       updated_at: new Date().toISOString()
     });
 
-    const { data: ticket, error } = await supabase
+    const { data: ticket, error } = await this.client
       .from('tickets_tickets')
       .update(snakeCaseData)
       .eq('id', id)
@@ -539,7 +536,7 @@ export class TicketsSupabaseDB {
   }
 
   async getOrderItemById(id: string): Promise<TicketsOrderItem | null> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_order_items')
       .select('*')
       .eq('id', id)
@@ -551,7 +548,7 @@ export class TicketsSupabaseDB {
 
   // ============ MISSING ADMIN FUNCTIONS ============
   async updateOrganizerStripeAccount(id: string, stripeAccountId: string): Promise<TicketsOrganizer> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_organizers')
       .update({ 
         stripe_account_id: stripeAccountId, 
@@ -572,7 +569,7 @@ export class TicketsSupabaseDB {
       updated_at: new Date().toISOString()
     });
 
-    const { data: tier, error } = await supabase
+    const { data: tier, error } = await this.client
       .from('tickets_tiers')
       .update(snakeCaseData)
       .eq('id', id)
@@ -585,7 +582,7 @@ export class TicketsSupabaseDB {
 
   async deleteTier(id: string): Promise<void> {
     // Check if tier has any sold tickets first
-    const { data: tickets, error: checkError } = await supabase
+    const { data: tickets, error: checkError } = await this.client
       .from('tickets_tickets')
       .select('id')
       .eq('tier_id', id)
@@ -598,7 +595,7 @@ export class TicketsSupabaseDB {
       throw new Error('Cannot delete tier with sold tickets');
     }
     
-    const { error } = await supabase
+    const { error } = await this.client
       .from('tickets_tiers')
       .delete()
       .eq('id', id);
@@ -614,14 +611,14 @@ export class TicketsSupabaseDB {
     salesByTier: Array<{ tierName: string; soldCount: number; revenue: number }>;
   }> {
     // Get basic metrics using SQL function calls
-    const { data: orderMetrics, error: orderError } = await supabase.rpc('get_event_order_metrics', {
+    const { data: orderMetrics, error: orderError } = await this.client.rpc('get_event_order_metrics', {
       event_id: eventId
     });
 
     // Fallback to manual queries if RPC doesn't exist
     if (orderError && orderError.code === 'PGRST202') {
       // Manual implementation
-      const { data: orders } = await supabase
+      const { data: orders } = await this.client
         .from('tickets_orders')
         .select('total_cents')
         .eq('event_id', eventId)
@@ -631,7 +628,7 @@ export class TicketsSupabaseDB {
       const totalRevenue = orders?.reduce((sum, order) => sum + (order.total_cents || 0), 0) || 0;
 
       // Get tickets by status
-      const { data: tickets } = await supabase
+      const { data: tickets } = await this.client
         .from('tickets_tickets')
         .select('status, tickets_tiers!inner(event_id)')
         .eq('tickets_tiers.event_id', eventId);
@@ -644,7 +641,7 @@ export class TicketsSupabaseDB {
       });
 
       // Get sales by tier
-      const { data: tiers } = await supabase
+      const { data: tiers } = await this.client
         .from('tickets_tiers')
         .select(`
           name,
@@ -674,7 +671,7 @@ export class TicketsSupabaseDB {
   }
 
   async getOrdersByEvent(eventId: string): Promise<TicketsOrder[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_orders')
       .select('*')
       .eq('event_id', eventId)
@@ -685,7 +682,7 @@ export class TicketsSupabaseDB {
   }
 
   async getOrdersByBuyer(email: string): Promise<TicketsOrder[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_orders')
       .select('*')
       .eq('buyer_email', email)
@@ -697,7 +694,7 @@ export class TicketsSupabaseDB {
 
   // ============ INVENTORY MANAGEMENT ============
   async getTierSoldCount(tierId: string): Promise<number> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_tickets')
       .select('id', { count: 'exact' })
       .eq('tier_id', tierId)
@@ -708,7 +705,7 @@ export class TicketsSupabaseDB {
   }
 
   async getTierReservedCount(tierId: string): Promise<number> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_capacity_reservations')
       .select('quantity')
       .eq('tier_id', tierId)
@@ -724,7 +721,7 @@ export class TicketsSupabaseDB {
     reservationId: string;
     expiresAt: Date;
   }): Promise<void> {
-    const { error } = await supabase
+    const { error } = await this.client
       .from('tickets_capacity_reservations')
       .insert({
         tier_id: data.tierId,
@@ -738,7 +735,7 @@ export class TicketsSupabaseDB {
   }
 
   async deleteCapacityReservation(reservationId: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await this.client
       .from('tickets_capacity_reservations')
       .delete()
       .eq('reservation_id', reservationId);
@@ -748,7 +745,7 @@ export class TicketsSupabaseDB {
 
   async releaseExpiredReservations(tierId: string, quantity: number): Promise<void> {
     // Get expired reservations to release
-    const { data: reservations, error: selectError } = await supabase
+    const { data: reservations, error: selectError } = await this.client
       .from('tickets_capacity_reservations')
       .select('reservation_id')
       .eq('tier_id', tierId)
@@ -759,7 +756,7 @@ export class TicketsSupabaseDB {
     if (selectError) throw selectError;
 
     if (reservations && reservations.length > 0) {
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await this.client
         .from('tickets_capacity_reservations')
         .delete()
         .in('reservation_id', reservations.map(r => r.reservation_id));
@@ -769,7 +766,7 @@ export class TicketsSupabaseDB {
   }
 
   async cleanupExpiredReservations(): Promise<void> {
-    const { error } = await supabase
+    const { error } = await this.client
       .from('tickets_capacity_reservations')
       .delete()
       .lt('expires_at', new Date().toISOString());
@@ -779,7 +776,7 @@ export class TicketsSupabaseDB {
 
   // ============ DISCOUNTS ============
   async getDiscountByCode(eventId: string, code: string): Promise<TicketsDiscount | null> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('tickets_discounts')
       .select('*')
       .eq('event_id', eventId)
@@ -791,7 +788,7 @@ export class TicketsSupabaseDB {
   }
 
   async incrementDiscountUsage(discountId: string): Promise<void> {
-    const { error } = await supabase.rpc('increment', {
+    const { error } = await this.client.rpc('increment', {
       table_name: 'tickets_discounts',
       column_name: 'uses_count',
       row_id: discountId
@@ -799,14 +796,14 @@ export class TicketsSupabaseDB {
     
     // If RPC doesn't exist, fall back to manual update
     if (error && error.code === 'PGRST202') {
-      const { data: discount } = await supabase
+      const { data: discount } = await this.client
         .from('tickets_discounts')
         .select('uses_count')
         .eq('id', discountId)
         .single();
       
       if (discount) {
-        await supabase
+        await this.client
           .from('tickets_discounts')
           .update({ uses_count: (discount.uses_count || 0) + 1 })
           .eq('id', discountId);
@@ -818,7 +815,7 @@ export class TicketsSupabaseDB {
 
   // ============ WEBHOOKS ============
   async createWebhook(data: InsertTicketsWebhook): Promise<void> {
-    const { error } = await supabase
+    const { error } = await this.client
       .from('tickets_webhooks')
       .insert(data);
     
@@ -826,7 +823,7 @@ export class TicketsSupabaseDB {
   }
 
   async markWebhookProcessed(id: string, error?: string): Promise<void> {
-    const { error: updateError } = await supabase
+    const { error: updateError } = await this.client
       .from('tickets_webhooks')
       .update({
         processed: true,
@@ -840,7 +837,7 @@ export class TicketsSupabaseDB {
 
   // ============ AUDIT ============
   async createAudit(data: InsertTicketsAudit): Promise<void> {
-    const { error } = await supabase
+    const { error } = await this.client
       .from('tickets_audit')
       .insert(data);
     
