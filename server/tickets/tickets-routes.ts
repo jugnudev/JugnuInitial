@@ -656,7 +656,7 @@ export function addTicketsRoutes(app: Express) {
       }
       
       if (!organizer) {
-        // Create new organizer
+        // Create new organizer with proper snake_case mapping
         console.log('[DEBUG] Creating new organizer...');
         organizer = await ticketsStorage.createOrganizer({
           userId,

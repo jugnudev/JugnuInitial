@@ -77,20 +77,25 @@ export class TicketsSupabaseDB {
     if (error) {
       console.log('[DEBUG] SQL insert error:', error);
       // Since exec_sql doesn't exist, try direct insert with explicit snake_case column mapping
-      console.log('[DEBUG] Falling back to direct insert with snake_case mapping...');
+      console.log('[DEBUG] Using direct insert with proper snake_case column names...');
       
       try {
+        // Map camelCase to snake_case for the database
+        const insertData = {
+          id: organizerId,
+          user_id: data.userId,
+          business_name: data.businessName,
+          business_email: data.businessEmail,
+          status: data.status || 'pending',
+          created_at: now,
+          updated_at: now
+        };
+        
+        console.log('[DEBUG] Inserting with snake_case data:', insertData);
+        
         const { data: organizer, error: insertError } = await client
           .from('tickets_organizers')
-          .insert({
-            id: organizerId,
-            user_id: data.userId,
-            business_name: data.businessName,
-            business_email: data.businessEmail,
-            status: data.status || 'pending',
-            created_at: now,
-            updated_at: now
-          })
+          .insert(insertData)
           .select()
           .single();
         
