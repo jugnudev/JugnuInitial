@@ -41,6 +41,8 @@ import { TicketsOrganizerConnect } from "@/pages/TicketsOrganizerConnect";
 import { TicketsCheckinPage } from "@/pages/TicketsCheckinPage";
 import { TicketsOrganizerPayouts } from "@/pages/TicketsOrganizerPayouts";
 import { TicketsOrganizerSettings } from "@/pages/TicketsOrganizerSettings";
+import { CommunitiesSigninPage } from "@/pages/CommunitiesSigninPage";
+import { CommunitiesSignupPage } from "@/pages/CommunitiesSignupPage";
 
 function Router() {
   // Track page views when routes change - Google Analytics integration
@@ -54,7 +56,12 @@ function Router() {
         <Route path="/deals" component={Deals} />
         <Route path="/explore" component={() => { window.location.href = '/events'; return null; }} />
         <Route path="/events" component={EventsExplore} />
-        <Route path="/community" component={CommunityRedirect} />
+        {/* Community routes - redirect to either new Communities feature or legacy redirect based on feature flag */}
+        {import.meta.env.VITE_ENABLE_COMMUNITIES === 'true' ? (
+          <Route path="/community" component={() => <div>Communities Landing Page</div>} />
+        ) : (
+          <Route path="/community" component={CommunityRedirect} />
+        )}
         <Route path="/events/feature" component={CommunityFeature} />
         <Route path="/community/feature" component={CommunityRedirect} />
         <Route path="/promote" component={Promote} />
@@ -87,6 +94,18 @@ function Router() {
             <Route path="/tickets/checkin" component={TicketsCheckinPage} />
             <Route path="/tickets/organizer/payouts" component={TicketsOrganizerPayouts} />
             <Route path="/tickets/organizer/settings" component={TicketsOrganizerSettings} />
+          </>
+        )}
+        
+        {/* Communities Routes - Only visible if ENABLE_COMMUNITIES is true */}
+        {import.meta.env.VITE_ENABLE_COMMUNITIES === 'true' && (
+          <>
+            <Route path="/account" component={() => { window.location.href = '/account/signin'; return null; }} />
+            <Route path="/account/signin" component={CommunitiesSigninPage} />
+            <Route path="/account/signup" component={CommunitiesSignupPage} />
+            <Route path="/account/profile" component={() => <div>Communities Profile Page</div>} />
+            <Route path="/account/apply-organizer" component={() => <div>Communities Apply Organizer Page</div>} />
+            <Route path="/community/admin/organizers" component={() => <div>Communities Admin Organizers Page</div>} />
           </>
         )}
         
