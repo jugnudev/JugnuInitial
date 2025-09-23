@@ -510,6 +510,45 @@ export class TicketsSupabaseDB {
     return data || [];
   }
 
+  async getTicketByQR(qrToken: string): Promise<TicketsTicket | null> {
+    const { data, error } = await supabase
+      .from('tickets_tickets')
+      .select('*')
+      .eq('qr_token', qrToken)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  async updateTicket(id: string, data: Partial<InsertTicketsTicket>): Promise<TicketsTicket> {
+    const snakeCaseData = toSnakeCase({
+      ...data,
+      updated_at: new Date().toISOString()
+    });
+
+    const { data: ticket, error } = await supabase
+      .from('tickets_tickets')
+      .update(snakeCaseData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return ticket;
+  }
+
+  async getOrderItemById(id: string): Promise<TicketsOrderItem | null> {
+    const { data, error } = await supabase
+      .from('tickets_order_items')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
   // ============ MISSING ADMIN FUNCTIONS ============
   async updateOrganizerStripeAccount(id: string, stripeAccountId: string): Promise<TicketsOrganizer> {
     const { data, error } = await supabase

@@ -1086,6 +1086,142 @@ async function handlePaymentIntentFailed(paymentIntent: any) {
   }
 }
 
+  // ============ QR CODE VALIDATION ENDPOINTS ============
+
+  // Validate QR code for event entry
+  app.post('/api/tickets/validate-qr', async (req: Request, res: Response) => {
+    try {
+      const { qrToken, eventId } = req.body;
+      
+      if (!qrToken || !eventId) {
+        return res.status(400).json({ 
+          ok: false, 
+          error: 'QR token and event ID are required' 
+        });
+      }
+      
+      // Find ticket by QR token
+      const ticket = await ticketsStorage.getTicketByQR(qrToken);
+      
+      if (!ticket) {
+        return res.status(404).json({
+          ok: false,
+          error: 'Invalid QR code',
+          status: 'invalid'
+        });
+      }
+      
+      // Get tier and event info
+      const tier = await ticketsStorage.getTierById(ticket.tierId);
+      const event = await ticketsStorage.getEventById(tier?.eventId || '');
+      
+      if (!tier || !event || event.id !== eventId) {
+        return res.status(404).json({
+          ok: false,
+          error: 'Ticket not found for this event',
+          status: 'invalid'
+        });
+      }
+      
+      // Check ticket status
+      if (ticket.status !== 'valid') {
+        return res.status(400).json({
+          ok: false,
+          error: ticket.status === 'used' ? 'Ticket already used' : 
+                 ticket.status === 'refunded' ? 'Ticket has been refunded' :
+                 'Ticket is not valid',
+          status: ticket.status
+        });
+      }
+      
+      // Get order info for validation
+      const orderItem = await ticketsStorage.getOrderItemById(ticket.orderItemId);
+      if (!orderItem) {
+        return res.status(404).json({
+          ok: false,
+          error: 'Order information not found',
+          status: 'invalid'
+        });
+      }
+      
+      const order = await ticketsStorage.getOrderById(orderItem.orderId);
+      if (!order || order.status !== 'paid') {
+        return res.status(400).json({
+          ok: false,
+          error: 'Order not confirmed',
+          status: 'invalid'
+        });
+      }
+      
+      res.json({
+        ok: true,
+        status: 'valid',
+        ticket: {
+          id: ticket.id,
+          serial: ticket.serial,
+          tierName: tier.name,
+          eventTitle: event.title,
+          buyerName: order.buyerName,
+          buyerEmail: order.buyerEmail
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('QR validation error:', error);
+      res.status(500).json({ ok: false, error: 'Validation failed' });
+    }
+  });
+
+  // Mark ticket as used (check-in)
+  app.post('/api/tickets/check-in', async (req: Request, res: Response) => {
+    try {
+      const { qrToken, eventId, checkInBy } = req.body;
+      
+      if (!qrToken || !eventId) {
+        return res.status(400).json({ 
+          ok: false, 
+          error: 'QR token and event ID are required' 
+        });
+      }
+      
+      // Find and validate ticket first
+      const ticket = await ticketsStorage.getTicketByQR(qrToken);
+      if (!ticket || ticket.status !== 'valid') {
+        return res.status(400).json({
+          ok: false,
+          error: 'Invalid or already used ticket'
+        });
+      }
+      
+      // Update ticket status to used
+      await ticketsStorage.updateTicket(ticket.id, {
+        status: 'used',
+        checkedInAt: new Date(),
+        checkedInBy: checkInBy || 'staff'
+      });
+      
+      // Create audit log
+      await ticketsStorage.createAudit({
+        actorType: 'staff',
+        actorId: checkInBy || 'unknown',
+        action: 'ticket_checkin',
+        targetType: 'ticket',
+        targetId: ticket.id,
+        metaJson: { qrToken, eventId }
+      });
+      
+      res.json({
+        ok: true,
+        message: 'Ticket checked in successfully',
+        ticketId: ticket.id
+      });
+      
+    } catch (error: any) {
+      console.error('Check-in error:', error);
+      res.status(500).json({ ok: false, error: 'Check-in failed' });
+    }
+  });
+
 // Helper function to create tickets for a paid order
 async function createTicketsForPaidOrder(orderId: string): Promise<void> {
   console.log(`[TicketCreation] Creating tickets for paid order: ${orderId}`);

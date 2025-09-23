@@ -410,6 +410,57 @@ export class TicketsDB {
     return result.rows[0];
   }
 
+  async getTicketsByOrderItem(orderItemId: string): Promise<TicketsTicket[]> {
+    const query = 'SELECT * FROM tickets_tickets WHERE order_item_id = $1';
+    const result = await pool.query(query, [orderItemId]);
+    return result.rows;
+  }
+
+  async getTicketByQR(qrToken: string): Promise<TicketsTicket | null> {
+    const query = 'SELECT * FROM tickets_tickets WHERE qr_token = $1';
+    const result = await pool.query(query, [qrToken]);
+    return result.rows[0] || null;
+  }
+
+  async updateTicket(id: string, data: Partial<InsertTicketsTicket>): Promise<TicketsTicket> {
+    const fields = [];
+    const values = [];
+    let valueIndex = 1;
+
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        // Convert camelCase to snake_case for database
+        const dbKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+        fields.push(`${dbKey} = $${valueIndex}`);
+        values.push(value);
+        valueIndex++;
+      }
+    }
+
+    if (fields.length === 0) {
+      throw new Error('No fields to update');
+    }
+
+    fields.push(`updated_at = NOW()`);
+
+    const query = `
+      UPDATE tickets_tickets 
+      SET ${fields.join(', ')}
+      WHERE id = $${valueIndex}
+      RETURNING *
+    `;
+    values.push(id);
+
+    const result = await pool.query(query, values);
+    return result.rows[0];
+  }
+
+  async getOrderItemById(id: string): Promise<TicketsOrderItem | null> {
+    const query = 'SELECT * FROM tickets_order_items WHERE id = $1';
+    const result = await pool.query(query, [id]);
+    return result.rows[0] || null;
+  }
+
   // ============ DISCOUNTS ============
   async getDiscountByCode(eventId: string, code: string): Promise<TicketsDiscount | null> {
     const query = `

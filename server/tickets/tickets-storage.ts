@@ -165,14 +165,28 @@ export class TicketsStorage {
     return ticketsDB.getTicketsByOrderItem(orderItemId);
   }
 
+  async getTicketByQR(qrToken: string): Promise<TicketsTicket | null> {
+    return ticketsDB.getTicketByQR(qrToken);
+  }
+
+  async updateTicket(id: string, data: Partial<InsertTicketsTicket>): Promise<TicketsTicket> {
+    return ticketsDB.updateTicket(id, data);
+  }
+
+  async getOrderItemById(id: string): Promise<TicketsOrderItem | null> {
+    return ticketsDB.getOrderItemById(id);
+  }
+
   async validateTicket(qrToken: string): Promise<TicketsTicket | null> {
-    // Implementation needed
-    throw new Error('Not implemented yet');
+    return this.getTicketByQR(qrToken);
   }
 
   async markTicketUsed(ticketId: string, scannedBy?: string): Promise<void> {
-    // Implementation needed
-    throw new Error('Not implemented yet');
+    await this.updateTicket(ticketId, {
+      status: 'used',
+      checkedInAt: new Date(),
+      checkedInBy: scannedBy || 'staff'
+    });
   }
 
   async refundTicket(ticketId: string): Promise<void> {
