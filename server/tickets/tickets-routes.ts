@@ -751,6 +751,44 @@ export function addTicketsRoutes(app: Express) {
     }
   });
 
+  // Get organizer balance (MoR)
+  app.get('/api/tickets/organizers/:id/balance', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
+    try {
+      const organizer = (req as any).organizer;
+      const requestedId = req.params.id;
+      
+      // Ensure organizer can only access their own balance
+      if (organizer.id !== requestedId) {
+        return res.status(403).json({ ok: false, error: 'Access denied' });
+      }
+      
+      const balance = await ticketsStorage.getOrganizerBalance(organizer.id);
+      res.json({ ok: true, balance: balance || 0 });
+    } catch (error) {
+      console.error('Get organizer balance error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to fetch balance' });
+    }
+  });
+
+  // Get organizer payouts (MoR)
+  app.get('/api/tickets/organizers/:id/payouts', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
+    try {
+      const organizer = (req as any).organizer;
+      const requestedId = req.params.id;
+      
+      // Ensure organizer can only access their own payouts
+      if (organizer.id !== requestedId) {
+        return res.status(403).json({ ok: false, error: 'Access denied' });
+      }
+      
+      const payouts = await ticketsStorage.getPayoutsByOrganizer(organizer.id);
+      res.json({ ok: true, payouts: payouts || [] });
+    } catch (error) {
+      console.error('Get organizer payouts error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to fetch payouts' });
+    }
+  });
+
   // Create event
   app.post('/api/tickets/events', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
     try {
