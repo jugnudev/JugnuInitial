@@ -38,6 +38,9 @@ import { TicketsEventAnalyticsPage } from "@/pages/TicketsEventAnalyticsPage";
 import { TicketsOrganizerDashboard } from "@/pages/TicketsOrganizerDashboard";
 import { TicketsOrganizerSignup } from "@/pages/TicketsOrganizerSignup";
 import { TicketsOrganizerConnect } from "@/pages/TicketsOrganizerConnect";
+import { TicketsCheckinPage } from "@/pages/TicketsCheckinPage";
+import { TicketsOrganizerPayouts } from "@/pages/TicketsOrganizerPayouts";
+import { TicketsOrganizerSettings } from "@/pages/TicketsOrganizerSettings";
 
 function Router() {
   // Track page views when routes change - Google Analytics integration
@@ -81,6 +84,9 @@ function Router() {
             <Route path="/tickets/organizer/events/:id/analytics" component={TicketsEventAnalyticsPage} />
             <Route path="/tickets/organizer/signup" component={TicketsOrganizerSignup} />
             <Route path="/tickets/organizer/connect" component={TicketsOrganizerConnect} />
+            <Route path="/tickets/checkin" component={TicketsCheckinPage} />
+            <Route path="/tickets/organizer/payouts" component={TicketsOrganizerPayouts} />
+            <Route path="/tickets/organizer/settings" component={TicketsOrganizerSettings} />
           </>
         )}
         
