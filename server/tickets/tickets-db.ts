@@ -461,6 +461,65 @@ export class TicketsDB {
     return result.rows[0] || null;
   }
 
+  // ============ INVENTORY MANAGEMENT ============
+  async getTierSoldCount(tierId: string): Promise<number> {
+    const query = `
+      SELECT COUNT(*) as count 
+      FROM tickets_tickets 
+      WHERE tier_id = $1 AND status IN ('valid', 'used')
+    `;
+    const result = await pool.query(query, [tierId]);
+    return parseInt(result.rows[0].count) || 0;
+  }
+
+  async getTierReservedCount(tierId: string): Promise<number> {
+    const query = `
+      SELECT COALESCE(SUM(quantity), 0) as reserved 
+      FROM tickets_capacity_reservations 
+      WHERE tier_id = $1 AND expires_at > NOW()
+    `;
+    const result = await pool.query(query, [tierId]);
+    return parseInt(result.rows[0].reserved) || 0;
+  }
+
+  async createCapacityReservation(data: {
+    tierId: string;
+    quantity: number;
+    reservationId: string;
+    expiresAt: Date;
+  }): Promise<void> {
+    const query = `
+      INSERT INTO tickets_capacity_reservations (tier_id, quantity, reservation_id, expires_at)
+      VALUES ($1, $2, $3, $4)
+    `;
+    await pool.query(query, [data.tierId, data.quantity, data.reservationId, data.expiresAt]);
+  }
+
+  async deleteCapacityReservation(reservationId: string): Promise<void> {
+    const query = 'DELETE FROM tickets_capacity_reservations WHERE reservation_id = $1';
+    await pool.query(query, [reservationId]);
+  }
+
+  async releaseExpiredReservations(tierId: string, quantity: number): Promise<void> {
+    const query = `
+      DELETE FROM tickets_capacity_reservations 
+      WHERE tier_id = $1 AND expires_at < NOW()
+      AND reservation_id IN (
+        SELECT reservation_id 
+        FROM tickets_capacity_reservations 
+        WHERE tier_id = $1 AND expires_at < NOW()
+        ORDER BY created_at 
+        LIMIT $2
+      )
+    `;
+    await pool.query(query, [tierId, quantity]);
+  }
+
+  async cleanupExpiredReservations(): Promise<void> {
+    const query = 'DELETE FROM tickets_capacity_reservations WHERE expires_at < NOW()';
+    await pool.query(query);
+  }
+
   // ============ DISCOUNTS ============
   async getDiscountByCode(eventId: string, code: string): Promise<TicketsDiscount | null> {
     const query = `

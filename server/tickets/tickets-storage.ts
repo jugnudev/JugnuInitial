@@ -249,19 +249,53 @@ export class TicketsStorage {
     if (!tier || !tier.capacity) return null; // No limit
     
     // Count sold tickets for this tier
-    // Implementation needed
-    return tier.capacity; // Temporary
+    const soldCount = await ticketsDB.getTierSoldCount(tierId);
+    const reserved = await ticketsDB.getTierReservedCount(tierId);
+    
+    return Math.max(0, tier.capacity - soldCount - reserved);
   }
 
-  async reserveCapacity(tierId: string, quantity: number): Promise<boolean> {
-    // Implementation for inventory reservation
-    // This would use database transactions or locking
-    return true; // Temporary
+  async reserveCapacity(tierId: string, quantity: number, reservationId?: string): Promise<boolean> {
+    try {
+      // Use database transaction to safely reserve capacity
+      const available = await this.getAvailableCapacity(tierId);
+      if (available === null || available >= quantity) {
+        // Create reservation record
+        await ticketsDB.createCapacityReservation({
+          tierId,
+          quantity,
+          reservationId: reservationId || nanoid(),
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000) // 15 minutes
+        });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error reserving capacity:', error);
+      return false;
+    }
   }
 
-  async releaseCapacity(tierId: string, quantity: number): Promise<void> {
-    // Release reserved inventory (e.g., on checkout timeout)
-    // Implementation needed
+  async releaseCapacity(tierId: string, quantity: number, reservationId?: string): Promise<void> {
+    try {
+      if (reservationId) {
+        // Release specific reservation
+        await ticketsDB.deleteCapacityReservation(reservationId);
+      } else {
+        // Release oldest reservations for this tier up to quantity
+        await ticketsDB.releaseExpiredReservations(tierId, quantity);
+      }
+    } catch (error) {
+      console.error('Error releasing capacity:', error);
+    }
+  }
+
+  async cleanupExpiredReservations(): Promise<void> {
+    try {
+      await ticketsDB.cleanupExpiredReservations();
+    } catch (error) {
+      console.error('Error cleaning up expired reservations:', error);
+    }
   }
 }
 

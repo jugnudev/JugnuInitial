@@ -695,6 +695,88 @@ export class TicketsSupabaseDB {
     return data || [];
   }
 
+  // ============ INVENTORY MANAGEMENT ============
+  async getTierSoldCount(tierId: string): Promise<number> {
+    const { data, error } = await supabase
+      .from('tickets_tickets')
+      .select('id', { count: 'exact' })
+      .eq('tier_id', tierId)
+      .in('status', ['valid', 'used']); // Count valid and used tickets as sold
+    
+    if (error) throw error;
+    return data?.length || 0;
+  }
+
+  async getTierReservedCount(tierId: string): Promise<number> {
+    const { data, error } = await supabase
+      .from('tickets_capacity_reservations')
+      .select('quantity')
+      .eq('tier_id', tierId)
+      .gt('expires_at', new Date().toISOString());
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data?.reduce((sum, r) => sum + r.quantity, 0) || 0;
+  }
+
+  async createCapacityReservation(data: {
+    tierId: string;
+    quantity: number;
+    reservationId: string;
+    expiresAt: Date;
+  }): Promise<void> {
+    const { error } = await supabase
+      .from('tickets_capacity_reservations')
+      .insert({
+        tier_id: data.tierId,
+        quantity: data.quantity,
+        reservation_id: data.reservationId,
+        expires_at: data.expiresAt.toISOString(),
+        created_at: new Date().toISOString()
+      });
+    
+    if (error) throw error;
+  }
+
+  async deleteCapacityReservation(reservationId: string): Promise<void> {
+    const { error } = await supabase
+      .from('tickets_capacity_reservations')
+      .delete()
+      .eq('reservation_id', reservationId);
+    
+    if (error) throw error;
+  }
+
+  async releaseExpiredReservations(tierId: string, quantity: number): Promise<void> {
+    // Get expired reservations to release
+    const { data: reservations, error: selectError } = await supabase
+      .from('tickets_capacity_reservations')
+      .select('reservation_id')
+      .eq('tier_id', tierId)
+      .lt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: true })
+      .limit(quantity);
+
+    if (selectError) throw selectError;
+
+    if (reservations && reservations.length > 0) {
+      const { error: deleteError } = await supabase
+        .from('tickets_capacity_reservations')
+        .delete()
+        .in('reservation_id', reservations.map(r => r.reservation_id));
+
+      if (deleteError) throw deleteError;
+    }
+  }
+
+  async cleanupExpiredReservations(): Promise<void> {
+    const { error } = await supabase
+      .from('tickets_capacity_reservations')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
+    
+    if (error) throw error;
+  }
+
   // ============ DISCOUNTS ============
   async getDiscountByCode(eventId: string, code: string): Promise<TicketsDiscount | null> {
     const { data, error } = await supabase
