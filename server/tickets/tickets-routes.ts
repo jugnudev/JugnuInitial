@@ -28,7 +28,8 @@ const isTicketingEnabled = () => process.env.ENABLE_TICKETING === 'true';
 // Middleware to check if ticketing is enabled
 const requireTicketing = (req: Request, res: Response, next: any) => {
   if (!isTicketingEnabled()) {
-    return res.status(404).json({ ok: false, error: 'Ticketing not available' });
+    console.log(`[Ticketing] Disabled - API route ${req.path} blocked by ENABLE_TICKETING flag`);
+    return res.status(404).json({ ok: false, disabled: true });
   }
   next();
 };

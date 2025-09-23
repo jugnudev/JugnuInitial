@@ -106,3 +106,30 @@ Preferred communication style: Simple, everyday language.
 - **Frontend Pages**: Event list at `/tickets` and organizer dashboard at `/tickets/organizer/dashboard`.
 - **Stripe Integration**: Checkout sessions, webhook handling, and Connect onboarding for organizers.
 - **Architecture**: Multi-vendor marketplace design enabling event organizers to sell tickets with platform fees.
+
+#### Pausing/Unpausing Ticketing
+The ticketing system can be completely disabled without deleting code using feature flags:
+
+**To Disable Ticketing:**
+1. Set environment variables:
+   - `ENABLE_TICKETING=false` (server-side)
+   - `VITE_ENABLE_TICKETING=false` (client-side)
+2. Rebuild and restart the application
+3. Run admin self-test to verify: `GET /api/admin/selftest` (requires admin key)
+
+**When Disabled:**
+- All `/tickets*` page routes return 404 with noindex meta tags
+- All `/api/tickets*` API routes return `{ok:false, disabled:true}`  
+- Client-side ticketing UI is completely hidden
+- robots.txt disallows `/tickets*` routes
+- sitemap.xml excludes all ticketing URLs
+- Admin self-test shows "TicketingDisabled: PASS" status
+
+**To Re-enable Ticketing:**
+1. Set environment variables:
+   - `ENABLE_TICKETING=true` (server-side)  
+   - `VITE_ENABLE_TICKETING=true` (client-side)
+2. Rebuild and restart the application
+3. Ticketing functionality will be fully restored
+
+This approach maintains all ticketing code intact while providing complete SEO isolation when disabled.

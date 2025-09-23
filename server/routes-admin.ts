@@ -147,24 +147,138 @@ export function addAdminRoutes(app: Express) {
 
   // All admin routes now use session authentication
 
-  // Selftest endpoint - forward to spotlight admin route
+  // Selftest endpoint - includes ticketing disabled verification
   app.get('/api/admin/selftest', requireAdminKey, async (req: Request, res: Response) => {
     try {
       // Make internal request to the admin selftest with proper admin key
       const adminKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY || 'jugnu-admin-dev-2025';
-      const response = await fetch(`http://localhost:5000/api/spotlight/admin/selftest`, {
+      
+      // Run spotlight tests first
+      const spotlightResponse = await fetch(`http://localhost:5000/api/spotlight/admin/selftest`, {
         headers: {
           'x-admin-key': adminKey
         }
       });
       
-      const data = await response.json();
-      res.status(response.status).json(data);
+      const spotlightData = await spotlightResponse.json();
+      
+      // Run ticketing disabled tests
+      const ticketingTests = await runTicketingDisabledTests();
+      
+      // Combine results
+      const combinedResults = {
+        ...spotlightData,
+        TicketingDisabled: ticketingTests.status,
+        ticketingDetails: ticketingTests.details
+      };
+      
+      res.status(spotlightResponse.status).json(combinedResults);
     } catch (error) {
       console.error('Admin selftest error:', error);
       res.status(500).json({ ok: false, error: 'Failed to run selftest' });
     }
   });
+
+  // Helper function to run ticketing disabled tests
+  async function runTicketingDisabledTests() {
+    const details: any = {};
+    let allPassed = true;
+
+    try {
+      const serverFlag = process.env.ENABLE_TICKETING === 'true';
+      const clientFlag = process.env.VITE_ENABLE_TICKETING === 'true';
+      
+      details.serverFlag = { value: serverFlag, gate: 'ENABLE_TICKETING' };
+      details.clientFlag = { value: clientFlag, gate: 'VITE_ENABLE_TICKETING' };
+
+      // Only run disabled tests if ticketing is actually disabled
+      if (!serverFlag && !clientFlag) {
+        // Test 1: API routes return disabled JSON
+        try {
+          const apiResponse = await fetch('http://localhost:5000/api/tickets/events/public');
+          const apiData = await apiResponse.json();
+          const apiPassed = apiResponse.status === 404 && 
+                           apiData.ok === false && 
+                           apiData.disabled === true;
+          
+          details.apiTest = { 
+            passed: apiPassed, 
+            status: apiResponse.status, 
+            response: apiData,
+            gate: 'ENABLE_TICKETING server flag'
+          };
+          if (!apiPassed) allPassed = false;
+        } catch (error) {
+          details.apiTest = { passed: false, error: (error as Error).message };
+          allPassed = false;
+        }
+
+        // Test 2: Page routes return 404 + noindex
+        try {
+          const pageResponse = await fetch('http://localhost:5000/tickets');
+          const pageText = await pageResponse.text();
+          const pagePassed = pageResponse.status === 404 && 
+                            pageText.includes('<meta name="robots" content="noindex, nofollow">');
+          
+          details.pageTest = { 
+            passed: pagePassed, 
+            status: pageResponse.status,
+            hasNoindex: pageText.includes('noindex'),
+            gate: 'ENABLE_TICKETING server flag'
+          };
+          if (!pagePassed) allPassed = false;
+        } catch (error) {
+          details.pageTest = { passed: false, error: (error as Error).message };
+          allPassed = false;
+        }
+
+        // Test 3: robots.txt blocks /tickets routes
+        try {
+          const robotsResponse = await fetch('http://localhost:5000/robots.txt');
+          const robotsText = await robotsResponse.text();
+          const robotsPassed = robotsText.includes('Disallow: /tickets');
+          
+          details.robotsTest = { 
+            passed: robotsPassed, 
+            blocksTickets: robotsPassed,
+            gate: 'ENABLE_TICKETING server flag'
+          };
+          if (!robotsPassed) allPassed = false;
+        } catch (error) {
+          details.robotsTest = { passed: false, error: (error as Error).message };
+          allPassed = false;
+        }
+
+        // Test 4: sitemap.xml excludes ticketing URLs
+        try {
+          const sitemapResponse = await fetch('http://localhost:5000/sitemap.xml');
+          const sitemapText = await sitemapResponse.text();
+          const sitemapPassed = !sitemapText.includes('/tickets');
+          
+          details.sitemapTest = { 
+            passed: sitemapPassed, 
+            excludesTickets: sitemapPassed,
+            gate: 'ENABLE_TICKETING server flag'
+          };
+          if (!sitemapPassed) allPassed = false;
+        } catch (error) {
+          details.sitemapTest = { passed: false, error: (error as Error).message };
+          allPassed = false;
+        }
+      } else {
+        details.skipped = 'Ticketing is enabled - disabled tests not applicable';
+      }
+
+    } catch (error) {
+      details.error = (error as Error).message;
+      allPassed = false;
+    }
+
+    return {
+      status: allPassed ? 'PASS' : 'FAIL',
+      details
+    };
+  }
 
   // POST /api/admin/login
   app.post('/api/admin/login', rateLimit(5, 15 * 60 * 1000), async (req: Request, res: Response) => {

@@ -1,0 +1,79 @@
+Use the existing feature flags to disable ticketing without deleting code.
+
+Env flags (reuse, don’t add new names):
+
+ENABLE_TICKETING (server)
+
+VITE_ENABLE_TICKETING (client)
+
+What to do
+
+Wire gating
+
+Treat ticketing as disabled when either flag is falsy.
+
+Wrap all server routes/handlers under /tickets*, /api/tickets*, webhooks, cron jobs, and background workers with a guard that returns JSON {ok:false, disabled:true} and a 404 for public pages when disabled.
+
+In the client, hide all ticketing nav/menu/buttons when import.meta.env.VITE_ENABLE_TICKETING !== 'true'.
+
+Noindex & robots
+
+If a user lands on any ticketing URL while disabled, render a minimal page with <meta name="robots" content="noindex, nofollow">.
+
+Update robots.txt to add:
+
+Disallow: /tickets
+Disallow: /tickets/*
+
+
+Only when disabled (keep existing robots entries intact).
+
+Sitemap & links
+
+Exclude ticketing routes from sitemap generation when disabled.
+
+Remove ticketing links from global nav/footers and any internal CTAs based on the client flag.
+
+Health/self-test
+
+Extend the admin self-test with “TicketingDisabled”:
+
+Confirms both flags are respected (server & client).
+
+Hitting a ticketing API returns disabled JSON.
+
+Hitting a ticketing page returns 404 + noindex meta.
+
+Print which env var gated each path in logs for clarity.
+
+Docs
+
+Add a short section to replit.md explaining how to pause/unpause ticketing:
+
+Set ENABLE_TICKETING=false and VITE_ENABLE_TICKETING=false
+
+Rebuild/restart
+
+Run self-test to verify
+
+Important
+
+Do not rename the flags; use the exact names above.
+
+Keep all existing ticketing code in place; this is purely a feature gate + SEO block.
+
+No regressions to Events/Promote/Deals.
+
+Acceptance checklist
+
+ With both flags set to false, no ticketing UI appears.
+
+ Direct hits to /tickets* are 404 + noindex.
+
+ /api/tickets* returns {ok:false, disabled:true}.
+
+ robots.txt disallows /tickets* while disabled.
+
+ Sitemap has no ticketing URLs while disabled.
+
+ Admin self-test shows “TicketingDisabled: PASS”.

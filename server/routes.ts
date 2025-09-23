@@ -85,6 +85,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.redirect(301, '/events?saved=1');
   });
 
+  // Dynamic robots.txt endpoint
+  app.get("/robots.txt", (req, res) => {
+    const baseRobots = `User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://thehouseofjugnu.com/sitemap.xml
+
+# Block admin and development routes
+Disallow: /api/
+Disallow: /admin/
+Disallow: /sponsor/`;
+
+    // When ticketing is disabled, also disallow /tickets routes
+    if (process.env.ENABLE_TICKETING !== 'true') {
+      const robotsWithTicketsBlocked = baseRobots + `
+
+# Ticketing disabled - block all ticketing routes
+Disallow: /tickets
+Disallow: /tickets/*`;
+      
+      console.log('[Ticketing] Disabled - robots.txt blocking /tickets* routes');
+      res.setHeader('Content-Type', 'text/plain');
+      return res.send(robotsWithTicketsBlocked);
+    }
+
+    res.setHeader('Content-Type', 'text/plain');
+    res.send(baseRobots);
+  });
+
+  // Dynamic sitemap.xml endpoint
+  app.get("/sitemap.xml", (req, res) => {
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? 'https://thehouseofjugnu.com' 
+      : `http://localhost:${process.env.PORT || 5000}`;
+    
+    // Base sitemap URLs (always included)
+    let sitemapUrls = [
+      '<url><loc>' + baseUrl + '/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>',
+      '<url><loc>' + baseUrl + '/story</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>',
+      '<url><loc>' + baseUrl + '/events</loc><changefreq>daily</changefreq><priority>0.9</priority></url>',
+      '<url><loc>' + baseUrl + '/deals</loc><changefreq>daily</changefreq><priority>0.8</priority></url>',
+      '<url><loc>' + baseUrl + '/promote</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>'
+    ];
+
+    // Only include ticketing URLs when ticketing is enabled
+    if (process.env.ENABLE_TICKETING === 'true') {
+      sitemapUrls.push(
+        '<url><loc>' + baseUrl + '/tickets</loc><changefreq>daily</changefreq><priority>0.9</priority></url>',
+        '<url><loc>' + baseUrl + '/tickets/organizer/signup</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>'
+      );
+    } else {
+      console.log('[Ticketing] Disabled - sitemap.xml excluding /tickets* routes');
+    }
+
+    const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  ${sitemapUrls.join('\n  ')}
+</urlset>`;
+
+    res.setHeader('Content-Type', 'application/xml');
+    res.send(sitemap);
+  });
+
   // Health check endpoint - always returns JSON
   app.get("/api/health", async (req, res) => {
     const version = process.env.APP_VERSION || 'dev';
@@ -4185,6 +4249,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add ticketing routes if enabled
   if (process.env.ENABLE_TICKETING === 'true') {
     addTicketsRoutes(app);
+  } else {
+    // When ticketing is disabled, intercept all ticketing endpoints first
+    
+    // API routes must return JSON disabled response
+    app.all('/api/tickets*', (req, res) => {
+      console.log(`[Ticketing] Disabled - API route ${req.path} blocked by ENABLE_TICKETING flag`);
+      res.status(404).json({ ok: false, disabled: true });
+    });
+    
+    // Page routes return 404 + noindex
+    app.get('/tickets*', (req, res) => {
+      console.log(`[Ticketing] Disabled - Page route ${req.path} blocked by ENABLE_TICKETING flag`);
+      res.status(404).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta name="robots" content="noindex, nofollow">
+          <title>Page Not Found</title>
+        </head>
+        <body>
+          <h1>404 - Page Not Found</h1>
+        </body>
+        </html>
+      `);
+    });
   }
 
   // use storage to perform CRUD operations on the storage interface
