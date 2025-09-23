@@ -65,7 +65,8 @@ export class TicketsSupabaseDB {
     const insertData = {
       user_id: data.userId,
       business_name: data.businessName,
-      business_email: data.businessEmail,
+      email: data.businessEmail,          // Fill the NOT NULL email column
+      business_email: data.businessEmail, // Also fill business_email for consistency
       status: data.status || 'pending'
     };
     
