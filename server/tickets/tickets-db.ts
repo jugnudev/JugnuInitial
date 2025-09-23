@@ -495,7 +495,7 @@ export class TicketsDB {
       // Lock the tier row to prevent concurrent modifications
       const tierQuery = `
         SELECT capacity, 
-               (SELECT COALESCE(SUM(quantity), 0) FROM tickets_tickets WHERE tier_id = $1 AND status IN ('valid', 'used')) as sold,
+               (SELECT COUNT(*) FROM tickets_tickets WHERE tier_id = $1 AND status IN ('valid', 'used')) as sold,
                (SELECT COALESCE(SUM(quantity), 0) FROM tickets_capacity_reservations WHERE tier_id = $1 AND expires_at > NOW()) as reserved
         FROM tickets_tiers 
         WHERE id = $1 
