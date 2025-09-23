@@ -532,6 +532,25 @@ export class TicketsSupabaseDB {
     return data;
   }
 
+  async updateOrganizerPayoutSettings(id: string, settings: {
+    payoutMethod: string;
+    payoutEmail: string;
+  }): Promise<TicketsOrganizer> {
+    const { data, error } = await this.client
+      .from('tickets_organizers')
+      .update({ 
+        payout_method: settings.payoutMethod,
+        payout_email: settings.payoutEmail,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+
   async updateTier(id: string, data: Partial<InsertTicketsTier>): Promise<TicketsTier> {
     const snakeCaseData = toSnakeCase({
       ...data,

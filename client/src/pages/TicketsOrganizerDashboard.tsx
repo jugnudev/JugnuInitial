@@ -35,8 +35,16 @@ interface Organizer {
   id: string;
   businessName: string;
   businessEmail: string;
-  stripeAccountId: string | null;
-  status: 'pending' | 'active' | 'suspended';
+  status: 'active' | 'suspended';
+  payoutMethod: string;
+  payoutEmail: string;
+}
+
+interface RevenueSummary {
+  totalEarned: number;
+  totalPaidOut: number;
+  pendingBalance: number;
+  lastPayoutDate?: string;
 }
 
 export function TicketsOrganizerDashboard() {
@@ -51,6 +59,17 @@ export function TicketsOrganizerDashboard() {
   const { data, isLoading, error } = useQuery<{ ok: boolean; organizer: Organizer; events: Event[] }>({
     queryKey: ['/api/tickets/organizers/me'],
     enabled: isEnabled && !!organizerId,
+    meta: {
+      headers: {
+        'x-organizer-id': organizerId || ''
+      }
+    }
+  });
+
+  // Get revenue summary for MoR model
+  const { data: revenueData, isLoading: revenueLoading } = useQuery<{ ok: boolean; summary: RevenueSummary }>({
+    queryKey: ['/api/tickets/organizers/revenue-summary'],
+    enabled: isEnabled && !!organizerId && !!data?.organizer,
     meta: {
       headers: {
         'x-organizer-id': organizerId || ''
@@ -164,25 +183,31 @@ export function TicketsOrganizerDashboard() {
           </p>
         </div>
 
-        {/* Stripe Connect Status */}
-        {organizer?.status === 'pending' && (
-          <Card className="mb-8 border-yellow-200 bg-yellow-50">
-            <CardHeader>
-              <CardTitle className="text-yellow-900">Complete Your Setup</CardTitle>
-              <CardDescription className="text-yellow-700">
-                Connect your Stripe account to start receiving payments
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/tickets/organizer/connect">
-                <Button variant="default" data-testid="button-connect-stripe">
-                  <Settings className="w-4 h-4 mr-2" />
-                  Complete Stripe Setup
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        )}
+        {/* Payout Settings - MoR Model */}
+        <Card className="mb-8 border-green-200 bg-green-50">
+          <CardHeader>
+            <CardTitle className="text-green-900">Payout Settings</CardTitle>
+            <CardDescription className="text-green-700">
+              Your account is active. Update your payout preferences to receive your earnings.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-green-800">
+                  <strong>Payout Method:</strong> {organizer?.payoutMethod || 'E-transfer'}
+                </p>
+                <p className="text-sm text-green-800">
+                  <strong>Payout Email:</strong> {organizer?.payoutEmail || organizer?.businessEmail}
+                </p>
+              </div>
+              <Button variant="outline" data-testid="button-payout-settings">
+                <Settings className="w-4 h-4 mr-2" />
+                Update Settings
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -208,21 +233,39 @@ export function TicketsOrganizerDashboard() {
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Earned</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">$0.00</div>
+              <div className="text-2xl font-bold">
+                {revenueLoading ? (
+                  <div className="animate-pulse bg-gray-200 h-8 w-20 rounded"></div>
+                ) : (
+                  `$${((revenueData?.summary?.totalEarned || 0) / 100).toFixed(2)}`
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Platform fees deducted
+              </p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Tickets Sold</CardTitle>
-              <Ticket className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Pending Balance</CardTitle>
+              <Ticket className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
+              <div className="text-2xl font-bold">
+                {revenueLoading ? (
+                  <div className="animate-pulse bg-gray-200 h-8 w-20 rounded"></div>
+                ) : (
+                  `$${((revenueData?.summary?.pendingBalance || 0) / 100).toFixed(2)}`
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Ready for payout
+              </p>
             </CardContent>
           </Card>
         </div>

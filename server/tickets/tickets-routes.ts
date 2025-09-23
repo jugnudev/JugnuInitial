@@ -35,8 +35,14 @@ const requireTicketing = (req: Request, res: Response, next: any) => {
 
 // Middleware to check organizer auth - uses session
 const requireOrganizer = async (req: Request & { session?: any }, res: Response, next: any) => {
-  // Check session for organizer authentication
-  const organizerId = req.session?.organizerId;
+  // Check session for organizer authentication first
+  let organizerId = req.session?.organizerId;
+  
+  // Development fallback: also check x-organizer-id header (localStorage-based auth)
+  if (!organizerId && process.env.NODE_ENV === 'development') {
+    organizerId = req.headers['x-organizer-id'] as string;
+    console.log('[DEBUG] Using header-based auth in development:', organizerId);
+  }
   
   if (!organizerId) {
     return res.status(401).json({ ok: false, error: 'Please log in as an organizer' });
@@ -701,6 +707,47 @@ export function addTicketsRoutes(app: Express) {
     } catch (error) {
       console.error('Get organizer error:', error);
       res.status(500).json({ ok: false, error: 'Failed to fetch organizer info' });
+    }
+  });
+
+  // Get revenue summary for MoR model
+  app.get('/api/tickets/organizers/revenue-summary', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
+    try {
+      const organizer = (req as any).organizer;
+      const summary = await ticketsStorage.getOrganizerRevenueSummary(organizer.id);
+      
+      res.json({ ok: true, summary });
+    } catch (error) {
+      console.error('Get revenue summary error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to fetch revenue summary' });
+    }
+  });
+
+  // Update organizer payout settings for MoR model
+  app.patch('/api/tickets/organizers/settings', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
+    try {
+      const organizer = (req as any).organizer;
+      const { payoutMethod, payoutEmail } = req.body;
+      
+      // Validate input
+      if (!payoutMethod || !payoutEmail) {
+        return res.status(400).json({ ok: false, error: 'Payout method and email are required' });
+      }
+      
+      if (!['etransfer', 'paypal', 'manual'].includes(payoutMethod)) {
+        return res.status(400).json({ ok: false, error: 'Invalid payout method' });
+      }
+      
+      // Update organizer payout settings
+      await ticketsStorage.updateOrganizerPayoutSettings(organizer.id, {
+        payoutMethod,
+        payoutEmail
+      });
+      
+      res.json({ ok: true, message: 'Payout settings updated successfully' });
+    } catch (error) {
+      console.error('Update payout settings error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to update payout settings' });
     }
   });
 

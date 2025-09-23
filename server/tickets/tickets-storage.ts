@@ -37,6 +37,13 @@ export class TicketsStorage {
     return ticketsDB.updateOrganizerStripeAccount(id, stripeAccountId);
   }
 
+  async updateOrganizerPayoutSettings(id: string, settings: {
+    payoutMethod: string;
+    payoutEmail: string;
+  }): Promise<TicketsOrganizer> {
+    return ticketsDB.updateOrganizerPayoutSettings(id, settings);
+  }
+
   // ============ EVENTS ============
   async createEvent(data: InsertTicketsEvent): Promise<TicketsEvent> {
     return ticketsDB.createEvent(data);
