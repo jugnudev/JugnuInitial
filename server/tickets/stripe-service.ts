@@ -187,17 +187,8 @@ export class StripeService {
         cancel_url: `${returnUrl}?cancelled=true`,
         customer_email: order.buyerEmail,
         metadata: metadata as any,
-        // Use direct charges if no connected account, otherwise use destination charges
-        ...(organizer.stripeAccountId ? {
-          payment_intent_data: {
-            application_fee_amount: order.feesCents, // Platform gets this fee
-            transfer_data: {
-              destination: organizer.stripeAccountId,
-            },
-          },
-        } : {
-          // Direct charge - platform keeps all fees
-        }),
+        // MoR Model: Always direct charge to platform account
+        // Platform handles all payment processing and pays out organizers later
       });
 
       return session;
@@ -208,41 +199,35 @@ export class StripeService {
   }
 
   /**
-   * Create a Stripe Connect onboarding link for an organizer
+   * MoR Model - No Connect onboarding needed
+   * Organizers just provide payout details, Jugnu handles all payments
    */
-  static async createConnectOnboardingLink(
-    organizerId: string,
-    returnUrl: string,
-    refreshUrl: string
-  ): Promise<string | null> {
+
+  /**
+   * Calculate actual Stripe fees from a completed charge (MoR model)
+   */
+  static async getStripeFees(chargeId: string): Promise<{ stripeFeeCents: number; netCents: number } | null> {
     if (!stripe) return null;
 
     try {
-      // Create a Connect account
-      const account = await stripe.accounts.create({
-        type: 'express',
-        country: 'CA',
-        capabilities: {
-          card_payments: { requested: true },
-          transfers: { requested: true },
-        },
-        metadata: {
-          organizerId
-        }
-      });
+      // Get the charge to access balance transaction
+      const charge = await stripe.charges.retrieve(chargeId);
+      
+      if (!charge.balance_transaction) {
+        console.warn('No balance transaction found for charge:', chargeId);
+        return null;
+      }
 
-      // Create an account link for onboarding
-      const accountLink = await stripe.accountLinks.create({
-        account: account.id,
-        refresh_url: refreshUrl,
-        return_url: returnUrl,
-        type: 'account_onboarding',
-      });
-
-      return accountLink.url;
+      // Get balance transaction to see exact fees
+      const balanceTransaction = await stripe.balanceTransactions.retrieve(charge.balance_transaction as string);
+      
+      return {
+        stripeFeeCents: balanceTransaction.fee,
+        netCents: balanceTransaction.net
+      };
     } catch (error) {
-      console.error('Error creating Connect onboarding:', error);
-      throw error;
+      console.error('Error fetching Stripe fees:', error);
+      return null;
     }
   }
 
@@ -323,18 +308,9 @@ export class StripeService {
         confirmation_method: 'automatic'
       };
 
-      // Add marketplace flow if organizer has Stripe Connect
-      if (organizer.stripeAccountId) {
-        console.log('[StripeService] Using marketplace model with Stripe Connect');
-        paymentIntentParams.application_fee_amount = order.feesCents;
-        paymentIntentParams.transfer_data = {
-          destination: organizer.stripeAccountId,
-        };
-        paymentIntentParams.on_behalf_of = organizer.stripeAccountId;
-      } else {
-        console.log('[StripeService] Using direct charge model (no Connect account)');
-        // Direct charge - platform keeps all money including fees
-      }
+      // MoR Model: Always direct charge to Jugnu's platform account
+      // Platform collects all payments and handles organizer payouts separately
+      console.log('[StripeService] Using MoR model - direct charge to platform');
 
       const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
 

@@ -213,10 +213,16 @@ export const sponsorLeads = pgTable("sponsor_leads", {
 export const ticketsOrganizers = pgTable("tickets_organizers", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
-  stripeAccountId: text("stripe_account_id").unique(),
-  status: text("status").notNull().default("pending"), // pending | active | suspended
+  stripeAccountId: text("stripe_account_id").unique(), // Deprecated for MoR model
+  status: text("status").notNull().default("active"), // active | suspended (removed pending)
   businessName: text("business_name"),
   businessEmail: text("business_email"),
+  email: text("email").notNull(), // NOT NULL email for MoR payouts
+  // MoR payout fields
+  payoutMethod: text("payout_method").notNull().default("etransfer"), // etransfer | paypal | manual
+  payoutEmail: text("payout_email"), // Email for payouts (can be different from business email)
+  legalName: text("legal_name"), // Full legal name for tax purposes
+  defaultShareBps: integer("default_share_bps").default(9000), // Default 90% to organizer, 10% platform fee
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
@@ -277,9 +283,20 @@ export const ticketsOrders = pgTable("tickets_orders", {
   discountCode: text("discount_code"),
   discountAmountCents: integer("discount_amount_cents").default(0),
   refundedAmountCents: integer("refunded_amount_cents").default(0),
+  // MoR Financial Tracking Fields
+  stripeChargeId: text("stripe_charge_id"), // For fee calculation
+  stripeFeeCents: integer("stripe_fee_cents"), // Actual Stripe processing fee
+  platformFeeCents: integer("platform_fee_cents"), // Jugnu platform fee
+  netToOrganizerCents: integer("net_to_organizer_cents"), // Amount organizer receives
+  payoutId: uuid("payout_id").references(() => ticketsPayouts.id), // Linked when paid out
+  payoutStatus: text("payout_status").notNull().default("pending"), // pending | in_progress | paid
   placedAt: timestamp("placed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
-});
+}, (table) => ({
+  payoutStatusIdx: index("orders_payout_status_idx").on(table.payoutStatus),
+  payoutIdIdx: index("orders_payout_id_idx").on(table.payoutId),
+  eventPayoutIdx: index("orders_event_payout_idx").on(table.eventId, table.payoutStatus),
+}));
 
 // Line items within orders
 export const ticketsOrderItems = pgTable("tickets_order_items", {
@@ -360,6 +377,43 @@ export const ticketsAudit = pgTable("tickets_audit", {
   userAgent: text("user_agent"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
+
+// MoR Financial Ledger - tracks all revenue transactions
+export const ticketsLedger = pgTable("tickets_ledger", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizerId: uuid("organizer_id").notNull().references(() => ticketsOrganizers.id),
+  orderId: uuid("order_id").references(() => ticketsOrders.id), // nullable for adjustments
+  payoutId: uuid("payout_id").references(() => ticketsPayouts.id), // linked when paid out
+  type: text("type").notNull(), // sale | refund | chargeback | adjustment
+  amountCents: integer("amount_cents").notNull(), // signed - negative for refunds/chargebacks
+  currency: text("currency").notNull().default("CAD"),
+  description: text("description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+}, (table) => ({
+  organizerIdIdx: index("ledger_organizer_id_idx").on(table.organizerId),
+  typeIdx: index("ledger_type_idx").on(table.type),
+  payoutIdIdx: index("ledger_payout_id_idx").on(table.payoutId),
+}));
+
+// MoR Payout Management - batched payments to organizers
+export const ticketsPayouts = pgTable("tickets_payouts", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  organizerId: uuid("organizer_id").notNull().references(() => ticketsOrganizers.id),
+  periodStart: date("period_start").notNull(),
+  periodEnd: date("period_end").notNull(),
+  totalCents: integer("total_cents").notNull(),
+  currency: text("currency").notNull().default("CAD"),
+  method: text("method").notNull(), // etransfer | paypal | manual
+  reference: text("reference"), // transaction ID or reference number
+  status: text("status").notNull().default("draft"), // draft | ready | paid | failed
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
+}, (table) => ({
+  organizerIdIdx: index("payouts_organizer_id_idx").on(table.organizerId),
+  statusIdx: index("payouts_status_idx").on(table.status),
+  periodIdx: index("payouts_period_idx").on(table.periodStart, table.periodEnd),
+}));
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -465,6 +519,16 @@ export const insertTicketsAuditSchema = createInsertSchema(ticketsAudit).omit({
   createdAt: true,
 });
 
+export const insertTicketsLedgerSchema = createInsertSchema(ticketsLedger).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertTicketsPayoutSchema = createInsertSchema(ticketsPayouts).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -511,3 +575,7 @@ export type TicketsWebhook = typeof ticketsWebhooks.$inferSelect;
 export type InsertTicketsWebhook = z.infer<typeof insertTicketsWebhookSchema>;
 export type TicketsAudit = typeof ticketsAudit.$inferSelect;
 export type InsertTicketsAudit = z.infer<typeof insertTicketsAuditSchema>;
+export type TicketsLedger = typeof ticketsLedger.$inferSelect;
+export type InsertTicketsLedger = z.infer<typeof insertTicketsLedgerSchema>;
+export type TicketsPayout = typeof ticketsPayouts.$inferSelect;
+export type InsertTicketsPayout = z.infer<typeof insertTicketsPayoutSchema>;

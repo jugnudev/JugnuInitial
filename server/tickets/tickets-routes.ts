@@ -632,66 +632,56 @@ export function addTicketsRoutes(app: Express) {
     }
   });
   
-  // Create/connect organizer account
-  app.post('/api/tickets/organizers/connect', requireTicketing, async (req: Request & { session?: any }, res: Response) => {
+  // Create organizer account (MoR model - simplified signup)
+  app.post('/api/tickets/organizers/signup', requireTicketing, async (req: Request & { session?: any }, res: Response) => {
     try {
       const validated = organizerSignupSchema.parse(req.body);
-      const { businessName, businessEmail, firstName, lastName, returnUrl, refreshUrl } = validated;
+      const { businessName, businessEmail, firstName, lastName } = validated;
       
       // Get userId from session - for now we'll create a test user ID since we don't have auth yet
       const userId = req.session?.userId || 'test-user-1';
-      console.log('[DEBUG] Using userId:', userId);
+      console.log('[MoR Signup] Using userId:', userId);
       
       // Check if organizer already exists
-      console.log('[DEBUG] Attempting to find organizer for userId:', userId);
-      console.log('[DEBUG] Testing ticketsStorage connection...');
-      
       let organizer;
       try {
         organizer = await ticketsStorage.getOrganizerByUserId(userId);
-        console.log('[DEBUG] Found existing organizer:', organizer ? 'YES' : 'NO');
+        console.log('[MoR Signup] Found existing organizer:', organizer ? 'YES' : 'NO');
       } catch (dbError) {
-        console.error('[DEBUG] Database error in getOrganizerByUserId:', dbError);
+        console.error('[MoR Signup] Database error in getOrganizerByUserId:', dbError);
         throw dbError;
       }
       
       if (!organizer) {
-        // Create new organizer with proper snake_case mapping
-        console.log('[DEBUG] Creating new organizer...');
+        // Create new organizer - MoR model: active immediately, no KYC needed
+        console.log('[MoR Signup] Creating new organizer...');
         organizer = await ticketsStorage.createOrganizer({
           userId,
           businessName,
           businessEmail,
-          status: 'pending'
+          email: businessEmail, // Required for MoR payouts
+          status: 'active', // MoR model: active immediately
+          payoutMethod: 'etransfer', // Default payout method
+          payoutEmail: businessEmail, // Use business email for payouts
+          legalName: `${firstName} ${lastName}`.trim() || businessName
         });
-        console.log('[DEBUG] Organizer created with ID:', organizer.id);
+        console.log('[MoR Signup] Organizer created with ID:', organizer.id);
       }
       
-      // Generate Stripe Connect onboarding link
-      if (stripe) {
-        const onboardingUrl = await StripeService.createConnectOnboardingLink(
-          organizer.id,
-          returnUrl || `${req.protocol}://${req.get('host')}/tickets/organizer/dashboard`,
-          refreshUrl || `${req.protocol}://${req.get('host')}/tickets/organizer/connect`
-        );
-        
-        if (onboardingUrl) {
-          return res.json({ ok: true, onboardingUrl, organizerId: organizer.id });
-        }
-      }
-      
-      // Test mode without Stripe - set session
+      // MoR Model: No Stripe Connect onboarding needed
+      // Organizer can start creating events immediately
       req.session = req.session || {};
       req.session.organizerId = organizer.id;
       
       res.json({ 
         ok: true, 
-        organizerId: organizer.id, 
-        testMode: true 
+        organizerId: organizer.id,
+        message: 'Account created successfully! You can start creating events immediately.',
+        status: 'active'
       });
       
     } catch (error) {
-      console.error('Organizer connect error:', error);
+      console.error('Organizer signup error:', error);
       res.status(500).json({ ok: false, error: 'Failed to create organizer account' });
     }
   });
