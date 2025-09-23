@@ -61,61 +61,29 @@ export class TicketsSupabaseDB {
   async createOrganizer(data: InsertTicketsOrganizer): Promise<TicketsOrganizer> {
     console.log('[DEBUG] Creating organizer with data:', data);
     
-    // Use SQL insert to bypass PostgREST cache issues
-    const organizerId = nanoid();
-    const now = new Date().toISOString();
+    // Let the database auto-generate UUID - no manual ID needed
+    const insertData = {
+      user_id: data.userId,
+      business_name: data.businessName,
+      business_email: data.businessEmail,
+      status: data.status || 'pending'
+    };
     
-    const insertSQL = `
-      INSERT INTO tickets_organizers (id, user_id, business_name, business_email, status, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
-      RETURNING *;
-    `;
+    console.log('[DEBUG] Inserting with snake_case data (auto UUID):', insertData);
     
-    const { data: result, error } = await this.client.rpc('exec_sql', {
-      query: insertSQL,
-      params: [organizerId, data.userId, data.businessName, data.businessEmail, data.status || 'pending', now, now]
-    });
+    const { data: organizer, error: insertError } = await this.client
+      .from('tickets_organizers')
+      .insert(insertData)
+      .select()
+      .single();
     
-    if (error) {
-      console.log('[DEBUG] SQL insert error:', error);
-      // Since exec_sql doesn't exist, try direct insert with explicit snake_case column mapping
-      console.log('[DEBUG] Using direct insert with proper snake_case column names...');
-      
-      try {
-        // Map camelCase to snake_case for the database
-        const insertData = {
-          id: organizerId,
-          user_id: data.userId,
-          business_name: data.businessName,
-          business_email: data.businessEmail,
-          status: data.status || 'pending',
-          created_at: now,
-          updated_at: now
-        };
-        
-        console.log('[DEBUG] Inserting with snake_case data:', insertData);
-        
-        const { data: organizer, error: insertError } = await this.client
-          .from('tickets_organizers')
-          .insert(insertData)
-          .select()
-          .single();
-        
-        if (insertError) {
-          console.log('[DEBUG] Direct insert also failed:', insertError);
-          throw insertError;
-        }
-        
-        console.log('[DEBUG] Organizer created via direct insert:', organizer?.id);
-        return organizer;
-      } catch (directError) {
-        console.log('[DEBUG] Direct insert failed, trying basic method:', directError);
-        throw directError;
-      }
+    if (insertError) {
+      console.log('[DEBUG] Direct insert failed:', insertError);
+      throw insertError;
     }
     
-    console.log('[DEBUG] Organizer created via SQL:', organizerId);
-    return result[0]; // exec_sql returns array
+    console.log('[DEBUG] Organizer created with ID:', organizer?.id);
+    return organizer;
   }
 
   async getOrganizerById(id: string): Promise<TicketsOrganizer | null> {
