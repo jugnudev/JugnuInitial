@@ -52,6 +52,24 @@ export interface AnalyticsEmailData {
   returningVisitors: number;
 }
 
+export interface TicketEmailData {
+  recipientEmail: string;
+  buyerName: string;
+  eventTitle: string;
+  eventVenue: string;
+  eventDate: string;
+  eventTime: string;
+  orderNumber: string;
+  tickets: Array<{
+    id: string;
+    tierName: string;
+    qrToken: string;
+    seat?: string;
+  }>;
+  totalAmount: string;
+  refundPolicy?: string;
+}
+
 export async function sendOnboardingEmail(data: OnboardingEmailData): Promise<void> {
   if (!SENDGRID_API_KEY) {
     console.error('SendGrid API key not configured, skipping email send');
@@ -620,5 +638,216 @@ View full analytics dashboard at ${APP_BASE_URL}/admin/analytics
     console.log(`Analytics email sent to ${data.recipientEmail}`);
   } catch (error) {
     console.error('Error sending analytics email:', error);
+  }
+}
+
+export async function sendTicketEmail(data: TicketEmailData): Promise<void> {
+  if (!SENDGRID_API_KEY) {
+    console.error('SendGrid API key not configured, skipping ticket email');
+    return;
+  }
+
+  const ticketRows = data.tickets.map(ticket => `
+    <tr>
+      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">
+        <strong>${ticket.tierName}</strong>
+        <br>
+        <small style="color: #6b7280;">Ticket ID: ${ticket.id}</small>
+        ${ticket.seat ? `<br><small style="color: #6b7280;">Seat: ${ticket.seat}</small>` : ''}
+      </td>
+      <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: center;">
+        <div style="background: #f3f4f6; padding: 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+          ${ticket.qrToken}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  const msg = {
+    to: data.recipientEmail,
+    from: {
+      email: EMAIL_FROM_ADDRESS,
+      name: EMAIL_FROM_NAME
+    },
+    subject: `Your tickets for ${data.eventTitle}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+              background-color: #f9fafb;
+            }
+            .header {
+              text-align: center;
+              padding: 30px 0;
+              background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+              color: white;
+              border-radius: 12px 12px 0 0;
+              margin-bottom: 0;
+            }
+            .content {
+              background: white;
+              padding: 30px;
+              border-radius: 0 0 12px 12px;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+            .event-details {
+              background: #f8fafc;
+              padding: 20px;
+              border-radius: 8px;
+              margin: 20px 0;
+              border-left: 4px solid #6366f1;
+            }
+            .tickets-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 20px 0;
+              background: white;
+              border: 1px solid #e5e7eb;
+              border-radius: 8px;
+              overflow: hidden;
+            }
+            .tickets-table th {
+              background: #f3f4f6;
+              padding: 12px;
+              text-align: left;
+              font-weight: 600;
+              color: #374151;
+            }
+            .qr-notice {
+              background: #fef3c7;
+              border: 1px solid #f59e0b;
+              padding: 15px;
+              border-radius: 8px;
+              margin: 20px 0;
+            }
+            .footer {
+              text-align: center;
+              padding: 20px 0;
+              color: #6b7280;
+              font-size: 14px;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 style="margin: 0; font-size: 28px;">🎟️ Your Tickets</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">Get ready for an amazing experience!</p>
+          </div>
+          
+          <div class="content">
+            <p style="font-size: 18px; margin-bottom: 10px;">Hi ${data.buyerName},</p>
+            
+            <p>Thank you for your purchase! Your tickets for <strong>${data.eventTitle}</strong> are ready.</p>
+            
+            <div class="event-details">
+              <h3 style="margin-top: 0; color: #6366f1;">📅 Event Details</h3>
+              <p><strong>Event:</strong> ${data.eventTitle}</p>
+              <p><strong>Venue:</strong> ${data.eventVenue}</p>
+              <p><strong>Date:</strong> ${data.eventDate}</p>
+              <p><strong>Time:</strong> ${data.eventTime}</p>
+              <p><strong>Order #:</strong> ${data.orderNumber}</p>
+              <p><strong>Total Paid:</strong> ${data.totalAmount}</p>
+            </div>
+            
+            <h3>🎫 Your Tickets</h3>
+            <table class="tickets-table">
+              <thead>
+                <tr>
+                  <th>Ticket Details</th>
+                  <th style="text-align: center;">QR Code</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${ticketRows}
+              </tbody>
+            </table>
+            
+            <div class="qr-notice">
+              <p style="margin: 0;"><strong>📱 Important:</strong> Please save this email or take screenshots of your QR codes. You'll need to show them at the venue for entry.</p>
+            </div>
+            
+            <h3>📋 Important Information</h3>
+            <ul>
+              <li>Arrive at least 30 minutes before the event start time</li>
+              <li>Have your QR codes ready on your phone or printed</li>
+              <li>Bring a valid photo ID for verification</li>
+              <li>Check the venue's specific entry requirements</li>
+            </ul>
+            
+            ${data.refundPolicy ? `
+              <h3>🔄 Refund Policy</h3>
+              <p style="font-size: 14px; color: #6b7280;">${data.refundPolicy}</p>
+            ` : ''}
+            
+            <p>Questions about your order? Reply to this email and we'll help you out!</p>
+            
+            <p style="margin-top: 30px;">See you at the event! 🎉</p>
+          </div>
+          
+          <div class="footer">
+            <p>Need help? Contact us at <a href="mailto:${EMAIL_FROM_ADDRESS}">${EMAIL_FROM_ADDRESS}</a></p>
+            <p style="color: #999; font-size: 12px;">
+              ${APP_BASE_URL}<br>
+              Vancouver's Cultural Events Platform
+            </p>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `
+Hi ${data.buyerName},
+
+Thank you for your purchase! Your tickets for ${data.eventTitle} are ready.
+
+Event Details:
+- Event: ${data.eventTitle}
+- Venue: ${data.eventVenue} 
+- Date: ${data.eventDate}
+- Time: ${data.eventTime}
+- Order #: ${data.orderNumber}
+- Total Paid: ${data.totalAmount}
+
+Your Tickets:
+${data.tickets.map(ticket => `
+- ${ticket.tierName} (ID: ${ticket.id})
+  QR Code: ${ticket.qrToken}${ticket.seat ? `\n  Seat: ${ticket.seat}` : ''}
+`).join('')}
+
+Important: Please save this email or take screenshots of your QR codes. You'll need to show them at the venue for entry.
+
+Important Information:
+- Arrive at least 30 minutes before the event start time
+- Have your QR codes ready on your phone or printed  
+- Bring a valid photo ID for verification
+- Check the venue's specific entry requirements
+
+${data.refundPolicy ? `Refund Policy: ${data.refundPolicy}` : ''}
+
+Questions about your order? Reply to this email and we'll help you out!
+
+See you at the event!
+
+---
+Jugnu - Vancouver's Cultural Events Platform
+${APP_BASE_URL}
+    `.trim()
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log(`Ticket email sent to ${data.recipientEmail} for order ${data.orderNumber}`);
+  } catch (error) {
+    console.error('Error sending ticket email:', error);
+    throw error;
   }
 }
