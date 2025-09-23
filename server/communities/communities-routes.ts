@@ -224,6 +224,11 @@ export function addCommunitiesRoutes(app: Express) {
       // Get the auth code
       const authCode = await communitiesStorage.getAuthCodeByEmailAndCode(email, code);
       if (!authCode) {
+        // Increment attempts on failed verification to prevent brute force
+        const existingCode = await communitiesStorage.getAuthCodeByEmail(email);
+        if (existingCode && existingCode.attempts < existingCode.maxAttempts) {
+          await communitiesStorage.incrementAuthCodeAttempts(existingCode.id);
+        }
         return res.status(400).json({ ok: false, error: 'Invalid or expired verification code' });
       }
 
