@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, numeric, uuid, integer, date, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, numeric, uuid, integer, date, jsonb, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -305,6 +305,20 @@ export const ticketsTickets = pgTable("tickets_tickets", {
   scannedBy: text("scanned_by"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
+
+// Temporary capacity reservations for inventory management
+export const ticketsCapacityReservations = pgTable("tickets_capacity_reservations", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tierId: uuid("tier_id").notNull().references(() => ticketsTiers.id, { onDelete: 'cascade' }),
+  quantity: integer("quantity").notNull(),
+  reservationId: text("reservation_id").notNull().unique(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+}, (table) => ({
+  tierIdIdx: index("capacity_reservations_tier_id_idx").on(table.tierId),
+  expiresAtIdx: index("capacity_reservations_expires_at_idx").on(table.expiresAt),
+  tierExpiresIdx: index("capacity_reservations_tier_expires_idx").on(table.tierId, table.expiresAt),
+}));
 
 // Discount codes for events
 export const ticketsDiscounts = pgTable("tickets_discounts", {

@@ -487,12 +487,49 @@ export class TicketsDB {
     quantity: number;
     reservationId: string;
     expiresAt: Date;
-  }): Promise<void> {
-    const query = `
-      INSERT INTO tickets_capacity_reservations (tier_id, quantity, reservation_id, expires_at)
-      VALUES ($1, $2, $3, $4)
-    `;
-    await pool.query(query, [data.tierId, data.quantity, data.reservationId, data.expiresAt]);
+  }): Promise<boolean> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      
+      // Lock the tier row to prevent concurrent modifications
+      const tierQuery = `
+        SELECT capacity, 
+               (SELECT COALESCE(SUM(quantity), 0) FROM tickets_tickets WHERE tier_id = $1 AND status IN ('valid', 'used')) as sold,
+               (SELECT COALESCE(SUM(quantity), 0) FROM tickets_capacity_reservations WHERE tier_id = $1 AND expires_at > NOW()) as reserved
+        FROM tickets_tiers 
+        WHERE id = $1 
+        FOR UPDATE
+      `;
+      const tierResult = await client.query(tierQuery, [data.tierId]);
+      
+      if (tierResult.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return false;
+      }
+      
+      const { capacity, sold, reserved } = tierResult.rows[0];
+      const available = capacity ? capacity - parseInt(sold) - parseInt(reserved) : Number.MAX_SAFE_INTEGER;
+      
+      if (available >= data.quantity) {
+        // Create the reservation
+        const insertQuery = `
+          INSERT INTO tickets_capacity_reservations (tier_id, quantity, reservation_id, expires_at)
+          VALUES ($1, $2, $3, $4)
+        `;
+        await client.query(insertQuery, [data.tierId, data.quantity, data.reservationId, data.expiresAt]);
+        await client.query('COMMIT');
+        return true;
+      } else {
+        await client.query('ROLLBACK');
+        return false;
+      }
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async deleteCapacityReservation(reservationId: string): Promise<void> {
