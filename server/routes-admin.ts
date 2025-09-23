@@ -165,11 +165,16 @@ export function addAdminRoutes(app: Express) {
       // Run ticketing disabled tests
       const ticketingTests = await runTicketingDisabledTests();
       
+      // Run communities disabled tests
+      const communitiesTests = await runCommunitiesDisabledTests();
+      
       // Combine results
       const combinedResults = {
         ...spotlightData,
         TicketingDisabled: ticketingTests.status,
-        ticketingDetails: ticketingTests.details
+        ticketingDetails: ticketingTests.details,
+        CommunitiesDisabled: communitiesTests.status,
+        communitiesDetails: communitiesTests.details
       };
       
       res.status(spotlightResponse.status).json(combinedResults);
@@ -178,6 +183,111 @@ export function addAdminRoutes(app: Express) {
       res.status(500).json({ ok: false, error: 'Failed to run selftest' });
     }
   });
+
+  // Helper function to run communities disabled tests
+  async function runCommunitiesDisabledTests() {
+    const details: any = {};
+    let allPassed = true;
+
+    try {
+      const serverFlag = process.env.ENABLE_COMMUNITIES === 'true';
+      const clientFlag = process.env.VITE_ENABLE_COMMUNITIES === 'true';
+      
+      details.serverFlag = { value: serverFlag, gate: 'ENABLE_COMMUNITIES' };
+      details.clientFlag = { value: clientFlag, gate: 'VITE_ENABLE_COMMUNITIES' };
+
+      // Only run disabled tests if communities is actually disabled
+      if (!serverFlag && !clientFlag) {
+        // Test 1: API routes return disabled JSON
+        try {
+          const apiResponse = await fetch('http://localhost:5000/api/account/me');
+          const apiData = await apiResponse.json();
+          const apiPassed = apiResponse.status === 404 && 
+                           apiData.ok === false && 
+                           apiData.disabled === true;
+          
+          details.apiTest = { 
+            passed: apiPassed, 
+            status: apiResponse.status, 
+            response: apiData,
+            gate: 'ENABLE_COMMUNITIES server flag'
+          };
+          if (!apiPassed) allPassed = false;
+        } catch (error) {
+          details.apiTest = { passed: false, error: (error as Error).message };
+          allPassed = false;
+        }
+
+        // Test 2: Page routes return 404 + noindex
+        try {
+          const pageResponse = await fetch('http://localhost:5000/account/signin');
+          const pageText = await pageResponse.text();
+          const pagePassed = pageResponse.status === 404 && 
+                            pageText.includes('<meta name="robots" content="noindex, nofollow">');
+          
+          details.pageTest = { 
+            passed: pagePassed, 
+            status: pageResponse.status,
+            hasNoindex: pageText.includes('noindex'),
+            gate: 'ENABLE_COMMUNITIES server flag'
+          };
+          if (!pagePassed) allPassed = false;
+        } catch (error) {
+          details.pageTest = { passed: false, error: (error as Error).message };
+          allPassed = false;
+        }
+
+        // Test 3: robots.txt blocks /account and /community routes
+        try {
+          const robotsResponse = await fetch('http://localhost:5000/robots.txt');
+          const robotsText = await robotsResponse.text();
+          const robotsPassed = robotsText.includes('Disallow: /account') && 
+                               robotsText.includes('Disallow: /community');
+          
+          details.robotsTest = { 
+            passed: robotsPassed, 
+            blocksAccount: robotsText.includes('Disallow: /account'),
+            blocksCommunity: robotsText.includes('Disallow: /community'),
+            gate: 'ENABLE_COMMUNITIES server flag'
+          };
+          if (!robotsPassed) allPassed = false;
+        } catch (error) {
+          details.robotsTest = { passed: false, error: (error as Error).message };
+          allPassed = false;
+        }
+
+        // Test 4: sitemap.xml excludes communities URLs
+        try {
+          const sitemapResponse = await fetch('http://localhost:5000/sitemap.xml');
+          const sitemapText = await sitemapResponse.text();
+          const sitemapPassed = !sitemapText.includes('/account') && 
+                                !sitemapText.includes('/community');
+          
+          details.sitemapTest = { 
+            passed: sitemapPassed, 
+            excludesAccount: !sitemapText.includes('/account'),
+            excludesCommunity: !sitemapText.includes('/community'),
+            gate: 'ENABLE_COMMUNITIES server flag'
+          };
+          if (!sitemapPassed) allPassed = false;
+        } catch (error) {
+          details.sitemapTest = { passed: false, error: (error as Error).message };
+          allPassed = false;
+        }
+      } else {
+        details.skipped = 'Communities is enabled - disabled tests not applicable';
+      }
+
+    } catch (error) {
+      details.error = (error as Error).message;
+      allPassed = false;
+    }
+
+    return {
+      status: allPassed ? 'PASS' : 'FAIL',
+      details
+    };
+  }
 
   // Helper function to run ticketing disabled tests
   async function runTicketingDisabledTests() {
