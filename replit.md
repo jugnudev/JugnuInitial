@@ -133,3 +133,40 @@ The ticketing system can be completely disabled without deleting code using feat
 3. Ticketing functionality will be fully restored
 
 This approach maintains all ticketing code intact while providing complete SEO isolation when disabled.
+
+### Communities System (Production-Ready)
+- **Feature Flag**: ENABLE_COMMUNITIES environment variable controls visibility.
+- **Database Schema**: Complete `community_*` table structure with Supabase integration for user accounts, organizer applications, and admin approval workflows.
+- **Authentication**: Email-based passwordless authentication with 6-digit verification codes and 24-hour session expiration.
+- **User Accounts**: Sign-up/sign-in flows, profile management, organizer application system with comprehensive form validation.
+- **Admin Interface**: Complete admin approval interface at `/community/admin/organizers` for reviewing and managing organizer applications.
+- **Storage Layer**: Supabase-based storage with RLS policies for secure multi-user access and admin controls.
+- **Routes**: User account endpoints (`/api/account/signin`, `/api/account/signup`, `/api/account/me`, `/api/account/apply-organizer`) and admin endpoints (`/api/account/admin/organizers/pending`, `/api/account/admin/organizers/:id/approve`, `/api/account/admin/organizers/:id/reject`).
+- **Frontend Pages**: Account management (`/account/signin`, `/account/signup`, `/account/profile`, `/account/apply-organizer`) and admin interface (`/community/admin/organizers`).
+
+#### Pausing/Unpausing Communities
+The Communities system can be completely disabled without deleting code using feature flags:
+
+**To Disable Communities:**
+1. Set environment variables:
+   - `ENABLE_COMMUNITIES=false` (server-side)
+   - `VITE_ENABLE_COMMUNITIES=false` (client-side)
+2. Rebuild and restart the application
+3. Run admin self-test to verify: `GET /api/admin/selftest` (requires admin key)
+
+**When Disabled:**
+- All `/account*` and `/community*` page routes return 404 with noindex meta tags
+- All `/api/account*` API routes return `{ok:false, disabled:true}`  
+- Client-side Communities UI is completely hidden
+- robots.txt disallows `/account*` and `/community*` routes
+- sitemap.xml excludes all Communities URLs
+- Admin self-test shows "CommunitiesDisabled: PASS" status
+
+**To Enable Communities:**
+1. Set environment variables:
+   - `ENABLE_COMMUNITIES=true` (server-side)  
+   - `VITE_ENABLE_COMMUNITIES=true` (client-side)
+2. Rebuild and restart the application
+3. Communities functionality will be fully activated with user accounts, organizer applications, and admin approval workflows
+
+This approach maintains all Communities code intact while providing complete SEO isolation when disabled.
