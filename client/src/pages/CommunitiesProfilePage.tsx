@@ -394,220 +394,310 @@ export function CommunitiesProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container max-w-4xl mx-auto py-8 px-4">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Avatar className="w-16 h-16">
-              <AvatarImage src={user.profileImageUrl || undefined} />
-              <AvatarFallback className="text-lg font-semibold">
-                {getUserInitials()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="text-3xl font-bold">
-                {user.firstName} {user.lastName}
-              </h1>
-              <p className="text-muted-foreground">{user.email}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant={user.emailVerified ? 'default' : 'secondary'}>
-                  {user.emailVerified ? 'Verified' : 'Unverified'}
-                </Badge>
-                {user.role === 'organizer' && (
-                  <Badge variant="outline">
-                    <Building2 className="w-3 h-3 mr-1" />
-                    Organizer
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => signOutMutation.mutate()}
-              disabled={signOutMutation.isPending}
-              data-testid="button-signout"
-            >
-              {signOutMutation.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <LogOut className="w-4 h-4 mr-2" />
-              )}
-              Sign Out
-            </Button>
-          </div>
-        </div>
-
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="organizer">Organizer</TabsTrigger>
-            <TabsTrigger value="settings">Settings</TabsTrigger>
-          </TabsList>
-
-          {/* Profile Tab */}
-          <TabsContent value="profile" className="space-y-6">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Profile Information</CardTitle>
-                  <CardDescription>
-                    Manage your public profile information
-                  </CardDescription>
-                </div>
-                <Button
-                  variant={isEditing ? 'outline' : 'default'}
-                  size="sm"
-                  onClick={() => setIsEditing(!isEditing)}
-                  data-testid="button-edit"
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  {isEditing ? 'Cancel' : 'Edit'}
-                </Button>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {isEditing ? (
-                  <form onSubmit={form.handleSubmit(onUpdateSubmit)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName">First name</Label>
-                        <Input
-                          id="firstName"
-                          data-testid="input-firstname"
-                          {...form.register('firstName')}
-                        />
-                        {form.formState.errors.firstName && (
-                          <p className="text-sm text-destructive">
-                            {form.formState.errors.firstName.message}
-                          </p>
-                        )}
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
+      <div className="container max-w-6xl mx-auto py-8 px-4">
+        {/* Premium Header */}
+        <div className="relative mb-12">
+          {/* Background Card */}
+          <Card className="border-0 shadow-lg bg-gradient-to-r from-card to-card/80 backdrop-blur-sm">
+            <CardContent className="p-8">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                {/* Profile Section */}
+                <div className="flex items-center gap-6">
+                  <div className="relative">
+                    <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
+                      <AvatarImage src={user.profileImageUrl || undefined} />
+                      <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
+                        {getUserInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                    {user.emailVerified && (
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center border-2 border-background">
+                        <CheckCircle className="w-3 h-3 text-white" />
                       </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName">Last name</Label>
-                        <Input
-                          id="lastName"
-                          data-testid="input-lastname"
-                          {...form.register('lastName')}
-                        />
-                        {form.formState.errors.lastName && (
-                          <p className="text-sm text-destructive">
-                            {form.formState.errors.lastName.message}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="bio">Bio</Label>
-                      <Textarea
-                        id="bio"
-                        placeholder="Tell us about yourself..."
-                        rows={3}
-                        data-testid="input-bio"
-                        {...form.register('bio')}
-                      />
-                      {form.formState.errors.bio && (
-                        <p className="text-sm text-destructive">
-                          {form.formState.errors.bio.message}
-                        </p>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
+                      {user.firstName} {user.lastName}
+                    </h1>
+                    <p className="text-lg text-muted-foreground font-medium">{user.email}</p>
+                    <div className="flex items-center gap-3 mt-3">
+                      <Badge 
+                        variant={user.emailVerified ? 'default' : 'secondary'}
+                        className="px-3 py-1 text-sm font-medium"
+                      >
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        {user.emailVerified ? 'Verified Account' : 'Unverified'}
+                      </Badge>
+                      {user.role === 'organizer' && (
+                        <Badge variant="outline" className="px-3 py-1 text-sm font-medium border-primary/20 bg-primary/5">
+                          <Building2 className="w-3 h-3 mr-1" />
+                          Business Account
+                        </Badge>
                       )}
                     </div>
+                  </div>
+                </div>
+                
+                {/* Actions Section */}
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="default"
+                    onClick={() => signOutMutation.mutate()}
+                    disabled={signOutMutation.isPending}
+                    data-testid="button-signout"
+                    className="px-6 font-medium border-destructive/20 hover:border-destructive/40 hover:bg-destructive/5 text-destructive hover:text-destructive"
+                  >
+                    {signOutMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <LogOut className="w-4 h-4 mr-2" />
+                    )}
+                    Sign Out
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="location">Location</Label>
-                        <Input
-                          id="location"
-                          placeholder="Vancouver, BC"
-                          data-testid="input-location"
-                          {...form.register('location')}
-                        />
+        <Tabs defaultValue="profile" className="space-y-8">
+          <div className="border-b border-border/50">
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 bg-muted/30 p-1 h-12">
+              <TabsTrigger 
+                value="profile" 
+                className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <User className="w-4 h-4 mr-2" />
+                Profile
+              </TabsTrigger>
+              <TabsTrigger 
+                value="organizer" 
+                className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <Building2 className="w-4 h-4 mr-2" />
+                Business
+              </TabsTrigger>
+              <TabsTrigger 
+                value="settings" 
+                className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {/* Profile Tab */}
+          <TabsContent value="profile" className="space-y-8">
+            {/* Profile Overview Card */}
+            <Card className="border-0 shadow-md bg-gradient-to-r from-card to-card/90">
+              <CardHeader className="pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-2xl font-bold flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <User className="w-4 h-4 text-primary" />
+                      </div>
+                      Profile Information
+                    </CardTitle>
+                    <CardDescription className="text-base mt-2">
+                      Manage your personal information and preferences
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant={isEditing ? 'outline' : 'default'}
+                    size="lg"
+                    onClick={() => setIsEditing(!isEditing)}
+                    data-testid="button-edit"
+                    className="px-6 font-medium"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    {isEditing ? 'Cancel Changes' : 'Edit Profile'}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {isEditing ? (
+                  <form onSubmit={form.handleSubmit(onUpdateSubmit)} className="space-y-8">
+                    {/* Basic Information Section */}
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                        <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center">
+                          <User className="w-3 h-3 text-blue-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground">Basic Information</h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <Label htmlFor="firstName" className="text-sm font-medium text-foreground">
+                            First Name <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="firstName"
+                            data-testid="input-firstname"
+                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            {...form.register('firstName')}
+                          />
+                          {form.formState.errors.firstName && (
+                            <p className="text-sm text-destructive">
+                              {form.formState.errors.firstName.message}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <Label htmlFor="lastName" className="text-sm font-medium text-foreground">
+                            Last Name <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            id="lastName"
+                            data-testid="input-lastname"
+                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            {...form.register('lastName')}
+                          />
+                          {form.formState.errors.lastName && (
+                            <p className="text-sm text-destructive">
+                              {form.formState.errors.lastName.message}
+                            </p>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="website">Website</Label>
-                        <Input
-                          id="website"
-                          type="url"
-                          placeholder="https://yourwebsite.com"
-                          data-testid="input-website"
-                          {...form.register('website')}
+                      <div className="space-y-3">
+                        <Label htmlFor="bio" className="text-sm font-medium text-foreground">About You</Label>
+                        <Textarea
+                          id="bio"
+                          placeholder="Tell us about yourself, your interests, and what brings you to our community..."
+                          rows={4}
+                          data-testid="input-bio"
+                          className="bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none"
+                          {...form.register('bio')}
                         />
-                      </div>
-                    </div>
-
-                    {/* Personal Details */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="phoneNumber">Phone Number</Label>
-                        <Input
-                          id="phoneNumber"
-                          placeholder="+1 (555) 123-4567"
-                          data-testid="input-phone"
-                          {...form.register('phoneNumber')}
-                        />
-                        {form.formState.errors.phoneNumber && (
+                        {form.formState.errors.bio && (
                           <p className="text-sm text-destructive">
-                            {form.formState.errors.phoneNumber.message}
+                            {form.formState.errors.bio.message}
                           </p>
                         )}
                       </div>
+                    </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="dateOfBirth">Date of Birth</Label>
-                        <Input
-                          id="dateOfBirth"
-                          type="date"
-                          data-testid="input-birthdate"
-                          {...form.register('dateOfBirth')}
-                        />
+                    {/* Contact & Location Section */}
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                        <div className="w-6 h-6 rounded-md bg-green-500/10 flex items-center justify-center">
+                          <Mail className="w-3 h-3 text-green-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground">Contact & Location</h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <Label htmlFor="location" className="text-sm font-medium text-foreground">Location</Label>
+                          <Input
+                            id="location"
+                            placeholder="Vancouver, BC"
+                            data-testid="input-location"
+                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            {...form.register('location')}
+                          />
+                        </div>
+
+                        <div className="space-y-3">
+                          <Label htmlFor="website" className="text-sm font-medium text-foreground">Website</Label>
+                          <Input
+                            id="website"
+                            type="url"
+                            placeholder="https://yourwebsite.com"
+                            data-testid="input-website"
+                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            {...form.register('website')}
+                          />
+                        </div>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="gender">Gender</Label>
-                        <Select 
-                          value={form.watch('gender') || 'prefer-not-to-say'} 
-                          onValueChange={(value) => form.setValue('gender', value)}
-                        >
-                          <SelectTrigger data-testid="select-gender">
-                            <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="male">Male</SelectItem>
-                            <SelectItem value="female">Female</SelectItem>
-                            <SelectItem value="non-binary">Non-binary</SelectItem>
-                            <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
+                    {/* Personal Details Section */}
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                        <div className="w-6 h-6 rounded-md bg-purple-500/10 flex items-center justify-center">
+                          <User className="w-3 h-3 text-purple-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground">Personal Details</h3>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <Label htmlFor="phoneNumber" className="text-sm font-medium text-foreground">Phone Number</Label>
+                          <Input
+                            id="phoneNumber"
+                            placeholder="+1 (555) 123-4567"
+                            data-testid="input-phone"
+                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            {...form.register('phoneNumber')}
+                          />
+                          {form.formState.errors.phoneNumber && (
+                            <p className="text-sm text-destructive">
+                              {form.formState.errors.phoneNumber.message}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <Label htmlFor="dateOfBirth" className="text-sm font-medium text-foreground">Date of Birth</Label>
+                          <Input
+                            id="dateOfBirth"
+                            type="date"
+                            data-testid="input-birthdate"
+                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            {...form.register('dateOfBirth')}
+                          />
+                        </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="preferredLanguage">Preferred Language</Label>
-                        <Select 
-                          value={form.watch('preferredLanguage') || 'en'} 
-                          onValueChange={(value) => form.setValue('preferredLanguage', value)}
-                        >
-                          <SelectTrigger data-testid="select-language">
-                            <SelectValue placeholder="Select language" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="en">English</SelectItem>
-                            <SelectItem value="fr">Français</SelectItem>
-                            <SelectItem value="hi">हिन्दी</SelectItem>
-                            <SelectItem value="ur">اردو</SelectItem>
-                            <SelectItem value="pa">ਪੰਜਾਬੀ</SelectItem>
-                            <SelectItem value="zh">中文</SelectItem>
-                            <SelectItem value="es">Español</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <Label htmlFor="gender" className="text-sm font-medium text-foreground">Gender</Label>
+                          <Select 
+                            value={form.watch('gender') || 'prefer-not-to-say'} 
+                            onValueChange={(value) => form.setValue('gender', value)}
+                          >
+                            <SelectTrigger data-testid="select-gender" className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20">
+                              <SelectValue placeholder="Select gender" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="male">Male</SelectItem>
+                              <SelectItem value="female">Female</SelectItem>
+                              <SelectItem value="non-binary">Non-binary</SelectItem>
+                              <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-3">
+                          <Label htmlFor="preferredLanguage" className="text-sm font-medium text-foreground">Preferred Language</Label>
+                          <Select 
+                            value={form.watch('preferredLanguage') || 'en'} 
+                            onValueChange={(value) => form.setValue('preferredLanguage', value)}
+                          >
+                            <SelectTrigger data-testid="select-language" className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20">
+                              <SelectValue placeholder="Select language" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="en">English</SelectItem>
+                              <SelectItem value="fr">Français</SelectItem>
+                              <SelectItem value="hi">हिन्दी</SelectItem>
+                              <SelectItem value="ur">اردو</SelectItem>
+                              <SelectItem value="pa">ਪੰਜਾਬੀ</SelectItem>
+                              <SelectItem value="zh">中文</SelectItem>
+                              <SelectItem value="es">Español</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
 
