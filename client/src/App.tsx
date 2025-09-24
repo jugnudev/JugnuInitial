@@ -100,17 +100,13 @@ function Router() {
           </>
         )}
         
-        {/* Communities Routes - Only visible if ENABLE_COMMUNITIES is true */}
-        {import.meta.env.VITE_ENABLE_COMMUNITIES === 'true' && (
-          <>
-            <Route path="/account" component={() => { window.location.href = '/account/signin'; return null; }} />
-            <Route path="/account/signin" component={CommunitiesSigninPage} />
-            <Route path="/account/signup" component={CommunitiesSignupPage} />
-            <Route path="/account/profile" component={CommunitiesProfilePage} />
-            <Route path="/account/apply-organizer" component={CommunitiesOrganizerApplicationPage} />
-            <Route path="/community/admin/organizers" component={AdminOrganizers} />
-          </>
-        )}
+        {/* Platform-wide Authentication Routes - Always Available */}
+        <Route path="/account" component={() => { window.location.href = '/account/signin'; return null; }} />
+        <Route path="/account/signin" component={CommunitiesSigninPage} />
+        <Route path="/account/signup" component={CommunitiesSignupPage} />
+        <Route path="/account/profile" component={CommunitiesProfilePage} />
+        <Route path="/account/apply-organizer" component={CommunitiesOrganizerApplicationPage} />
+        <Route path="/admin/organizers" component={AdminOrganizers} />
         
         <Route component={NotFound} />
       </Switch>

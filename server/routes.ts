@@ -4273,56 +4273,8 @@ Disallow: /account/*`;
     }
   });
 
-  // Add Communities routes if enabled
-  if (process.env.ENABLE_COMMUNITIES === 'true') {
-    addCommunitiesRoutes(app);
-  } else {
-    // When Communities is disabled, intercept all Communities endpoints
-    
-    // API routes must return JSON disabled response
-    app.all('/api/account*', (req, res) => {
-      console.log(`[Communities] Disabled - API route ${req.path} blocked by ENABLE_COMMUNITIES flag`);
-      res.status(404).json({ ok: false, disabled: true });
-    });
-
-    app.all('/api/community*', (req, res) => {
-      console.log(`[Communities] Disabled - API route ${req.path} blocked by ENABLE_COMMUNITIES flag`);
-      res.status(404).json({ ok: false, disabled: true });
-    });
-    
-    // Page routes return 404 + noindex
-    app.get('/community*', (req, res) => {
-      console.log(`[Communities] Disabled - Page route ${req.path} blocked by ENABLE_COMMUNITIES flag`);
-      res.status(404).send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta name="robots" content="noindex, nofollow">
-          <title>Page Not Found</title>
-        </head>
-        <body>
-          <h1>404 - Page Not Found</h1>
-        </body>
-        </html>
-      `);
-    });
-
-    app.get('/account*', (req, res) => {
-      console.log(`[Communities] Disabled - Page route ${req.path} blocked by ENABLE_COMMUNITIES flag`);
-      res.status(404).send(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <meta name="robots" content="noindex, nofollow">
-          <title>Page Not Found</title>
-        </head>
-        <body>
-          <h1>404 - Page Not Found</h1>
-        </body>
-        </html>
-      `);
-    });
-  }
+  // Add platform-wide authentication routes (always available)
+  addCommunitiesRoutes(app);
 
   // Add ticketing routes if enabled
   if (process.env.ENABLE_TICKETING === 'true') {

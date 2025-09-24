@@ -38,10 +38,8 @@ export function CommunitiesProfilePage() {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
 
-  // Check if Communities is enabled
-  const isEnabled = import.meta.env.VITE_ENABLE_COMMUNITIES === 'true';
-  
-  if (!isEnabled) {
+  // Authentication is always available (platform-wide)
+  if (false) { // Never show coming soon message
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="max-w-md w-full">

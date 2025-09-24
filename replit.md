@@ -139,10 +139,10 @@ This approach maintains all ticketing code intact while providing complete SEO i
 - **Database Schema**: Complete `community_*` table structure with Supabase integration for user accounts, organizer applications, and admin approval workflows.
 - **Authentication**: Email-based passwordless authentication with 6-digit verification codes and 24-hour session expiration.
 - **User Accounts**: Sign-up/sign-in flows, profile management, organizer application system with comprehensive form validation.
-- **Admin Interface**: Complete admin approval interface at `/community/admin/organizers` for reviewing and managing organizer applications.
+- **Admin Interface**: Complete admin approval interface at `/admin/organizers` for reviewing and managing organizer applications.
 - **Storage Layer**: Supabase-based storage with RLS policies for secure multi-user access and admin controls.
 - **Routes**: User account endpoints (`/api/account/signin`, `/api/account/signup`, `/api/account/me`, `/api/account/apply-organizer`) and admin endpoints (`/api/account/admin/organizers/pending`, `/api/account/admin/organizers/:id/approve`, `/api/account/admin/organizers/:id/reject`).
-- **Frontend Pages**: Account management (`/account/signin`, `/account/signup`, `/account/profile`, `/account/apply-organizer`) and admin interface (`/community/admin/organizers`).
+- **Frontend Pages**: Account management (`/account/signin`, `/account/signup`, `/account/profile`, `/account/apply-organizer`) and admin interface (`/admin/organizers`).
 
 #### Pausing/Unpausing Communities
 The Communities system can be completely disabled without deleting code using feature flags:
