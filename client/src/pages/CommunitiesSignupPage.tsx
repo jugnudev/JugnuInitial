@@ -166,9 +166,7 @@ export function CommunitiesSignupPage() {
               <CardTitle className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
                 Create Your Jugnu Account
               </CardTitle>
-              <CardDescription className="text-lg text-muted-foreground">
-                Discover South Asian events and connect with Vancouver's vibrant cultural scene
-              </CardDescription>
+              <CardDescription className="text-muted-foreground text-[14px]">Connect with Metro Vancouver's vibrant South Asian cultural scene</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
