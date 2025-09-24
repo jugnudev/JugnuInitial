@@ -77,6 +77,34 @@ export class CommunitiesSupabaseDB {
       .single();
 
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    
+    // Map database column names to JavaScript property names
+    if (data) {
+      return {
+        ...data,
+        // Map snake_case database fields to camelCase JavaScript properties
+        firstName: data.first_name,
+        lastName: data.last_name,
+        phoneNumber: data.phone_number,
+        dateOfBirth: data.date_of_birth,
+        preferredLanguage: data.preferred_language,
+        marketingOptInSource: data.marketing_opt_in_source,
+        companyName: data.company_name,
+        jobTitle: data.job_title,
+        referralSource: data.referral_source,
+        // Remove the snake_case fields to avoid confusion
+        first_name: undefined,
+        last_name: undefined,
+        phone_number: undefined,
+        date_of_birth: undefined,
+        preferred_language: undefined,
+        marketing_opt_in_source: undefined,
+        company_name: undefined,
+        job_title: undefined,
+        referral_source: undefined
+      };
+    }
+    
     return data;
   }
 
@@ -100,6 +128,34 @@ export class CommunitiesSupabaseDB {
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
+    
+    // Map database column names to JavaScript property names
+    if (data) {
+      return {
+        ...data,
+        // Map snake_case database fields to camelCase JavaScript properties
+        firstName: data.first_name,
+        lastName: data.last_name,
+        phoneNumber: data.phone_number,
+        dateOfBirth: data.date_of_birth,
+        preferredLanguage: data.preferred_language,
+        marketingOptInSource: data.marketing_opt_in_source,
+        companyName: data.company_name,
+        jobTitle: data.job_title,
+        referralSource: data.referral_source,
+        // Remove the snake_case fields to avoid confusion
+        first_name: undefined,
+        last_name: undefined,
+        phone_number: undefined,
+        date_of_birth: undefined,
+        preferred_language: undefined,
+        marketing_opt_in_source: undefined,
+        company_name: undefined,
+        job_title: undefined,
+        referral_source: undefined
+      };
+    }
+    
     return data;
   }
 
