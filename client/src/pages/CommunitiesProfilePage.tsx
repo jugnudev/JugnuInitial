@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Mail, ArrowLeft, User, Settings, LogOut, Building2, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { Loader2, Mail, ArrowLeft, User, Settings, LogOut, Building2, CheckCircle, Clock, XCircle, MapPin, Globe, Instagram, Twitter, Linkedin } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -596,7 +596,10 @@ export function CommunitiesProfilePage() {
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-3">
-                          <Label htmlFor="location" className="text-sm font-medium text-foreground">Location</Label>
+                          <Label htmlFor="location" className="text-sm font-medium text-foreground flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-green-600" />
+                            Location
+                          </Label>
                           <Input
                             id="location"
                             placeholder="Vancouver, BC"
@@ -607,7 +610,10 @@ export function CommunitiesProfilePage() {
                         </div>
 
                         <div className="space-y-3">
-                          <Label htmlFor="website" className="text-sm font-medium text-foreground">Website</Label>
+                          <Label htmlFor="website" className="text-sm font-medium text-foreground flex items-center gap-2">
+                            <Globe className="w-4 h-4 text-green-600" />
+                            Website
+                          </Label>
                           <Input
                             id="website"
                             type="url"
@@ -759,31 +765,43 @@ export function CommunitiesProfilePage() {
                       <h4 className="font-medium">Social Media</h4>
                       <div className="grid grid-cols-1 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="socialInstagram">Instagram</Label>
+                          <Label htmlFor="socialInstagram" className="text-sm font-medium text-foreground flex items-center gap-2">
+                            <Instagram className="w-4 h-4 text-pink-500" />
+                            Instagram
+                          </Label>
                           <Input
                             id="socialInstagram"
                             placeholder="@username"
                             data-testid="input-instagram"
+                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
                             {...form.register('socialInstagram')}
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="socialTwitter">Twitter</Label>
+                          <Label htmlFor="socialTwitter" className="text-sm font-medium text-foreground flex items-center gap-2">
+                            <Twitter className="w-4 h-4 text-blue-400" />
+                            Twitter
+                          </Label>
                           <Input
                             id="socialTwitter"
                             placeholder="@username"
                             data-testid="input-twitter"
+                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
                             {...form.register('socialTwitter')}
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <Label htmlFor="socialLinkedin">LinkedIn</Label>
+                          <Label htmlFor="socialLinkedin" className="text-sm font-medium text-foreground flex items-center gap-2">
+                            <Linkedin className="w-4 h-4 text-blue-600" />
+                            LinkedIn
+                          </Label>
                           <Input
                             id="socialLinkedin"
                             placeholder="linkedin.com/in/username"
                             data-testid="input-linkedin"
+                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
                             {...form.register('socialLinkedin')}
                           />
                         </div>
