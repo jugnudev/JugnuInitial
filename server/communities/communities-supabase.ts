@@ -131,10 +131,42 @@ export class CommunitiesSupabaseDB {
     return authCode;
   }
 
+  async getAuthCodeByEmail(email: string): Promise<AuthCode | null> {
+    const { data, error } = await this.client
+      .from('auth_codes')
+      .select('id, created_at, user_id, email, code, purpose, expires_at, used_at, attempts, max_attempts')
+      .eq('email', email.toLowerCase().trim())
+      .is('used_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    
+    // Map database column names to JavaScript property names
+    if (data) {
+      return {
+        id: data.id,
+        createdAt: data.created_at,
+        userId: data.user_id, // Map user_id to userId
+        email: data.email,
+        code: data.code,
+        purpose: data.purpose,
+        expiresAt: data.expires_at,
+        usedAt: data.used_at,
+        attempts: data.attempts,
+        maxAttempts: data.max_attempts
+      };
+    }
+    
+    return null;
+  }
+
   async getAuthCodeByEmailAndCode(email: string, code: string): Promise<AuthCode | null> {
     const { data, error } = await this.client
       .from('auth_codes')
-      .select('*')
+      .select('id, created_at, user_id, email, code, purpose, expires_at, used_at, attempts, max_attempts')
       .eq('email', email.toLowerCase().trim())
       .eq('code', code)
       .is('used_at', null)
@@ -144,7 +176,24 @@ export class CommunitiesSupabaseDB {
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    
+    // Map database column names to JavaScript property names
+    if (data) {
+      return {
+        id: data.id,
+        createdAt: data.created_at,
+        userId: data.user_id, // Map user_id to userId
+        email: data.email,
+        code: data.code,
+        purpose: data.purpose,
+        expiresAt: data.expires_at,
+        usedAt: data.used_at,
+        attempts: data.attempts,
+        maxAttempts: data.max_attempts
+      };
+    }
+    
+    return null;
   }
 
   async markAuthCodeUsed(id: string): Promise<void> {
@@ -201,14 +250,30 @@ export class CommunitiesSupabaseDB {
   async getSessionByToken(token: string): Promise<UserSession | null> {
     const { data, error } = await this.client
       .from('user_sessions')
-      .select('*')
+      .select('id, created_at, user_id, token, expires_at, last_used_at, ip_address, user_agent, is_active')
       .eq('token', token)
       .eq('is_active', true)
       .gt('expires_at', new Date().toISOString())
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    
+    // Map database column names to JavaScript property names
+    if (data) {
+      return {
+        id: data.id,
+        createdAt: data.created_at,
+        userId: data.user_id, // Map user_id to userId
+        token: data.token,
+        expiresAt: data.expires_at,
+        lastUsedAt: data.last_used_at,
+        ipAddress: data.ip_address,
+        userAgent: data.user_agent,
+        isActive: data.is_active
+      };
+    }
+    
+    return null;
   }
 
   async updateSessionLastUsed(token: string): Promise<void> {
