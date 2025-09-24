@@ -11,8 +11,7 @@ export default function Navigation() {
   const { data: events = [] } = useEvents();
   const { data: galleryImages = [] } = useGallery();
   
-  // Check if Communities feature is enabled
-  const isCommunitiesEnabled = import.meta.env.VITE_ENABLE_COMMUNITIES === 'true';
+  // Note: User authentication is now always available site-wide
   
   // Determine what nav items to show
   const hasTicketsAvailable = events.some(event => 
@@ -118,19 +117,17 @@ export default function Navigation() {
                 Join
               </Link>
               
-              {/* Communities Sign Up Button */}
-              {isCommunitiesEnabled && (
-                <Link href="/account/signup">
-                  <Button 
-                    size="sm" 
-                    className="ml-4 bg-accent hover:bg-accent/90 text-bg font-medium"
-                    data-testid="nav-signup"
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Sign Up
-                  </Button>
-                </Link>
-              )}
+              {/* User Sign Up Button */}
+              <Link href="/account/signup">
+                <Button 
+                  size="sm" 
+                  className="ml-4 bg-accent hover:bg-accent/90 text-bg font-medium"
+                  data-testid="nav-signup"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Sign Up
+                </Button>
+              </Link>
             </div>
           </div>
 
@@ -227,22 +224,20 @@ export default function Navigation() {
                 Join
               </Link>
               
-              {/* Communities Sign Up Button - Mobile */}
-              {isCommunitiesEnabled && (
-                <div className="px-3 py-2">
-                  <Link href="/account/signup">
-                    <Button 
-                      size="sm" 
-                      className="w-full bg-accent hover:bg-accent/90 text-bg font-medium"
-                      data-testid="nav-mobile-signup"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Sign Up
-                    </Button>
-                  </Link>
-                </div>
-              )}
+              {/* User Sign Up Button - Mobile */}
+              <div className="px-3 py-2">
+                <Link href="/account/signup">
+                  <Button 
+                    size="sm" 
+                    className="w-full bg-accent hover:bg-accent/90 text-bg font-medium"
+                    data-testid="nav-mobile-signup"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Sign Up
+                  </Button>
+                </Link>
+              </div>
             </div>
           </div>
         )}
