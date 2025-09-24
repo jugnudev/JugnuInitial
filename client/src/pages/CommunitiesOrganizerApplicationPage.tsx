@@ -120,14 +120,14 @@ export function CommunitiesOrganizerApplicationPage() {
       if (data.ok) {
         queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
         toast({
-          title: 'Application submitted!',
-          description: 'Your organizer application has been submitted successfully. Our team will review it shortly.',
+          title: 'Registration submitted!',
+          description: 'Your business registration has been submitted successfully. Our team will review it shortly and activate your account.',
         });
         setLocation('/account/profile?tab=organizer');
       } else {
         toast({
           title: 'Error',
-          description: data.error || 'Failed to submit application.',
+          description: data.error || 'Failed to submit registration.',
           variant: 'destructive',
         });
       }
@@ -173,7 +173,7 @@ export function CommunitiesOrganizerApplicationPage() {
               <div className="text-center space-y-4">
                 <Alert>
                   <AlertDescription>
-                    Please sign in to apply as an organizer.
+                    Please sign in to register your business account.
                   </AlertDescription>
                 </Alert>
                 <Button 
@@ -212,12 +212,12 @@ export function CommunitiesOrganizerApplicationPage() {
                 </div>
                 <div>
                   <h2 className="text-xl font-semibold">
-                    {organizer ? 'You\'re Already an Organizer' : 'Application Pending'}
+                    {organizer ? 'Business Account Active' : 'Registration Pending'}
                   </h2>
                   <p className="text-muted-foreground mt-2">
                     {organizer 
-                      ? 'You already have an approved organizer account.'
-                      : `Your organizer application is ${organizerApplication?.status}. Check your profile for updates.`
+                      ? 'Your business account is active and ready to use.'
+                      : `Your business registration is ${organizerApplication?.status}. Check your profile for updates.`
                     }
                   </p>
                 </div>
@@ -256,9 +256,9 @@ export function CommunitiesOrganizerApplicationPage() {
             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <Building2 className="w-8 h-8 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold mb-2">Apply to Become an Organizer</h1>
+            <h1 className="text-3xl font-bold mb-2">Register Your Business Account</h1>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Join our community of event organizers and start hosting amazing experiences in Vancouver and beyond.
+              Register your business with Jugnu to access event hosting, promotion tools, and community partnerships in Vancouver and beyond.
             </p>
           </div>
         </div>
@@ -266,9 +266,9 @@ export function CommunitiesOrganizerApplicationPage() {
         {/* Application Form */}
         <Card>
           <CardHeader>
-            <CardTitle>Organizer Application</CardTitle>
+            <CardTitle>Business Registration</CardTitle>
             <CardDescription>
-              Tell us about your business and experience organizing events
+              Register your business details to get started with our platform
             </CardDescription>
           </CardHeader>
           <CardContent>

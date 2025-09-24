@@ -536,7 +536,7 @@ export function addCommunitiesRoutes(app: Express) {
         const existing = existingApplications[0];
         return res.status(400).json({ 
           ok: false, 
-          error: `You already have a ${existing.status} organizer application`
+          error: `You already have a ${existing.status} business registration`
         });
       }
 
