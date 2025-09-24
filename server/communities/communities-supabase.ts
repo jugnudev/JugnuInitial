@@ -92,6 +92,8 @@ export class CommunitiesSupabaseDB {
         companyName: data.company_name,
         jobTitle: data.job_title,
         referralSource: data.referral_source,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
         // Remove the snake_case fields to avoid confusion
         first_name: undefined,
         last_name: undefined,
@@ -143,6 +145,8 @@ export class CommunitiesSupabaseDB {
         companyName: data.company_name,
         jobTitle: data.job_title,
         referralSource: data.referral_source,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
         // Remove the snake_case fields to avoid confusion
         first_name: undefined,
         last_name: undefined,
