@@ -94,6 +94,7 @@ export class CommunitiesSupabaseDB {
         referralSource: data.referral_source,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
+        emailVerified: data.email_verified,
         // Remove the snake_case fields to avoid confusion
         first_name: undefined,
         last_name: undefined,
@@ -147,6 +148,7 @@ export class CommunitiesSupabaseDB {
         referralSource: data.referral_source,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
+        emailVerified: data.email_verified,
         // Remove the snake_case fields to avoid confusion
         first_name: undefined,
         last_name: undefined,
