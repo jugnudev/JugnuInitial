@@ -659,49 +659,51 @@ export function CommunitiesProfilePage() {
                     </div>
 
                     {/* Personal Details */}
-                    {(user.phoneNumber || user.dateOfBirth || user.gender || user.preferredLanguage) && (
-                      <>
-                        <Separator />
-                        <div className="space-y-4">
-                          <Label className="text-base font-medium">Personal Details</Label>
-                          <div className="grid grid-cols-2 gap-4">
-                            {user.phoneNumber && (
-                              <div>
-                                <Label>Phone Number</Label>
-                                <p className="mt-1">{user.phoneNumber}</p>
-                              </div>
-                            )}
-                            {user.dateOfBirth && (
-                              <div>
-                                <Label>Date of Birth</Label>
-                                <p className="mt-1">{new Date(user.dateOfBirth).toLocaleDateString()}</p>
-                              </div>
-                            )}
-                            {user.gender && (
-                              <div>
-                                <Label>Gender</Label>
-                                <p className="mt-1 capitalize">{user.gender.replace('-', ' ')}</p>
-                              </div>
-                            )}
-                            {user.preferredLanguage && (
-                              <div>
-                                <Label>Preferred Language</Label>
-                                <p className="mt-1">
-                                  {user.preferredLanguage === 'en' ? 'English' :
-                                   user.preferredLanguage === 'fr' ? 'Français' :
-                                   user.preferredLanguage === 'hi' ? 'हिन्दी' :
-                                   user.preferredLanguage === 'ur' ? 'اردو' :
-                                   user.preferredLanguage === 'pa' ? 'ਪੰਜਾਬੀ' :
-                                   user.preferredLanguage === 'zh' ? '中文' :
-                                   user.preferredLanguage === 'es' ? 'Español' :
-                                   user.preferredLanguage}
-                                </p>
-                              </div>
-                            )}
+                    <>
+                      <Separator />
+                      <div className="space-y-4">
+                        <Label className="text-base font-medium">Personal Details</Label>
+                        <div className="grid grid-cols-2 gap-4">
+                          {user.phoneNumber && (
+                            <div>
+                              <Label>Phone Number</Label>
+                              <p className="mt-1">{user.phoneNumber}</p>
+                            </div>
+                          )}
+                          <div>
+                            <Label>Date of Birth</Label>
+                            <p className="mt-1">
+                              {(() => {
+                                if (!user.dateOfBirth) return 'Not provided';
+                                const date = new Date(user.dateOfBirth);
+                                return !isNaN(date.getTime()) ? date.toLocaleDateString() : 'Invalid date';
+                              })()}
+                            </p>
                           </div>
+                          {user.gender && (
+                            <div>
+                              <Label>Gender</Label>
+                              <p className="mt-1 capitalize">{user.gender.replace('-', ' ')}</p>
+                            </div>
+                          )}
+                          {user.preferredLanguage && (
+                            <div>
+                              <Label>Preferred Language</Label>
+                              <p className="mt-1">
+                                {user.preferredLanguage === 'en' ? 'English' :
+                                 user.preferredLanguage === 'fr' ? 'Français' :
+                                 user.preferredLanguage === 'hi' ? 'हिन्दी' :
+                                 user.preferredLanguage === 'ur' ? 'اردو' :
+                                 user.preferredLanguage === 'pa' ? 'ਪੰਜਾਬੀ' :
+                                 user.preferredLanguage === 'zh' ? '中文' :
+                                 user.preferredLanguage === 'es' ? 'Español' :
+                                 user.preferredLanguage}
+                              </p>
+                            </div>
+                          )}
                         </div>
-                      </>
-                    )}
+                      </div>
+                    </>
 
                     {/* Professional Information */}
                     {(user.companyName || user.jobTitle) && (
@@ -915,7 +917,7 @@ export function CommunitiesProfilePage() {
                       ) : (
                         <>
                           <Mail className="w-4 h-4 text-yellow-500" />
-                          <span className="text-sm text-yellow-600">Not verified</span>
+                          <span className="text-sm text-yellow-600">Unverified</span>
                         </>
                       )}
                     </div>
@@ -923,7 +925,7 @@ export function CommunitiesProfilePage() {
 
                   <div>
                     <Label>Account Created</Label>
-                    <p className="mt-1 text-sm">{new Date(user.createdAt).toLocaleDateString()}</p>
+                    <p className="mt-1 text-sm">{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}</p>
                   </div>
                 </div>
               </CardContent>
