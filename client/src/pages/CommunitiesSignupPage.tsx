@@ -16,10 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 const signupSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  bio: z.string().max(500, 'Bio must be under 500 characters').optional(),
-  location: z.string().max(100, 'Location must be under 100 characters').optional(),
-  website: z.string().url('Please enter a valid URL').optional().or(z.literal(''))
+  lastName: z.string().min(1, 'Last name is required')
 });
 
 const verifySchema = z.object({
@@ -73,10 +70,7 @@ export function CommunitiesSignupPage() {
     defaultValues: { 
       email: '',
       firstName: '',
-      lastName: '',
-      bio: '',
-      location: '',
-      website: ''
+      lastName: ''
     }
   });
 
@@ -86,8 +80,14 @@ export function CommunitiesSignupPage() {
   });
 
   const signupMutation = useMutation({
-    mutationFn: (data: SignupFormData) => 
-      apiRequest('/api/auth/signup', { method: 'POST', body: data }),
+    mutationFn: async (data: SignupFormData) => {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return response.json();
+    },
     onSuccess: (data, variables) => {
       if (data.ok) {
         setSignupData(variables);
@@ -114,14 +114,16 @@ export function CommunitiesSignupPage() {
   });
 
   const verifyMutation = useMutation({
-    mutationFn: (data: VerifyFormData) => {
+    mutationFn: async (data: VerifyFormData) => {
       if (!signupData?.email) {
         throw new Error('Email not found. Please return to signup form.');
       }
-      return apiRequest('/api/auth/verify-code', { 
-        method: 'POST', 
-        body: { email: signupData.email, code: data.code } 
+      const response = await fetch('/api/auth/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: signupData.email, code: data.code }),
       });
+      return response.json();
     },
     onSuccess: (data) => {
       if (data.ok) {
@@ -161,9 +163,11 @@ export function CommunitiesSignupPage() {
         <div className="max-w-md w-full">
           <Card>
             <CardHeader className="space-y-1 text-center">
-              <CardTitle className="text-2xl">Create Account</CardTitle>
-              <CardDescription>
-                Join our community to connect with local event organizers
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+                Create Your Jugnu Account
+              </CardTitle>
+              <CardDescription className="text-lg text-muted-foreground">
+                Discover South Asian events and connect with Vancouver's vibrant cultural scene
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -216,68 +220,22 @@ export function CommunitiesSignupPage() {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location (optional)</Label>
-                  <Input
-                    id="location"
-                    placeholder="Vancouver, BC"
-                    data-testid="input-location"
-                    {...signupForm.register('location')}
-                  />
-                  {signupForm.formState.errors.location && (
-                    <p className="text-sm text-destructive">
-                      {signupForm.formState.errors.location.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="website">Website (optional)</Label>
-                  <Input
-                    id="website"
-                    type="url"
-                    placeholder="https://yourwebsite.com"
-                    data-testid="input-website"
-                    {...signupForm.register('website')}
-                  />
-                  {signupForm.formState.errors.website && (
-                    <p className="text-sm text-destructive">
-                      {signupForm.formState.errors.website.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Bio (optional)</Label>
-                  <Textarea
-                    id="bio"
-                    placeholder="Tell us a bit about yourself..."
-                    rows={3}
-                    data-testid="input-bio"
-                    {...signupForm.register('bio')}
-                  />
-                  {signupForm.formState.errors.bio && (
-                    <p className="text-sm text-destructive">
-                      {signupForm.formState.errors.bio.message}
-                    </p>
-                  )}
-                </div>
 
                 <Button 
                   type="submit" 
-                  className="w-full"
+                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3 text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
                   disabled={signupMutation.isPending}
                   data-testid="button-signup"
                 >
                   {signupMutation.isPending ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                       Creating account...
                     </>
                   ) : (
                     <>
-                      <User className="w-4 h-4 mr-2" />
-                      Create account
+                      <User className="w-5 h-5 mr-2" />
+                      Create Account
                     </>
                   )}
                 </Button>

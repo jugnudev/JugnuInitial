@@ -121,7 +121,7 @@ export default function Navigation() {
               <Link href="/account/signup">
                 <Button 
                   size="sm" 
-                  className="ml-4 bg-accent hover:bg-accent/90 text-bg font-medium"
+                  className="ml-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold px-4 py-2 shadow-lg hover:shadow-xl transition-all duration-200 border-0"
                   data-testid="nav-signup"
                 >
                   <UserPlus className="h-4 w-4 mr-2" />
@@ -229,7 +229,7 @@ export default function Navigation() {
                 <Link href="/account/signup">
                   <Button 
                     size="sm" 
-                    className="w-full bg-accent hover:bg-accent/90 text-bg font-medium"
+                    className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 border-0"
                     data-testid="nav-mobile-signup"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >

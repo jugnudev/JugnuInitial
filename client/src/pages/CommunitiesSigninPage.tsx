@@ -74,8 +74,14 @@ export function CommunitiesSigninPage() {
   });
 
   const signinMutation = useMutation({
-    mutationFn: (data: SigninFormData) => 
-      apiRequest('/api/auth/signin', { method: 'POST', body: data }),
+    mutationFn: async (data: SigninFormData) => {
+      const response = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      return response.json();
+    },
     onSuccess: (data) => {
       if (data.ok) {
         setEmail(emailForm.getValues('email'));
@@ -102,14 +108,16 @@ export function CommunitiesSigninPage() {
   });
 
   const verifyMutation = useMutation({
-    mutationFn: (data: VerifyFormData) => {
+    mutationFn: async (data: VerifyFormData) => {
       if (!email) {
         throw new Error('Email not found. Please return to sign-in form.');
       }
-      return apiRequest('/api/auth/verify-code', { 
-        method: 'POST', 
-        body: { email, code: data.code } 
+      const response = await fetch('/api/auth/verify-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: data.code }),
       });
+      return response.json();
     },
     onSuccess: (data) => {
       if (data.ok) {
