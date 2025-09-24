@@ -1,7 +1,7 @@
 import { Express, Request, Response } from 'express';
 import { z } from 'zod';
 import { communitiesStorage } from './communities-supabase';
-import { insertCommunityUserSchema } from '@shared/schema';
+import { insertUserSchema } from '@shared/schema';
 
 // Check if Communities is enabled
 const isCommunitiesEnabled = () => process.env.ENABLE_COMMUNITIES === 'true';
@@ -48,7 +48,7 @@ const requireAuth = async (req: Request, res: Response, next: any) => {
 };
 
 // Validation schemas
-const signupSchema = insertCommunityUserSchema.extend({
+const signupSchema = insertUserSchema.extend({
   email: z.string().email('Invalid email address'),
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),

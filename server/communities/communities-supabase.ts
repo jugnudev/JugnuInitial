@@ -2,16 +2,16 @@ import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { nanoid } from 'nanoid';
 import type { 
-  CommunityUser, 
-  InsertCommunityUser,
-  CommunityAuthCode,
-  InsertCommunityAuthCode,
-  CommunityOrganizerApplication,
-  InsertCommunityOrganizerApplication,
-  CommunityOrganizer,
-  InsertCommunityOrganizer,
-  CommunityUserSession,
-  InsertCommunityUserSession
+  User, 
+  InsertUser,
+  AuthCode,
+  InsertAuthCode,
+  OrganizerApplication,
+  InsertOrganizerApplication,
+  Organizer,
+  InsertOrganizer,
+  UserSession,
+  InsertUserSession
 } from '@shared/schema';
 
 // Create Supabase client with service role for admin operations
@@ -30,9 +30,9 @@ export class CommunitiesSupabaseDB {
   private client = getSupabaseAdmin();
 
   // ============ USERS ============
-  async createUser(data: InsertCommunityUser): Promise<CommunityUser> {
+  async createUser(data: InsertUser): Promise<User> {
     const { data: user, error } = await this.client
-      .from('community_users')
+      .from('users')
       .insert({
         email: data.email.toLowerCase().trim(),
         first_name: data.firstName,
@@ -57,9 +57,9 @@ export class CommunitiesSupabaseDB {
     return user;
   }
 
-  async getUserById(id: string): Promise<CommunityUser | null> {
+  async getUserById(id: string): Promise<User | null> {
     const { data, error } = await this.client
-      .from('community_users')
+      .from('users')
       .select('*')
       .eq('id', id)
       .single();
@@ -68,9 +68,9 @@ export class CommunitiesSupabaseDB {
     return data;
   }
 
-  async getUserByEmail(email: string): Promise<CommunityUser | null> {
+  async getUserByEmail(email: string): Promise<User | null> {
     const { data, error } = await this.client
-      .from('community_users')
+      .from('users')
       .select('*')
       .eq('email', email.toLowerCase().trim())
       .single();
@@ -79,7 +79,7 @@ export class CommunitiesSupabaseDB {
     return data;
   }
 
-  async updateUser(id: string, data: Partial<InsertCommunityUser>): Promise<CommunityUser> {
+  async updateUser(id: string, data: Partial<InsertUser>): Promise<User> {
     const updateData: any = { updated_at: new Date().toISOString() };
     
     if (data.firstName !== undefined) updateData.first_name = data.firstName;
@@ -98,7 +98,7 @@ export class CommunitiesSupabaseDB {
     if (data.marketingEmails !== undefined) updateData.marketing_emails = data.marketingEmails;
 
     const { data: user, error } = await this.client
-      .from('community_users')
+      .from('users')
       .update(updateData)
       .eq('id', id)
       .select()
@@ -109,12 +109,12 @@ export class CommunitiesSupabaseDB {
   }
 
   // ============ AUTH CODES ============
-  async createAuthCode(data: InsertCommunityAuthCode): Promise<CommunityAuthCode> {
+  async createAuthCode(data: InsertAuthCode): Promise<AuthCode> {
     // Generate 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     
     const { data: authCode, error } = await this.client
-      .from('community_auth_codes')
+      .from('auth_codes')
       .insert({
         user_id: data.userId,
         email: data.email.toLowerCase().trim(),
@@ -131,9 +131,9 @@ export class CommunitiesSupabaseDB {
     return authCode;
   }
 
-  async getAuthCodeByEmailAndCode(email: string, code: string): Promise<CommunityAuthCode | null> {
+  async getAuthCodeByEmailAndCode(email: string, code: string): Promise<AuthCode | null> {
     const { data, error } = await this.client
-      .from('community_auth_codes')
+      .from('auth_codes')
       .select('*')
       .eq('email', email.toLowerCase().trim())
       .eq('code', code)
@@ -149,7 +149,7 @@ export class CommunitiesSupabaseDB {
 
   async markAuthCodeUsed(id: string): Promise<void> {
     const { error } = await this.client
-      .from('community_auth_codes')
+      .from('auth_codes')
       .update({ used_at: new Date().toISOString() })
       .eq('id', id);
 
@@ -163,14 +163,14 @@ export class CommunitiesSupabaseDB {
     if (error) {
       // Fallback if RPC doesn't exist
       const { data: authCode } = await this.client
-        .from('community_auth_codes')
+        .from('auth_codes')
         .select('attempts')
         .eq('id', id)
         .single();
       
       if (authCode) {
         await this.client
-          .from('community_auth_codes')
+          .from('auth_codes')
           .update({ attempts: (authCode.attempts || 0) + 1 })
           .eq('id', id);
       }
@@ -178,11 +178,11 @@ export class CommunitiesSupabaseDB {
   }
 
   // ============ USER SESSIONS ============
-  async createSession(data: InsertCommunityUserSession): Promise<CommunityUserSession> {
+  async createSession(data: InsertUserSession): Promise<UserSession> {
     const token = crypto.randomBytes(32).toString('hex');
     
     const { data: session, error } = await this.client
-      .from('community_user_sessions')
+      .from('user_sessions')
       .insert({
         user_id: data.userId,
         token,
@@ -198,9 +198,9 @@ export class CommunitiesSupabaseDB {
     return session;
   }
 
-  async getSessionByToken(token: string): Promise<CommunityUserSession | null> {
+  async getSessionByToken(token: string): Promise<UserSession | null> {
     const { data, error } = await this.client
-      .from('community_user_sessions')
+      .from('user_sessions')
       .select('*')
       .eq('token', token)
       .eq('is_active', true)
@@ -213,7 +213,7 @@ export class CommunitiesSupabaseDB {
 
   async updateSessionLastUsed(token: string): Promise<void> {
     const { error } = await this.client
-      .from('community_user_sessions')
+      .from('user_sessions')
       .update({ last_used_at: new Date().toISOString() })
       .eq('token', token);
 
@@ -222,7 +222,7 @@ export class CommunitiesSupabaseDB {
 
   async deactivateSession(token: string): Promise<void> {
     const { error } = await this.client
-      .from('community_user_sessions')
+      .from('user_sessions')
       .update({ is_active: false })
       .eq('token', token);
 
@@ -231,7 +231,7 @@ export class CommunitiesSupabaseDB {
 
   async deactivateAllUserSessions(userId: string): Promise<void> {
     const { error } = await this.client
-      .from('community_user_sessions')
+      .from('user_sessions')
       .update({ is_active: false })
       .eq('user_id', userId);
 
@@ -239,9 +239,9 @@ export class CommunitiesSupabaseDB {
   }
 
   // ============ ORGANIZER APPLICATIONS ============
-  async createOrganizerApplication(data: InsertCommunityOrganizerApplication): Promise<CommunityOrganizerApplication> {
+  async createOrganizerApplication(data: InsertOrganizerApplication): Promise<OrganizerApplication> {
     const { data: application, error } = await this.client
-      .from('community_organizer_applications')
+      .from('organizer_applications')
       .insert({
         user_id: data.userId,
         business_name: data.businessName,
@@ -263,12 +263,12 @@ export class CommunitiesSupabaseDB {
     return application;
   }
 
-  async getOrganizerApplicationsByStatus(status: string): Promise<CommunityOrganizerApplication[]> {
+  async getOrganizerApplicationsByStatus(status: string): Promise<OrganizerApplication[]> {
     const { data, error } = await this.client
-      .from('community_organizer_applications')
+      .from('organizer_applications')
       .select(`
         *,
-        community_users!user_id (
+        users!user_id (
           id,
           email,
           first_name,
@@ -283,9 +283,9 @@ export class CommunitiesSupabaseDB {
     return data || [];
   }
 
-  async getOrganizerApplicationById(id: string): Promise<CommunityOrganizerApplication | null> {
+  async getOrganizerApplicationById(id: string): Promise<OrganizerApplication | null> {
     const { data, error } = await this.client
-      .from('community_organizer_applications')
+      .from('organizer_applications')
       .select('*')
       .eq('id', id)
       .single();
@@ -302,9 +302,9 @@ export class CommunitiesSupabaseDB {
       rejectionReason?: string; 
       adminNotes?: string; 
     }
-  ): Promise<CommunityOrganizerApplication> {
+  ): Promise<OrganizerApplication> {
     const { data: application, error } = await this.client
-      .from('community_organizer_applications')
+      .from('organizer_applications')
       .update({
         status: data.status,
         reviewed_by: data.reviewedBy,
@@ -322,9 +322,9 @@ export class CommunitiesSupabaseDB {
   }
 
   // ============ ORGANIZERS ============
-  async createOrganizer(data: InsertCommunityOrganizer): Promise<CommunityOrganizer> {
+  async createOrganizer(data: InsertOrganizer): Promise<Organizer> {
     const { data: organizer, error } = await this.client
-      .from('community_organizers')
+      .from('organizers')
       .insert({
         user_id: data.userId,
         application_id: data.applicationId,
@@ -348,9 +348,9 @@ export class CommunitiesSupabaseDB {
     return organizer;
   }
 
-  async getOrganizerByUserId(userId: string): Promise<CommunityOrganizer | null> {
+  async getOrganizerByUserId(userId: string): Promise<Organizer | null> {
     const { data, error } = await this.client
-      .from('community_organizers')
+      .from('organizers')
       .select('*')
       .eq('user_id', userId)
       .eq('status', 'active')
@@ -363,7 +363,7 @@ export class CommunitiesSupabaseDB {
   // ============ UTILITY METHODS ============
   async cleanupExpiredCodes(): Promise<void> {
     const { error } = await this.client
-      .from('community_auth_codes')
+      .from('auth_codes')
       .delete()
       .lt('expires_at', new Date(Date.now() - 60 * 60 * 1000).toISOString()); // Remove codes expired > 1 hour ago
 
@@ -372,7 +372,7 @@ export class CommunitiesSupabaseDB {
 
   async cleanupExpiredSessions(): Promise<void> {
     const { error } = await this.client
-      .from('community_user_sessions')
+      .from('user_sessions')
       .delete()
       .or(`expires_at.lt.${new Date().toISOString()},last_used_at.lt.${new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()}`); // Remove sessions expired or unused > 90 days
 
