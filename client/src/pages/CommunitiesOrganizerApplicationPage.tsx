@@ -482,7 +482,7 @@ export function CommunitiesOrganizerApplicationPage() {
                 <Alert>
                   <Info className="w-4 h-4" />
                   <AlertDescription>
-                    Your application will be reviewed by our team. You'll receive an email notification once a decision is made.
+                    Your business registration will be reviewed by our team. You'll receive an email notification once a decision is made.
                   </AlertDescription>
                 </Alert>
 
@@ -496,12 +496,12 @@ export function CommunitiesOrganizerApplicationPage() {
                     {applicationMutation.isPending ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Submitting Application...
+                        Submitting Registration...
                       </>
                     ) : (
                       <>
                         <Building2 className="w-4 h-4 mr-2" />
-                        Submit Application
+                        Register Business
                       </>
                     )}
                   </Button>

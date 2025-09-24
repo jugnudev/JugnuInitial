@@ -747,7 +747,7 @@ export function addCommunitiesRoutes(app: Express) {
 
       res.status(201).json({
         ok: true,
-        message: 'Organizer application submitted successfully. Our team will review it shortly.',
+        message: 'Business registration submitted successfully. Our team will review it shortly.',
         application: {
           id: application.id,
           businessName: application.businessName,
@@ -757,8 +757,8 @@ export function addCommunitiesRoutes(app: Express) {
         }
       });
     } catch (error: any) {
-      console.error('Organizer application error:', error);
-      res.status(500).json({ ok: false, error: error.message || 'Failed to submit application' });
+      console.error('Business registration error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to submit registration' });
     }
   });
 
@@ -812,8 +812,8 @@ export function addCommunitiesRoutes(app: Express) {
         }))
       });
     } catch (error: any) {
-      console.error('Get pending applications error:', error);
-      res.status(500).json({ ok: false, error: error.message || 'Failed to get applications' });
+      console.error('Get pending registrations error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get registrations' });
     }
   });
 
@@ -860,7 +860,7 @@ export function addCommunitiesRoutes(app: Express) {
 
       res.json({
         ok: true,
-        message: 'Organizer application approved successfully',
+        message: 'Business registration approved successfully',
         organizer: {
           id: organizer.id,
           businessName: organizer.businessName,
@@ -870,8 +870,8 @@ export function addCommunitiesRoutes(app: Express) {
         }
       });
     } catch (error: any) {
-      console.error('Approve organizer error:', error);
-      res.status(500).json({ ok: false, error: error.message || 'Failed to approve application' });
+      console.error('Approve business registration error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to approve registration' });
     }
   });
 
@@ -912,7 +912,7 @@ export function addCommunitiesRoutes(app: Express) {
 
       res.json({
         ok: true,
-        message: 'Organizer application rejected',
+        message: 'Business registration rejected',
         rejectionReason
       });
     } catch (error: any) {
