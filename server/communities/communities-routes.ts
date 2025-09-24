@@ -351,7 +351,18 @@ export function addCommunitiesRoutes(app: Express) {
           emailVerified: user.emailVerified,
           emailNotifications: user.emailNotifications,
           marketingEmails: user.marketingEmails,
-          createdAt: user.createdAt
+          createdAt: user.createdAt,
+          
+          // New profile fields for better customer profiling
+          phoneNumber: user.phoneNumber,
+          dateOfBirth: user.dateOfBirth,
+          gender: user.gender,
+          interests: user.interests,
+          preferredLanguage: user.preferredLanguage,
+          timezone: user.timezone,
+          companyName: user.companyName,
+          jobTitle: user.jobTitle,
+          referralSource: user.referralSource
         },
         organizerApplication,
         organizer

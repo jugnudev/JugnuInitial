@@ -60,7 +60,19 @@ export class CommunitiesSupabaseDB {
   async getUserById(id: string): Promise<User | null> {
     const { data, error } = await this.client
       .from('users')
-      .select('*')
+      .select(`
+        *,
+        phone_number,
+        date_of_birth,
+        gender,
+        interests,
+        preferred_language,
+        timezone,
+        marketing_opt_in_source,
+        company_name,
+        job_title,
+        referral_source
+      `)
       .eq('id', id)
       .single();
 
@@ -71,7 +83,19 @@ export class CommunitiesSupabaseDB {
   async getUserByEmail(email: string): Promise<User | null> {
     const { data, error } = await this.client
       .from('users')
-      .select('*')
+      .select(`
+        *,
+        phone_number,
+        date_of_birth,
+        gender,
+        interests,
+        preferred_language,
+        timezone,
+        marketing_opt_in_source,
+        company_name,
+        job_title,
+        referral_source
+      `)
       .eq('email', email.toLowerCase().trim())
       .single();
 
@@ -99,19 +123,14 @@ export class CommunitiesSupabaseDB {
     if (data.marketingEmails !== undefined) safeUpdateData.marketing_emails = data.marketingEmails;
 
     // Try to update with safe fields first
-    const { data: user, error } = await this.client
+    const { error: safeError } = await this.client
       .from('users')
       .update(safeUpdateData)
-      .eq('id', id)
-      .select()
-      .single();
+      .eq('id', id);
 
-    if (error) throw error;
+    if (safeError) throw safeError;
 
-    // TODO: Once database schema is updated with new columns, uncomment this section
-    // to enable updating the new profile fields:
-    /*
-    // New profile fields for better customer profiling (requires database schema update)
+    // New profile fields for better customer profiling (database schema updated)
     const newFieldsData: any = {};
     if (data.phoneNumber !== undefined) newFieldsData.phone_number = data.phoneNumber;
     if (data.dateOfBirth !== undefined) newFieldsData.date_of_birth = data.dateOfBirth;
@@ -123,21 +142,27 @@ export class CommunitiesSupabaseDB {
     if (data.jobTitle !== undefined) newFieldsData.job_title = data.jobTitle;
     if (data.referralSource !== undefined) newFieldsData.referral_source = data.referralSource;
 
-    // Try to update new fields if they exist in the database
+    // Update new fields if any are provided
     if (Object.keys(newFieldsData).length > 0) {
       try {
         await this.client
           .from('users')
           .update(newFieldsData)
           .eq('id', id);
+        console.log(`Updated ${Object.keys(newFieldsData).length} new profile fields for user ${id}`);
       } catch (error) {
-        console.log('New profile fields not yet available in database schema:', error);
-        // Don't throw error, just log it - the main profile update succeeded
+        console.error('Error updating new profile fields:', error);
+        // Log but don't throw - the main profile update succeeded
       }
     }
-    */
 
-    return user;
+    // Fetch and return the complete updated user record
+    const updatedUser = await this.getUserById(id);
+    if (!updatedUser) {
+      throw new Error('Failed to retrieve updated user record');
+    }
+
+    return updatedUser;
   }
 
   // ============ AUTH CODES ============
