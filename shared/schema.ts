@@ -28,12 +28,9 @@ export const users = pgTable("users", {
   phoneNumber: text("phone_number"), // Optional phone number
   dateOfBirth: date("date_of_birth"), // Optional birth date for demographics
   gender: text("gender"), // Optional: male | female | non-binary | prefer-not-to-say | other
-  interests: text("interests").array().default(sql`'{}'`), // Array of interests for event matching
   preferredLanguage: text("preferred_language").default("en"), // Language preference
   timezone: text("timezone").default("America/Vancouver"), // User's timezone
   marketingOptInSource: text("marketing_opt_in_source"), // How they opted into marketing
-  companyName: text("company_name"), // Optional company/organization
-  jobTitle: text("job_title"), // Optional job title
   referralSource: text("referral_source"), // How they heard about the platform
 });
 
