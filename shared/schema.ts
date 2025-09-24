@@ -3,10 +3,26 @@ import { pgTable, text, varchar, timestamp, boolean, numeric, uuid, integer, dat
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Main user accounts for the platform
 export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`), // Keep varchar for compatibility
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  email: text("email").notNull().unique(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  profileImageUrl: text("profile_image_url"),
+  bio: text("bio"),
+  location: text("location"),
+  website: text("website"),
+  socialInstagram: text("social_instagram"),
+  socialTwitter: text("social_twitter"),
+  socialLinkedin: text("social_linkedin"),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  status: text("status").notNull().default("active"), // active | suspended | pending_verification
+  role: text("role").notNull().default("user"), // user | organizer | admin
+  emailNotifications: boolean("email_notifications").notNull().default(true),
+  marketingEmails: boolean("marketing_emails").notNull().default(false),
 });
 
 export const communityEvents = pgTable("community_events", {
@@ -416,9 +432,10 @@ export const ticketsPayouts = pgTable("tickets_payouts", {
 }));
 
 // Insert schemas
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 
 export const insertCommunityEventSchema = createInsertSchema(communityEvents).omit({
@@ -582,32 +599,12 @@ export type InsertTicketsPayout = z.infer<typeof insertTicketsPayoutSchema>;
 
 // ============ COMMUNITIES TABLES ============
 // Main user accounts for Communities (separate from basic users table)
-export const communityUsers = pgTable("community_users", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
-  email: text("email").notNull().unique(),
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  profileImageUrl: text("profile_image_url"),
-  bio: text("bio"),
-  location: text("location"),
-  website: text("website"),
-  socialInstagram: text("social_instagram"),
-  socialTwitter: text("social_twitter"),
-  socialLinkedin: text("social_linkedin"),
-  emailVerified: boolean("email_verified").notNull().default(false),
-  status: text("status").notNull().default("active"), // active | suspended | pending_verification
-  role: text("role").notNull().default("user"), // user | organizer | admin
-  emailNotifications: boolean("email_notifications").notNull().default(true),
-  marketingEmails: boolean("marketing_emails").notNull().default(false),
-});
 
 // Email-based authentication codes for passwordless login
-export const communityAuthCodes = pgTable("community_auth_codes", {
+export const authCodes = pgTable("auth_codes", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
-  userId: uuid("user_id").references(() => communityUsers.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }),
   email: text("email").notNull(),
   code: text("code").notNull(), // 6-digit verification code
   purpose: text("purpose").notNull().default("login"), // login | signup | password_reset
@@ -618,11 +615,11 @@ export const communityAuthCodes = pgTable("community_auth_codes", {
 });
 
 // Organizer applications (before approval)
-export const communityOrganizerApplications = pgTable("community_organizer_applications", {
+export const organizerApplications = pgTable("organizer_applications", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
-  userId: uuid("user_id").notNull().references(() => communityUsers.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   businessName: text("business_name").notNull(),
   businessWebsite: text("business_website"),
   businessDescription: text("business_description").notNull(),
@@ -634,34 +631,34 @@ export const communityOrganizerApplications = pgTable("community_organizer_appli
   businessPhone: text("business_phone"),
   businessAddress: text("business_address"),
   status: text("status").notNull().default("pending"), // pending | approved | rejected | under_review
-  reviewedBy: uuid("reviewed_by").references(() => communityUsers.id),
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   rejectionReason: text("rejection_reason"),
   adminNotes: text("admin_notes"),
 });
 
-// Approved Community organizers (separate from tickets_organizers)
-export const communityOrganizers = pgTable("community_organizers", {
+// Approved organizers (separate from tickets_organizers)
+export const organizers = pgTable("organizers", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
-  userId: uuid("user_id").notNull().references(() => communityUsers.id, { onDelete: 'cascade' }),
-  applicationId: uuid("application_id").references(() => communityOrganizerApplications.id),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  applicationId: uuid("application_id").references(() => organizerApplications.id),
   businessName: text("business_name").notNull(),
   businessWebsite: text("business_website"),
   businessDescription: text("business_description"),
   businessType: text("business_type").notNull(),
   verified: boolean("verified").notNull().default(false),
   status: text("status").notNull().default("active"), // active | suspended | inactive
-  approvedBy: uuid("approved_by").references(() => communityUsers.id),
+  approvedBy: varchar("approved_by").references(() => users.id),
   approvedAt: timestamp("approved_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
 
-// User sessions for Communities auth
-export const communityUserSessions = pgTable("community_user_sessions", {
+// User sessions for platform auth
+export const userSessions = pgTable("user_sessions", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
-  userId: uuid("user_id").notNull().references(() => communityUsers.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   token: text("token").notNull().unique(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull().default(sql`now() + interval '30 days'`),
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }).notNull().default(sql`now()`),
@@ -670,43 +667,35 @@ export const communityUserSessions = pgTable("community_user_sessions", {
   isActive: boolean("is_active").notNull().default(true),
 });
 
-// Communities Insert Schemas
-export const insertCommunityUserSchema = createInsertSchema(communityUsers).omit({
+// Authentication & Organizer Insert Schemas
+export const insertAuthCodeSchema = createInsertSchema(authCodes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertOrganizerApplicationSchema = createInsertSchema(organizerApplications).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertCommunityAuthCodeSchema = createInsertSchema(communityAuthCodes).omit({
-  id: true,
-  createdAt: true,
-});
-
-export const insertCommunityOrganizerApplicationSchema = createInsertSchema(communityOrganizerApplications).omit({
+export const insertOrganizerSchema = createInsertSchema(organizers).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
 });
 
-export const insertCommunityOrganizerSchema = createInsertSchema(communityOrganizers).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertCommunityUserSessionSchema = createInsertSchema(communityUserSessions).omit({
+export const insertUserSessionSchema = createInsertSchema(userSessions).omit({
   id: true,
   createdAt: true,
 });
 
-// Communities Type Exports
-export type CommunityUser = typeof communityUsers.$inferSelect;
-export type InsertCommunityUser = z.infer<typeof insertCommunityUserSchema>;
-export type CommunityAuthCode = typeof communityAuthCodes.$inferSelect;
-export type InsertCommunityAuthCode = z.infer<typeof insertCommunityAuthCodeSchema>;
-export type CommunityOrganizerApplication = typeof communityOrganizerApplications.$inferSelect;
-export type InsertCommunityOrganizerApplication = z.infer<typeof insertCommunityOrganizerApplicationSchema>;
-export type CommunityOrganizer = typeof communityOrganizers.$inferSelect;
-export type InsertCommunityOrganizer = z.infer<typeof insertCommunityOrganizerSchema>;
-export type CommunityUserSession = typeof communityUserSessions.$inferSelect;
-export type InsertCommunityUserSession = z.infer<typeof insertCommunityUserSessionSchema>;
+// Authentication & Organizer Type Exports
+export type AuthCode = typeof authCodes.$inferSelect;
+export type InsertAuthCode = z.infer<typeof insertAuthCodeSchema>;
+export type OrganizerApplication = typeof organizerApplications.$inferSelect;
+export type InsertOrganizerApplication = z.infer<typeof insertOrganizerApplicationSchema>;
+export type Organizer = typeof organizers.$inferSelect;
+export type InsertOrganizer = z.infer<typeof insertOrganizerSchema>;
+export type UserSession = typeof userSessions.$inferSelect;
+export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
