@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -986,12 +987,19 @@ export function CommunitiesProfilePage() {
                         Receive notifications about your account and applications
                       </p>
                     </div>
-                    <input
-                      type="checkbox"
+                    <Switch
                       id="emailNotifications"
-                      {...form.register('emailNotifications')}
-                      className="rounded"
-                      data-testid="checkbox-email-notifications"
+                      checked={form.watch('emailNotifications') ?? true}
+                      onCheckedChange={(checked) => {
+                        form.setValue('emailNotifications', checked);
+                        // Auto-save with complete profile data to satisfy validation
+                        const currentValues = form.getValues();
+                        updateMutation.mutate({
+                          ...currentValues,
+                          emailNotifications: checked
+                        });
+                      }}
+                      data-testid="switch-email-notifications"
                     />
                   </div>
 
@@ -1002,12 +1010,19 @@ export function CommunitiesProfilePage() {
                         Receive emails about new features and updates
                       </p>
                     </div>
-                    <input
-                      type="checkbox"
+                    <Switch
                       id="marketingEmails"
-                      {...form.register('marketingEmails')}
-                      className="rounded"
-                      data-testid="checkbox-marketing-emails"
+                      checked={form.watch('marketingEmails') ?? false}
+                      onCheckedChange={(checked) => {
+                        form.setValue('marketingEmails', checked);
+                        // Auto-save with complete profile data to satisfy validation
+                        const currentValues = form.getValues();
+                        updateMutation.mutate({
+                          ...currentValues,
+                          marketingEmails: checked
+                        });
+                      }}
+                      data-testid="switch-marketing-emails"
                     />
                   </div>
                 </div>
