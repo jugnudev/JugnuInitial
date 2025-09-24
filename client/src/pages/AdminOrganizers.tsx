@@ -86,7 +86,7 @@ export default function AdminOrganizers() {
     queryFn: async () => {
       if (!adminKey.trim()) return null;
       
-      const response = await fetch('/api/account/admin/organizers/pending', {
+      const response = await fetch('/api/admin/organizers/pending', {
         headers: { 'x-admin-key': adminKey.trim() }
       });
       
@@ -113,9 +113,9 @@ export default function AdminOrganizers() {
 
   // Fetch pending applications
   const { data: applicationsData, isLoading } = useQuery({
-    queryKey: ['/api/account/admin/organizers/pending'],
+    queryKey: ['/api/admin/organizers/pending'],
     queryFn: async () => {
-      const response = await fetch('/api/account/admin/organizers/pending', {
+      const response = await fetch('/api/admin/organizers/pending', {
         headers: { 'x-admin-key': adminKey.trim() }
       });
       
@@ -133,7 +133,7 @@ export default function AdminOrganizers() {
   // Approve application mutation
   const approveMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
-      const response = await fetch(`/api/account/admin/organizers/${id}/approve`, {
+      const response = await fetch(`/api/admin/organizers/${id}/approve`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -150,7 +150,7 @@ export default function AdminOrganizers() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/account/admin/organizers/pending'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/organizers/pending'] });
       toast({
         title: 'Application Approved',
         description: 'The organizer application has been approved successfully.',
@@ -171,7 +171,7 @@ export default function AdminOrganizers() {
   // Reject application mutation
   const rejectMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
-      const response = await fetch(`/api/account/admin/organizers/${id}/reject`, {
+      const response = await fetch(`/api/admin/organizers/${id}/reject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -188,7 +188,7 @@ export default function AdminOrganizers() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/account/admin/organizers/pending'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/organizers/pending'] });
       toast({
         title: 'Application Rejected',
         description: 'The organizer application has been rejected.',

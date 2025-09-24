@@ -75,12 +75,12 @@ export function CommunitiesProfilePage() {
 
   // Get user profile
   const { data: profileData, isLoading: isLoadingProfile } = useQuery({
-    queryKey: ['/api/account/me'],
+    queryKey: ['/api/auth/me'],
     retry: (failureCount, error: any) => {
       // If unauthorized, redirect to sign-in (robust status check)
       const status = error?.status || error?.response?.status;
       if (status === 401) {
-        queryClient.removeQueries({ queryKey: ['/api/account/me'] });
+        queryClient.removeQueries({ queryKey: ['/api/auth/me'] });
         setLocation('/account/signin');
         return false;
       }
@@ -123,10 +123,10 @@ export function CommunitiesProfilePage() {
 
   const updateMutation = useMutation({
     mutationFn: (data: UpdateProfileFormData) => 
-      apiRequest('/api/account/me', { method: 'PATCH', body: data }),
+      apiRequest('/api/auth/me', { method: 'PATCH', body: data }),
     onSuccess: (data) => {
       if (data.ok) {
-        queryClient.invalidateQueries({ queryKey: ['/api/account/me'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
         setIsEditing(false);
         toast({
           title: 'Profile updated',
@@ -150,11 +150,11 @@ export function CommunitiesProfilePage() {
   });
 
   const signOutMutation = useMutation({
-    mutationFn: () => apiRequest('/api/account/signout', { method: 'POST' }),
+    mutationFn: () => apiRequest('/api/auth/signout', { method: 'POST' }),
     onSuccess: () => {
       // Clear cached auth state
-      queryClient.invalidateQueries({ queryKey: ['/api/account/me'] });
-      queryClient.removeQueries({ queryKey: ['/api/account/me'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+      queryClient.removeQueries({ queryKey: ['/api/auth/me'] });
       
       toast({
         title: 'Signed out',

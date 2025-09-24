@@ -80,12 +80,12 @@ export function CommunitiesOrganizerApplicationPage() {
 
   // Get user profile to check auth and existing applications
   const { data: profileData, isLoading: isLoadingProfile } = useQuery({
-    queryKey: ['/api/account/me'],
+    queryKey: ['/api/auth/me'],
     retry: (failureCount, error: any) => {
       // If unauthorized, redirect to sign-in
       const status = error?.status || error?.response?.status;
       if (status === 401) {
-        queryClient.removeQueries({ queryKey: ['/api/account/me'] });
+        queryClient.removeQueries({ queryKey: ['/api/auth/me'] });
         setLocation('/account/signin');
         return false;
       }
@@ -117,10 +117,10 @@ export function CommunitiesOrganizerApplicationPage() {
 
   const applicationMutation = useMutation({
     mutationFn: (data: OrganizerApplicationFormData) => 
-      apiRequest('/api/account/apply-organizer', { method: 'POST', body: data }),
+      apiRequest('/api/organizers/apply', { method: 'POST', body: data }),
     onSuccess: (data) => {
       if (data.ok) {
-        queryClient.invalidateQueries({ queryKey: ['/api/account/me'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
         toast({
           title: 'Application submitted!',
           description: 'Your organizer application has been submitted successfully. Our team will review it shortly.',
@@ -138,7 +138,7 @@ export function CommunitiesOrganizerApplicationPage() {
       // Handle 401 errors by redirecting to sign-in
       const status = error?.status || error?.response?.status;
       if (status === 401) {
-        queryClient.removeQueries({ queryKey: ['/api/account/me'] });
+        queryClient.removeQueries({ queryKey: ['/api/auth/me'] });
         setLocation('/account/signin');
         return;
       }

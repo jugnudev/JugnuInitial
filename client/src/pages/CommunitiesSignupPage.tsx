@@ -89,7 +89,7 @@ export function CommunitiesSignupPage() {
 
   const signupMutation = useMutation({
     mutationFn: (data: SignupFormData) => 
-      apiRequest('/api/account/signup', { method: 'POST', body: data }),
+      apiRequest('/api/auth/signup', { method: 'POST', body: data }),
     onSuccess: (data, variables) => {
       if (data.ok) {
         setSignupData(variables);
@@ -120,7 +120,7 @@ export function CommunitiesSignupPage() {
       if (!signupData?.email) {
         throw new Error('Email not found. Please return to signup form.');
       }
-      return apiRequest('/api/account/verify-code', { 
+      return apiRequest('/api/auth/verify-code', { 
         method: 'POST', 
         body: { email: signupData.email, code: data.code } 
       });

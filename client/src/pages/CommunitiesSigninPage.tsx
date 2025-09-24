@@ -77,7 +77,7 @@ export function CommunitiesSigninPage() {
 
   const signinMutation = useMutation({
     mutationFn: (data: SigninFormData) => 
-      apiRequest('/api/account/signin', { method: 'POST', body: data }),
+      apiRequest('/api/auth/signin', { method: 'POST', body: data }),
     onSuccess: (data) => {
       if (data.ok) {
         setEmail(emailForm.getValues('email'));
@@ -108,7 +108,7 @@ export function CommunitiesSigninPage() {
       if (!email) {
         throw new Error('Email not found. Please return to sign-in form.');
       }
-      return apiRequest('/api/account/verify-code', { 
+      return apiRequest('/api/auth/verify-code', { 
         method: 'POST', 
         body: { email, code: data.code } 
       });
