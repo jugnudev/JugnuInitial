@@ -1198,6 +1198,9 @@ export function CommunitiesProfilePage() {
                           </form>
                         ) : (
                           <form onSubmit={confirmEmailForm.handleSubmit(onConfirmEmailChange)} className="space-y-4">
+                            {/* Hidden field for newEmail - required by schema */}
+                            <input type="hidden" {...confirmEmailForm.register('newEmail')} value={pendingEmail} />
+                            
                             <div>
                               <Label>Verifying Email Change</Label>
                               <p className="text-sm text-muted-foreground">
