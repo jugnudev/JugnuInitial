@@ -80,31 +80,63 @@ export class CommunitiesSupabaseDB {
   }
 
   async updateUser(id: string, data: Partial<InsertUser>): Promise<User> {
-    const updateData: any = { updated_at: new Date().toISOString() };
+    // First, update only the existing/safe fields that are known to exist in the database
+    const safeUpdateData: any = { updated_at: new Date().toISOString() };
     
-    if (data.firstName !== undefined) updateData.first_name = data.firstName;
-    if (data.lastName !== undefined) updateData.last_name = data.lastName;
-    if (data.profileImageUrl !== undefined) updateData.profile_image_url = data.profileImageUrl;
-    if (data.bio !== undefined) updateData.bio = data.bio;
-    if (data.location !== undefined) updateData.location = data.location;
-    if (data.website !== undefined) updateData.website = data.website;
-    if (data.socialInstagram !== undefined) updateData.social_instagram = data.socialInstagram;
-    if (data.socialTwitter !== undefined) updateData.social_twitter = data.socialTwitter;
-    if (data.socialLinkedin !== undefined) updateData.social_linkedin = data.socialLinkedin;
-    if (data.emailVerified !== undefined) updateData.email_verified = data.emailVerified;
-    if (data.status !== undefined) updateData.status = data.status;
-    if (data.role !== undefined) updateData.role = data.role;
-    if (data.emailNotifications !== undefined) updateData.email_notifications = data.emailNotifications;
-    if (data.marketingEmails !== undefined) updateData.marketing_emails = data.marketingEmails;
+    if (data.firstName !== undefined) safeUpdateData.first_name = data.firstName;
+    if (data.lastName !== undefined) safeUpdateData.last_name = data.lastName;
+    if (data.profileImageUrl !== undefined) safeUpdateData.profile_image_url = data.profileImageUrl;
+    if (data.bio !== undefined) safeUpdateData.bio = data.bio;
+    if (data.location !== undefined) safeUpdateData.location = data.location;
+    if (data.website !== undefined) safeUpdateData.website = data.website;
+    if (data.socialInstagram !== undefined) safeUpdateData.social_instagram = data.socialInstagram;
+    if (data.socialTwitter !== undefined) safeUpdateData.social_twitter = data.socialTwitter;
+    if (data.socialLinkedin !== undefined) safeUpdateData.social_linkedin = data.socialLinkedin;
+    if (data.emailVerified !== undefined) safeUpdateData.email_verified = data.emailVerified;
+    if (data.status !== undefined) safeUpdateData.status = data.status;
+    if (data.role !== undefined) safeUpdateData.role = data.role;
+    if (data.emailNotifications !== undefined) safeUpdateData.email_notifications = data.emailNotifications;
+    if (data.marketingEmails !== undefined) safeUpdateData.marketing_emails = data.marketingEmails;
 
+    // Try to update with safe fields first
     const { data: user, error } = await this.client
       .from('users')
-      .update(updateData)
+      .update(safeUpdateData)
       .eq('id', id)
       .select()
       .single();
 
     if (error) throw error;
+
+    // TODO: Once database schema is updated with new columns, uncomment this section
+    // to enable updating the new profile fields:
+    /*
+    // New profile fields for better customer profiling (requires database schema update)
+    const newFieldsData: any = {};
+    if (data.phoneNumber !== undefined) newFieldsData.phone_number = data.phoneNumber;
+    if (data.dateOfBirth !== undefined) newFieldsData.date_of_birth = data.dateOfBirth;
+    if (data.gender !== undefined) newFieldsData.gender = data.gender;
+    if (data.interests !== undefined) newFieldsData.interests = data.interests;
+    if (data.preferredLanguage !== undefined) newFieldsData.preferred_language = data.preferredLanguage;
+    if (data.timezone !== undefined) newFieldsData.timezone = data.timezone;
+    if (data.companyName !== undefined) newFieldsData.company_name = data.companyName;
+    if (data.jobTitle !== undefined) newFieldsData.job_title = data.jobTitle;
+    if (data.referralSource !== undefined) newFieldsData.referral_source = data.referralSource;
+
+    // Try to update new fields if they exist in the database
+    if (Object.keys(newFieldsData).length > 0) {
+      try {
+        await this.client
+          .from('users')
+          .update(newFieldsData)
+          .eq('id', id);
+      } catch (error) {
+        console.log('New profile fields not yet available in database schema:', error);
+        // Don't throw error, just log it - the main profile update succeeded
+      }
+    }
+    */
+
     return user;
   }
 

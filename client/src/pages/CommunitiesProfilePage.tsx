@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Mail, ArrowLeft, User, Settings, LogOut, Building2, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,6 +30,17 @@ const updateProfileSchema = z.object({
   socialLinkedin: z.string().optional(),
   emailNotifications: z.boolean().optional(),
   marketingEmails: z.boolean().optional(),
+  
+  // New profile fields for better customer profiling
+  phoneNumber: z.string().regex(/^[\+]?[1-9][\d]{0,15}$/, 'Please enter a valid phone number').optional().or(z.literal('')),
+  dateOfBirth: z.string().optional(), // Will be converted to date
+  gender: z.enum(['male', 'female', 'non-binary', 'prefer-not-to-say', 'other']).optional(),
+  interests: z.array(z.string()).optional(),
+  preferredLanguage: z.string().optional(),
+  timezone: z.string().optional(),
+  companyName: z.string().max(100, 'Company name must be under 100 characters').optional(),
+  jobTitle: z.string().max(100, 'Job title must be under 100 characters').optional(),
+  referralSource: z.string().optional(),
 });
 
 type UpdateProfileFormData = z.infer<typeof updateProfileSchema>;
@@ -86,26 +98,38 @@ export function CommunitiesProfilePage() {
     }
   });
 
+  const user = (profileData as any)?.user;
+
   const form = useForm<UpdateProfileFormData>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
-      firstName: profileData?.user?.firstName || '',
-      lastName: profileData?.user?.lastName || '',
-      bio: profileData?.user?.bio || '',
-      location: profileData?.user?.location || '',
-      website: profileData?.user?.website || '',
-      socialInstagram: profileData?.user?.socialInstagram || '',
-      socialTwitter: profileData?.user?.socialTwitter || '',
-      socialLinkedin: profileData?.user?.socialLinkedin || '',
-      emailNotifications: profileData?.user?.emailNotifications ?? true,
-      marketingEmails: profileData?.user?.marketingEmails ?? false,
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      bio: user?.bio || '',
+      location: user?.location || '',
+      website: user?.website || '',
+      socialInstagram: user?.socialInstagram || '',
+      socialTwitter: user?.socialTwitter || '',
+      socialLinkedin: user?.socialLinkedin || '',
+      emailNotifications: user?.emailNotifications ?? true,
+      marketingEmails: user?.marketingEmails ?? false,
+      
+      // New profile fields
+      phoneNumber: user?.phoneNumber || '',
+      dateOfBirth: user?.dateOfBirth || '',
+      gender: user?.gender || 'prefer-not-to-say',
+      interests: user?.interests || [],
+      preferredLanguage: user?.preferredLanguage || 'en',
+      timezone: user?.timezone || 'America/Vancouver',
+      companyName: user?.companyName || '',
+      jobTitle: user?.jobTitle || '',
+      referralSource: user?.referralSource || '',
     }
   });
 
   // Update form when profile data loads (use useEffect to avoid infinite render loop)
   useEffect(() => {
-    if (profileData?.user && !isEditing) {
-      const user = profileData.user;
+    if (user && !isEditing) {
       form.reset({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -117,13 +141,24 @@ export function CommunitiesProfilePage() {
         socialLinkedin: user.socialLinkedin || '',
         emailNotifications: user.emailNotifications ?? true,
         marketingEmails: user.marketingEmails ?? false,
+        
+        // New profile fields
+        phoneNumber: user.phoneNumber || '',
+        dateOfBirth: user.dateOfBirth || '',
+        gender: user.gender || 'prefer-not-to-say',
+        interests: user.interests || [],
+        preferredLanguage: user.preferredLanguage || 'en',
+        timezone: user.timezone || 'America/Vancouver',
+        companyName: user.companyName || '',
+        jobTitle: user.jobTitle || '',
+        referralSource: user.referralSource || '',
       });
     }
-  }, [profileData?.user, isEditing, form]);
+  }, [user, isEditing, form]);
 
   const updateMutation = useMutation({
     mutationFn: (data: UpdateProfileFormData) => 
-      apiRequest('/api/auth/me', { method: 'PATCH', body: data }),
+      apiRequest('PATCH', '/api/auth/me', data),
     onSuccess: (data) => {
       if (data.ok) {
         queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
@@ -150,7 +185,7 @@ export function CommunitiesProfilePage() {
   });
 
   const signOutMutation = useMutation({
-    mutationFn: () => apiRequest('/api/auth/signout', { method: 'POST' }),
+    mutationFn: () => apiRequest('POST', '/api/auth/signout'),
     onSuccess: () => {
       // Clear cached auth state
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
@@ -212,9 +247,8 @@ export function CommunitiesProfilePage() {
     );
   }
 
-  const user = profileData.user;
-  const organizerApplication = profileData.organizerApplication;
-  const organizer = profileData.organizer;
+  const organizerApplication = (profileData as any)?.organizerApplication;
+  const organizer = (profileData as any)?.organizer;
 
   const getUserInitials = () => {
     const first = user.firstName?.[0] || '';
@@ -396,6 +430,128 @@ export function CommunitiesProfilePage() {
                       </div>
                     </div>
 
+                    {/* Personal Details */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="phoneNumber">Phone Number</Label>
+                        <Input
+                          id="phoneNumber"
+                          placeholder="+1 (555) 123-4567"
+                          data-testid="input-phone"
+                          {...form.register('phoneNumber')}
+                        />
+                        {form.formState.errors.phoneNumber && (
+                          <p className="text-sm text-destructive">
+                            {form.formState.errors.phoneNumber.message}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                        <Input
+                          id="dateOfBirth"
+                          type="date"
+                          data-testid="input-birthdate"
+                          {...form.register('dateOfBirth')}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="gender">Gender</Label>
+                        <Select 
+                          value={form.watch('gender') || 'prefer-not-to-say'} 
+                          onValueChange={(value) => form.setValue('gender', value)}
+                        >
+                          <SelectTrigger data-testid="select-gender">
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="male">Male</SelectItem>
+                            <SelectItem value="female">Female</SelectItem>
+                            <SelectItem value="non-binary">Non-binary</SelectItem>
+                            <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="preferredLanguage">Preferred Language</Label>
+                        <Select 
+                          value={form.watch('preferredLanguage') || 'en'} 
+                          onValueChange={(value) => form.setValue('preferredLanguage', value)}
+                        >
+                          <SelectTrigger data-testid="select-language">
+                            <SelectValue placeholder="Select language" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="en">English</SelectItem>
+                            <SelectItem value="fr">Français</SelectItem>
+                            <SelectItem value="hi">हिन्दी</SelectItem>
+                            <SelectItem value="ur">اردو</SelectItem>
+                            <SelectItem value="pa">ਪੰਜਾਬੀ</SelectItem>
+                            <SelectItem value="zh">中文</SelectItem>
+                            <SelectItem value="es">Español</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Professional Information */}
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Professional Information</h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="companyName">Company Name</Label>
+                          <Input
+                            id="companyName"
+                            placeholder="Your company"
+                            data-testid="input-company"
+                            {...form.register('companyName')}
+                          />
+                          {form.formState.errors.companyName && (
+                            <p className="text-sm text-destructive">
+                              {form.formState.errors.companyName.message}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="jobTitle">Job Title</Label>
+                          <Input
+                            id="jobTitle"
+                            placeholder="Your role"
+                            data-testid="input-jobtitle"
+                            {...form.register('jobTitle')}
+                          />
+                          {form.formState.errors.jobTitle && (
+                            <p className="text-sm text-destructive">
+                              {form.formState.errors.jobTitle.message}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Interests */}
+                    <div className="space-y-2">
+                      <Label htmlFor="interests">Interests</Label>
+                      <Textarea
+                        id="interests"
+                        placeholder="Tell us about your interests (comma separated): music, food, tech, sports..."
+                        rows={2}
+                        data-testid="input-interests"
+                        value={form.watch('interests')?.join(', ') || ''}
+                        onChange={(e) => {
+                          const interestsArray = e.target.value.split(',').map(s => s.trim()).filter(s => s);
+                          form.setValue('interests', interestsArray);
+                        }}
+                      />
+                    </div>
+
                     <Separator />
 
                     <div className="space-y-4">
@@ -501,6 +657,92 @@ export function CommunitiesProfilePage() {
                         </div>
                       )}
                     </div>
+
+                    {/* Personal Details */}
+                    {(user.phoneNumber || user.dateOfBirth || user.gender || user.preferredLanguage) && (
+                      <>
+                        <Separator />
+                        <div className="space-y-4">
+                          <Label className="text-base font-medium">Personal Details</Label>
+                          <div className="grid grid-cols-2 gap-4">
+                            {user.phoneNumber && (
+                              <div>
+                                <Label>Phone Number</Label>
+                                <p className="mt-1">{user.phoneNumber}</p>
+                              </div>
+                            )}
+                            {user.dateOfBirth && (
+                              <div>
+                                <Label>Date of Birth</Label>
+                                <p className="mt-1">{new Date(user.dateOfBirth).toLocaleDateString()}</p>
+                              </div>
+                            )}
+                            {user.gender && (
+                              <div>
+                                <Label>Gender</Label>
+                                <p className="mt-1 capitalize">{user.gender.replace('-', ' ')}</p>
+                              </div>
+                            )}
+                            {user.preferredLanguage && (
+                              <div>
+                                <Label>Preferred Language</Label>
+                                <p className="mt-1">
+                                  {user.preferredLanguage === 'en' ? 'English' :
+                                   user.preferredLanguage === 'fr' ? 'Français' :
+                                   user.preferredLanguage === 'hi' ? 'हिन्दी' :
+                                   user.preferredLanguage === 'ur' ? 'اردو' :
+                                   user.preferredLanguage === 'pa' ? 'ਪੰਜਾਬੀ' :
+                                   user.preferredLanguage === 'zh' ? '中文' :
+                                   user.preferredLanguage === 'es' ? 'Español' :
+                                   user.preferredLanguage}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Professional Information */}
+                    {(user.companyName || user.jobTitle) && (
+                      <>
+                        <Separator />
+                        <div className="space-y-4">
+                          <Label className="text-base font-medium">Professional Information</Label>
+                          <div className="grid grid-cols-2 gap-4">
+                            {user.companyName && (
+                              <div>
+                                <Label>Company</Label>
+                                <p className="mt-1">{user.companyName}</p>
+                              </div>
+                            )}
+                            {user.jobTitle && (
+                              <div>
+                                <Label>Job Title</Label>
+                                <p className="mt-1">{user.jobTitle}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Interests */}
+                    {user.interests && user.interests.length > 0 && (
+                      <>
+                        <Separator />
+                        <div>
+                          <Label className="text-base font-medium">Interests</Label>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {user.interests.map((interest, index) => (
+                              <Badge key={index} variant="secondary">
+                                {interest}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
 
                     {(user.socialInstagram || user.socialTwitter || user.socialLinkedin) && (
                       <>

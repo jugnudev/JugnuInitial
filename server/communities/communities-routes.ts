@@ -63,6 +63,17 @@ const updateProfileSchema = z.object({
   socialLinkedin: z.string().optional(),
   emailNotifications: z.boolean().optional(),
   marketingEmails: z.boolean().optional(),
+  
+  // New profile fields for better customer profiling
+  phoneNumber: z.string().optional(),
+  dateOfBirth: z.string().optional(),
+  gender: z.string().optional(),
+  interests: z.array(z.string()).optional(),
+  preferredLanguage: z.string().optional(),
+  timezone: z.string().optional(),
+  companyName: z.string().optional(),
+  jobTitle: z.string().optional(),
+  referralSource: z.string().optional(),
 });
 
 // Import the email service
@@ -396,7 +407,18 @@ export function addCommunitiesRoutes(app: Express) {
           status: updatedUser.status,
           emailVerified: updatedUser.emailVerified,
           emailNotifications: updatedUser.emailNotifications,
-          marketingEmails: updatedUser.marketingEmails
+          marketingEmails: updatedUser.marketingEmails,
+          
+          // New profile fields for better customer profiling
+          phoneNumber: updatedUser.phoneNumber,
+          dateOfBirth: updatedUser.dateOfBirth,
+          gender: updatedUser.gender,
+          interests: updatedUser.interests,
+          preferredLanguage: updatedUser.preferredLanguage,
+          timezone: updatedUser.timezone,
+          companyName: updatedUser.companyName,
+          jobTitle: updatedUser.jobTitle,
+          referralSource: updatedUser.referralSource
         }
       });
     } catch (error: any) {
