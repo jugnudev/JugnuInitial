@@ -120,7 +120,14 @@ export function CommunitiesSigninPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      if (data.ok) {
+      if (data.ok && data.token) {
+        // Store the authentication token
+        try {
+          localStorage.setItem('community_auth_token', data.token);
+        } catch (e) {
+          console.warn('Failed to save auth token to localStorage:', e);
+        }
+        
         toast({
           title: 'Welcome!',
           description: 'You have been signed in successfully.',

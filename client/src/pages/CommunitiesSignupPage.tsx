@@ -126,7 +126,14 @@ export function CommunitiesSignupPage() {
       return response.json();
     },
     onSuccess: (data) => {
-      if (data.ok) {
+      if (data.ok && data.token) {
+        // Store the authentication token
+        try {
+          localStorage.setItem('community_auth_token', data.token);
+        } catch (e) {
+          console.warn('Failed to save auth token to localStorage:', e);
+        }
+        
         toast({
           title: 'Welcome!',
           description: 'Your account has been verified and you are now signed in.',

@@ -28,7 +28,7 @@ const requireAuth = async (req: Request, res: Response, next: any) => {
     await communitiesStorage.updateSessionLastUsed(token);
 
     (req as any).user = user;
-    (req as any).session = session;
+    (req as any).userSession = session; // Use different property to avoid conflict with express-session
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
@@ -413,10 +413,10 @@ export function addCommunitiesRoutes(app: Express) {
    */
   app.post('/api/auth/signout', requireAuth, async (req: Request, res: Response) => {
     try {
-      const session = (req as any).session;
+      const userSession = (req as any).userSession;
 
       // Deactivate current session
-      await communitiesStorage.deactivateSession(session.token);
+      await communitiesStorage.deactivateSession(userSession.token);
 
       // Clear cookie
       res.clearCookie('community_auth_token');

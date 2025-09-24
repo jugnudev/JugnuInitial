@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -102,22 +102,24 @@ export function CommunitiesProfilePage() {
     }
   });
 
-  // Update form when profile data loads
-  if (profileData?.user && !isEditing) {
-    const user = profileData.user;
-    form.reset({
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
-      bio: user.bio || '',
-      location: user.location || '',
-      website: user.website || '',
-      socialInstagram: user.socialInstagram || '',
-      socialTwitter: user.socialTwitter || '',
-      socialLinkedin: user.socialLinkedin || '',
-      emailNotifications: user.emailNotifications ?? true,
-      marketingEmails: user.marketingEmails ?? false,
-    });
-  }
+  // Update form when profile data loads (use useEffect to avoid infinite render loop)
+  useEffect(() => {
+    if (profileData?.user && !isEditing) {
+      const user = profileData.user;
+      form.reset({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        bio: user.bio || '',
+        location: user.location || '',
+        website: user.website || '',
+        socialInstagram: user.socialInstagram || '',
+        socialTwitter: user.socialTwitter || '',
+        socialLinkedin: user.socialLinkedin || '',
+        emailNotifications: user.emailNotifications ?? true,
+        marketingEmails: user.marketingEmails ?? false,
+      });
+    }
+  }, [profileData?.user, isEditing, form]);
 
   const updateMutation = useMutation({
     mutationFn: (data: UpdateProfileFormData) => 
