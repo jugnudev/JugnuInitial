@@ -65,12 +65,9 @@ export class CommunitiesSupabaseDB {
         phone_number,
         date_of_birth,
         gender,
-        interests,
         preferred_language,
         timezone,
         marketing_opt_in_source,
-        company_name,
-        job_title,
         referral_source
       `)
       .eq('id', id)
@@ -89,8 +86,7 @@ export class CommunitiesSupabaseDB {
         dateOfBirth: data.date_of_birth,
         preferredLanguage: data.preferred_language,
         marketingOptInSource: data.marketing_opt_in_source,
-        companyName: data.company_name,
-        jobTitle: data.job_title,
+
         referralSource: data.referral_source,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
@@ -102,8 +98,7 @@ export class CommunitiesSupabaseDB {
         date_of_birth: undefined,
         preferred_language: undefined,
         marketing_opt_in_source: undefined,
-        company_name: undefined,
-        job_title: undefined,
+
         referral_source: undefined
       };
     }
@@ -119,12 +114,9 @@ export class CommunitiesSupabaseDB {
         phone_number,
         date_of_birth,
         gender,
-        interests,
         preferred_language,
         timezone,
         marketing_opt_in_source,
-        company_name,
-        job_title,
         referral_source
       `)
       .eq('email', email.toLowerCase().trim())
@@ -143,8 +135,7 @@ export class CommunitiesSupabaseDB {
         dateOfBirth: data.date_of_birth,
         preferredLanguage: data.preferred_language,
         marketingOptInSource: data.marketing_opt_in_source,
-        companyName: data.company_name,
-        jobTitle: data.job_title,
+
         referralSource: data.referral_source,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
@@ -156,8 +147,7 @@ export class CommunitiesSupabaseDB {
         date_of_birth: undefined,
         preferred_language: undefined,
         marketing_opt_in_source: undefined,
-        company_name: undefined,
-        job_title: undefined,
+
         referral_source: undefined
       };
     }
@@ -197,11 +187,8 @@ export class CommunitiesSupabaseDB {
     if (data.phoneNumber !== undefined) newFieldsData.phone_number = data.phoneNumber;
     if (data.dateOfBirth !== undefined) newFieldsData.date_of_birth = data.dateOfBirth;
     if (data.gender !== undefined) newFieldsData.gender = data.gender;
-    if (data.interests !== undefined) newFieldsData.interests = data.interests;
     if (data.preferredLanguage !== undefined) newFieldsData.preferred_language = data.preferredLanguage;
     if (data.timezone !== undefined) newFieldsData.timezone = data.timezone;
-    if (data.companyName !== undefined) newFieldsData.company_name = data.companyName;
-    if (data.jobTitle !== undefined) newFieldsData.job_title = data.jobTitle;
     if (data.referralSource !== undefined) newFieldsData.referral_source = data.referralSource;
 
     // Update new fields if any are provided
