@@ -23,8 +23,6 @@ const organizerApplicationSchema = z.object({
   businessType: z.enum(['event_organizer', 'venue', 'artist', 'promoter', 'other'], {
     errorMap: () => ({ message: 'Please select a valid business type' })
   }),
-  yearsExperience: z.coerce.number().min(0).max(50).optional(),
-  sampleEvents: z.string().optional(),
   socialMediaHandles: z.object({
     instagram: z.string().optional(),
     facebook: z.string().optional(),
@@ -98,8 +96,6 @@ export function CommunitiesOrganizerApplicationPage() {
       businessWebsite: '',
       businessDescription: '',
       businessType: undefined,
-      yearsExperience: 0,
-      sampleEvents: '',
       socialMediaHandles: {
         instagram: '',
         facebook: '',
@@ -392,37 +388,6 @@ export function CommunitiesOrganizerApplicationPage() {
                       {form.formState.errors.businessDescription.message}
                     </p>
                   )}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Experience */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Experience & Portfolio</h3>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="yearsExperience">Years of Experience</Label>
-                  <Input
-                    id="yearsExperience"
-                    type="number"
-                    min="0"
-                    max="50"
-                    placeholder="5"
-                    data-testid="input-years-experience"
-                    {...form.register('yearsExperience', { valueAsNumber: true })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="sampleEvents">Sample Events</Label>
-                  <Textarea
-                    id="sampleEvents"
-                    placeholder="Describe some events you've organized or been involved with..."
-                    rows={4}
-                    data-testid="input-sample-events"
-                    {...form.register('sampleEvents')}
-                  />
                 </div>
               </div>
 

@@ -36,11 +36,8 @@ const updateProfileSchema = z.object({
   phoneNumber: z.string().regex(/^[\+]?[1-9][\d]{0,15}$/, 'Please enter a valid phone number').optional().or(z.literal('')),
   dateOfBirth: z.string().optional(), // Will be converted to date
   gender: z.enum(['male', 'female', 'non-binary', 'prefer-not-to-say', 'other']).optional(),
-  interests: z.array(z.string()).optional(),
   preferredLanguage: z.string().optional(),
   timezone: z.string().optional(),
-  companyName: z.string().max(100, 'Company name must be under 100 characters').optional(),
-  jobTitle: z.string().max(100, 'Job title must be under 100 characters').optional(),
   referralSource: z.string().optional(),
 });
 
@@ -173,11 +170,8 @@ export function CommunitiesProfilePage() {
       phoneNumber: user?.phoneNumber || '',
       dateOfBirth: user?.dateOfBirth || '',
       gender: user?.gender || 'prefer-not-to-say',
-      interests: user?.interests || [],
       preferredLanguage: user?.preferredLanguage || 'en',
       timezone: user?.timezone || 'America/Vancouver',
-      companyName: user?.companyName || '',
-      jobTitle: user?.jobTitle || '',
       referralSource: user?.referralSource || '',
     }
   });
@@ -201,11 +195,8 @@ export function CommunitiesProfilePage() {
         phoneNumber: user.phoneNumber || '',
         dateOfBirth: user.dateOfBirth || '',
         gender: user.gender || 'prefer-not-to-say',
-        interests: user.interests || [],
         preferredLanguage: user.preferredLanguage || 'en',
         timezone: user.timezone || 'America/Vancouver',
-        companyName: user.companyName || '',
-        jobTitle: user.jobTitle || '',
         referralSource: user.referralSource || '',
       });
     }
@@ -577,7 +568,7 @@ export function CommunitiesProfilePage() {
                           <Input
                             id="firstName"
                             data-testid="input-firstname"
-                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            className="h-11 bg-background border-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
                             {...form.register('firstName')}
                           />
                           {form.formState.errors.firstName && (
@@ -594,7 +585,7 @@ export function CommunitiesProfilePage() {
                           <Input
                             id="lastName"
                             data-testid="input-lastname"
-                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            className="h-11 bg-background border-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
                             {...form.register('lastName')}
                           />
                           {form.formState.errors.lastName && (
@@ -609,10 +600,10 @@ export function CommunitiesProfilePage() {
                         <Label htmlFor="bio" className="text-sm font-medium text-foreground">About You</Label>
                         <Textarea
                           id="bio"
-                          placeholder="Tell us about yourself, your interests, and what brings you to our community..."
+                          placeholder="Tell us about yourself and what brings you to our community..."
                           rows={4}
                           data-testid="input-bio"
-                          className="bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none"
+                          className="bg-background border-border focus:border-primary focus:ring-1 focus:ring-primary/20 resize-none text-foreground"
                           {...form.register('bio')}
                         />
                         {form.formState.errors.bio && (
@@ -642,7 +633,7 @@ export function CommunitiesProfilePage() {
                             id="location"
                             placeholder="Vancouver, BC"
                             data-testid="input-location"
-                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            className="h-11 bg-background border-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
                             {...form.register('location')}
                           />
                         </div>
@@ -657,7 +648,7 @@ export function CommunitiesProfilePage() {
                             type="url"
                             placeholder="https://yourwebsite.com"
                             data-testid="input-website"
-                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            className="h-11 bg-background border-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
                             {...form.register('website')}
                           />
                         </div>
@@ -680,7 +671,7 @@ export function CommunitiesProfilePage() {
                             id="phoneNumber"
                             placeholder="+1 (555) 123-4567"
                             data-testid="input-phone"
-                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            className="h-11 bg-background border-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
                             {...form.register('phoneNumber')}
                           />
                           {form.formState.errors.phoneNumber && (
@@ -696,7 +687,7 @@ export function CommunitiesProfilePage() {
                             id="dateOfBirth"
                             type="date"
                             data-testid="input-birthdate"
-                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            className="h-11 bg-background border-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
                             {...form.register('dateOfBirth')}
                           />
                         </div>
@@ -709,7 +700,7 @@ export function CommunitiesProfilePage() {
                             value={form.watch('gender') || 'prefer-not-to-say'} 
                             onValueChange={(value) => form.setValue('gender', value)}
                           >
-                            <SelectTrigger data-testid="select-gender" className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20">
+                            <SelectTrigger data-testid="select-gender" className="h-11 bg-background border-border focus:border-primary focus:ring-1 focus:ring-primary/20">
                               <SelectValue placeholder="Select gender" />
                             </SelectTrigger>
                             <SelectContent>
@@ -728,7 +719,7 @@ export function CommunitiesProfilePage() {
                             value={form.watch('preferredLanguage') || 'en'} 
                             onValueChange={(value) => form.setValue('preferredLanguage', value)}
                           >
-                            <SelectTrigger data-testid="select-language" className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20">
+                            <SelectTrigger data-testid="select-language" className="h-11 bg-background border-border focus:border-primary focus:ring-1 focus:ring-primary/20">
                               <SelectValue placeholder="Select language" />
                             </SelectTrigger>
                             <SelectContent>
@@ -745,62 +736,14 @@ export function CommunitiesProfilePage() {
                       </div>
                     </div>
 
-                    {/* Professional Information */}
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Professional Information</h4>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="companyName">Company Name</Label>
-                          <Input
-                            id="companyName"
-                            placeholder="Your company"
-                            data-testid="input-company"
-                            {...form.register('companyName')}
-                          />
-                          {form.formState.errors.companyName && (
-                            <p className="text-sm text-destructive">
-                              {form.formState.errors.companyName.message}
-                            </p>
-                          )}
+                    {/* Social Media Section */}
+                    <div className="space-y-6">
+                      <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                        <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center">
+                          <User className="w-3 h-3 text-blue-600" />
                         </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="jobTitle">Job Title</Label>
-                          <Input
-                            id="jobTitle"
-                            placeholder="Your role"
-                            data-testid="input-jobtitle"
-                            {...form.register('jobTitle')}
-                          />
-                          {form.formState.errors.jobTitle && (
-                            <p className="text-sm text-destructive">
-                              {form.formState.errors.jobTitle.message}
-                            </p>
-                          )}
-                        </div>
+                        <h3 className="text-lg font-semibold text-foreground">Social Media</h3>
                       </div>
-                    </div>
-
-                    {/* Interests */}
-                    <div className="space-y-2">
-                      <Label htmlFor="interests">Interests</Label>
-                      <Textarea
-                        id="interests"
-                        placeholder="Tell us about your interests (comma separated): music, food, tech, sports..."
-                        rows={2}
-                        data-testid="input-interests"
-                        value={form.watch('interests')?.join(', ') || ''}
-                        onChange={(e) => {
-                          const interestsArray = e.target.value.split(',').map(s => s.trim()).filter(s => s);
-                          form.setValue('interests', interestsArray);
-                        }}
-                      />
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Social Media</h4>
                       <div className="grid grid-cols-1 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="socialInstagram" className="text-sm font-medium text-foreground flex items-center gap-2">
@@ -811,7 +754,7 @@ export function CommunitiesProfilePage() {
                             id="socialInstagram"
                             placeholder="@username"
                             data-testid="input-instagram"
-                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            className="h-11 bg-background border-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
                             {...form.register('socialInstagram')}
                           />
                         </div>
@@ -825,7 +768,7 @@ export function CommunitiesProfilePage() {
                             id="socialTwitter"
                             placeholder="@username"
                             data-testid="input-twitter"
-                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            className="h-11 bg-background border-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
                             {...form.register('socialTwitter')}
                           />
                         </div>
@@ -839,7 +782,7 @@ export function CommunitiesProfilePage() {
                             id="socialLinkedin"
                             placeholder="linkedin.com/in/username"
                             data-testid="input-linkedin"
-                            className="h-11 bg-background/50 border-border/60 focus:border-primary focus:ring-1 focus:ring-primary/20"
+                            className="h-11 bg-background border-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
                             {...form.register('socialLinkedin')}
                           />
                         </div>
@@ -932,8 +875,22 @@ export function CommunitiesProfilePage() {
                             <p className="mt-1">
                               {(() => {
                                 if (!user.dateOfBirth) return 'Not provided';
-                                const date = new Date(user.dateOfBirth);
-                                return !isNaN(date.getTime()) ? date.toLocaleDateString() : 'Invalid date';
+                                // Handle date-only strings without timezone conversion
+                                try {
+                                  const dateString = user.dateOfBirth;
+                                  if (dateString.includes('-')) {
+                                    // For YYYY-MM-DD format, parse directly without timezone issues
+                                    const [year, month, day] = dateString.split('-').map(Number);
+                                    const date = new Date(year, month - 1, day); // month is 0-indexed
+                                    return date.toLocaleDateString();
+                                  } else {
+                                    // Fallback for other formats
+                                    const date = new Date(dateString);
+                                    return !isNaN(date.getTime()) ? date.toLocaleDateString() : 'Invalid date';
+                                  }
+                                } catch {
+                                  return 'Invalid date';
+                                }
                               })()}
                             </p>
                           </div>
@@ -962,46 +919,7 @@ export function CommunitiesProfilePage() {
                       </div>
                     </>
 
-                    {/* Professional Information */}
-                    {(user.companyName || user.jobTitle) && (
-                      <>
-                        <Separator />
-                        <div className="space-y-4">
-                          <Label className="text-base font-medium">Professional Information</Label>
-                          <div className="grid grid-cols-2 gap-4">
-                            {user.companyName && (
-                              <div>
-                                <Label>Company</Label>
-                                <p className="mt-1">{user.companyName}</p>
-                              </div>
-                            )}
-                            {user.jobTitle && (
-                              <div>
-                                <Label>Job Title</Label>
-                                <p className="mt-1">{user.jobTitle}</p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    )}
 
-                    {/* Interests */}
-                    {user.interests && user.interests.length > 0 && (
-                      <>
-                        <Separator />
-                        <div>
-                          <Label className="text-base font-medium">Interests</Label>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {user.interests.map((interest, index) => (
-                              <Badge key={index} variant="secondary">
-                                {interest}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
 
                     {(user.socialInstagram || user.socialTwitter || user.socialLinkedin) && (
                       <>
@@ -1107,7 +1025,7 @@ export function CommunitiesProfilePage() {
                       data-testid="button-apply-organizer"
                     >
                       <Building2 className="w-4 h-4 mr-2" />
-                      Apply to become an organizer
+                      Create your business account
                     </Button>
                   </div>
                 )}
