@@ -540,22 +540,29 @@ export function addCommunitiesRoutes(app: Express) {
 
   // ============ ADMIN ORGANIZER APPROVAL ENDPOINTS ============
   
-  // Middleware to check admin permissions
-  const requireAdmin = async (req: Request, res: Response, next: any) => {
-    const user = (req as any).user;
-    if (user.role !== 'admin') {
-      return res.status(403).json({ ok: false, error: 'Admin access required' });
+  // Admin key middleware for API endpoints (using ADMIN_PASSWORD)
+  const requireAdminKey = (req: Request, res: Response, next: any) => {
+    const adminKey = req.headers['x-admin-key'];
+    const expectedKey = process.env.ADMIN_PASSWORD;
+    
+    if (!expectedKey) {
+      return res.status(500).json({ ok: false, error: 'ADMIN_PASSWORD not configured' });
     }
+    
+    if (!adminKey || adminKey !== expectedKey) {
+      return res.status(401).json({ ok: false, error: 'Admin password required' });
+    }
+    
     next();
   };
 
   /**
-   * GET /api/account/admin/organizers/pending
+   * GET /api/admin/organizers/pending
    * Get all pending organizer applications (admin only)
-   * curl -X GET http://localhost:5000/api/account/admin/organizers/pending \
-   *   -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+   * curl -X GET http://localhost:5000/api/admin/organizers/pending \
+   *   -H "x-admin-key: YOUR_ADMIN_KEY"
    */
-  app.get('/api/admin/organizers/pending', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  app.get('/api/admin/organizers/pending', requireAdminKey, async (req: Request, res: Response) => {
     try {
       const applications = await communitiesStorage.getOrganizerApplicationsByStatus('pending');
       
@@ -587,17 +594,16 @@ export function addCommunitiesRoutes(app: Express) {
   });
 
   /**
-   * POST /api/account/admin/organizers/:id/approve
+   * POST /api/admin/organizers/:id/approve
    * Approve an organizer application (admin only)
-   * curl -X POST http://localhost:5000/api/account/admin/organizers/APPLICATION_ID/approve \
-   *   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+   * curl -X POST http://localhost:5000/api/admin/organizers/APPLICATION_ID/approve \
+   *   -H "x-admin-key: YOUR_ADMIN_KEY" \
    *   -H "Content-Type: application/json" \
    *   -d '{"adminNotes":"Great application, approved!"}'
    */
-  app.post('/api/admin/organizers/:id/approve', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  app.post('/api/admin/organizers/:id/approve', requireAdminKey, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const adminUser = (req as any).user;
       const { adminNotes } = req.body;
 
       // Get the application
@@ -613,7 +619,7 @@ export function addCommunitiesRoutes(app: Express) {
       // Update application status
       await communitiesStorage.updateOrganizerApplication(id, {
         status: 'approved',
-        reviewedBy: adminUser.id,
+        reviewedBy: 'admin', // Using admin key system
         adminNotes
       });
 
@@ -625,7 +631,7 @@ export function addCommunitiesRoutes(app: Express) {
         businessWebsite: application.businessWebsite,
         businessDescription: application.businessDescription,
         businessType: application.businessType,
-        approvedBy: adminUser.id
+        approvedBy: 'admin' // Using admin key system
       });
 
       res.json({
@@ -646,17 +652,16 @@ export function addCommunitiesRoutes(app: Express) {
   });
 
   /**
-   * POST /api/account/admin/organizers/:id/reject
+   * POST /api/admin/organizers/:id/reject
    * Reject an organizer application (admin only)
-   * curl -X POST http://localhost:5000/api/account/admin/organizers/APPLICATION_ID/reject \
-   *   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+   * curl -X POST http://localhost:5000/api/admin/organizers/APPLICATION_ID/reject \
+   *   -H "x-admin-key: YOUR_ADMIN_KEY" \
    *   -H "Content-Type: application/json" \
    *   -d '{"rejectionReason":"Insufficient experience","adminNotes":"Please reapply after gaining more experience"}'
    */
-  app.post('/api/admin/organizers/:id/reject', requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  app.post('/api/admin/organizers/:id/reject', requireAdminKey, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const adminUser = (req as any).user;
       const { rejectionReason, adminNotes } = req.body;
 
       if (!rejectionReason) {
@@ -676,7 +681,7 @@ export function addCommunitiesRoutes(app: Express) {
       // Update application status
       await communitiesStorage.updateOrganizerApplication(id, {
         status: 'rejected',
-        reviewedBy: adminUser.id,
+        reviewedBy: 'admin', // Using admin key system
         rejectionReason,
         adminNotes
       });
