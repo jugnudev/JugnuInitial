@@ -197,7 +197,7 @@ export default function Navigation() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/account/profile" className="flex items-center gap-2 cursor-pointer">
+                      <Link href="/account/profile#settings" className="flex items-center gap-2 cursor-pointer">
                         <Settings className="h-4 w-4" />
                         Settings
                       </Link>

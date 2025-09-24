@@ -66,6 +66,44 @@ export function CommunitiesProfilePage() {
   const [showEmailChange, setShowEmailChange] = useState(false);
   const [emailChangeStep, setEmailChangeStep] = useState<'request' | 'confirm'>('request');
   const [pendingEmail, setPendingEmail] = useState('');
+  const [activeTab, setActiveTab] = useState('profile');
+
+  // Handle hash-based navigation for direct tab access
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash && ['profile', 'organizer', 'settings'].includes(hash)) {
+        setActiveTab(hash);
+      } else {
+        setActiveTab('profile'); // Default to profile if no valid hash
+      }
+    };
+
+    // Handle initial hash on mount
+    handleHashChange();
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', handleHashChange);
+
+    // Cleanup listener on unmount
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
+  }, []);
+
+  // Handle tab changes and keep URL in sync
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // Update URL hash to keep deep links working
+    if (value === 'profile') {
+      // For default tab, remove hash to keep URL clean
+      if (window.location.hash) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    } else {
+      window.location.hash = value;
+    }
+  };
 
   // Authentication is always available (platform-wide)
   if (false) { // Never show coming soon message
@@ -463,7 +501,7 @@ export function CommunitiesProfilePage() {
           </Card>
         </div>
 
-        <Tabs defaultValue="profile" className="space-y-8">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
           <div className="border-b border-border/50">
             <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 bg-muted/30 p-1 h-12">
               <TabsTrigger 
