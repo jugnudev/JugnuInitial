@@ -3,17 +3,6 @@ import { z } from 'zod';
 import { communitiesStorage } from './communities-supabase';
 import { insertUserSchema } from '@shared/schema';
 
-// Check if Communities is enabled
-const isCommunitiesEnabled = () => process.env.ENABLE_COMMUNITIES === 'true';
-
-// Middleware to check if Communities is enabled
-const requireCommunities = (req: Request, res: Response, next: any) => {
-  if (!isCommunitiesEnabled()) {
-    console.log(`[Communities] Disabled - API route ${req.path} blocked by ENABLE_COMMUNITIES flag`);
-    return res.status(404).json({ ok: false, disabled: true });
-  }
-  next();
-};
 
 // Middleware to check user authentication
 const requireAuth = async (req: Request, res: Response, next: any) => {
@@ -98,7 +87,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"email":"user@example.com","firstName":"John","lastName":"Doe"}'
    */
-  app.post('/api/account/signup', requireCommunities, async (req: Request, res: Response) => {
+  app.post('/api/auth/signup', async (req: Request, res: Response) => {
     try {
       const validationResult = signupSchema.safeParse(req.body);
       if (!validationResult.success) {
@@ -161,7 +150,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"email":"user@example.com"}'
    */
-  app.post('/api/account/signin', requireCommunities, async (req: Request, res: Response) => {
+  app.post('/api/auth/signin', async (req: Request, res: Response) => {
     try {
       const validationResult = signinSchema.safeParse(req.body);
       if (!validationResult.success) {
@@ -209,7 +198,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"email":"user@example.com","code":"123456"}'
    */
-  app.post('/api/account/verify-code', requireCommunities, async (req: Request, res: Response) => {
+  app.post('/api/auth/verify-code', async (req: Request, res: Response) => {
     try {
       const validationResult = verifyCodeSchema.safeParse(req.body);
       if (!validationResult.success) {
@@ -297,7 +286,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X GET http://localhost:5000/api/account/me \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.get('/api/account/me', requireCommunities, requireAuth, async (req: Request, res: Response) => {
+  app.get('/api/auth/me', requireAuth, async (req: Request, res: Response) => {
     try {
       const user = (req as any).user;
       
@@ -359,7 +348,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"firstName":"Jane","bio":"Updated bio"}'
    */
-  app.patch('/api/account/me', requireCommunities, requireAuth, async (req: Request, res: Response) => {
+  app.patch('/api/auth/me', requireAuth, async (req: Request, res: Response) => {
     try {
       const user = (req as any).user;
 
@@ -411,7 +400,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X POST http://localhost:5000/api/account/signout \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.post('/api/account/signout', requireCommunities, requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/auth/signout', requireAuth, async (req: Request, res: Response) => {
     try {
       const session = (req as any).session;
 
@@ -437,7 +426,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X POST http://localhost:5000/api/account/signout-all \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.post('/api/account/signout-all', requireCommunities, requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/auth/signout-all', requireAuth, async (req: Request, res: Response) => {
     try {
       const user = (req as any).user;
 
@@ -488,7 +477,7 @@ export function addCommunitiesRoutes(app: Express) {
     businessAddress: z.string().optional(),
   });
 
-  app.post('/api/account/apply-organizer', requireCommunities, requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/organizers/apply', requireAuth, async (req: Request, res: Response) => {
     try {
       const user = (req as any).user;
 
@@ -566,7 +555,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X GET http://localhost:5000/api/account/admin/organizers/pending \
    *   -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
    */
-  app.get('/api/account/admin/organizers/pending', requireCommunities, requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  app.get('/api/admin/organizers/pending', requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
       const applications = await communitiesStorage.getOrganizerApplicationsByStatus('pending');
       
@@ -605,7 +594,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"adminNotes":"Great application, approved!"}'
    */
-  app.post('/api/account/admin/organizers/:id/approve', requireCommunities, requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  app.post('/api/admin/organizers/:id/approve', requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const adminUser = (req as any).user;
@@ -664,7 +653,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"rejectionReason":"Insufficient experience","adminNotes":"Please reapply after gaining more experience"}'
    */
-  app.post('/api/account/admin/organizers/:id/reject', requireCommunities, requireAuth, requireAdmin, async (req: Request, res: Response) => {
+  app.post('/api/admin/organizers/:id/reject', requireAuth, requireAdmin, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const adminUser = (req as any).user;
@@ -703,5 +692,5 @@ export function addCommunitiesRoutes(app: Express) {
     }
   });
 
-  console.log('✅ Communities authentication, organizer, and admin routes added');
+  console.log('✅ Platform authentication (/api/auth/*), organizer (/api/organizers/*), and admin (/api/admin/organizers/*) routes added');
 }
