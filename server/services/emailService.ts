@@ -52,6 +52,13 @@ export interface AnalyticsEmailData {
   returningVisitors: number;
 }
 
+export interface VerificationEmailData {
+  recipientEmail: string;
+  verificationCode: string;
+  purpose: 'signup' | 'signin';
+  userName?: string;
+}
+
 export interface TicketEmailData {
   recipientEmail: string;
   buyerName: string;
@@ -68,6 +75,142 @@ export interface TicketEmailData {
   }>;
   totalAmount: string;
   refundPolicy?: string;
+}
+
+export async function sendVerificationEmail(data: VerificationEmailData): Promise<void> {
+  if (!SENDGRID_API_KEY) {
+    console.log(`📧 [DEV] Would send ${data.purpose} email to ${data.recipientEmail} with code: ${data.verificationCode}`);
+    return;
+  }
+
+  const isSignup = data.purpose === 'signup';
+  const subject = isSignup ? 'Welcome to Jugnu - Verify your email' : 'Sign in to Jugnu - Verification code';
+  const greeting = data.userName ? `Hi ${data.userName}` : 'Hello';
+  
+  const msg = {
+    to: data.recipientEmail,
+    from: {
+      email: EMAIL_FROM_ADDRESS,
+      name: EMAIL_FROM_NAME
+    },
+    subject,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              line-height: 1.6;
+              color: #333;
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 20px;
+              background-color: #f9fafb;
+            }
+            .header {
+              text-align: center;
+              padding: 30px 0;
+              background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+              color: white;
+              border-radius: 12px 12px 0 0;
+              margin-bottom: 0;
+            }
+            .content {
+              background: white;
+              padding: 30px;
+              border-radius: 0 0 12px 12px;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+            .code-box {
+              background: #f8fafc;
+              border: 2px solid #f97316;
+              padding: 20px;
+              border-radius: 8px;
+              text-align: center;
+              margin: 25px 0;
+            }
+            .verification-code {
+              font-size: 32px;
+              font-weight: bold;
+              color: #f97316;
+              letter-spacing: 4px;
+              font-family: monospace;
+            }
+            .footer {
+              margin-top: 30px;
+              padding-top: 20px;
+              border-top: 1px solid #e5e7eb;
+              font-size: 14px;
+              color: #6b7280;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1 style="margin: 0; font-size: 28px;">🎭 Jugnu</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">Your verification code</p>
+          </div>
+          
+          <div class="content">
+            <p>${greeting},</p>
+            
+            ${isSignup ? 
+              '<p>Welcome to <strong>Jugnu</strong>! To complete your account setup, please verify your email address with the code below:</p>' :
+              '<p>To sign in to your <strong>Jugnu</strong> account, please use the verification code below:</p>'
+            }
+            
+            <div class="code-box">
+              <div class="verification-code">${data.verificationCode}</div>
+              <p style="margin: 10px 0 0 0; color: #6b7280; font-size: 14px;">Enter this code in the verification form</p>
+            </div>
+            
+            <p style="color: #6b7280; font-size: 14px;">
+              <strong>Security note:</strong> This code expires in 10 minutes. If you didn't request this email, please ignore it.
+            </p>
+            
+            <div class="footer">
+              <p>Need help? Contact us at <a href="mailto:${EMAIL_FROM_ADDRESS}" style="color: #f97316;">${EMAIL_FROM_ADDRESS}</a></p>
+              <p style="margin-top: 15px;">
+                <strong>Jugnu</strong><br>
+                Vancouver's South Asian Cultural Hub
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `
+${greeting},
+
+${isSignup ? 
+  'Welcome to Jugnu! To complete your account setup, please verify your email address with the code below:' :
+  'To sign in to your Jugnu account, please use the verification code below:'
+}
+
+Your verification code: ${data.verificationCode}
+
+Enter this code in the verification form. This code expires in 10 minutes.
+
+Security note: If you didn't request this email, please ignore it.
+
+Need help? Contact us at ${EMAIL_FROM_ADDRESS}
+
+---
+Jugnu
+Vancouver's South Asian Cultural Hub
+    `.trim()
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log(`Verification email sent to ${data.recipientEmail} (${data.purpose})`);
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    throw new Error('Failed to send verification email');
+  }
 }
 
 export async function sendOnboardingEmail(data: OnboardingEmailData): Promise<void> {

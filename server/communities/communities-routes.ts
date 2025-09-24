@@ -65,14 +65,25 @@ const updateProfileSchema = z.object({
   marketingEmails: z.boolean().optional(),
 });
 
-// Helper to send email codes (mock implementation for now)
-const sendEmailCode = async (email: string, code: string, purpose: string = 'login') => {
-  // TODO: Integrate with actual email service (SendGrid, Resend, etc.)
+// Import the email service
+import { sendVerificationEmail } from '../services/emailService.js';
+
+// Helper to send email codes using the proper email service
+const sendEmailCode = async (email: string, code: string, purpose: string = 'login', userName?: string) => {
   console.log(`[Communities] Email code for ${email}: ${code} (${purpose})`);
-  console.log(`📧 [DEV] Would send email to ${email} with code: ${code}`);
   
-  // In development, just log the code
-  return true;
+  try {
+    await sendVerificationEmail({
+      recipientEmail: email,
+      verificationCode: code,
+      purpose: purpose === 'signup' ? 'signup' : 'signin',
+      userName
+    });
+    return true;
+  } catch (error) {
+    console.error('Failed to send verification email:', error);
+    return false;
+  }
 };
 
 export function addCommunitiesRoutes(app: Express) {
