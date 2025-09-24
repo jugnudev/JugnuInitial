@@ -490,6 +490,186 @@ export function addCommunitiesRoutes(app: Express) {
     }
   });
 
+  // ============ EMAIL CHANGE ENDPOINTS ============
+
+  /**
+   * POST /api/auth/request-email-change
+   * Request to change email address - sends verification code to new email
+   * curl -X POST http://localhost:5000/api/auth/request-email-change \
+   *   -H "Authorization: Bearer YOUR_TOKEN" \
+   *   -H "Content-Type: application/json" \
+   *   -d '{"newEmail":"newemail@example.com"}'
+   */
+  const requestEmailChangeSchema = z.object({
+    newEmail: z.string().email('Invalid email address'),
+  });
+
+  app.post('/api/auth/request-email-change', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+
+      const validationResult = requestEmailChangeSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Validation failed',
+          details: validationResult.error.errors
+        });
+      }
+
+      const { newEmail } = validationResult.data;
+
+      // Check if new email is same as current email
+      if (newEmail.toLowerCase() === user.email.toLowerCase()) {
+        return res.status(400).json({
+          ok: false,
+          error: 'New email must be different from current email'
+        });
+      }
+
+      // Check if new email is already in use
+      const existingUser = await communitiesStorage.getUserByEmail(newEmail);
+      if (existingUser) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Email address is already in use'
+        });
+      }
+
+      // Generate verification code for email change
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // Store verification code with email_change purpose
+      await communitiesStorage.createAuthCode({
+        userId: user.id,
+        email: newEmail,
+        code,
+        purpose: 'email_change',
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+        usedAt: null,
+        attempts: 0,
+        maxAttempts: 5
+      });
+
+      // Send verification email to new email address
+      const emailSent = await sendEmailCode(newEmail, code, 'email_change', user.firstName);
+
+      if (!emailSent) {
+        return res.status(500).json({
+          ok: false,
+          error: 'Failed to send verification email'
+        });
+      }
+
+      res.json({
+        ok: true,
+        message: 'Verification code sent to new email address',
+        newEmail // Return the new email for UI feedback (but not the code)
+      });
+    } catch (error: any) {
+      console.error('Request email change error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to request email change' });
+    }
+  });
+
+  /**
+   * POST /api/auth/confirm-email-change
+   * Confirm email change with verification code
+   * curl -X POST http://localhost:5000/api/auth/confirm-email-change \
+   *   -H "Authorization: Bearer YOUR_TOKEN" \
+   *   -H "Content-Type: application/json" \
+   *   -d '{"newEmail":"newemail@example.com","code":"123456"}'
+   */
+  const confirmEmailChangeSchema = z.object({
+    newEmail: z.string().email('Invalid email address'),
+    code: z.string().length(6, 'Code must be 6 digits'),
+  });
+
+  app.post('/api/auth/confirm-email-change', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+
+      const validationResult = confirmEmailChangeSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Validation failed',
+          details: validationResult.error.errors
+        });
+      }
+
+      const { newEmail, code } = validationResult.data;
+
+      // Verify the code - CRITICAL: Must match email, code, AND purpose
+      const codeRecord = await communitiesStorage.getAuthCodeByEmailAndCode(newEmail, code);
+      if (!codeRecord) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Invalid or expired verification code'
+        });
+      }
+
+      // CRITICAL SECURITY: Verify purpose is specifically 'email_change'
+      if (codeRecord.purpose !== 'email_change') {
+        return res.status(400).json({
+          ok: false,
+          error: 'Invalid verification code purpose - must be for email change'
+        });
+      }
+
+      // CRITICAL SECURITY: Ensure the code belongs to the current user
+      if (codeRecord.userId !== user.id) {
+        return res.status(403).json({
+          ok: false,
+          error: 'Unauthorized: Verification code does not belong to this user'
+        });
+      }
+
+      // Check if new email is still available (in case someone else took it)
+      const existingUser = await communitiesStorage.getUserByEmail(newEmail);
+      if (existingUser && existingUser.id !== user.id) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Email address is no longer available'
+        });
+      }
+
+      // Update user's email and mark as unverified until they verify the new email
+      await communitiesStorage.updateUser(user.id, {
+        email: newEmail,
+        emailVerified: false // Reset verification status for new email
+      });
+
+      // Mark the verification code as used
+      await communitiesStorage.markAuthCodeUsed(codeRecord.id);
+
+      // Generate a new verification code for the updated email to verify ownership
+      const newVerificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+      await communitiesStorage.createAuthCode({
+        userId: user.id,
+        email: newEmail,
+        code: newVerificationCode,
+        purpose: 'email_verification',
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+        usedAt: null,
+        attempts: 0,
+        maxAttempts: 5
+      });
+
+      // Send verification email for the new email
+      await sendEmailCode(newEmail, newVerificationCode, 'email_verification', user.firstName);
+
+      res.json({
+        ok: true,
+        message: 'Email changed successfully. Please check your new email for verification.',
+        newEmail
+      });
+    } catch (error: any) {
+      console.error('Confirm email change error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to confirm email change' });
+    }
+  });
+
   // ============ ORGANIZER APPLICATION ENDPOINTS ============
 
   /**

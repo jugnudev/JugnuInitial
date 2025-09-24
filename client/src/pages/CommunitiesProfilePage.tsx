@@ -45,10 +45,26 @@ const updateProfileSchema = z.object({
 
 type UpdateProfileFormData = z.infer<typeof updateProfileSchema>;
 
+// Email change schemas
+const requestEmailChangeSchema = z.object({
+  newEmail: z.string().email('Please enter a valid email address'),
+});
+
+const confirmEmailChangeSchema = z.object({
+  newEmail: z.string().email('Please enter a valid email address'),
+  code: z.string().length(6, 'Code must be 6 digits'),
+});
+
+type RequestEmailChangeFormData = z.infer<typeof requestEmailChangeSchema>;
+type ConfirmEmailChangeFormData = z.infer<typeof confirmEmailChangeSchema>;
+
 export function CommunitiesProfilePage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
+  const [showEmailChange, setShowEmailChange] = useState(false);
+  const [emailChangeStep, setEmailChangeStep] = useState<'request' | 'confirm'>('request');
+  const [pendingEmail, setPendingEmail] = useState('');
 
   // Authentication is always available (platform-wide)
   if (false) { // Never show coming soon message
@@ -206,8 +222,102 @@ export function CommunitiesProfilePage() {
     }
   });
 
+  // Email change forms
+  const requestEmailForm = useForm<RequestEmailChangeFormData>({
+    resolver: zodResolver(requestEmailChangeSchema),
+    defaultValues: {
+      newEmail: '',
+    }
+  });
+
+  const confirmEmailForm = useForm<ConfirmEmailChangeFormData>({
+    resolver: zodResolver(confirmEmailChangeSchema),
+    defaultValues: {
+      newEmail: '',
+      code: '',
+    }
+  });
+
+  // Email change mutations
+  const requestEmailChangeMutation = useMutation({
+    mutationFn: (data: RequestEmailChangeFormData) => 
+      apiRequest('POST', '/api/auth/request-email-change', data),
+    onSuccess: (data) => {
+      if (data.ok) {
+        setPendingEmail(data.newEmail);
+        setEmailChangeStep('confirm');
+        confirmEmailForm.setValue('newEmail', data.newEmail);
+        toast({
+          title: 'Verification code sent',
+          description: `Please check ${data.newEmail} for the verification code.`,
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: data.error || 'Failed to send verification code.',
+          variant: 'destructive',
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Something went wrong.',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  const confirmEmailChangeMutation = useMutation({
+    mutationFn: (data: ConfirmEmailChangeFormData) => 
+      apiRequest('POST', '/api/auth/confirm-email-change', data),
+    onSuccess: (data) => {
+      if (data.ok) {
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+        setShowEmailChange(false);
+        setEmailChangeStep('request');
+        setPendingEmail('');
+        requestEmailForm.reset();
+        confirmEmailForm.reset();
+        toast({
+          title: 'Email changed successfully',
+          description: 'Your email has been updated. Please check your new email for verification.',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: data.error || 'Failed to change email.',
+          variant: 'destructive',
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Something went wrong.',
+        variant: 'destructive',
+      });
+    }
+  });
+
   const onUpdateSubmit = (data: UpdateProfileFormData) => {
     updateMutation.mutate(data);
+  };
+
+  const onRequestEmailChange = (data: RequestEmailChangeFormData) => {
+    requestEmailChangeMutation.mutate(data);
+  };
+
+  const onConfirmEmailChange = (data: ConfirmEmailChangeFormData) => {
+    confirmEmailChangeMutation.mutate(data);
+  };
+
+  const handleCancelEmailChange = () => {
+    setShowEmailChange(false);
+    setEmailChangeStep('request');
+    setPendingEmail('');
+    requestEmailForm.reset();
+    confirmEmailForm.reset();
   };
 
   if (isLoadingProfile) {
@@ -906,21 +1016,133 @@ export function CommunitiesProfilePage() {
 
                 <div className="space-y-4">
                   <div>
-                    <Label>Account Email</Label>
-                    <p className="mt-1 text-sm">{user.email}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {user.emailVerified ? (
-                        <>
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          <span className="text-sm text-green-600">Verified</span>
-                        </>
-                      ) : (
-                        <>
-                          <Mail className="w-4 h-4 text-yellow-500" />
-                          <span className="text-sm text-yellow-600">Unverified</span>
-                        </>
+                    <div className="flex items-center justify-between">
+                      <Label>Account Email</Label>
+                      {!showEmailChange && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowEmailChange(true)}
+                          data-testid="button-change-email"
+                        >
+                          Change Email
+                        </Button>
                       )}
                     </div>
+
+                    {!showEmailChange ? (
+                      <>
+                        <p className="mt-1 text-sm">{user.email}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          {user.emailVerified ? (
+                            <>
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                              <span className="text-sm text-green-600">Verified</span>
+                            </>
+                          ) : (
+                            <>
+                              <Mail className="w-4 h-4 text-yellow-500" />
+                              <span className="text-sm text-yellow-600">Unverified</span>
+                            </>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="mt-4 p-4 border rounded-lg space-y-4">
+                        {emailChangeStep === 'request' ? (
+                          <form onSubmit={requestEmailForm.handleSubmit(onRequestEmailChange)} className="space-y-4">
+                            <div>
+                              <Label htmlFor="newEmail">New Email Address</Label>
+                              <Input
+                                id="newEmail"
+                                type="email"
+                                placeholder="Enter your new email address"
+                                data-testid="input-new-email"
+                                {...requestEmailForm.register('newEmail')}
+                              />
+                              {requestEmailForm.formState.errors.newEmail && (
+                                <p className="text-sm text-destructive mt-1">
+                                  {requestEmailForm.formState.errors.newEmail.message}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                type="submit"
+                                disabled={requestEmailChangeMutation.isPending}
+                                data-testid="button-send-verification"
+                              >
+                                {requestEmailChangeMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Sending...
+                                  </>
+                                ) : (
+                                  'Send Verification Code'
+                                )}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleCancelEmailChange}
+                                data-testid="button-cancel-email-change"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </form>
+                        ) : (
+                          <form onSubmit={confirmEmailForm.handleSubmit(onConfirmEmailChange)} className="space-y-4">
+                            <div>
+                              <Label>Verifying Email Change</Label>
+                              <p className="text-sm text-muted-foreground">
+                                We sent a verification code to {pendingEmail}
+                              </p>
+                            </div>
+                            <div>
+                              <Label htmlFor="verificationCode">Verification Code</Label>
+                              <Input
+                                id="verificationCode"
+                                type="text"
+                                placeholder="Enter 6-digit code"
+                                maxLength={6}
+                                data-testid="input-verification-code"
+                                {...confirmEmailForm.register('code')}
+                              />
+                              {confirmEmailForm.formState.errors.code && (
+                                <p className="text-sm text-destructive mt-1">
+                                  {confirmEmailForm.formState.errors.code.message}
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                type="submit"
+                                disabled={confirmEmailChangeMutation.isPending}
+                                data-testid="button-confirm-email-change"
+                              >
+                                {confirmEmailChangeMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Confirming...
+                                  </>
+                                ) : (
+                                  'Confirm Email Change'
+                                )}
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleCancelEmailChange}
+                                data-testid="button-cancel-confirmation"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </form>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div>
