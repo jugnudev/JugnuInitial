@@ -25,7 +25,6 @@ const updateProfileSchema = z.object({
   lastName: z.string().min(1, 'Last name is required'),
   bio: z.string().max(500, 'Bio must be under 500 characters').optional(),
   location: z.string().max(100, 'Location must be under 100 characters').optional(),
-  website: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
   socialInstagram: z.string().optional(),
   socialTwitter: z.string().optional(),
   socialLinkedin: z.string().optional(),
@@ -159,7 +158,6 @@ export function CommunitiesProfilePage() {
       lastName: user?.lastName || '',
       bio: user?.bio || '',
       location: user?.location || '',
-      website: user?.website || '',
       socialInstagram: user?.socialInstagram || '',
       socialTwitter: user?.socialTwitter || '',
       socialLinkedin: user?.socialLinkedin || '',
@@ -184,7 +182,6 @@ export function CommunitiesProfilePage() {
         lastName: user.lastName || '',
         bio: user.bio || '',
         location: user.location || '',
-        website: user.website || '',
         socialInstagram: user.socialInstagram || '',
         socialTwitter: user.socialTwitter || '',
         socialLinkedin: user.socialLinkedin || '',
@@ -638,20 +635,6 @@ export function CommunitiesProfilePage() {
                           />
                         </div>
 
-                        <div className="space-y-3">
-                          <Label htmlFor="website" className="text-sm font-medium text-foreground flex items-center gap-2">
-                            <Globe className="w-4 h-4 text-green-600" />
-                            Website
-                          </Label>
-                          <Input
-                            id="website"
-                            type="url"
-                            placeholder="https://yourwebsite.com"
-                            data-testid="input-website"
-                            className="h-11 bg-background border-border focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
-                            {...form.register('website')}
-                          />
-                        </div>
                       </div>
                     </div>
 
@@ -839,21 +822,6 @@ export function CommunitiesProfilePage() {
                         <div>
                           <Label>Location</Label>
                           <p className="mt-1">{user.location}</p>
-                        </div>
-                      )}
-                      {user.website && (
-                        <div>
-                          <Label>Website</Label>
-                          <p className="mt-1">
-                            <a 
-                              href={user.website} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-primary hover:underline"
-                            >
-                              {user.website}
-                            </a>
-                          </p>
                         </div>
                       )}
                     </div>

@@ -93,7 +93,7 @@ export function CommunitiesOrganizerApplicationPage() {
     resolver: zodResolver(organizerApplicationSchema),
     defaultValues: {
       businessName: '',
-      businessWebsite: '',
+      businessWebsite: 'https://',
       businessDescription: '',
       businessType: undefined,
       socialMediaHandles: {
@@ -111,7 +111,7 @@ export function CommunitiesOrganizerApplicationPage() {
 
   const applicationMutation = useMutation({
     mutationFn: (data: OrganizerApplicationFormData) => 
-      apiRequest('/api/organizers/apply', { method: 'POST', body: data }),
+      apiRequest('POST', '/api/organizers/apply', data),
     onSuccess: (data) => {
       if (data.ok) {
         queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
