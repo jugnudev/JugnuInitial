@@ -11,7 +11,13 @@ import type {
   Organizer,
   InsertOrganizer,
   UserSession,
-  InsertUserSession
+  InsertUserSession,
+  Community,
+  InsertCommunity,
+  CommunityMembership,
+  InsertCommunityMembership,
+  CommunityPost,
+  InsertCommunityPost
 } from '@shared/schema';
 
 // Create Supabase client with service role for admin operations
@@ -591,6 +597,269 @@ export class CommunitiesSupabaseDB {
 
     if (error && error.code !== 'PGRST116') throw error;
     return data;
+  }
+
+  // ============ COMMUNITIES ============
+  async createCommunity(data: InsertCommunity): Promise<Community> {
+    const { data: community, error } = await this.client
+      .from('communities')
+      .insert({
+        organizer_id: data.organizerId,
+        name: data.name,
+        description: data.description,
+        image_url: data.imageUrl,
+        is_private: data.isPrivate || false,
+        membership_policy: data.membershipPolicy || 'approval_required',
+        status: data.status || 'active'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapCommunityFromDb(community);
+  }
+
+  async getCommunityById(id: string): Promise<Community | null> {
+    const { data, error } = await this.client
+      .from('communities')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? this.mapCommunityFromDb(data) : null;
+  }
+
+  async getCommunityByOrganizerId(organizerId: string): Promise<Community | null> {
+    const { data, error } = await this.client
+      .from('communities')
+      .select('*')
+      .eq('organizer_id', organizerId)
+      .eq('status', 'active')
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? this.mapCommunityFromDb(data) : null;
+  }
+
+  async updateCommunity(id: string, data: Partial<InsertCommunity>): Promise<Community> {
+    const updateData: any = { updated_at: new Date().toISOString() };
+    
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.imageUrl !== undefined) updateData.image_url = data.imageUrl;
+    if (data.isPrivate !== undefined) updateData.is_private = data.isPrivate;
+    if (data.membershipPolicy !== undefined) updateData.membership_policy = data.membershipPolicy;
+    if (data.status !== undefined) updateData.status = data.status;
+
+    const { data: community, error } = await this.client
+      .from('communities')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapCommunityFromDb(community);
+  }
+
+  async deleteCommunity(id: string): Promise<void> {
+    const { error } = await this.client
+      .from('communities')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  // ============ COMMUNITY MEMBERSHIPS ============
+  async createMembership(data: InsertCommunityMembership): Promise<CommunityMembership> {
+    const { data: membership, error } = await this.client
+      .from('community_memberships')
+      .insert({
+        community_id: data.communityId,
+        user_id: data.userId,
+        status: data.status || 'pending',
+        requested_at: data.requestedAt || new Date().toISOString(),
+        approved_at: data.approvedAt,
+        approved_by: data.approvedBy,
+        role: data.role || 'member'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapMembershipFromDb(membership);
+  }
+
+  async getMembershipsByCommunityId(communityId: string): Promise<CommunityMembership[]> {
+    const { data, error } = await this.client
+      .from('community_memberships')
+      .select('*')
+      .eq('community_id', communityId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data ? data.map(this.mapMembershipFromDb) : [];
+  }
+
+  async getMembershipByUserAndCommunity(userId: string, communityId: string): Promise<CommunityMembership | null> {
+    const { data, error } = await this.client
+      .from('community_memberships')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('community_id', communityId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? this.mapMembershipFromDb(data) : null;
+  }
+
+  async updateMembership(id: string, data: Partial<InsertCommunityMembership>): Promise<CommunityMembership> {
+    const updateData: any = { updated_at: new Date().toISOString() };
+    
+    if (data.status !== undefined) updateData.status = data.status;
+    if (data.approvedAt !== undefined) updateData.approved_at = data.approvedAt;
+    if (data.approvedBy !== undefined) updateData.approved_by = data.approvedBy;
+    if (data.role !== undefined) updateData.role = data.role;
+
+    const { data: membership, error } = await this.client
+      .from('community_memberships')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapMembershipFromDb(membership);
+  }
+
+  async deleteMembership(id: string): Promise<void> {
+    const { error } = await this.client
+      .from('community_memberships')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  // ============ COMMUNITY POSTS ============
+  async createPost(data: InsertCommunityPost): Promise<CommunityPost> {
+    const { data: post, error } = await this.client
+      .from('community_posts')
+      .insert({
+        community_id: data.communityId,
+        author_id: data.authorId,
+        title: data.title,
+        content: data.content,
+        post_type: data.postType || 'announcement',
+        is_pinned: data.isPinned || false,
+        status: data.status || 'published'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapPostFromDb(post);
+  }
+
+  async getPostsByCommunityId(communityId: string): Promise<CommunityPost[]> {
+    const { data, error } = await this.client
+      .from('community_posts')
+      .select('*')
+      .eq('community_id', communityId)
+      .eq('status', 'published')
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data ? data.map(this.mapPostFromDb) : [];
+  }
+
+  async getPostById(id: string): Promise<CommunityPost | null> {
+    const { data, error } = await this.client
+      .from('community_posts')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? this.mapPostFromDb(data) : null;
+  }
+
+  async updatePost(id: string, data: Partial<InsertCommunityPost>): Promise<CommunityPost> {
+    const updateData: any = { updated_at: new Date().toISOString() };
+    
+    if (data.title !== undefined) updateData.title = data.title;
+    if (data.content !== undefined) updateData.content = data.content;
+    if (data.postType !== undefined) updateData.post_type = data.postType;
+    if (data.isPinned !== undefined) updateData.is_pinned = data.isPinned;
+    if (data.status !== undefined) updateData.status = data.status;
+
+    const { data: post, error } = await this.client
+      .from('community_posts')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapPostFromDb(post);
+  }
+
+  async deletePost(id: string): Promise<void> {
+    const { error } = await this.client
+      .from('community_posts')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  // ============ MAPPING HELPERS ============
+  private mapCommunityFromDb(data: any): Community {
+    return {
+      id: data.id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      organizerId: data.organizer_id,
+      name: data.name,
+      description: data.description,
+      imageUrl: data.image_url,
+      isPrivate: data.is_private,
+      membershipPolicy: data.membership_policy,
+      status: data.status
+    };
+  }
+
+  private mapMembershipFromDb(data: any): CommunityMembership {
+    return {
+      id: data.id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      communityId: data.community_id,
+      userId: data.user_id,
+      status: data.status,
+      requestedAt: data.requested_at,
+      approvedAt: data.approved_at,
+      approvedBy: data.approved_by,
+      role: data.role
+    };
+  }
+
+  private mapPostFromDb(data: any): CommunityPost {
+    return {
+      id: data.id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      communityId: data.community_id,
+      authorId: data.author_id,
+      title: data.title,
+      content: data.content,
+      postType: data.post_type,
+      isPinned: data.is_pinned,
+      status: data.status
+    };
   }
 
   // ============ UTILITY METHODS ============
