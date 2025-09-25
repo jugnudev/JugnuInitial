@@ -320,16 +320,34 @@ export function addCommunitiesRoutes(app: Express) {
         organizer = await communitiesStorage.getOrganizerByUserId(user.id);
       }
 
-      // Always check for pending applications
-      const { data: applications } = await communitiesStorage.client
-        .from('community_organizer_applications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      
-      if (applications && applications.length > 0) {
-        organizerApplication = applications[0];
+      // Always check for applications with proper data mapping
+      try {
+        // Check pending applications first
+        const pendingApplications = await communitiesStorage.getOrganizerApplicationsByStatus('pending');
+        const userPendingApp = pendingApplications.find(app => app.userId === user.id);
+        
+        if (userPendingApp) {
+          organizerApplication = userPendingApp;
+        } else {
+          // Check approved applications
+          const approvedApplications = await communitiesStorage.getOrganizerApplicationsByStatus('approved');
+          const userApprovedApp = approvedApplications.find(app => app.userId === user.id);
+          
+          if (userApprovedApp) {
+            organizerApplication = userApprovedApp;
+          } else {
+            // Check rejected applications
+            const rejectedApplications = await communitiesStorage.getOrganizerApplicationsByStatus('rejected');
+            const userRejectedApp = rejectedApplications.find(app => app.userId === user.id);
+            
+            if (userRejectedApp) {
+              organizerApplication = userRejectedApp;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to fetch organizer applications:', error);
+        organizerApplication = null;
       }
 
       res.json({
