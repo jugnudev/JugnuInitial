@@ -396,11 +396,11 @@ export function CommunitiesProfilePage() {
   const getApplicationStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />;
+        return <Clock className="w-5 h-5 text-yellow-600" />;
       case 'approved':
-        return <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />;
+        return <CheckCircle className="w-5 h-5 text-accent" />;
       case 'rejected':
-        return <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />;
+        return <XCircle className="w-5 h-5 text-red-600" />;
       default:
         return null;
     }
@@ -422,13 +422,13 @@ export function CommunitiesProfilePage() {
   const getStatusBadgeStyle = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-700 dark:text-amber-300 border-amber-300/30 shadow-amber-500/10 shadow-md font-semibold px-3 py-1';
+        return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
       case 'approved':
-        return 'bg-gradient-to-r from-emerald-500/10 to-green-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-300/30 shadow-emerald-500/10 shadow-md font-semibold px-3 py-1';
+        return 'bg-accent/10 text-accent border-accent/20';
       case 'rejected':
-        return 'bg-gradient-to-r from-red-500/10 to-rose-500/10 text-red-700 dark:text-red-300 border-red-300/30 shadow-red-500/10 shadow-md font-semibold px-3 py-1';
+        return 'bg-red-500/10 text-red-600 border-red-500/20';
       default:
-        return 'bg-gradient-to-r from-slate-500/10 to-gray-500/10 text-slate-700 dark:text-slate-300 border-slate-300/30 shadow-slate-500/10 shadow-md font-semibold px-3 py-1';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -470,9 +470,9 @@ export function CommunitiesProfilePage() {
                         {user.emailVerified ? 'Verified Account' : 'Unverified'}
                       </Badge>
                       {user.role === 'organizer' && organizer?.status === 'active' && (
-                        <Badge className="px-4 py-2 text-sm font-semibold bg-gradient-to-r from-emerald-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Verified Business Account
+                        <Badge className="px-3 py-1 text-sm font-medium bg-accent/10 text-accent border-accent/20">
+                          <Building2 className="w-3 h-3 mr-1" />
+                          Business Account
                         </Badge>
                       )}
                     </div>
@@ -939,48 +939,39 @@ export function CommunitiesProfilePage() {
               <CardContent className="space-y-4">
                 {organizer?.status === 'active' ? (
                   <div className="space-y-6">
-                    {/* Premium Dark Verification Banner - Only for active (approved) organizers */}
-                    <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 border border-emerald-500/20 rounded-xl p-6 shadow-2xl backdrop-blur-sm">
-                      <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10"></div>
-                      <div className="absolute inset-0 opacity-20 bg-gradient-to-br from-white/5 via-transparent to-white/5" style={{ backgroundImage: 'radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 1px, transparent 1px)', backgroundSize: '12px 12px' }}></div>
-                      <div className="relative flex items-center gap-6">
-                        <div className="flex-shrink-0">
-                          <div className="w-16 h-16 bg-gradient-to-br from-emerald-400 via-emerald-500 to-green-600 rounded-2xl flex items-center justify-center shadow-2xl ring-4 ring-emerald-500/20">
-                            <CheckCircle className="w-8 h-8 text-white drop-shadow-lg" />
-                          </div>
+                    {/* Clean Verification Status */}
+                    <div className="bg-card border border-border rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-accent/10 rounded-lg flex items-center justify-center">
+                          <CheckCircle className="w-5 h-5 text-accent" />
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">Business Account Verified</h3>
-                          <p className="text-slate-300 font-medium text-lg">Your business account has been approved and is now active</p>
+                          <h3 className="font-semibold text-foreground">Business Account Application</h3>
+                          <p className="text-sm text-muted-foreground">Your application has been approved</p>
                         </div>
-                        <div className="flex-shrink-0">
-                          <Badge className="bg-gradient-to-r from-emerald-400 to-green-500 text-slate-900 border-0 shadow-xl px-6 py-3 text-base font-bold tracking-wide">
-                            <Building2 className="w-5 h-5 mr-2" />
-                            VERIFIED
-                          </Badge>
-                        </div>
+                        <Badge variant="secondary" className="bg-accent/10 text-accent border-accent/20">
+                          Approved
+                        </Badge>
                       </div>
                     </div>
 
-                    {/* Premium Dark Business Details Card */}
-                    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 border border-slate-700/50 rounded-xl p-8 shadow-2xl backdrop-blur-sm">
-                      <div className="flex items-start gap-6">
-                        <div className="flex-shrink-0">
-                          <div className="w-14 h-14 bg-gradient-to-br from-slate-600 via-slate-700 to-slate-800 rounded-xl flex items-center justify-center shadow-xl ring-2 ring-slate-600/30">
-                            <Building2 className="w-7 h-7 text-slate-200" />
-                          </div>
+                    {/* Business Details */}
+                    <div className="bg-card border border-border rounded-lg p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-accent/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Building2 className="w-5 h-5 text-accent" />
                         </div>
-                        <div className="flex-1 space-y-4">
+                        <div className="flex-1 space-y-3">
                           <div>
-                            <h4 className="text-2xl font-bold text-white mb-2 tracking-tight">{organizer.businessName}</h4>
-                            <p className="text-slate-300 leading-relaxed text-lg">{organizer.businessDescription}</p>
+                            <h4 className="text-xl font-semibold text-foreground">{organizer.businessName}</h4>
+                            <p className="text-muted-foreground mt-1">{organizer.businessDescription}</p>
                           </div>
                           
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-700/50">
-                            <div className="flex items-center gap-3">
-                              <div className="w-3 h-3 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full shadow-lg"></div>
-                              <span className="text-base font-semibold text-slate-200">Type:</span>
-                              <span className="text-base text-slate-300 capitalize">{organizer.businessType}</span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-border">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-accent rounded-full"></div>
+                              <span className="text-sm font-medium text-foreground">Type:</span>
+                              <span className="text-sm text-muted-foreground capitalize">{organizer.businessType}</span>
                             </div>
                             
                             {organizer.businessWebsite && (
@@ -1060,61 +1051,71 @@ export function CommunitiesProfilePage() {
                   </div>
                 ) : organizerApplication ? (
                   <div className="space-y-6">
-                    {/* Premium Dark Application Status Header */}
-                    <div className="flex items-center justify-between p-6 bg-gradient-to-r from-slate-900 via-slate-800 to-gray-900 rounded-xl border border-slate-700/50 shadow-xl backdrop-blur-sm">
-                      <div className="flex items-center gap-4">
-                        {getApplicationStatusIcon(organizerApplication.status)}
-                        <span className="text-xl font-bold text-white tracking-tight">Business Account Application</span>
-                      </div>
-                      <div className={`inline-flex items-center rounded-full text-base font-bold capitalize px-4 py-2 ${getStatusBadgeStyle(organizerApplication.status)}`}>
-                        {organizerApplication.status}
+                    {/* Application Status Header */}
+                    <div className="bg-card border border-border rounded-lg p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
+                          {getApplicationStatusIcon(organizerApplication.status)}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-foreground">Business Account Application</h3>
+                          <p className="text-sm text-muted-foreground">Application submitted for review</p>
+                        </div>
+                        <Badge variant="secondary" className={organizerApplication.status === 'pending' ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' : organizerApplication.status === 'rejected' ? 'bg-red-500/10 text-red-600 border-red-500/20' : 'bg-accent/10 text-accent border-accent/20'}>
+                          {organizerApplication.status}
+                        </Badge>
                       </div>
                     </div>
                     
-                    {/* Premium Dark Application Details */}
-                    <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-gray-900 border border-slate-700/50 rounded-xl p-8 shadow-2xl backdrop-blur-sm">
-                      <div className="space-y-6">
-                        <div>
-                          <h4 className="text-2xl font-bold text-white mb-3 tracking-tight">{organizerApplication.businessName}</h4>
-                          <p className="text-slate-300 leading-relaxed text-lg">{organizerApplication.businessDescription}</p>
+                    {/* Application Details */}
+                    <div className="bg-card border border-border rounded-lg p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Building2 className="w-5 h-5 text-muted-foreground" />
                         </div>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-6 border-t border-slate-700/50">
-                          <div className="flex items-center gap-3">
-                            <div className="w-3 h-3 bg-gradient-to-r from-slate-400 to-slate-500 rounded-full shadow-lg"></div>
-                            <span className="text-base font-semibold text-slate-200">Type:</span>
-                            <span className="text-base text-slate-300 capitalize">{organizerApplication.businessType}</span>
+                        <div className="flex-1 space-y-3">
+                          <div>
+                            <h4 className="text-xl font-semibold text-foreground">{organizerApplication.businessName}</h4>
+                            <p className="text-muted-foreground mt-1">{organizerApplication.businessDescription}</p>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <div className="w-3 h-3 bg-gradient-to-r from-slate-400 to-slate-500 rounded-full shadow-lg"></div>
-                            <span className="text-base font-semibold text-slate-200">Applied:</span>
-                            <span className="text-base text-slate-300">{new Date(organizerApplication.createdAt).toLocaleDateString()}</span>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-border">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
+                              <span className="text-sm font-medium text-foreground">Type:</span>
+                              <span className="text-sm text-muted-foreground capitalize">{organizerApplication.businessType}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
+                              <span className="text-sm font-medium text-foreground">Applied:</span>
+                              <span className="text-sm text-muted-foreground">{new Date(organizerApplication.createdAt).toLocaleDateString()}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
                       
                       {organizerApplication.status === 'pending' && (
-                        <div className="mt-8 p-6 bg-gradient-to-r from-amber-900/30 via-orange-900/20 to-amber-900/30 border border-amber-500/30 rounded-xl backdrop-blur-sm">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-                              <Clock className="w-6 h-6 text-white" />
+                        <div className="mt-4 p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-yellow-500/10 rounded-lg flex items-center justify-center">
+                              <Clock className="w-4 h-4 text-yellow-600" />
                             </div>
-                            <p className="text-amber-200 font-semibold text-lg">
-                              Your business account application is being reviewed. You'll be notified once a decision is made.
+                            <p className="text-sm text-muted-foreground">
+                              Your application is being reviewed. You'll be notified once a decision is made.
                             </p>
                           </div>
                         </div>
                       )}
                       
                       {organizerApplication.status === 'rejected' && organizerApplication.rejectionReason && (
-                        <div className="mt-8 p-6 bg-gradient-to-r from-red-900/30 via-rose-900/20 to-red-900/30 border border-red-500/30 rounded-xl backdrop-blur-sm">
-                          <div className="flex items-start gap-4">
-                            <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center shadow-lg mt-1">
-                              <XCircle className="w-6 h-6 text-white" />
+                        <div className="mt-4 p-4 bg-red-500/5 border border-red-500/20 rounded-lg">
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 bg-red-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <XCircle className="w-4 h-4 text-red-600" />
                             </div>
                             <div>
-                              <p className="text-red-200 font-bold text-lg mb-2">Application Rejected</p>
-                              <p className="text-red-300 text-base">
+                              <p className="text-sm font-medium text-foreground mb-1">Application Rejected</p>
+                              <p className="text-sm text-muted-foreground">
                                 <strong>Reason:</strong> {organizerApplication.rejectionReason}
                               </p>
                             </div>
