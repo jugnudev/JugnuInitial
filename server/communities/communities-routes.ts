@@ -370,6 +370,7 @@ export function addCommunitiesRoutes(app: Express) {
           emailVerified: user.emailVerified,
           emailNotifications: user.emailNotifications,
           marketingEmails: user.marketingEmails,
+          newsletter: user.newsletter,
           createdAt: user.createdAt,
           
           // New profile fields for better customer profiling
