@@ -16,7 +16,14 @@ import {
   Globe, 
   Clock,
   Pin,
-  ArrowLeft
+  ArrowLeft,
+  Crown,
+  Star,
+  Sparkles,
+  Shield,
+  CheckCircle,
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -73,11 +80,12 @@ export default function CommunityDetailPage() {
   const [activeTab, setActiveTab] = useState("posts");
   const { toast } = useToast();
 
-  // Get current user
-  const { data: user } = useQuery<User>({
+  // Get current user (fixed authentication pattern)
+  const { data: authData, isLoading: userLoading } = useQuery<{ user?: User }>({
     queryKey: ['/api/auth/me'],
     retry: false,
   });
+  const user = authData?.user;
 
   // Get community details with real API call
   const { data: communityData, isLoading, error } = useQuery<CommunityDetailResponse>({
@@ -117,102 +125,240 @@ export default function CommunityDetailPage() {
   const members = communityData?.members || [];
   const canManage = communityData?.canManage || false;
 
-  if (!user || !community) {
+  // Show premium loading state while checking authentication
+  if (userLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-gray-900 dark:via-amber-900/10 dark:to-orange-900/10">
-        <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold mb-4">Sign In Required</h1>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
-            Please sign in to view community details.
-          </p>
-          <Link href="/account/signin">
-            <Button>Sign In</Button>
-          </Link>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/20 to-orange-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <div className="max-w-6xl mx-auto px-6 py-24">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center"
+          >
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 mx-auto mb-6">
+              <Crown className="h-8 w-8 text-amber-600 animate-pulse" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+              Loading Premium Community
+            </h2>
+            <p className="text-slate-600 dark:text-slate-300">
+              Preparing your exclusive community experience...
+            </p>
+          </motion.div>
         </div>
       </div>
     );
   }
 
+  // Premium sign-in required page
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/20 to-orange-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <div className="max-w-4xl mx-auto px-6 py-24">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center"
+          >
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 mx-auto mb-8">
+              <Shield className="h-10 w-10 text-amber-600" />
+            </div>
+            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-6">
+              Premium Access Required
+            </h1>
+            <p className="text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-2xl mx-auto">
+              This exclusive community is reserved for authenticated premium members. 
+              Sign in to unlock your premium community experience.
+            </p>
+            <Link href="/account/signin">
+              <Button size="lg" className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold shadow-lg" data-testid="signin-required-button">
+                <Crown className="h-5 w-5 mr-2" />
+                Sign In to Continue
+              </Button>
+            </Link>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // Premium community not found page
+  if (!community && !isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/20 to-orange-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <div className="max-w-4xl mx-auto px-6 py-24">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center"
+          >
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 mx-auto mb-8">
+              <AlertCircle className="h-10 w-10 text-red-600" />
+            </div>
+            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-6">
+              Community Not Found
+            </h1>
+            <p className="text-xl text-slate-600 dark:text-slate-300 mb-8">
+              The community you're looking for doesn't exist or may have been removed.
+            </p>
+            <Link href="/communities">
+              <Button size="lg" className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold shadow-lg" data-testid="back-to-communities-button">
+                <ArrowLeft className="h-5 w-5 mr-2" />
+                Back to Communities
+              </Button>
+            </Link>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // Premium loading state for community data
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-gray-900 dark:via-amber-900/10 dark:to-orange-900/10">
-        <div className="max-w-4xl mx-auto px-4 py-16">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-300 rounded mb-4"></div>
-            <div className="h-4 bg-gray-300 rounded mb-2"></div>
-            <div className="h-4 bg-gray-300 rounded w-2/3"></div>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/20 to-orange-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-8"
+          >
+            {/* Header skeleton */}
+            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl p-8 shadow-xl">
+              <div className="flex items-start justify-between">
+                <div className="flex-1 space-y-4">
+                  <div className="h-8 bg-gradient-to-r from-amber-200 to-orange-200 dark:from-amber-800 to-orange-800 rounded-lg animate-pulse" />
+                  <div className="flex gap-2">
+                    <div className="h-6 w-20 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse" />
+                    <div className="h-6 w-24 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse" />
+                  </div>
+                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 animate-pulse" />
+                </div>
+                <div className="h-10 w-32 bg-gradient-to-r from-amber-200 to-orange-200 dark:from-amber-800 to-orange-800 rounded-lg animate-pulse" />
+              </div>
+            </div>
+            
+            {/* Content skeleton */}
+            <div className="space-y-4">
+              <div className="h-12 bg-white/40 dark:bg-slate-800/40 rounded-xl animate-pulse" />
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-32 bg-white/40 dark:bg-slate-800/40 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          </motion.div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-gray-900 dark:via-amber-900/10 dark:to-orange-900/10">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Back Navigation */}
-        <div className="mb-6">
-          <Link href="/community">
-            <Button variant="ghost" className="mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Communities
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/20 to-orange-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Premium Back Navigation */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="mb-8"
+        >
+          <Link href="/communities">
+            <Button variant="ghost" className="group hover:bg-white/50 dark:hover:bg-slate-800/50 backdrop-blur-sm transition-all duration-200" data-testid="back-to-communities">
+              <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+              <span className="font-medium">Back to Communities</span>
             </Button>
           </Link>
-        </div>
+        </motion.div>
 
-        {/* Community Header */}
+        {/* Premium Community Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.8 }}
+          className="relative"
         >
-          <Card className="mb-6 border-l-4 border-l-amber-500">
-            <CardHeader>
+          {/* Gradient border effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-400 via-orange-400 to-red-400 opacity-20 rounded-2xl p-[1px]">
+            <div className="h-full w-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl" />
+          </div>
+          
+          <Card className="relative border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-2xl mb-8 overflow-hidden">
+            {/* Header background pattern */}
+            <div className="absolute top-0 right-0 w-64 h-32 bg-gradient-to-br from-amber-100/50 to-orange-100/50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-bl-[100px]" />
+            
+            <CardHeader className="relative pb-8">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                    {community.name}
-                  </CardTitle>
-                  <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500">
+                      <Crown className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-3xl font-bold bg-gradient-to-r from-slate-900 via-amber-800 to-orange-800 dark:from-white dark:via-amber-200 dark:to-orange-200 bg-clip-text text-transparent mb-1">
+                        {community.name}
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Premium Community</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Premium badges */}
+                  <div className="flex items-center gap-3 mb-6">
                     {community.isPrivate ? (
-                      <Badge variant="secondary">
+                      <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-lg">
                         <Lock className="h-3 w-3 mr-1" />
-                        Private
+                        Exclusive Private
                       </Badge>
                     ) : (
-                      <Badge variant="outline">
+                      <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-lg">
                         <Globe className="h-3 w-3 mr-1" />
-                        Public
+                        Open Community
                       </Badge>
                     )}
-                    <Badge variant="outline" className="capitalize">
+                    <Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-600 dark:text-amber-300 capitalize font-medium">
+                      <Shield className="h-3 w-3 mr-1" />
                       {community.membershipPolicy.replace('_', ' ')}
                     </Badge>
                     {membership && (
                       <Badge 
-                        variant={membership.status === 'approved' ? 'default' : 'secondary'}
-                        className="capitalize"
+                        className={`${membership.status === 'approved' 
+                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
+                          : membership.status === 'pending'
+                          ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white'
+                          : 'bg-gradient-to-r from-red-500 to-red-600 text-white'
+                        } border-0 shadow-lg capitalize font-medium`}
                       >
+                        {membership.status === 'approved' && <CheckCircle className="h-3 w-3 mr-1" />}
+                        {membership.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
                         {membership.status}
                       </Badge>
                     )}
                   </div>
-                  <CardDescription className="text-gray-600 dark:text-gray-300">
+                  
+                  <CardDescription className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
                     {community.description}
                   </CardDescription>
                 </div>
-                <div className="flex gap-2">
+                
+                {/* Premium action buttons */}
+                <div className="flex flex-col gap-3 ml-8">
                   {canManage && (
-                    <Button variant="outline" size="sm">
+                    <Button className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white font-semibold shadow-lg" data-testid="manage-community-button">
                       <Settings className="h-4 w-4 mr-2" />
-                      Manage
+                      Manage Community
                     </Button>
                   )}
                   {!membership && (
-                    <Button data-testid="join-community-button">
+                    <Button className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all" data-testid="join-community-button">
                       <UserPlus className="h-4 w-4 mr-2" />
-                      Join Community
+                      Join Premium Community
                     </Button>
+                  )}
+                  {membership?.status === 'approved' && (
+                    <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-700 dark:text-green-300">Premium Member</span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -220,126 +366,303 @@ export default function CommunityDetailPage() {
           </Card>
         </motion.div>
 
-        {/* Community Content */}
+        {/* Premium Community Content */}
         {membership?.status === 'approved' || canManage ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="posts">Posts</TabsTrigger>
-              <TabsTrigger value="members">Members</TabsTrigger>
-              <TabsTrigger value="about">About</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="posts" className="space-y-4">
-              {posts.map((post: Post) => (
-                <motion.div
-                  key={post.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                  data-testid={`post-${post.id}`}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-3 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm p-2 rounded-xl shadow-lg border-0">
+                <TabsTrigger 
+                  value="posts" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg font-semibold transition-all duration-200"
+                  data-testid="tab-posts"
                 >
-                  <Card className={post.isPinned ? 'border-amber-200 bg-amber-50/50 dark:bg-amber-900/10' : ''}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            {post.isPinned && (
-                              <Pin className="h-4 w-4 text-amber-600" />
-                            )}
-                            <Badge variant="outline" className="text-xs capitalize">
-                              {post.postType}
-                            </Badge>
-                            <span className="text-xs text-gray-500 flex items-center">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {new Date(post.createdAt).toLocaleDateString()}
-                            </span>
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Posts
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="members" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg font-semibold transition-all duration-200"
+                  data-testid="tab-members"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Members
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="about" 
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg font-semibold transition-all duration-200"
+                  data-testid="tab-about"
+                >
+                  <Shield className="h-4 w-4 mr-2" />
+                  About
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="posts" className="space-y-6 mt-8">
+                {posts.length > 0 ? (
+                  posts.map((post: Post, index) => (
+                    <motion.div
+                      key={post.id}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6, delay: index * 0.1 }}
+                      data-testid={`post-${post.id}`}
+                      className="group"
+                    >
+                      <Card className={`border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden ${
+                        post.isPinned 
+                          ? 'ring-2 ring-amber-200 dark:ring-amber-800 bg-gradient-to-br from-amber-50/80 to-orange-50/80 dark:from-amber-900/20 dark:to-orange-900/20' 
+                          : 'hover:ring-2 hover:ring-amber-200/50 dark:hover:ring-amber-800/50'
+                      }`}>
+                        <CardHeader className="pb-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-3">
+                                {post.isPinned && (
+                                  <div className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full text-xs font-semibold shadow-lg">
+                                    <Pin className="h-3 w-3" />
+                                    Pinned
+                                  </div>
+                                )}
+                                <Badge className={`capitalize font-medium ${
+                                  post.postType === 'announcement' 
+                                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0'
+                                    : post.postType === 'event'
+                                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0'
+                                    : 'bg-gradient-to-r from-green-500 to-green-600 text-white border-0'
+                                }`}>
+                                  {post.postType}
+                                </Badge>
+                                <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                                  <Clock className="h-3 w-3" />
+                                  {new Date(post.createdAt).toLocaleDateString()}
+                                </div>
+                              </div>
+                              <CardTitle className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">
+                                {post.title}
+                              </CardTitle>
+                            </div>
                           </div>
-                          <CardTitle className="text-lg">{post.title}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <p className="text-slate-600 dark:text-slate-300 whitespace-pre-line leading-relaxed">
+                            {post.content}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))
+                ) : (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center py-12"
+                  >
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 mx-auto mb-4">
+                      <MessageSquare className="h-8 w-8 text-amber-600" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+                      No posts yet
+                    </h3>
+                    <p className="text-slate-600 dark:text-slate-300">
+                      Be the first to start a conversation in this premium community!
+                    </p>
+                  </motion.div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="members" className="mt-8">
+                <Card className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl">
+                  <CardHeader className="pb-6">
+                    <CardTitle className="flex items-center text-2xl font-bold text-slate-900 dark:text-white">
+                      <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 mr-3">
+                        <Users className="h-5 w-5 text-white" />
+                      </div>
+                      Premium Members
+                    </CardTitle>
+                    <p className="text-slate-600 dark:text-slate-300 mt-2">
+                      Connect with verified members of this exclusive community
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {members.length > 0 ? (
+                      <div className="space-y-4">
+                        {members.map((member, index) => (
+                          <motion.div
+                            key={index}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.5, delay: index * 0.1 }}
+                            className="flex items-center space-x-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-amber-50/30 dark:from-slate-800/50 dark:to-amber-900/10 hover:shadow-lg transition-all"
+                          >
+                            <Avatar className="h-12 w-12 ring-2 ring-amber-200 dark:ring-amber-800">
+                              <AvatarFallback className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold">
+                                OR
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                              <p className="font-semibold text-slate-900 dark:text-white">Community Organizer</p>
+                              <p className="text-sm text-slate-600 dark:text-slate-400">Leading this premium community</p>
+                            </div>
+                            <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-lg">
+                              <Crown className="h-3 w-3 mr-1" />
+                              Owner
+                            </Badge>
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 mx-auto mb-4">
+                          <Users className="h-8 w-8 text-amber-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                          Building our community
+                        </h3>
+                        <p className="text-slate-600 dark:text-slate-300">
+                          More premium members will be shown here as they join
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="about" className="mt-8">
+                <Card className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl">
+                  <CardHeader className="pb-6">
+                    <CardTitle className="flex items-center text-2xl font-bold text-slate-900 dark:text-white">
+                      <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-slate-600 to-slate-700 mr-3">
+                        <Shield className="h-5 w-5 text-white" />
+                      </div>
+                      About This Community
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-8">
+                    <div>
+                      <h4 className="font-semibold text-slate-900 dark:text-white mb-3">Community Description</h4>
+                      <p className="text-lg text-slate-600 dark:text-slate-300 whitespace-pre-line leading-relaxed">
+                        {community.description}
+                      </p>
+                    </div>
+                    
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-slate-900 dark:text-white mb-3">Community Settings</h4>
+                        
+                        <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-slate-50 to-amber-50/30 dark:from-slate-800/50 dark:to-amber-900/10">
+                          <div className="flex items-center gap-3">
+                            {community.isPrivate ? (
+                              <Lock className="h-5 w-5 text-purple-600" />
+                            ) : (
+                              <Globe className="h-5 w-5 text-green-600" />
+                            )}
+                            <span className="font-medium text-slate-700 dark:text-slate-300">Privacy Level</span>
+                          </div>
+                          <Badge className={`${community.isPrivate 
+                            ? 'bg-gradient-to-r from-purple-500 to-purple-600' 
+                            : 'bg-gradient-to-r from-green-500 to-green-600'
+                          } text-white border-0 shadow-lg`}>
+                            {community.isPrivate ? 'Exclusive Private' : 'Open Public'}
+                          </Badge>
+                        </div>
+                        
+                        <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-slate-50 to-amber-50/30 dark:from-slate-800/50 dark:to-amber-900/10">
+                          <div className="flex items-center gap-3">
+                            <Shield className="h-5 w-5 text-amber-600" />
+                            <span className="font-medium text-slate-700 dark:text-slate-300">Membership Policy</span>
+                          </div>
+                          <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg capitalize">
+                            {community.membershipPolicy.replace('_', ' ')}
+                          </Badge>
                         </div>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-600 dark:text-gray-300 whitespace-pre-line">
-                        {post.content}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </TabsContent>
-
-            <TabsContent value="members">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Users className="h-5 w-5 mr-2" />
-                    Community Members
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-4">
-                      <Avatar>
-                        <AvatarFallback>OR</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <p className="font-medium">Community Organizer</p>
-                        <p className="text-sm text-gray-500">Owner</p>
+                      
+                      <div className="space-y-4">
+                        <h4 className="font-semibold text-slate-900 dark:text-white mb-3">Premium Features</h4>
+                        <div className="space-y-3">
+                          {[
+                            'Exclusive member discussions',
+                            'Premium content access', 
+                            'Priority event notifications',
+                            'Direct organizer contact',
+                            'Community networking'
+                          ].map((feature, index) => (
+                            <div key={index} className="flex items-center gap-3">
+                              <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                              <span className="text-slate-600 dark:text-slate-300">{feature}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <Badge>Owner</Badge>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="about">
-              <Card>
-                <CardHeader>
-                  <CardTitle>About This Community</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 dark:text-gray-300 whitespace-pre-line">
-                    {community.description}
-                  </p>
-                  <div className="mt-6 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500">Privacy</span>
-                      <span className="text-sm font-medium">
-                        {community.isPrivate ? 'Private' : 'Public'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-500">Membership Policy</span>
-                      <span className="text-sm font-medium capitalize">
-                        {community.membershipPolicy.replace('_', ' ')}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </motion.div>
         ) : (
-          <Card>
-            <CardContent className="text-center py-12">
-              <Lock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Members Only</h3>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                This community's content is only visible to approved members.
-              </p>
-              {membership?.status === 'pending' ? (
-                <p className="text-amber-600 font-medium">
-                  Your membership request is pending approval.
+          /* Premium Members-Only Gate */
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="relative"
+          >
+            <Card className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-2xl overflow-hidden">
+              {/* Premium background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 via-orange-50/50 to-red-50/50 dark:from-amber-900/10 dark:via-orange-900/10 dark:to-red-900/10" />
+              
+              <CardContent className="relative text-center py-16 px-8">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 mx-auto mb-8">
+                  <Lock className="h-10 w-10 text-amber-600" />
+                </div>
+                
+                <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
+                  {membership?.status === 'pending' ? 'Membership Pending' : 'Premium Members Only'}
+                </h3>
+                
+                <p className="text-lg text-slate-600 dark:text-slate-300 mb-8 max-w-md mx-auto leading-relaxed">
+                  {membership?.status === 'pending' 
+                    ? 'Your membership request has been submitted and is awaiting approval from the community organizers.'
+                    : 'This exclusive community content is reserved for verified premium members. Join to unlock access to member discussions, events, and exclusive content.'
+                  }
                 </p>
-              ) : (
-                <Button>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Request to Join
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+                
+                {membership?.status === 'pending' ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-center gap-3 px-6 py-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl">
+                      <Clock className="h-5 w-5 text-yellow-600" />
+                      <span className="font-semibold text-yellow-700 dark:text-yellow-300">
+                        Approval in progress...
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      You'll receive a notification once your membership is approved.
+                    </p>
+                  </div>
+                ) : (
+                  <Button 
+                    size="lg" 
+                    className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+                    onClick={() => joinCommunityMutation.mutate()}
+                    disabled={joinCommunityMutation.isPending}
+                    data-testid="request-join-button"
+                  >
+                    {joinCommunityMutation.isPending ? (
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    ) : (
+                      <UserPlus className="h-5 w-5 mr-2" />
+                    )}
+                    {joinCommunityMutation.isPending ? 'Submitting Request...' : 'Request Premium Access'}
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
       </div>
     </div>
