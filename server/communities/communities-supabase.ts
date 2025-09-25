@@ -91,6 +91,8 @@ export class CommunitiesSupabaseDB {
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         emailVerified: data.email_verified,
+        emailNotifications: data.email_notifications,
+        marketingEmails: data.marketing_emails,
         // Remove the snake_case fields to avoid confusion
         first_name: undefined,
         last_name: undefined,
@@ -140,6 +142,8 @@ export class CommunitiesSupabaseDB {
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         emailVerified: data.email_verified,
+        emailNotifications: data.email_notifications,
+        marketingEmails: data.marketing_emails,
         // Remove the snake_case fields to avoid confusion
         first_name: undefined,
         last_name: undefined,

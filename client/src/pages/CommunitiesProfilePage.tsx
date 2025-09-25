@@ -1054,7 +1054,7 @@ export function CommunitiesProfilePage() {
                     {/* Application Status Header */}
                     <div className="bg-card border border-border rounded-lg p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
+                        <div className="w-8 h-8 bg-slate-800 rounded-lg flex items-center justify-center">
                           {getApplicationStatusIcon(organizerApplication.status)}
                         </div>
                         <div className="flex-1">
@@ -1070,7 +1070,7 @@ export function CommunitiesProfilePage() {
                     {/* Application Details */}
                     <div className="bg-card border border-border rounded-lg p-6">
                       <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center flex-shrink-0">
                           <Building2 className="w-5 h-5 text-muted-foreground" />
                         </div>
                         <div className="flex-1 space-y-3">
