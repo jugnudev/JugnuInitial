@@ -355,7 +355,16 @@ export default function AdminOrganizers() {
                         <div className="space-y-2">
                           <div className="flex items-center gap-2 text-sm text-white/70">
                             <Clock className="w-4 h-4" />
-                            <span>Applied {format(new Date(application.createdAt), 'MMM d, yyyy')}</span>
+                            <span>Applied {(() => {
+                              try {
+                                if (!application.createdAt) return 'Unknown date';
+                                const date = new Date(application.createdAt);
+                                if (isNaN(date.getTime())) return 'Unknown date';
+                                return format(date, 'MMM d, yyyy');
+                              } catch (error) {
+                                return 'Unknown date';
+                              }
+                            })()}</span>
                           </div>
                           {application.yearsExperience && (
                             <div className="flex items-center gap-2 text-sm text-white/70">
