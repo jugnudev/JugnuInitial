@@ -93,6 +93,7 @@ export class CommunitiesSupabaseDB {
         emailVerified: data.email_verified,
         emailNotifications: data.email_notifications,
         marketingEmails: data.marketing_emails,
+        newsletter: data.newsletter,
         // Remove the snake_case fields to avoid confusion
         first_name: undefined,
         last_name: undefined,
@@ -144,6 +145,7 @@ export class CommunitiesSupabaseDB {
         emailVerified: data.email_verified,
         emailNotifications: data.email_notifications,
         marketingEmails: data.marketing_emails,
+        newsletter: data.newsletter,
         // Remove the snake_case fields to avoid confusion
         first_name: undefined,
         last_name: undefined,
@@ -177,6 +179,7 @@ export class CommunitiesSupabaseDB {
     if (data.role !== undefined) safeUpdateData.role = data.role;
     if (data.emailNotifications !== undefined) safeUpdateData.email_notifications = data.emailNotifications;
     if (data.marketingEmails !== undefined) safeUpdateData.marketing_emails = data.marketingEmails;
+    if (data.newsletter !== undefined) safeUpdateData.newsletter = data.newsletter;
 
     // Try to update with safe fields first
     const { error: safeError } = await this.client

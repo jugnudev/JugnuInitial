@@ -30,6 +30,7 @@ const updateProfileSchema = z.object({
   socialLinkedin: z.string().optional(),
   emailNotifications: z.boolean().optional(),
   marketingEmails: z.boolean().optional(),
+  newsletter: z.boolean().optional(),
   
   // New profile fields for better customer profiling
   phoneNumber: z.string().regex(/^[\+]?[1-9][\d]{0,15}$/, 'Please enter a valid phone number').optional().or(z.literal('')),
@@ -163,6 +164,7 @@ export function CommunitiesProfilePage() {
       socialLinkedin: user?.socialLinkedin || '',
       emailNotifications: user?.emailNotifications ?? true,
       marketingEmails: user?.marketingEmails ?? false,
+      newsletter: user?.newsletter ?? false,
       
       // New profile fields
       phoneNumber: user?.phoneNumber || '',
@@ -187,6 +189,7 @@ export function CommunitiesProfilePage() {
         socialLinkedin: user.socialLinkedin || '',
         emailNotifications: user.emailNotifications ?? true,
         marketingEmails: user.marketingEmails ?? false,
+        newsletter: user.newsletter ?? false,
         
         // New profile fields
         phoneNumber: user.phoneNumber || '',
@@ -1196,6 +1199,29 @@ export function CommunitiesProfilePage() {
                         });
                       }}
                       data-testid="switch-marketing-emails"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="newsletter">Newsletter</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Receive our weekly newsletter with event highlights
+                      </p>
+                    </div>
+                    <Switch
+                      id="newsletter"
+                      checked={form.watch('newsletter') ?? false}
+                      onCheckedChange={(checked) => {
+                        form.setValue('newsletter', checked);
+                        // Auto-save with complete profile data to satisfy validation
+                        const currentValues = form.getValues();
+                        updateMutation.mutate({
+                          ...currentValues,
+                          newsletter: checked
+                        });
+                      }}
+                      data-testid="switch-newsletter"
                     />
                   </div>
                 </div>

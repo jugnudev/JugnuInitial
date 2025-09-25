@@ -23,6 +23,7 @@ export const users = pgTable("users", {
   role: text("role").notNull().default("user"), // user | organizer | admin
   emailNotifications: boolean("email_notifications").notNull().default(true),
   marketingEmails: boolean("marketing_emails").notNull().default(false),
+  newsletter: boolean("newsletter").notNull().default(false),
   
   // Additional profile fields for better customer profiling
   phoneNumber: text("phone_number"), // Optional phone number
