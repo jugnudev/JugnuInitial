@@ -67,8 +67,8 @@ interface CommunityDetailResponse {
 }
 
 export default function CommunityDetailPage() {
-  const [match, params] = useRoute("/communities/:id");
-  const communityId = params?.id;
+  const [match, params] = useRoute("/communities/:slug");
+  const communitySlug = params?.slug;
   
   const [activeTab, setActiveTab] = useState("posts");
   const { toast } = useToast();
@@ -81,15 +81,15 @@ export default function CommunityDetailPage() {
 
   // Get community details with real API call
   const { data: communityData, isLoading, error } = useQuery<CommunityDetailResponse>({
-    queryKey: ['/api/communities', communityId],
-    enabled: !!communityId && !!user,
+    queryKey: ['/api/communities', communitySlug],
+    enabled: !!communitySlug && !!user,
     retry: false,
   });
 
   // Join community mutation
   const joinCommunityMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/communities/${communityId}/join`, {
+      const response = await fetch(`/api/communities/${communitySlug}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
@@ -100,7 +100,7 @@ export default function CommunityDetailPage() {
     },
     onSuccess: () => {
       toast({ title: "Membership request submitted!" });
-      queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', communitySlug] });
     },
     onError: (error: any) => {
       toast({ 

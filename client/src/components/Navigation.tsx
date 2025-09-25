@@ -313,6 +313,20 @@ export default function Navigation() {
               >
                 Deals
               </Link>
+              {showCommunities && (
+                <Link
+                  href="/communities"
+                  className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
+                    location === '/communities' || location.startsWith('/communities/')
+                      ? 'text-accent' 
+                      : 'text-text hover:text-accent'
+                  }`}
+                  data-testid="nav-mobile-communities"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Communities
+                </Link>
+              )}
               <Link
                 href="/promote"
                 className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${

@@ -64,8 +64,8 @@ function Router() {
         {/* Community routes - redirect to either new Communities feature or legacy redirect based on feature flag */}
         {import.meta.env.VITE_ENABLE_COMMUNITIES === 'true' ? (
           <>
-            <Route path="/community" component={CommunitiesLandingPage} />
-            <Route path="/communities/:id" component={CommunityDetailPage} />
+            <Route path="/communities" component={CommunitiesLandingPage} />
+            <Route path="/communities/:slug" component={CommunityDetailPage} />
           </>
         ) : (
           <Route path="/community" component={CommunityRedirect} />

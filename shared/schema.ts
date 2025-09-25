@@ -685,6 +685,7 @@ export const communities = pgTable("communities", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
   organizerId: uuid("organizer_id").notNull().references(() => organizers.id, { onDelete: 'cascade' }),
   name: text("name").notNull(),
+  slug: text("slug").unique(),
   description: text("description"),
   imageUrl: text("image_url"),
   isPrivate: boolean("is_private").notNull().default(false),
