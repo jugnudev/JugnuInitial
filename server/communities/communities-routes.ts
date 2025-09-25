@@ -948,5 +948,580 @@ export function addCommunitiesRoutes(app: Express) {
     }
   });
 
-  console.log('✅ Platform authentication (/api/auth/*), organizer (/api/organizers/*), and admin (/api/admin/organizers/*) routes added');
+  // ============ COMMUNITY GROUPS FEATURE ============
+  // Feature flag check for all community routes
+  const checkCommunitiesFeatureFlag = (req: Request, res: Response, next: any) => {
+    if (process.env.ENABLE_COMMUNITIES !== 'true') {
+      return res.status(404).json({ ok: false, disabled: true });
+    }
+    next();
+  };
+
+  // Middleware to check if user is an approved organizer
+  const requireApprovedOrganizer = async (req: Request, res: Response, next: any) => {
+    const user = (req as any).user;
+    
+    if (user.role !== 'organizer') {
+      return res.status(403).json({ ok: false, error: 'Only organizers can perform this action' });
+    }
+
+    try {
+      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      if (!organizer || organizer.status !== 'active') {
+        return res.status(403).json({ ok: false, error: 'Organizer account not active' });
+      }
+      
+      (req as any).organizer = organizer;
+      next();
+    } catch (error) {
+      console.error('Organizer check error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to verify organizer status' });
+    }
+  };
+
+  // Validation schemas for communities
+  const createCommunitySchema = z.object({
+    name: z.string().min(1, 'Community name is required').max(100, 'Name too long'),
+    description: z.string().max(500, 'Description too long').optional(),
+    imageUrl: z.string().url().optional().or(z.literal('')),
+    isPrivate: z.boolean().optional(),
+    membershipPolicy: z.enum(['approval_required', 'open', 'closed']).optional(),
+  });
+
+  const updateCommunitySchema = z.object({
+    name: z.string().min(1).max(100).optional(),
+    description: z.string().max(500).optional(),
+    imageUrl: z.string().url().optional().or(z.literal('')),
+    isPrivate: z.boolean().optional(),
+    membershipPolicy: z.enum(['approval_required', 'open', 'closed']).optional(),
+  });
+
+  const createPostSchema = z.object({
+    title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
+    content: z.string().min(1, 'Content is required').max(5000, 'Content too long'),
+    postType: z.enum(['announcement', 'update', 'event']).optional(),
+    isPinned: z.boolean().optional(),
+  });
+
+  const updatePostSchema = z.object({
+    title: z.string().min(1).max(200).optional(),
+    content: z.string().min(1).max(5000).optional(),
+    postType: z.enum(['announcement', 'update', 'event']).optional(),
+    isPinned: z.boolean().optional(),
+  });
+
+  const approveMembershipSchema = z.object({
+    action: z.enum(['approve', 'decline']),
+    role: z.enum(['member', 'moderator']).optional(),
+  });
+
+  /**
+   * POST /api/communities
+   * Create a new community (organizers only, max 1 per organizer)
+   * curl -X POST http://localhost:5000/api/communities \
+   *   -H "Authorization: Bearer YOUR_TOKEN" \
+   *   -H "Content-Type: application/json" \
+   *   -d '{"name":"My Community","description":"A great community"}'
+   */
+  app.post('/api/communities', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
+    try {
+      const organizer = (req as any).organizer;
+
+      // Check if organizer already has a community
+      const existingCommunity = await communitiesStorage.getCommunityByOrganizerId(organizer.id);
+      if (existingCommunity) {
+        return res.status(400).json({ ok: false, error: 'You can only create one community' });
+      }
+
+      const validationResult = createCommunitySchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Validation failed',
+          details: validationResult.error.errors
+        });
+      }
+
+      const communityData = validationResult.data;
+      const community = await communitiesStorage.createCommunity({
+        organizerId: organizer.id,
+        ...communityData,
+      });
+
+      res.json({
+        ok: true,
+        community,
+        message: 'Community created successfully'
+      });
+    } catch (error: any) {
+      console.error('Create community error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to create community' });
+    }
+  });
+
+  /**
+   * GET /api/communities/:id
+   * Get community details - returns different data based on user role/membership
+   * curl -X GET http://localhost:5000/api/communities/COMMUNITY_ID \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.get('/api/communities/:id', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      // Check if user is the community owner
+      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      const isOwner = organizer && organizer.id === community.organizerId;
+
+      // Check user's membership status
+      const membership = await communitiesStorage.getMembershipByUserAndCommunity(user.id, community.id);
+      const isApprovedMember = membership && membership.status === 'approved';
+
+      // Return different data based on access level
+      if (isOwner) {
+        // Owner gets full access
+        const members = await communitiesStorage.getMembershipsByCommunityId(community.id);
+        const posts = await communitiesStorage.getPostsByCommunityId(community.id);
+        
+        res.json({
+          ok: true,
+          community,
+          membership: { role: 'owner', status: 'approved' },
+          members,
+          posts,
+          canManage: true
+        });
+      } else if (isApprovedMember) {
+        // Approved members can see posts
+        const posts = await communitiesStorage.getPostsByCommunityId(community.id);
+        
+        res.json({
+          ok: true,
+          community,
+          membership,
+          posts,
+          canManage: false
+        });
+      } else {
+        // Non-members see only basic info
+        res.json({
+          ok: true,
+          community: {
+            id: community.id,
+            name: community.name,
+            description: community.description,
+            imageUrl: community.imageUrl,
+            membershipPolicy: community.membershipPolicy,
+            isPrivate: community.isPrivate
+          },
+          membership: membership || null,
+          canJoin: !membership && community.membershipPolicy !== 'closed',
+          canManage: false
+        });
+      }
+    } catch (error: any) {
+      console.error('Get community error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get community' });
+    }
+  });
+
+  /**
+   * PUT /api/communities/:id
+   * Update community (owner only)
+   * curl -X PUT http://localhost:5000/api/communities/COMMUNITY_ID \
+   *   -H "Authorization: Bearer YOUR_TOKEN" \
+   *   -H "Content-Type: application/json" \
+   *   -d '{"name":"Updated Community Name"}'
+   */
+  app.put('/api/communities/:id', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const organizer = (req as any).organizer;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community || community.organizerId !== organizer.id) {
+        return res.status(404).json({ ok: false, error: 'Community not found or access denied' });
+      }
+
+      const validationResult = updateCommunitySchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Validation failed',
+          details: validationResult.error.errors
+        });
+      }
+
+      const updatedCommunity = await communitiesStorage.updateCommunity(id, validationResult.data);
+
+      res.json({
+        ok: true,
+        community: updatedCommunity,
+        message: 'Community updated successfully'
+      });
+    } catch (error: any) {
+      console.error('Update community error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to update community' });
+    }
+  });
+
+  /**
+   * DELETE /api/communities/:id
+   * Delete community (owner only)
+   * curl -X DELETE http://localhost:5000/api/communities/COMMUNITY_ID \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.delete('/api/communities/:id', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const organizer = (req as any).organizer;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community || community.organizerId !== organizer.id) {
+        return res.status(404).json({ ok: false, error: 'Community not found or access denied' });
+      }
+
+      await communitiesStorage.deleteCommunity(id);
+
+      res.json({
+        ok: true,
+        message: 'Community deleted successfully'
+      });
+    } catch (error: any) {
+      console.error('Delete community error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to delete community' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/join
+   * Request to join community
+   * curl -X POST http://localhost:5000/api/communities/COMMUNITY_ID/join \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.post('/api/communities/:id/join', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      if (community.membershipPolicy === 'closed') {
+        return res.status(403).json({ ok: false, error: 'Community is not accepting new members' });
+      }
+
+      // Check if already a member or has pending request
+      const existingMembership = await communitiesStorage.getMembershipByUserAndCommunity(user.id, community.id);
+      if (existingMembership) {
+        return res.status(400).json({ ok: false, error: `You already have a ${existingMembership.status} membership request` });
+      }
+
+      const membership = await communitiesStorage.createMembership({
+        communityId: community.id,
+        userId: user.id,
+        status: community.membershipPolicy === 'open' ? 'approved' : 'pending',
+        approvedAt: community.membershipPolicy === 'open' ? new Date().toISOString() : undefined,
+      });
+
+      res.json({
+        ok: true,
+        membership,
+        message: community.membershipPolicy === 'open' ? 'Joined community successfully' : 'Membership request submitted'
+      });
+    } catch (error: any) {
+      console.error('Join community error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to join community' });
+    }
+  });
+
+  /**
+   * GET /api/communities/:id/members
+   * Get community members (owner only)
+   * curl -X GET http://localhost:5000/api/communities/COMMUNITY_ID/members \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.get('/api/communities/:id/members', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const organizer = (req as any).organizer;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community || community.organizerId !== organizer.id) {
+        return res.status(404).json({ ok: false, error: 'Community not found or access denied' });
+      }
+
+      const members = await communitiesStorage.getMembershipsByCommunityId(community.id);
+
+      res.json({
+        ok: true,
+        members
+      });
+    } catch (error: any) {
+      console.error('Get members error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get members' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/members/:userId/manage
+   * Approve or decline membership (owner only)
+   * curl -X POST http://localhost:5000/api/communities/COMMUNITY_ID/members/USER_ID/manage \
+   *   -H "Authorization: Bearer YOUR_TOKEN" \
+   *   -H "Content-Type: application/json" \
+   *   -d '{"action":"approve","role":"member"}'
+   */
+  app.post('/api/communities/:id/members/:userId/manage', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
+    try {
+      const { id, userId } = req.params;
+      const organizer = (req as any).organizer;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community || community.organizerId !== organizer.id) {
+        return res.status(404).json({ ok: false, error: 'Community not found or access denied' });
+      }
+
+      const validationResult = approveMembershipSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Validation failed',
+          details: validationResult.error.errors
+        });
+      }
+
+      const { action, role } = validationResult.data;
+
+      const membership = await communitiesStorage.getMembershipByUserAndCommunity(userId, community.id);
+      if (!membership) {
+        return res.status(404).json({ ok: false, error: 'Membership not found' });
+      }
+
+      if (membership.status !== 'pending') {
+        return res.status(400).json({ ok: false, error: `Membership is already ${membership.status}` });
+      }
+
+      const updatedMembership = await communitiesStorage.updateMembership(membership.id, {
+        status: action === 'approve' ? 'approved' : 'declined',
+        approvedAt: action === 'approve' ? new Date().toISOString() : undefined,
+        approvedBy: action === 'approve' ? organizer.userId : undefined,
+        role: action === 'approve' ? (role || 'member') : membership.role,
+      });
+
+      res.json({
+        ok: true,
+        membership: updatedMembership,
+        message: `Membership ${action}d successfully`
+      });
+    } catch (error: any) {
+      console.error('Manage membership error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to manage membership' });
+    }
+  });
+
+  /**
+   * DELETE /api/communities/:id/members/:userId
+   * Remove member from community (owner only)
+   * curl -X DELETE http://localhost:5000/api/communities/COMMUNITY_ID/members/USER_ID \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.delete('/api/communities/:id/members/:userId', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
+    try {
+      const { id, userId } = req.params;
+      const organizer = (req as any).organizer;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community || community.organizerId !== organizer.id) {
+        return res.status(404).json({ ok: false, error: 'Community not found or access denied' });
+      }
+
+      const membership = await communitiesStorage.getMembershipByUserAndCommunity(userId, community.id);
+      if (!membership) {
+        return res.status(404).json({ ok: false, error: 'Membership not found' });
+      }
+
+      await communitiesStorage.deleteMembership(membership.id);
+
+      res.json({
+        ok: true,
+        message: 'Member removed successfully'
+      });
+    } catch (error: any) {
+      console.error('Remove member error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to remove member' });
+    }
+  });
+
+  /**
+   * GET /api/communities/:id/posts
+   * Get community posts (members only)
+   * curl -X GET http://localhost:5000/api/communities/COMMUNITY_ID/posts \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.get('/api/communities/:id/posts', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      // Check if user is owner or approved member
+      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      const isOwner = organizer && organizer.id === community.organizerId;
+      
+      if (!isOwner) {
+        const membership = await communitiesStorage.getMembershipByUserAndCommunity(user.id, community.id);
+        if (!membership || membership.status !== 'approved') {
+          return res.status(403).json({ ok: false, error: 'Access denied - members only' });
+        }
+      }
+
+      const posts = await communitiesStorage.getPostsByCommunityId(community.id);
+
+      res.json({
+        ok: true,
+        posts
+      });
+    } catch (error: any) {
+      console.error('Get posts error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get posts' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/posts
+   * Create community post (owner only)
+   * curl -X POST http://localhost:5000/api/communities/COMMUNITY_ID/posts \
+   *   -H "Authorization: Bearer YOUR_TOKEN" \
+   *   -H "Content-Type: application/json" \
+   *   -d '{"title":"Important Update","content":"This is an important community update"}'
+   */
+  app.post('/api/communities/:id/posts', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const organizer = (req as any).organizer;
+      const user = (req as any).user;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community || community.organizerId !== organizer.id) {
+        return res.status(404).json({ ok: false, error: 'Community not found or access denied' });
+      }
+
+      const validationResult = createPostSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Validation failed',
+          details: validationResult.error.errors
+        });
+      }
+
+      const postData = validationResult.data;
+      const post = await communitiesStorage.createPost({
+        communityId: community.id,
+        authorId: user.id,
+        ...postData,
+      });
+
+      res.json({
+        ok: true,
+        post,
+        message: 'Post created successfully'
+      });
+    } catch (error: any) {
+      console.error('Create post error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to create post' });
+    }
+  });
+
+  /**
+   * PUT /api/communities/:id/posts/:postId
+   * Update community post (owner only)
+   * curl -X PUT http://localhost:5000/api/communities/COMMUNITY_ID/posts/POST_ID \
+   *   -H "Authorization: Bearer YOUR_TOKEN" \
+   *   -H "Content-Type: application/json" \
+   *   -d '{"title":"Updated Title"}'
+   */
+  app.put('/api/communities/:id/posts/:postId', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
+    try {
+      const { id, postId } = req.params;
+      const organizer = (req as any).organizer;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community || community.organizerId !== organizer.id) {
+        return res.status(404).json({ ok: false, error: 'Community not found or access denied' });
+      }
+
+      const post = await communitiesStorage.getPostById(postId);
+      if (!post || post.communityId !== community.id) {
+        return res.status(404).json({ ok: false, error: 'Post not found' });
+      }
+
+      const validationResult = updatePostSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Validation failed',
+          details: validationResult.error.errors
+        });
+      }
+
+      const updatedPost = await communitiesStorage.updatePost(postId, validationResult.data);
+
+      res.json({
+        ok: true,
+        post: updatedPost,
+        message: 'Post updated successfully'
+      });
+    } catch (error: any) {
+      console.error('Update post error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to update post' });
+    }
+  });
+
+  /**
+   * DELETE /api/communities/:id/posts/:postId
+   * Delete community post (owner only)
+   * curl -X DELETE http://localhost:5000/api/communities/COMMUNITY_ID/posts/POST_ID \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.delete('/api/communities/:id/posts/:postId', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
+    try {
+      const { id, postId } = req.params;
+      const organizer = (req as any).organizer;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community || community.organizerId !== organizer.id) {
+        return res.status(404).json({ ok: false, error: 'Community not found or access denied' });
+      }
+
+      const post = await communitiesStorage.getPostById(postId);
+      if (!post || post.communityId !== community.id) {
+        return res.status(404).json({ ok: false, error: 'Post not found' });
+      }
+
+      await communitiesStorage.deletePost(postId);
+
+      res.json({
+        ok: true,
+        message: 'Post deleted successfully'
+      });
+    } catch (error: any) {
+      console.error('Delete post error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to delete post' });
+    }
+  });
+
+  console.log('✅ Platform authentication (/api/auth/*), organizer (/api/organizers/*), admin (/api/admin/organizers/*), and communities (/api/communities/*) routes added');
 }
