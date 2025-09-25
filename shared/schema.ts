@@ -677,6 +677,49 @@ export const userSessions = pgTable("user_sessions", {
   isActive: boolean("is_active").notNull().default(true),
 });
 
+// ============ COMMUNITY GROUPS FEATURE ============
+// Communities - One per verified organizer
+export const communities = pgTable("communities", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  organizerId: uuid("organizer_id").notNull().references(() => organizers.id, { onDelete: 'cascade' }),
+  name: text("name").notNull(),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  isPrivate: boolean("is_private").notNull().default(false),
+  membershipPolicy: text("membership_policy").notNull().default("approval_required"), // approval_required | open | closed
+  status: text("status").notNull().default("active"), // active | suspended | archived
+});
+
+// Community memberships - Join requests and approvals
+export const communityMemberships = pgTable("community_memberships", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  status: text("status").notNull().default("pending"), // pending | approved | declined | left
+  requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().default(sql`now()`),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  approvedBy: uuid("approved_by").references(() => users.id),
+  role: text("role").notNull().default("member"), // member | moderator | admin
+});
+
+// Community posts/announcements - Member-only content
+export const communityPosts = pgTable("community_posts", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
+  authorId: uuid("author_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  postType: text("post_type").notNull().default("announcement"), // announcement | update | event
+  isPinned: boolean("is_pinned").notNull().default(false),
+  status: text("status").notNull().default("published"), // published | draft | archived
+});
+
 // Authentication & Organizer Insert Schemas
 export const insertAuthCodeSchema = createInsertSchema(authCodes).omit({
   id: true,
@@ -700,6 +743,25 @@ export const insertUserSessionSchema = createInsertSchema(userSessions).omit({
   createdAt: true,
 });
 
+// Community Insert Schemas
+export const insertCommunitySchema = createInsertSchema(communities).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCommunityMembershipSchema = createInsertSchema(communityMemberships).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCommunityPostSchema = createInsertSchema(communityPosts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Authentication & Organizer Type Exports
 export type AuthCode = typeof authCodes.$inferSelect;
 export type InsertAuthCode = z.infer<typeof insertAuthCodeSchema>;
@@ -709,3 +771,11 @@ export type Organizer = typeof organizers.$inferSelect;
 export type InsertOrganizer = z.infer<typeof insertOrganizerSchema>;
 export type UserSession = typeof userSessions.$inferSelect;
 export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
+
+// Community Type Exports
+export type Community = typeof communities.$inferSelect;
+export type InsertCommunity = z.infer<typeof insertCommunitySchema>;
+export type CommunityMembership = typeof communityMemberships.$inferSelect;
+export type InsertCommunityMembership = z.infer<typeof insertCommunityMembershipSchema>;
+export type CommunityPost = typeof communityPosts.$inferSelect;
+export type InsertCommunityPost = z.infer<typeof insertCommunityPostSchema>;

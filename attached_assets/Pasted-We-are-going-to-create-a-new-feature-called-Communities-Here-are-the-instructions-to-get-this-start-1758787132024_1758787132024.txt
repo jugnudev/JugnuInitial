@@ -1,0 +1,19 @@
+We are going to create a new feature called Communities. Here are the instructions to get this started, once this is complete I will give you more instructions on how I want to proceed with the development. Please read the instructions carefully and communicate to me on progress, or issues that may arise. Let me know if you have any questions or understand everything and are ready to proceed with development:
+
+Apply these guardrails to this task and all follow-ups:
+* Do not break or change any existing features (events, deals, sponsors/portal, ticketing, admin, etc.).
+* Put all new Communities work behind flags (I believe these flags already exist): server ENABLE_COMMUNITIES=false and client VITE_ENABLE_COMMUNITIES=false. The UI and routes should not be visible/indexed when the flags are false (use noindex meta + robots for routes).
+* Posts in a community group must be for that community’s members-only. Non-members may only see the community shell and a “request to join” gate.
+* If database tables are needed, generate the schema yourself and output a single SQL file I can paste into Supabase. Assume Supabase/PostgREST/RLS.
+* All endpoints return JSON only, are authz-checked, and are documented with example curl calls.
+* Premium, on-brand, responsive UI. Avoid regressions, add sensible tests/self-test if helpful.
+* Ensure there are no bugs, test thoroughly.
+
+Communities Core (members-only content, no UI chrome yet)
+Please implement the core Communities model and APIs (no public reading of posts):
+* An Organizer/Business Verified Account may create exactly one community.
+* Membership: signed in users can request to join the community; the community owner (organizer) approves/declines.
+* Posts (Announcements): created by the organizer; viewable only by approved members; no public posts.
+* Minimal endpoints, all JSON: create community, get community (owner or basic shell for non-members), request join, approve/decline member, list members (owner), create/list posts (owner + members), delete/update posts (owner).
+* Add RLS/policies so only owners/admins manage, members can view, and non-members can’t see posts at all.
+Keep it flag-gated and output one SQL file if you need schema updates. Include quick curl examples.
