@@ -451,7 +451,36 @@ export class CommunitiesSupabaseDB {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    // Map database column names to JavaScript property names
+    return (data || []).map(item => ({
+      id: item.id,
+      userId: item.user_id,
+      businessName: item.business_name,
+      businessWebsite: item.business_website,
+      businessDescription: item.business_description,
+      businessType: item.business_type,
+      yearsExperience: item.years_experience,
+      sampleEvents: item.sample_events,
+      socialMediaHandles: item.social_media_handles,
+      businessEmail: item.business_email,
+      businessPhone: item.business_phone,
+      businessAddress: item.business_address,
+      status: item.status,
+      createdAt: item.created_at,
+      updatedAt: item.updated_at,
+      reviewedBy: item.reviewed_by,
+      reviewedAt: item.reviewed_at,
+      rejectionReason: item.rejection_reason,
+      adminNotes: item.admin_notes,
+      user: item.users ? {
+        id: item.users.id,
+        email: item.users.email,
+        fullName: item.users.first_name && item.users.last_name 
+          ? `${item.users.first_name} ${item.users.last_name}`.trim()
+          : null
+      } : null
+    }));
   }
 
   async getOrganizerApplicationById(id: string): Promise<OrganizerApplication | null> {
