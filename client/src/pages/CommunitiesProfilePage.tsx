@@ -396,11 +396,11 @@ export function CommunitiesProfilePage() {
   const getApplicationStatusIcon = (status: string) => {
     switch (status) {
       case 'pending':
-        return <Clock className="w-4 h-4 text-yellow-500" />;
+        return <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />;
       case 'approved':
-        return <CheckCircle className="w-4 h-4 text-green-500" />;
+        return <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />;
       case 'rejected':
-        return <XCircle className="w-4 h-4 text-red-500" />;
+        return <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />;
       default:
         return null;
     }
@@ -416,6 +416,19 @@ export function CommunitiesProfilePage() {
         return 'destructive' as const;
       default:
         return 'outline' as const;
+    }
+  };
+
+  const getStatusBadgeStyle = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-gradient-to-r from-amber-500/10 to-orange-500/10 text-amber-700 dark:text-amber-300 border-amber-300/30 shadow-amber-500/10 shadow-md font-semibold px-3 py-1';
+      case 'approved':
+        return 'bg-gradient-to-r from-emerald-500/10 to-green-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-300/30 shadow-emerald-500/10 shadow-md font-semibold px-3 py-1';
+      case 'rejected':
+        return 'bg-gradient-to-r from-red-500/10 to-rose-500/10 text-red-700 dark:text-red-300 border-red-300/30 shadow-red-500/10 shadow-md font-semibold px-3 py-1';
+      default:
+        return 'bg-gradient-to-r from-slate-500/10 to-gray-500/10 text-slate-700 dark:text-slate-300 border-slate-300/30 shadow-slate-500/10 shadow-md font-semibold px-3 py-1';
     }
   };
 
@@ -914,13 +927,13 @@ export function CommunitiesProfilePage() {
             </Card>
           </TabsContent>
 
-          {/* Organizer Tab */}
+          {/* Business Tab */}
           <TabsContent value="organizer" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Organizer Status</CardTitle>
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-amber-500 bg-clip-text text-transparent">Business Account Status</CardTitle>
                 <CardDescription>
-                  Manage your organizer application and business profile
+                  Manage your business account application and premium profile
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -928,7 +941,7 @@ export function CommunitiesProfilePage() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       <CheckCircle className="w-5 h-5 text-green-500" />
-                      <span className="font-medium">You are an approved organizer</span>
+                      <span className="font-medium text-emerald-700 dark:text-emerald-400">You have an active business account</span>
                     </div>
                     
                     <div className="bg-muted rounded-lg p-4 space-y-2">
@@ -954,10 +967,10 @@ export function CommunitiesProfilePage() {
                   <div className="space-y-4">
                     <div className="flex items-center gap-2">
                       {getApplicationStatusIcon(organizerApplication.status)}
-                      <span className="font-medium">Organizer Application</span>
-                      <Badge variant={getStatusBadgeVariant(organizerApplication.status)}>
+                      <span className="font-medium text-slate-800 dark:text-slate-200">Business Account Application</span>
+                      <div className={`inline-flex items-center rounded-full text-xs font-medium capitalize ${getStatusBadgeStyle(organizerApplication.status)}`}>
                         {organizerApplication.status}
-                      </Badge>
+                      </div>
                     </div>
                     
                     <div className="bg-muted rounded-lg p-4 space-y-2">
@@ -969,7 +982,7 @@ export function CommunitiesProfilePage() {
                       {organizerApplication.status === 'pending' && (
                         <Alert>
                           <AlertDescription>
-                            Your organizer application is being reviewed. You'll be notified once a decision is made.
+                            Your business account application is being reviewed. You'll be notified once a decision is made.
                           </AlertDescription>
                         </Alert>
                       )}
@@ -986,7 +999,7 @@ export function CommunitiesProfilePage() {
                 ) : (
                   <div className="space-y-4">
                     <p className="text-muted-foreground">
-                      You haven't applied to become an organizer yet.
+                      You haven't applied for a business account yet.
                     </p>
                     <Button
                       onClick={() => setLocation('/account/apply-organizer')}
