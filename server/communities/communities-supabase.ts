@@ -68,7 +68,8 @@ export class CommunitiesSupabaseDB {
         preferred_language,
         timezone,
         marketing_opt_in_source,
-        referral_source
+        referral_source,
+        newsletter
       `)
       .eq('id', id)
       .single();
@@ -120,7 +121,8 @@ export class CommunitiesSupabaseDB {
         preferred_language,
         timezone,
         marketing_opt_in_source,
-        referral_source
+        referral_source,
+        newsletter
       `)
       .eq('email', email.toLowerCase().trim())
       .single();
