@@ -861,7 +861,7 @@ export function addCommunitiesRoutes(app: Express) {
       // Update application status
       await communitiesStorage.updateOrganizerApplication(id, {
         status: 'approved',
-        reviewedBy: 'admin', // Using admin key system
+        reviewedBy: null, // Admin key system - no specific user ID
         adminNotes
       });
 
@@ -873,7 +873,7 @@ export function addCommunitiesRoutes(app: Express) {
         businessWebsite: application.businessWebsite,
         businessDescription: application.businessDescription,
         businessType: application.businessType,
-        approvedBy: 'admin' // Using admin key system
+        approvedBy: null // Admin key system - no specific user ID
       });
 
       res.json({
@@ -906,7 +906,9 @@ export function addCommunitiesRoutes(app: Express) {
       const { id } = req.params;
       const { rejectionReason, adminNotes } = req.body;
 
-      if (!rejectionReason) {
+      // Frontend sends adminNotes as rejection reason
+      const reason = rejectionReason || adminNotes;
+      if (!reason || !reason.trim()) {
         return res.status(400).json({ ok: false, error: 'Rejection reason is required' });
       }
 
@@ -923,15 +925,15 @@ export function addCommunitiesRoutes(app: Express) {
       // Update application status
       await communitiesStorage.updateOrganizerApplication(id, {
         status: 'rejected',
-        reviewedBy: 'admin', // Using admin key system
-        rejectionReason,
-        adminNotes
+        reviewedBy: null, // Admin key system - no specific user ID
+        rejectionReason: reason,
+        adminNotes: adminNotes || reason
       });
 
       res.json({
         ok: true,
         message: 'Business registration rejected',
-        rejectionReason
+        rejectionReason: reason
       });
     } catch (error: any) {
       console.error('Reject organizer error:', error);
