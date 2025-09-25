@@ -153,7 +153,7 @@ export default function AdminOrganizers() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/organizers/pending'] });
       toast({
         title: 'Application Approved',
-        description: 'The organizer application has been approved successfully.',
+        description: 'The business account application has been approved successfully.',
       });
       setIsApproveDialogOpen(false);
       setAdminNotes('');
@@ -191,7 +191,7 @@ export default function AdminOrganizers() {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/organizers/pending'] });
       toast({
         title: 'Application Rejected',
-        description: 'The organizer application has been rejected.',
+        description: 'The business account application has been rejected.',
       });
       setIsRejectDialogOpen(false);
       setAdminNotes('');
@@ -250,7 +250,7 @@ export default function AdminOrganizers() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-copper-500">
                 <Shield className="w-5 h-5" />
-                Admin Access - Organizer Management
+                Admin Access - Business Account Management
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -286,7 +286,7 @@ export default function AdminOrganizers() {
       <div className="max-w-7xl mx-auto px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
           <Users className="w-6 h-6 text-copper-500" />
-          <h1 className="text-2xl font-bold text-white">Organizer Applications</h1>
+          <h1 className="text-2xl font-bold text-white">Business Account Applications</h1>
           <Badge variant="secondary" className="bg-copper-500/20 text-copper-500">
             {applications.length} Pending
           </Badge>
@@ -304,7 +304,7 @@ export default function AdminOrganizers() {
             <CardContent className="p-8 text-center">
               <Users className="w-12 h-12 text-white/40 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-white mb-2">No Pending Applications</h3>
-              <p className="text-white/70">All organizer applications have been processed.</p>
+              <p className="text-white/70">All business account applications have been processed.</p>
             </CardContent>
           </Card>
         ) : (
@@ -536,7 +536,7 @@ export default function AdminOrganizers() {
             <DialogHeader>
               <DialogTitle className="text-green-500">Approve Application</DialogTitle>
               <DialogDescription className="text-white/70">
-                Approve {selectedApplication?.businessName} as an organizer. This will grant them organizer permissions.
+                Approve {selectedApplication?.businessName} for a business account. This will grant them business account permissions.
               </DialogDescription>
             </DialogHeader>
             
@@ -591,7 +591,7 @@ export default function AdminOrganizers() {
             <DialogHeader>
               <DialogTitle className="text-red-500">Reject Application</DialogTitle>
               <DialogDescription className="text-white/70">
-                Reject {selectedApplication?.businessName}'s organizer application. This action cannot be undone.
+                Reject {selectedApplication?.businessName}'s business account application. This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
             

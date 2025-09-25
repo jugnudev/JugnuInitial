@@ -517,7 +517,7 @@ export function CommunitiesProfilePage() {
                 className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
               >
                 <Building2 className="w-4 h-4 mr-2" />
-                Business
+                Business Account
               </TabsTrigger>
               <TabsTrigger 
                 value="settings" 
