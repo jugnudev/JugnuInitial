@@ -1,0 +1,21 @@
+Great, just double check that everything from the last set of instructions was accurately completed and that there are no bugs. Once that is done, let us move on to this new set of instructions to continue development on this feature:
+
+Apply these guardrails to this task and all follow-ups:
+* Do not break or change any existing features (events, deals, sponsors/portal, ticketing, admin, etc.).
+* Put all new Communities work behind flags (I believe these flags already exist): server ENABLE_COMMUNITIES=false and client VITE_ENABLE_COMMUNITIES=false. The UI and routes should not be visible/indexed when the flags are false (use noindex meta + robots for routes).
+* Posts in a community group must be for that community’s members-only. Non-members may only see the community shell and a “request to join” gate.
+* If database tables are needed, generate the schema yourself and output a single SQL file I can paste into Supabase. Assume Supabase/PostgREST/RLS.
+* All endpoints return JSON only, are authz-checked, and are documented with example curl calls.
+* Premium, on-brand, responsive UI. Avoid regressions, add sensible tests/self-test if helpful.
+* Ensure there are no bugs, test thoroughly.
+
+Communities UI (premium index + detail, members-only gate)
+Build the UI (premium, mood-board level polish) behind VITE_ENABLE_COMMUNITIES:
+* Nav: “Communities” tab (only when flag on).
+* /communities (Index):
+    * If not signed in: show a tasteful preview hero + pricing card for organizers ($19.99/mo or $199/year), with a CTA to create an account or sign in.
+    * If signed in as user: show discoverable communities as elegant tiles (cover + name + short description + member count). Clicking a tile leads to detail; “request to join” if not a member.
+* /communities/:slug (Detail):
+    * Non-members see the header + description + no posts, and a “Request to join” button.
+    * Members see the announcement feed (members-only), newest first.
+Make it feel luxury/premium (typography/spacing/imagery), fully responsive, and do not disturb existing pages. Respect the noindex behavior when flags are off.

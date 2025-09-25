@@ -20,25 +20,45 @@ interface Community {
   postCount?: number;
 }
 
+interface User {
+  id: string;
+  email: string;
+  role?: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+interface UserMemberships {
+  communities?: Community[];
+}
+
+interface CommunityAPIResponse {
+  community?: Community;
+  membership?: any;
+  posts?: any[];
+  members?: any[];
+  canManage?: boolean;
+}
+
 export default function CommunitiesLandingPage() {
   const [selectedTab, setSelectedTab] = useState<'all' | 'my' | 'discover'>('all');
   const { toast } = useToast();
 
   // Get current user
-  const { data: user, isLoading: userLoading } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery<User>({
     queryKey: ['/api/auth/me'],
     retry: false,
   });
 
   // Get user's own community if they're an organizer
-  const { data: userCommunity } = useQuery({
+  const { data: userCommunity } = useQuery<Community>({
     queryKey: ['/api/organizers/community'],
     enabled: !!user && user.role === 'organizer',
     retry: false,
   });
 
   // Get user's memberships
-  const { data: userMemberships } = useQuery({
+  const { data: userMemberships } = useQuery<UserMemberships>({
     queryKey: ['/api/user/memberships'],
     enabled: !!user,
     retry: false,
@@ -47,10 +67,15 @@ export default function CommunitiesLandingPage() {
   // Create community mutation
   const createCommunityMutation = useMutation({
     mutationFn: async (data: { name: string; description: string; isPrivate?: boolean; membershipPolicy?: string }) => {
-      return apiRequest('/api/communities', {
+      const response = await fetch('/api/communities', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+      if (!response.ok) {
+        throw new Error('Failed to create community');
+      }
+      return response.json();
     },
     onSuccess: () => {
       toast({ title: "Community created successfully!" });
@@ -174,7 +199,7 @@ export default function CommunitiesLandingPage() {
 
         {/* Communities Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {mockCommunities.map((community) => (
+          {communities.map((community: Community) => (
             <motion.div
               key={community.id}
               initial={{ opacity: 0, y: 20 }}
@@ -234,7 +259,7 @@ export default function CommunitiesLandingPage() {
         </div>
 
         {/* Empty State */}
-        {mockCommunities.length === 0 && (
+        {communities.length === 0 && (
           <div className="text-center py-16">
             <Heart className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">

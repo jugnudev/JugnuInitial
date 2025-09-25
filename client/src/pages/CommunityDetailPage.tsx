@@ -50,6 +50,22 @@ interface Post {
   authorId: string;
 }
 
+interface User {
+  id: string;
+  email: string;
+  role?: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+interface CommunityDetailResponse {
+  community?: Community;
+  membership?: Membership;
+  posts?: Post[];
+  members?: any[];
+  canManage?: boolean;
+}
+
 export default function CommunityDetailPage() {
   const [match, params] = useRoute("/communities/:id");
   const communityId = params?.id;
@@ -58,13 +74,13 @@ export default function CommunityDetailPage() {
   const { toast } = useToast();
 
   // Get current user
-  const { data: user } = useQuery({
+  const { data: user } = useQuery<User>({
     queryKey: ['/api/auth/me'],
     retry: false,
   });
 
   // Get community details with real API call
-  const { data: communityData, isLoading, error } = useQuery({
+  const { data: communityData, isLoading, error } = useQuery<CommunityDetailResponse>({
     queryKey: ['/api/communities', communityId],
     enabled: !!communityId && !!user,
     retry: false,
@@ -73,9 +89,14 @@ export default function CommunityDetailPage() {
   // Join community mutation
   const joinCommunityMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/communities/${communityId}/join`, {
+      const response = await fetch(`/api/communities/${communityId}/join`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
       });
+      if (!response.ok) {
+        throw new Error('Failed to join community');
+      }
+      return response.json();
     },
     onSuccess: () => {
       toast({ title: "Membership request submitted!" });
@@ -96,7 +117,7 @@ export default function CommunityDetailPage() {
   const members = communityData?.members || [];
   const canManage = communityData?.canManage || false;
 
-  if (!user) {
+  if (!user || !community) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 dark:from-gray-900 dark:via-amber-900/10 dark:to-orange-900/10">
         <div className="max-w-4xl mx-auto px-4 py-16 text-center">
@@ -209,7 +230,7 @@ export default function CommunityDetailPage() {
             </TabsList>
 
             <TabsContent value="posts" className="space-y-4">
-              {posts.map((post) => (
+              {posts.map((post: Post) => (
                 <motion.div
                   key={post.id}
                   initial={{ opacity: 0, y: 20 }}
