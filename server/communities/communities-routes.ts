@@ -876,6 +876,11 @@ export function addCommunitiesRoutes(app: Express) {
         approvedBy: null // Admin key system - no specific user ID
       });
 
+      // Update user role to 'organizer' so they get access to organizer features
+      await communitiesStorage.updateUser(application.userId, {
+        role: 'organizer'
+      });
+
       res.json({
         ok: true,
         message: 'Business registration approved successfully',
