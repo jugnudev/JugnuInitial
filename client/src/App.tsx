@@ -45,6 +45,8 @@ import { CommunitiesSigninPage } from "@/pages/CommunitiesSigninPage";
 import { CommunitiesSignupPage } from "@/pages/CommunitiesSignupPage";
 import { CommunitiesProfilePage } from "@/pages/CommunitiesProfilePage";
 import { CommunitiesOrganizerApplicationPage } from "@/pages/CommunitiesOrganizerApplicationPage";
+import CommunitiesLandingPage from "@/pages/CommunitiesLandingPage";
+import CommunityDetailPage from "@/pages/CommunityDetailPage";
 import AdminOrganizers from "@/pages/AdminOrganizers";
 
 function Router() {
@@ -61,7 +63,10 @@ function Router() {
         <Route path="/events" component={EventsExplore} />
         {/* Community routes - redirect to either new Communities feature or legacy redirect based on feature flag */}
         {import.meta.env.VITE_ENABLE_COMMUNITIES === 'true' ? (
-          <Route path="/community" component={() => <div>Communities Landing Page</div>} />
+          <>
+            <Route path="/community" component={CommunitiesLandingPage} />
+            <Route path="/communities/:id" component={CommunityDetailPage} />
+          </>
         ) : (
           <Route path="/community" component={CommunityRedirect} />
         )}
