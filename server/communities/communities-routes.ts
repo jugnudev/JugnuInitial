@@ -63,6 +63,7 @@ const updateProfileSchema = z.object({
   socialLinkedin: z.string().optional(),
   emailNotifications: z.boolean().optional(),
   marketingEmails: z.boolean().optional(),
+  newsletter: z.boolean().optional(),
   
   // New profile fields for better customer profiling
   phoneNumber: z.string().optional(),
