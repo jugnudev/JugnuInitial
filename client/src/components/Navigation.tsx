@@ -57,6 +57,7 @@ export default function Navigation() {
   );
   const showEvents = hasTicketsAvailable;
   const showGallery = galleryImages.length > 0;
+  const showCommunities = import.meta.env.VITE_ENABLE_COMMUNITIES === 'true';
 
 
 
@@ -131,6 +132,19 @@ export default function Navigation() {
               >
                 Deals
               </Link>
+              {showCommunities && (
+                <Link
+                  href="/communities"
+                  className={`transition-colors duration-200 font-medium ${
+                    location === '/communities' || location.startsWith('/communities/')
+                      ? 'text-accent' 
+                      : 'text-text hover:text-accent'
+                  }`}
+                  data-testid="nav-communities"
+                >
+                  Communities
+                </Link>
+              )}
               <Link
                 href="/promote"
                 className={`transition-colors duration-200 font-medium ${
