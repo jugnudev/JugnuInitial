@@ -128,20 +128,30 @@ export default function CommunityDetailPage() {
   // Show premium loading state while checking authentication
   if (userLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/20 to-orange-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <div className="max-w-6xl mx-auto px-6 py-24">
+      <div className="min-h-screen bg-bg relative overflow-hidden">
+        {/* Firefly glow background */}
+        <div className="absolute inset-0 bg-gradient-radial from-glow/10 via-transparent to-transparent" />
+        <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-radial from-copper-500/20 via-transparent to-transparent rounded-full animate-pulse" />
+        <div className="absolute bottom-32 right-32 w-48 h-48 bg-gradient-radial from-glow/15 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '1s' }} />
+        
+        <div className="relative max-w-6xl mx-auto px-6 py-24">
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 mx-auto mb-6">
-              <Crown className="h-8 w-8 text-amber-600 animate-pulse" />
+            <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-copper-500/20 to-copper-600/20 border border-copper-500/30 mx-auto mb-8">
+              {/* Firefly glow effect */}
+              <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full animate-pulse" />
+              <Crown className="h-10 w-10 text-accent animate-pulse relative z-10" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-              Loading Premium Community
+            <h2 className="font-fraunces text-3xl font-bold text-text mb-6">
+              Loading Your
+              <span className="block bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">
+                Premium Community
+              </span>
             </h2>
-            <p className="text-slate-600 dark:text-slate-300">
+            <p className="text-muted leading-relaxed">
               Preparing your exclusive community experience...
             </p>
           </motion.div>
@@ -153,27 +163,40 @@ export default function CommunityDetailPage() {
   // Premium sign-in required page
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/20 to-orange-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <div className="max-w-4xl mx-auto px-6 py-24">
+      <div className="min-h-screen bg-bg relative overflow-hidden">
+        {/* Firefly atmosphere */}
+        <div className="absolute inset-0 bg-gradient-radial from-glow/5 via-transparent to-transparent" />
+        <div className="absolute top-0 left-1/4 w-64 h-64 bg-gradient-radial from-copper-500/10 via-transparent to-transparent rounded-full animate-pulse" />
+        <div className="absolute bottom-0 right-1/3 w-80 h-80 bg-gradient-radial from-glow/15 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
+        
+        <div className="relative max-w-4xl mx-auto px-6 py-24">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 mx-auto mb-8">
-              <Shield className="h-10 w-10 text-amber-600" />
+            <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-full border border-accent/30 bg-accent/10 mx-auto mb-12">
+              <div className="absolute inset-0 bg-gradient-radial from-glow/40 via-transparent to-transparent rounded-full animate-pulse" />
+              <Shield className="h-12 w-12 text-accent relative z-10" />
             </div>
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-6">
-              Premium Access Required
+            <h1 className="font-fraunces text-4xl md:text-5xl font-bold mb-8">
+              <span className="text-text">Premium Access</span>
+              <br />
+              <span className="bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">Required</span>
             </h1>
-            <p className="text-xl text-slate-600 dark:text-slate-300 mb-8 max-w-2xl mx-auto">
-              This exclusive community is reserved for authenticated premium members. 
+            <p className="text-xl text-muted mb-12 max-w-3xl mx-auto leading-relaxed">
+              This exclusive community is reserved for authenticated premium members like fireflies gathering in their special place. 
               Sign in to unlock your premium community experience.
             </p>
             <Link href="/account/signin">
-              <Button size="lg" className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold shadow-lg" data-testid="signin-required-button">
-                <Crown className="h-5 w-5 mr-2" />
-                Sign In to Continue
+              <Button 
+                size="lg" 
+                className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-8 py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
+                data-testid="signin-required-button"
+              >
+                <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <Crown className="h-6 w-6 mr-2 relative z-10" />
+                <span className="relative z-10">Sign In to Continue</span>
               </Button>
             </Link>
           </motion.div>
@@ -185,26 +208,38 @@ export default function CommunityDetailPage() {
   // Premium community not found page
   if (!community && !isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/20 to-orange-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <div className="max-w-4xl mx-auto px-6 py-24">
+      <div className="min-h-screen bg-bg relative overflow-hidden">
+        {/* Dim firefly atmosphere for error state */}
+        <div className="absolute inset-0 bg-gradient-radial from-muted-foreground/5 via-transparent to-transparent" />
+        <div className="absolute top-1/4 left-1/4 w-40 h-40 bg-gradient-radial from-destructive/10 via-transparent to-transparent rounded-full animate-pulse" />
+        
+        <div className="relative max-w-4xl mx-auto px-6 py-24">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-red-100 to-orange-100 dark:from-red-900/30 dark:to-orange-900/30 mx-auto mb-8">
-              <AlertCircle className="h-10 w-10 text-red-600" />
+            <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-full border border-destructive/30 bg-destructive/10 mx-auto mb-12">
+              <div className="absolute inset-0 bg-gradient-radial from-destructive/20 via-transparent to-transparent rounded-full animate-pulse" />
+              <AlertCircle className="h-12 w-12 text-destructive relative z-10" />
             </div>
-            <h1 className="text-4xl font-bold text-slate-900 dark:text-white mb-6">
-              Community Not Found
+            <h1 className="font-fraunces text-4xl md:text-5xl font-bold mb-8">
+              <span className="text-text">Community</span>
+              <br />
+              <span className="text-destructive">Not Found</span>
             </h1>
-            <p className="text-xl text-slate-600 dark:text-slate-300 mb-8">
+            <p className="text-xl text-muted mb-12 leading-relaxed">
               The community you're looking for doesn't exist or may have been removed.
             </p>
             <Link href="/communities">
-              <Button size="lg" className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold shadow-lg" data-testid="back-to-communities-button">
-                <ArrowLeft className="h-5 w-5 mr-2" />
-                Back to Communities
+              <Button 
+                size="lg" 
+                className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-8 py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
+                data-testid="back-to-communities-button"
+              >
+                <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <ArrowLeft className="h-6 w-6 mr-2 relative z-10" />
+                <span className="relative z-10">Back to Communities</span>
               </Button>
             </Link>
           </motion.div>
@@ -216,33 +251,39 @@ export default function CommunityDetailPage() {
   // Premium loading state for community data
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/20 to-orange-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <div className="max-w-6xl mx-auto px-6 py-12">
+      <div className="min-h-screen bg-bg relative overflow-hidden">
+        {/* Subtle firefly animation while loading */}
+        <div className="absolute inset-0 bg-gradient-radial from-glow/5 via-transparent to-transparent" />
+        <div className="absolute top-20 right-20 w-32 h-32 bg-gradient-radial from-copper-500/15 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
+        <div className="absolute bottom-40 left-32 w-48 h-48 bg-gradient-radial from-accent/10 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '1.5s' }} />
+        
+        <div className="relative max-w-6xl mx-auto px-6 py-12">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="space-y-8"
           >
-            {/* Header skeleton */}
-            <div className="bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl p-8 shadow-xl">
+            {/* Enhanced header skeleton */}
+            <div className="bg-card/80 backdrop-blur-sm rounded-2xl p-8 shadow-large border border-border">
               <div className="flex items-start justify-between">
-                <div className="flex-1 space-y-4">
-                  <div className="h-8 bg-gradient-to-r from-amber-200 to-orange-200 dark:from-amber-800 to-orange-800 rounded-lg animate-pulse" />
-                  <div className="flex gap-2">
-                    <div className="h-6 w-20 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse" />
-                    <div className="h-6 w-24 bg-slate-200 dark:bg-slate-700 rounded-full animate-pulse" />
+                <div className="flex-1 space-y-6">
+                  <div className="h-10 bg-gradient-to-r from-copper-500/20 to-accent/20 rounded-lg animate-pulse" />
+                  <div className="flex gap-3">
+                    <div className="h-7 w-24 bg-muted/50 rounded-full animate-pulse" />
+                    <div className="h-7 w-28 bg-muted/50 rounded-full animate-pulse" />
                   </div>
-                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 animate-pulse" />
+                  <div className="h-5 bg-muted/50 rounded w-3/4 animate-pulse" />
+                  <div className="h-4 bg-muted/30 rounded w-1/2 animate-pulse" />
                 </div>
-                <div className="h-10 w-32 bg-gradient-to-r from-amber-200 to-orange-200 dark:from-amber-800 to-orange-800 rounded-lg animate-pulse" />
+                <div className="h-12 w-36 bg-gradient-to-r from-copper-500/20 to-accent/20 rounded-xl animate-pulse" />
               </div>
             </div>
             
-            {/* Content skeleton */}
-            <div className="space-y-4">
-              <div className="h-12 bg-white/40 dark:bg-slate-800/40 rounded-xl animate-pulse" />
+            {/* Enhanced content skeleton */}
+            <div className="space-y-6">
+              <div className="h-14 bg-card/60 backdrop-blur-sm rounded-2xl animate-pulse border border-border/50" />
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="h-32 bg-white/40 dark:bg-slate-800/40 rounded-xl animate-pulse" />
+                <div key={i} className="h-40 bg-card/60 backdrop-blur-sm rounded-2xl animate-pulse border border-border/50" style={{ animationDelay: `${i * 0.2}s` }} />
               ))}
             </div>
           </motion.div>
@@ -252,8 +293,14 @@ export default function CommunityDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/20 to-orange-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-      <div className="max-w-6xl mx-auto px-6 py-8">
+    <div className="min-h-screen bg-bg relative overflow-hidden">
+      {/* Ambient firefly atmosphere */}
+      <div className="absolute inset-0 bg-gradient-radial from-glow/5 via-transparent to-transparent" />
+      <div className="absolute top-32 left-20 w-48 h-48 bg-gradient-radial from-copper-500/15 via-transparent to-transparent rounded-full animate-pulse" />
+      <div className="absolute bottom-40 right-32 w-64 h-64 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '1.5s' }} />
+      <div className="absolute top-3/4 left-1/4 w-32 h-32 bg-gradient-radial from-accent/15 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '2.5s' }} />
+      
+      <div className="relative max-w-6xl mx-auto px-6 py-8">
         {/* Premium Back Navigation */}
         <motion.div
           initial={{ opacity: 0, x: -20 }}
@@ -261,9 +308,13 @@ export default function CommunityDetailPage() {
           className="mb-8"
         >
           <Link href="/communities">
-            <Button variant="ghost" className="group hover:bg-white/50 dark:hover:bg-slate-800/50 backdrop-blur-sm transition-all duration-200" data-testid="back-to-communities">
-              <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-              <span className="font-medium">Back to Communities</span>
+            <Button 
+              variant="ghost" 
+              className="group hover:bg-card/50 backdrop-blur-sm transition-all duration-200 border border-transparent hover:border-copper-500/30 rounded-xl px-4 py-2" 
+              data-testid="back-to-communities"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform text-accent" />
+              <span className="font-medium text-text group-hover:text-accent transition-colors">Back to Communities</span>
             </Button>
           </Link>
         </motion.div>
@@ -273,60 +324,67 @@ export default function CommunityDetailPage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="relative"
+          className="relative group"
         >
-          {/* Gradient border effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-400 via-orange-400 to-red-400 opacity-20 rounded-2xl p-[1px]">
-            <div className="h-full w-full bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl" />
+          {/* Firefly border effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-copper-500/50 via-accent/50 to-glow/50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl p-[1px]">
+            <div className="h-full w-full bg-card rounded-2xl" />
           </div>
           
-          <Card className="relative border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-2xl mb-8 overflow-hidden">
-            {/* Header background pattern */}
-            <div className="absolute top-0 right-0 w-64 h-32 bg-gradient-to-br from-amber-100/50 to-orange-100/50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-bl-[100px]" />
+          <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large mb-8 overflow-hidden hover:shadow-glow-strong transition-all duration-500">
+            {/* Magical header background */}
+            <div className="absolute top-0 right-0 w-80 h-40 bg-gradient-to-br from-copper-500/10 via-accent/10 to-glow/10 rounded-bl-[120px]" />
+            <div className="absolute top-4 right-4 w-16 h-16 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full animate-pulse" />
             
             <CardHeader className="relative pb-8">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500">
-                      <Crown className="h-6 w-6 text-white" />
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-copper-500 to-accent border border-copper-500/30">
+                      <div className="absolute inset-0 bg-gradient-radial from-glow/40 via-transparent to-transparent rounded-full animate-pulse" />
+                      <Crown className="h-8 w-8 text-black relative z-10" />
                     </div>
                     <div>
-                      <CardTitle className="text-3xl font-bold bg-gradient-to-r from-slate-900 via-amber-800 to-orange-800 dark:from-white dark:via-amber-200 dark:to-orange-200 bg-clip-text text-transparent mb-1">
-                        {community.name}
+                      <CardTitle className="font-fraunces text-3xl md:text-4xl font-bold mb-2">
+                        <span className="bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">
+                          {community?.name}
+                        </span>
                       </CardTitle>
                       <div className="flex items-center gap-2">
-                        <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                        <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Premium Community</span>
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full" />
+                          <Star className="h-5 w-5 text-glow fill-glow relative z-10" />
+                        </div>
+                        <span className="text-sm font-semibold text-accent">Premium Community</span>
                       </div>
                     </div>
                   </div>
                   
                   {/* Premium badges */}
-                  <div className="flex items-center gap-3 mb-6">
-                    {community.isPrivate ? (
-                      <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-lg">
+                  <div className="flex items-center flex-wrap gap-3 mb-8">
+                    {community?.isPrivate ? (
+                      <Badge className="bg-gradient-to-r from-copper-600 to-copper-800 text-white border-0 shadow-soft px-3 py-1">
                         <Lock className="h-3 w-3 mr-1" />
                         Exclusive Private
                       </Badge>
                     ) : (
-                      <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-lg">
+                      <Badge className="bg-gradient-to-r from-glow/80 to-accent text-black border-0 shadow-soft px-3 py-1">
                         <Globe className="h-3 w-3 mr-1" />
                         Open Community
                       </Badge>
                     )}
-                    <Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-600 dark:text-amber-300 capitalize font-medium">
+                    <Badge variant="outline" className="border-accent/50 text-accent capitalize font-medium bg-accent/10 px-3 py-1">
                       <Shield className="h-3 w-3 mr-1" />
-                      {community.membershipPolicy.replace('_', ' ')}
+                      {community?.membershipPolicy?.replace('_', ' ')}
                     </Badge>
                     {membership && (
                       <Badge 
                         className={`${membership.status === 'approved' 
-                          ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white' 
+                          ? 'bg-gradient-to-r from-glow/80 to-accent text-black' 
                           : membership.status === 'pending'
-                          ? 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white'
-                          : 'bg-gradient-to-r from-red-500 to-red-600 text-white'
-                        } border-0 shadow-lg capitalize font-medium`}
+                          ? 'bg-gradient-to-r from-copper-400 to-copper-600 text-white'
+                          : 'bg-gradient-to-r from-destructive/80 to-destructive text-white'
+                        } border-0 shadow-soft capitalize font-medium px-3 py-1`}
                       >
                         {membership.status === 'approved' && <CheckCircle className="h-3 w-3 mr-1" />}
                         {membership.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
@@ -335,29 +393,38 @@ export default function CommunityDetailPage() {
                     )}
                   </div>
                   
-                  <CardDescription className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed">
-                    {community.description}
+                  <CardDescription className="text-lg text-muted leading-relaxed">
+                    {community?.description}
                   </CardDescription>
                 </div>
                 
                 {/* Premium action buttons */}
-                <div className="flex flex-col gap-3 ml-8">
+                <div className="flex flex-col gap-4 ml-8">
                   {canManage && (
-                    <Button className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white font-semibold shadow-lg" data-testid="manage-community-button">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Manage Community
+                    <Button 
+                      className="relative bg-gradient-to-r from-muted-foreground/80 to-muted-foreground hover:from-muted-foreground hover:to-foreground text-white font-bold px-6 py-3 rounded-xl shadow-soft hover:shadow-glow transition-all duration-300 group overflow-hidden" 
+                      data-testid="manage-community-button"
+                    >
+                      <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <Settings className="h-5 w-5 mr-2 relative z-10" />
+                      <span className="relative z-10">Manage Community</span>
                     </Button>
                   )}
                   {!membership && (
-                    <Button className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all" data-testid="join-community-button">
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Join Premium Community
+                    <Button 
+                      className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
+                      data-testid="join-community-button"
+                    >
+                      <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <UserPlus className="h-5 w-5 mr-2 relative z-10" />
+                      <span className="relative z-10">Join Premium Community</span>
                     </Button>
                   )}
                   {membership?.status === 'approved' && (
-                    <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span className="text-sm font-medium text-green-700 dark:text-green-300">Premium Member</span>
+                    <div className="relative flex items-center gap-3 px-4 py-3 bg-accent/10 rounded-xl border border-accent/30">
+                      <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-xl" />
+                      <CheckCircle className="h-5 w-5 text-accent relative z-10" />
+                      <span className="text-sm font-bold text-accent relative z-10">Premium Member</span>
                     </div>
                   )}
                 </div>
@@ -374,30 +441,42 @@ export default function CommunityDetailPage() {
             transition={{ duration: 0.6, delay: 0.3 }}
           >
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-3 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm p-2 rounded-xl shadow-lg border-0">
+              <TabsList className="relative grid w-full grid-cols-3 bg-card/80 backdrop-blur-sm p-2 rounded-2xl shadow-large border border-border">
+                {/* Subtle inner glow */}
+                <div className="absolute inset-0 bg-gradient-to-r from-copper-500/5 via-accent/5 to-glow/5 rounded-2xl" />
+                
                 <TabsTrigger 
                   value="posts" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg font-semibold transition-all duration-200"
+                  className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-glow font-bold transition-all duration-300 data-[state=inactive]:text-muted data-[state=inactive]:hover:text-accent data-[state=inactive]:hover:bg-copper-500/10 rounded-xl"
                   data-testid="tab-posts"
                 >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Posts
+                  {activeTab === 'posts' && (
+                    <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-xl" />
+                  )}
+                  <MessageSquare className="h-4 w-4 mr-2 relative z-10" />
+                  <span className="relative z-10">Posts</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="members" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg font-semibold transition-all duration-200"
+                  className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-glow font-bold transition-all duration-300 data-[state=inactive]:text-muted data-[state=inactive]:hover:text-accent data-[state=inactive]:hover:bg-copper-500/10 rounded-xl"
                   data-testid="tab-members"
                 >
-                  <Users className="h-4 w-4 mr-2" />
-                  Members
+                  {activeTab === 'members' && (
+                    <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-xl" />
+                  )}
+                  <Users className="h-4 w-4 mr-2 relative z-10" />
+                  <span className="relative z-10">Members</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="about" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg font-semibold transition-all duration-200"
+                  className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-glow font-bold transition-all duration-300 data-[state=inactive]:text-muted data-[state=inactive]:hover:text-accent data-[state=inactive]:hover:bg-copper-500/10 rounded-xl"
                   data-testid="tab-about"
                 >
-                  <Shield className="h-4 w-4 mr-2" />
-                  About
+                  {activeTab === 'about' && (
+                    <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-xl" />
+                  )}
+                  <Shield className="h-4 w-4 mr-2 relative z-10" />
+                  <span className="relative z-10">About</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -412,19 +491,22 @@ export default function CommunityDetailPage() {
                       data-testid={`post-${post.id}`}
                       className="group"
                     >
-                      <Card className={`border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden ${
+                      <Card className={`relative border border-border bg-card/90 backdrop-blur-sm shadow-large hover:shadow-glow-strong transition-all duration-500 overflow-hidden group rounded-2xl ${
                         post.isPinned 
-                          ? 'ring-2 ring-amber-200 dark:ring-amber-800 bg-gradient-to-br from-amber-50/80 to-orange-50/80 dark:from-amber-900/20 dark:to-orange-900/20' 
-                          : 'hover:ring-2 hover:ring-amber-200/50 dark:hover:ring-amber-800/50'
+                          ? 'ring-2 ring-accent/50 bg-gradient-to-br from-accent/10 via-copper-500/5 to-glow/10' 
+                          : 'hover:ring-2 hover:ring-copper-500/30'
                       }`}>
+                        {/* Firefly glow effect for posts */}
+                        <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
                         <CardHeader className="pb-4">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-3 mb-3">
                                 {post.isPinned && (
-                                  <div className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-full text-xs font-semibold shadow-lg">
-                                    <Pin className="h-3 w-3" />
-                                    Pinned
+                                  <div className="relative flex items-center gap-1 px-3 py-2 bg-gradient-to-r from-accent to-glow text-black rounded-full text-xs font-bold shadow-glow">
+                                    <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full" />
+                                    <Pin className="h-3 w-3 relative z-10" />
+                                    <span className="relative z-10">Pinned</span>
                                   </div>
                                 )}
                                 <Badge className={`capitalize font-medium ${
@@ -441,14 +523,14 @@ export default function CommunityDetailPage() {
                                   {new Date(post.createdAt).toLocaleDateString()}
                                 </div>
                               </div>
-                              <CardTitle className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-amber-700 dark:group-hover:text-amber-300 transition-colors">
+                              <CardTitle className="font-fraunces text-xl font-bold text-text group-hover:text-accent transition-colors duration-300 relative z-10">
                                 {post.title}
                               </CardTitle>
                             </div>
                           </div>
                         </CardHeader>
                         <CardContent className="pt-0">
-                          <p className="text-slate-600 dark:text-slate-300 whitespace-pre-line leading-relaxed">
+                          <p className="text-muted whitespace-pre-line leading-relaxed relative z-10">
                             {post.content}
                           </p>
                         </CardContent>
@@ -461,30 +543,37 @@ export default function CommunityDetailPage() {
                     animate={{ opacity: 1 }}
                     className="text-center py-12"
                   >
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 mx-auto mb-4">
-                      <MessageSquare className="h-8 w-8 text-amber-600" />
+                    <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-full border border-copper-500/30 bg-copper-500/10 mx-auto mb-6">
+                      <div className="absolute inset-0 bg-gradient-radial from-accent/30 via-transparent to-transparent rounded-full animate-pulse" />
+                      <MessageSquare className="h-10 w-10 text-accent relative z-10" />
                     </div>
-                    <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
-                      No posts yet
+                    <h3 className="font-fraunces text-2xl font-bold text-text mb-4">
+                      <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent">No posts yet</span>
                     </h3>
-                    <p className="text-slate-600 dark:text-slate-300">
-                      Be the first to start a conversation in this premium community!
+                    <p className="text-muted leading-relaxed">
+                      Be the first to start a conversation in this premium community like a firefly lighting up the night!
                     </p>
                   </motion.div>
                 )}
               </TabsContent>
 
               <TabsContent value="members" className="mt-8">
-                <Card className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl">
-                  <CardHeader className="pb-6">
-                    <CardTitle className="flex items-center text-2xl font-bold text-slate-900 dark:text-white">
-                      <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 mr-3">
-                        <Users className="h-5 w-5 text-white" />
+                <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large group overflow-hidden rounded-2xl">
+                  {/* Firefly glow for members section */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-accent/5 to-glow/5" />
+                  
+                  <CardHeader className="relative pb-6">
+                    <CardTitle className="flex items-center text-2xl font-bold text-text">
+                      <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-copper-500 to-accent mr-4">
+                        <div className="absolute inset-0 bg-gradient-radial from-glow/40 via-transparent to-transparent rounded-full animate-pulse" />
+                        <Users className="h-6 w-6 text-black relative z-10" />
                       </div>
-                      Premium Members
+                      <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent font-fraunces">
+                        Premium Members
+                      </span>
                     </CardTitle>
-                    <p className="text-slate-600 dark:text-slate-300 mt-2">
-                      Connect with verified members of this exclusive community
+                    <p className="text-muted mt-3 leading-relaxed">
+                      Connect with verified members of this exclusive community, each bringing their own light to our gathering.
                     </p>
                   </CardHeader>
                   <CardContent>
@@ -496,18 +585,21 @@ export default function CommunityDetailPage() {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ duration: 0.5, delay: index * 0.1 }}
-                            className="flex items-center space-x-4 p-4 rounded-xl bg-gradient-to-r from-slate-50 to-amber-50/30 dark:from-slate-800/50 dark:to-amber-900/10 hover:shadow-lg transition-all"
+                            className="relative flex items-center space-x-4 p-6 rounded-xl bg-gradient-to-r from-card/80 to-accent/10 hover:shadow-glow transition-all duration-300 group/member border border-border/50"
                           >
-                            <Avatar className="h-12 w-12 ring-2 ring-amber-200 dark:ring-amber-800">
-                              <AvatarFallback className="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold">
+                            {/* Member glow effect */}
+                            <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover/member:opacity-100 transition-opacity duration-300 rounded-xl" />
+                            
+                            <Avatar className="relative h-14 w-14 ring-2 ring-accent/50 group-hover/member:ring-accent transition-colors">
+                              <AvatarFallback className="bg-gradient-to-r from-copper-500 to-accent text-black font-bold text-lg relative z-10">
                                 OR
                               </AvatarFallback>
                             </Avatar>
-                            <div className="flex-1">
-                              <p className="font-semibold text-slate-900 dark:text-white">Community Organizer</p>
-                              <p className="text-sm text-slate-600 dark:text-slate-400">Leading this premium community</p>
+                            <div className="flex-1 relative z-10">
+                              <p className="font-bold text-text group-hover/member:text-accent transition-colors">Community Organizer</p>
+                              <p className="text-sm text-muted">Leading this premium community with passion</p>
                             </div>
-                            <Badge className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-lg">
+                            <Badge className="relative bg-gradient-to-r from-copper-600 to-copper-800 text-white border-0 shadow-soft px-3 py-1">
                               <Crown className="h-3 w-3 mr-1" />
                               Owner
                             </Badge>
@@ -516,14 +608,15 @@ export default function CommunityDetailPage() {
                       </div>
                     ) : (
                       <div className="text-center py-8">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 mx-auto mb-4">
-                          <Users className="h-8 w-8 text-amber-600" />
+                        <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-full border border-copper-500/30 bg-copper-500/10 mx-auto mb-6">
+                          <div className="absolute inset-0 bg-gradient-radial from-accent/30 via-transparent to-transparent rounded-full animate-pulse" />
+                          <Users className="h-10 w-10 text-accent relative z-10" />
                         </div>
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                          Building our community
+                        <h3 className="font-fraunces text-xl font-bold text-text mb-4">
+                          <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent">Building our community</span>
                         </h3>
-                        <p className="text-slate-600 dark:text-slate-300">
-                          More premium members will be shown here as they join
+                        <p className="text-muted leading-relaxed">
+                          More premium members will gather here like fireflies drawn to our light as they join
                         </p>
                       </div>
                     )}
@@ -532,58 +625,75 @@ export default function CommunityDetailPage() {
               </TabsContent>
 
               <TabsContent value="about" className="mt-8">
-                <Card className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-xl">
-                  <CardHeader className="pb-6">
-                    <CardTitle className="flex items-center text-2xl font-bold text-slate-900 dark:text-white">
-                      <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-slate-600 to-slate-700 mr-3">
-                        <Shield className="h-5 w-5 text-white" />
+                <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large group overflow-hidden rounded-2xl">
+                  {/* About section glow */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-accent/5 to-glow/5" />
+                  
+                  <CardHeader className="relative pb-6">
+                    <CardTitle className="flex items-center text-2xl font-bold text-text">
+                      <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-muted-foreground/80 to-muted-foreground mr-4">
+                        <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-full animate-pulse" />
+                        <Shield className="h-6 w-6 text-white relative z-10" />
                       </div>
-                      About This Community
+                      <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent font-fraunces">
+                        About This Community
+                      </span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-8">
                     <div>
-                      <h4 className="font-semibold text-slate-900 dark:text-white mb-3">Community Description</h4>
-                      <p className="text-lg text-slate-600 dark:text-slate-300 whitespace-pre-line leading-relaxed">
-                        {community.description}
+                      <h4 className="font-bold text-text mb-4">Community Description</h4>
+                      <p className="text-lg text-muted whitespace-pre-line leading-relaxed">
+                        {community?.description}
                       </p>
                     </div>
                     
                     <div className="grid md:grid-cols-2 gap-6">
                       <div className="space-y-4">
-                        <h4 className="font-semibold text-slate-900 dark:text-white mb-3">Community Settings</h4>
+                        <h4 className="font-bold text-text mb-4">Community Settings</h4>
                         
-                        <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-slate-50 to-amber-50/30 dark:from-slate-800/50 dark:to-amber-900/10">
-                          <div className="flex items-center gap-3">
-                            {community.isPrivate ? (
-                              <Lock className="h-5 w-5 text-purple-600" />
+                        <div className="relative flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50 mb-4 group/setting">
+                          <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover/setting:opacity-100 transition-opacity duration-300 rounded-xl" />
+                          <div className="flex items-center gap-4 relative z-10">
+                            {community?.isPrivate ? (
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-radial from-copper-600/30 via-transparent to-transparent rounded-full" />
+                                <Lock className="h-6 w-6 text-copper-600 relative z-10" />
+                              </div>
                             ) : (
-                              <Globe className="h-5 w-5 text-green-600" />
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full" />
+                                <Globe className="h-6 w-6 text-glow relative z-10" />
+                              </div>
                             )}
-                            <span className="font-medium text-slate-700 dark:text-slate-300">Privacy Level</span>
+                            <span className="font-semibold text-text">Privacy Level</span>
                           </div>
-                          <Badge className={`${community.isPrivate 
-                            ? 'bg-gradient-to-r from-purple-500 to-purple-600' 
-                            : 'bg-gradient-to-r from-green-500 to-green-600'
-                          } text-white border-0 shadow-lg`}>
-                            {community.isPrivate ? 'Exclusive Private' : 'Open Public'}
+                          <Badge className={`relative ${community?.isPrivate 
+                            ? 'bg-gradient-to-r from-copper-600 to-copper-800' 
+                            : 'bg-gradient-to-r from-glow/80 to-accent'
+                          } ${community?.isPrivate ? 'text-white' : 'text-black'} border-0 shadow-soft px-3 py-1 z-10`}>
+                            {community?.isPrivate ? 'Exclusive Private' : 'Open Public'}
                           </Badge>
                         </div>
                         
-                        <div className="flex items-center justify-between p-4 rounded-xl bg-gradient-to-r from-slate-50 to-amber-50/30 dark:from-slate-800/50 dark:to-amber-900/10">
-                          <div className="flex items-center gap-3">
-                            <Shield className="h-5 w-5 text-amber-600" />
-                            <span className="font-medium text-slate-700 dark:text-slate-300">Membership Policy</span>
+                        <div className="relative flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50 group/setting">
+                          <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover/setting:opacity-100 transition-opacity duration-300 rounded-xl" />
+                          <div className="flex items-center gap-4 relative z-10">
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-gradient-radial from-accent/30 via-transparent to-transparent rounded-full" />
+                              <Shield className="h-6 w-6 text-accent relative z-10" />
+                            </div>
+                            <span className="font-semibold text-text">Membership Policy</span>
                           </div>
-                          <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg capitalize">
-                            {community.membershipPolicy.replace('_', ' ')}
+                          <Badge className="relative bg-gradient-to-r from-copper-500 to-accent text-black border-0 shadow-soft capitalize px-3 py-1 z-10">
+                            {community?.membershipPolicy?.replace('_', ' ')}
                           </Badge>
                         </div>
                       </div>
                       
                       <div className="space-y-4">
-                        <h4 className="font-semibold text-slate-900 dark:text-white mb-3">Premium Features</h4>
-                        <div className="space-y-3">
+                        <h4 className="font-bold text-text mb-4">Premium Features</h4>
+                        <div className="space-y-4">
                           {[
                             'Exclusive member discussions',
                             'Premium content access', 
@@ -591,10 +701,19 @@ export default function CommunityDetailPage() {
                             'Direct organizer contact',
                             'Community networking'
                           ].map((feature, index) => (
-                            <div key={index} className="flex items-center gap-3">
-                              <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
-                              <span className="text-slate-600 dark:text-slate-300">{feature}</span>
-                            </div>
+                            <motion.div 
+                              key={index}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.6 + index * 0.1 }}
+                              className="flex items-center gap-4"
+                            >
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-radial from-glow/40 via-transparent to-transparent rounded-full" />
+                                <CheckCircle className="h-5 w-5 text-glow flex-shrink-0 relative z-10" />
+                              </div>
+                              <span className="text-text leading-relaxed font-medium">{feature}</span>
+                            </motion.div>
                           ))}
                         </div>
                       </div>
@@ -612,52 +731,65 @@ export default function CommunityDetailPage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="relative"
           >
-            <Card className="border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-2xl overflow-hidden">
-              {/* Premium background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 via-orange-50/50 to-red-50/50 dark:from-amber-900/10 dark:via-orange-900/10 dark:to-red-900/10" />
+            <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large overflow-hidden group rounded-2xl">
+              {/* Premium firefly background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-accent/5 to-glow/10" />
+              <div className="absolute top-8 right-8 w-24 h-24 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-full animate-pulse" />
+              <div className="absolute bottom-12 left-12 w-32 h-32 bg-gradient-radial from-copper-500/15 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '1s' }} />
               
               <CardContent className="relative text-center py-16 px-8">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 mx-auto mb-8">
-                  <Lock className="h-10 w-10 text-amber-600" />
+                <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-full border border-copper-500/30 bg-copper-500/10 mx-auto mb-12">
+                  <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full animate-pulse" />
+                  <Lock className="h-12 w-12 text-accent relative z-10" />
                 </div>
                 
-                <h3 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
-                  {membership?.status === 'pending' ? 'Membership Pending' : 'Premium Members Only'}
+                <h3 className="font-fraunces text-3xl md:text-4xl font-bold mb-6">
+                  <span className="text-text">
+                    {membership?.status === 'pending' ? 'Membership' : 'Premium Members'}
+                  </span>
+                  <br />
+                  <span className="bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">
+                    {membership?.status === 'pending' ? 'Pending' : 'Only'}
+                  </span>
                 </h3>
                 
-                <p className="text-lg text-slate-600 dark:text-slate-300 mb-8 max-w-md mx-auto leading-relaxed">
+                <p className="text-lg text-muted mb-12 max-w-2xl mx-auto leading-relaxed">
                   {membership?.status === 'pending' 
-                    ? 'Your membership request has been submitted and is awaiting approval from the community organizers.'
-                    : 'This exclusive community content is reserved for verified premium members. Join to unlock access to member discussions, events, and exclusive content.'
+                    ? 'Your membership request has been submitted and is awaiting approval from the community organizers. Like a firefly awaiting its turn to join the dance.'
+                    : 'This exclusive community content is reserved for verified premium members. Join our luminous gathering to unlock access to member discussions, events, and exclusive content that sparkles with meaning.'
                   }
                 </p>
                 
                 {membership?.status === 'pending' ? (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-center gap-3 px-6 py-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl">
-                      <Clock className="h-5 w-5 text-yellow-600" />
-                      <span className="font-semibold text-yellow-700 dark:text-yellow-300">
+                    <div className="relative flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-copper-400/20 to-accent/20 rounded-xl border border-accent/30">
+                      <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-xl" />
+                      <Clock className="h-6 w-6 text-accent relative z-10" />
+                      <span className="font-bold text-accent relative z-10">
                         Approval in progress...
                       </span>
                     </div>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      You'll receive a notification once your membership is approved.
+                    <p className="text-sm text-muted">
+                      You'll receive a notification once your membership is approved, and your light will join our constellation.
                     </p>
                   </div>
                 ) : (
                   <Button 
                     size="lg" 
-                    className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all"
+                    className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-8 py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
                     onClick={() => joinCommunityMutation.mutate()}
                     disabled={joinCommunityMutation.isPending}
                     data-testid="request-join-button"
                   >
+                    <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     {joinCommunityMutation.isPending ? (
-                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      <Loader2 className="h-6 w-6 mr-2 animate-spin relative z-10" />
                     ) : (
-                      <UserPlus className="h-5 w-5 mr-2" />
+                      <UserPlus className="h-6 w-6 mr-2 relative z-10" />
                     )}
-                    {joinCommunityMutation.isPending ? 'Submitting Request...' : 'Request Premium Access'}
+                    <span className="relative z-10">
+                      {joinCommunityMutation.isPending ? 'Submitting Request...' : 'Request Premium Access'}
+                    </span>
                   </Button>
                 )}
               </CardContent>
