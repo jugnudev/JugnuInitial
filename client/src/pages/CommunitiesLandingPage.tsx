@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, useScroll, useSpring, useTransform, useInView, AnimatePresence, useAnimation } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -41,9 +41,80 @@ interface CommunityAPIResponse {
   canManage?: boolean;
 }
 
+// Enhanced animation configurations
+const pageTransition = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+  transition: { 
+    duration: 0.6, 
+    ease: [0.25, 0.46, 0.45, 0.94] // Custom easing curve for natural feel
+  }
+};
+
+const staggerContainer = {
+  animate: {
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.3
+    }
+  }
+};
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 30 },
+  animate: { opacity: 1, y: 0 },
+  transition: { 
+    duration: 0.8, 
+    ease: [0.25, 0.46, 0.45, 0.94] 
+  }
+};
+
+// Enhanced Button Component with Press Feedback
+const MotionButton = motion(Button);
+const buttonPress = {
+  whileHover: { 
+    scale: 1.02,
+    transition: { 
+      duration: 0.2,
+      ease: "easeOut"
+    }
+  },
+  whileTap: { 
+    scale: 0.98,
+    transition: { 
+      duration: 0.1,
+      ease: "easeInOut"
+    }
+  }
+};
+
+// Scroll-triggered animation hook
+const useScrollAnimation = () => {
+  const controls = useAnimation();
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+  useEffect(() => {
+    if (isInView) {
+      controls.start("animate");
+    }
+  }, [isInView, controls]);
+
+  return [ref, controls] as const;
+};
+
 export default function CommunitiesLandingPage() {
   const [selectedTab, setSelectedTab] = useState<'all' | 'my' | 'discover'>('all');
   const { toast } = useToast();
+  
+  // Scroll progress for enhanced effects
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 100,
+    damping: 30,
+    restDelta: 0.001
+  });
 
   // Get current user
   const { data: authData, isLoading: userLoading } = useQuery<{ user?: User }>({
@@ -217,21 +288,64 @@ export default function CommunitiesLandingPage() {
           </div>
         </div>
 
-        {/* Premium Pricing Section */}
-        <div className="relative max-w-5xl mx-auto px-6 py-20">
-          {/* More firefly glows */}
-          <div className="absolute top-10 right-20 w-32 h-32 bg-gradient-radial from-copper-500/20 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '1.5s' }} />
-          <div className="absolute bottom-20 left-16 w-40 h-40 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '2.5s' }} />
+        {/* Premium Pricing Section - Enhanced with Scroll Animations */}
+        <motion.div 
+          className="relative max-w-5xl mx-auto px-6 py-20"
+          initial="initial"
+          whileInView="animate"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={staggerContainer}
+        >
+          {/* Enhanced firefly glows with magnetic effect */}
+          <motion.div 
+            className="absolute top-10 right-20 w-32 h-32 bg-gradient-radial from-copper-500/20 via-transparent to-transparent rounded-full"
+            animate={{ 
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.6, 0.3] 
+            }}
+            transition={{ duration: 4, repeat: Infinity, delay: 1.5 }}
+          />
+          <motion.div 
+            className="absolute bottom-20 left-16 w-40 h-40 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-full"
+            animate={{ 
+              scale: [1, 1.3, 1],
+              opacity: [0.2, 0.5, 0.2] 
+            }}
+            transition={{ duration: 5, repeat: Infinity, delay: 2.5 }}
+          />
           
-          <div className="relative text-center mb-20">
-            <h2 className="font-fraunces text-4xl md:text-5xl font-bold mb-8">
+          <motion.div 
+            className="relative text-center mb-20"
+            variants={fadeInUp}
+          >
+            <motion.h2 
+              className="font-fraunces text-4xl md:text-5xl font-bold mb-8"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              viewport={{ once: true }}
+            >
               <span className="text-text">Choose Your</span>
-              <span className="block bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">Premium Experience</span>
-            </h2>
-            <p className="text-lg text-muted max-w-3xl mx-auto leading-relaxed">
+              <motion.span 
+                className="block bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent"
+                initial={{ opacity: 0, scale: 0.9 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6, delay: 0.5 }}
+                viewport={{ once: true }}
+              >
+                Premium Experience
+              </motion.span>
+            </motion.h2>
+            <motion.p 
+              className="text-lg text-muted max-w-3xl mx-auto leading-relaxed"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+              viewport={{ once: true }}
+            >
               Unlock exclusive access to curated communities, premium features, and elevated networking opportunities in Vancouver's cultural scene.
-            </p>
-          </div>
+            </motion.p>
+          </motion.div>
           
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Monthly Plan */}
@@ -287,9 +401,15 @@ export default function CommunitiesLandingPage() {
                     ))}
                   </div>
                   <Link href="/account/signup" className="block">
-                    <Button className="w-full mt-8 bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-semibold py-4 rounded-xl shadow-soft hover:shadow-glow transition-all duration-300" data-testid="monthly-signup-button">
+                    <MotionButton 
+                      className="w-full mt-8 bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-semibold py-4 rounded-xl shadow-soft hover:shadow-glow transition-all duration-300" 
+                      data-testid="monthly-signup-button"
+                      variants={buttonPress}
+                      whileHover="whileHover"
+                      whileTap="whileTap"
+                    >
                       Start Monthly Plan
-                    </Button>
+                    </MotionButton>
                   </Link>
                 </CardContent>
               </Card>
@@ -366,9 +486,15 @@ export default function CommunitiesLandingPage() {
                     ))}
                   </div>
                   <Link href="/account/signup" className="block">
-                    <Button className="w-full mt-8 bg-gradient-to-r from-accent to-glow hover:from-copper-500 hover:to-accent text-black font-bold py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300" data-testid="annual-signup-button">
+                    <MotionButton 
+                      className="w-full mt-8 bg-gradient-to-r from-accent to-glow hover:from-copper-500 hover:to-accent text-black font-bold py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300" 
+                      data-testid="annual-signup-button"
+                      variants={buttonPress}
+                      whileHover="whileHover"
+                      whileTap="whileTap"
+                    >
                       Start Annual Plan
-                    </Button>
+                    </MotionButton>
                   </Link>
                 </CardContent>
               </Card>
@@ -386,18 +512,21 @@ export default function CommunitiesLandingPage() {
               Already have an account?
             </p>
             <Link href="/account/signin">
-              <Button 
+              <MotionButton 
                 variant="outline" 
                 size="lg" 
                 className="relative border-accent/50 text-accent hover:bg-accent/10 hover:border-accent backdrop-blur-sm px-8 py-4 rounded-xl transition-all duration-300 hover:shadow-glow" 
                 data-testid="signin-button"
+                variants={buttonPress}
+                whileHover="whileHover"
+                whileTap="whileTap"
               >
                 <div className="absolute inset-0 bg-gradient-radial from-accent/20 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 rounded-xl" />
                 <span className="relative z-10 font-medium">Sign In to Your Communities</span>
-              </Button>
+              </MotionButton>
             </Link>
           </motion.div>
-        </div>
+        </motion.div>
       </div>
     );
   }

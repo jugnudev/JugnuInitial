@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { motion } from "framer-motion";
@@ -72,6 +72,64 @@ interface CommunityDetailResponse {
   members?: any[];
   canManage?: boolean;
 }
+
+// Enhanced animation configurations for CommunityDetailPage
+const pageTransition = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -20 },
+  transition: { 
+    duration: 0.6, 
+    ease: [0.25, 0.46, 0.45, 0.94] // Custom easing curve for natural feel
+  }
+};
+
+const staggerContainer = {
+  animate: {
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2
+    }
+  }
+};
+
+const fadeInUp = {
+  initial: { opacity: 0, y: 30 },
+  animate: { opacity: 1, y: 0 },
+  transition: { 
+    duration: 0.8, 
+    ease: [0.25, 0.46, 0.45, 0.94] 
+  }
+};
+
+const scaleIn = {
+  initial: { opacity: 0, scale: 0.9 },
+  animate: { opacity: 1, scale: 1 },
+  transition: { 
+    duration: 0.5, 
+    ease: "easeOut" 
+  }
+};
+
+// Enhanced Button Component with Press Feedback
+const MotionButton = motion(Button);
+const buttonPress = {
+  whileHover: { 
+    scale: 1.02,
+    transition: { 
+      duration: 0.2,
+      ease: "easeOut"
+    }
+  },
+  whileTap: { 
+    scale: 0.98,
+    transition: { 
+      duration: 0.1,
+      ease: "easeInOut"
+    }
+  }
+};
+
 
 export default function CommunityDetailPage() {
   const [match, params] = useRoute("/communities/:slug");
@@ -189,15 +247,18 @@ export default function CommunityDetailPage() {
               Sign in to unlock your premium community experience.
             </p>
             <Link href="/account/signin">
-              <Button 
+              <MotionButton 
                 size="lg" 
                 className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-8 py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
                 data-testid="signin-required-button"
+                variants={buttonPress}
+                whileHover="whileHover"
+                whileTap="whileTap"
               >
                 <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <Crown className="h-6 w-6 mr-2 relative z-10" />
                 <span className="relative z-10">Sign In to Continue</span>
-              </Button>
+              </MotionButton>
             </Link>
           </motion.div>
         </div>
@@ -232,15 +293,18 @@ export default function CommunityDetailPage() {
               The community you're looking for doesn't exist or may have been removed.
             </p>
             <Link href="/communities">
-              <Button 
+              <MotionButton 
                 size="lg" 
                 className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-8 py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
                 data-testid="back-to-communities-button"
+                variants={buttonPress}
+                whileHover="whileHover"
+                whileTap="whileTap"
               >
                 <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <ArrowLeft className="h-6 w-6 mr-2 relative z-10" />
                 <span className="relative z-10">Back to Communities</span>
-              </Button>
+              </MotionButton>
             </Link>
           </motion.div>
         </div>
@@ -401,24 +465,30 @@ export default function CommunityDetailPage() {
                 {/* Premium action buttons */}
                 <div className="flex flex-col gap-4 ml-8">
                   {canManage && (
-                    <Button 
+                    <MotionButton 
                       className="relative bg-gradient-to-r from-muted-foreground/80 to-muted-foreground hover:from-muted-foreground hover:to-foreground text-white font-bold px-6 py-3 rounded-xl shadow-soft hover:shadow-glow transition-all duration-300 group overflow-hidden" 
                       data-testid="manage-community-button"
+                      variants={buttonPress}
+                      whileHover="whileHover"
+                      whileTap="whileTap"
                     >
                       <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       <Settings className="h-5 w-5 mr-2 relative z-10" />
                       <span className="relative z-10">Manage Community</span>
-                    </Button>
+                    </MotionButton>
                   )}
                   {!membership && (
-                    <Button 
+                    <MotionButton 
                       className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
                       data-testid="join-community-button"
+                      variants={buttonPress}
+                      whileHover="whileHover"
+                      whileTap="whileTap"
                     >
                       <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       <UserPlus className="h-5 w-5 mr-2 relative z-10" />
                       <span className="relative z-10">Join Premium Community</span>
-                    </Button>
+                    </MotionButton>
                   )}
                   {membership?.status === 'approved' && (
                     <div className="relative flex items-center gap-3 px-4 py-3 bg-accent/10 rounded-xl border border-accent/30">
