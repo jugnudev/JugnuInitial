@@ -13,6 +13,7 @@ interface Community {
   id: string;
   name: string;
   description: string;
+  slug?: string;
   imageUrl?: string;
   isPrivate: boolean;
   membershipPolicy: 'open' | 'approval_required' | 'closed';
@@ -122,20 +123,30 @@ export default function CommunitiesLandingPage() {
   // Show loading state while checking authentication
   if (userLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/20 to-orange-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
-        <div className="max-w-6xl mx-auto px-6 py-24">
+      <div className="min-h-screen bg-bg relative overflow-hidden">
+        {/* Firefly glow background */}
+        <div className="absolute inset-0 bg-gradient-radial from-glow/10 via-transparent to-transparent" />
+        <div className="absolute top-20 left-20 w-32 h-32 bg-gradient-radial from-copper-500/20 via-transparent to-transparent rounded-full animate-pulse" />
+        <div className="absolute bottom-32 right-32 w-48 h-48 bg-gradient-radial from-glow/15 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '1s' }} />
+        
+        <div className="relative max-w-6xl mx-auto px-6 py-24">
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             className="text-center"
           >
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 mx-auto mb-6">
-              <Crown className="h-8 w-8 text-amber-600 animate-pulse" />
+            <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-copper-500/20 to-copper-600/20 border border-copper-500/30 mx-auto mb-8">
+              {/* Firefly glow effect */}
+              <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full animate-pulse" />
+              <Crown className="h-10 w-10 text-accent animate-pulse relative z-10" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-              Loading Your Premium Experience
+            <h2 className="font-fraunces text-3xl font-bold text-text mb-6">
+              Loading Your
+              <span className="block bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">
+                Premium Experience
+              </span>
             </h2>
-            <p className="text-slate-600 dark:text-slate-300">
+            <p className="text-muted leading-relaxed">
               Preparing your personalized community dashboard...
             </p>
           </motion.div>
@@ -147,45 +158,58 @@ export default function CommunitiesLandingPage() {
   // Signed out users see pricing page, signed in users see communities
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/30 to-orange-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+      <div className="min-h-screen bg-bg relative overflow-hidden">
+        {/* Firefly atmosphere */}
+        <div className="absolute inset-0 bg-gradient-radial from-glow/5 via-transparent to-transparent" />
+        <div className="absolute top-0 left-1/4 w-64 h-64 bg-gradient-radial from-copper-500/10 via-transparent to-transparent rounded-full animate-pulse" />
+        <div className="absolute bottom-0 right-1/3 w-80 h-80 bg-gradient-radial from-glow/15 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 left-10 w-40 h-40 bg-gradient-radial from-accent/10 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '3s' }} />
+        
         {/* Premium Hero Section */}
         <div className="relative overflow-hidden">
-          {/* Background Pattern */}
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-600/10 via-orange-500/10 to-red-500/10" />
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-50/10 via-orange-50/10 to-red-50/10 opacity-20" />
+          {/* Subtle gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-accent/5 to-glow/5" />
           
-          <div className="relative max-w-7xl mx-auto px-6 py-24">
+          <div className="relative max-w-7xl mx-auto px-6 py-32">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
               className="text-center"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 text-amber-800 dark:text-amber-200 text-sm font-medium mb-8">
-                <Crown className="h-4 w-4" />
-                Premium Communities
-                <Sparkles className="h-4 w-4" />
+              {/* Premium badge with firefly glow */}
+              <div className="relative inline-flex items-center gap-2 px-6 py-3 rounded-full border border-copper-500/30 bg-copper-500/10 text-accent text-sm font-medium mb-12 backdrop-blur-sm">
+                <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-full" />
+                <Crown className="h-4 w-4 relative z-10" />
+                <span className="relative z-10">Premium Communities</span>
+                <Sparkles className="h-4 w-4 relative z-10" />
               </div>
               
-              <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-slate-900 via-amber-800 to-orange-800 dark:from-white dark:via-amber-200 dark:to-orange-200 bg-clip-text text-transparent mb-8 leading-tight">
-                Elevate Your
+              <h1 className="font-fraunces text-5xl md:text-7xl font-bold mb-12 leading-tight">
+                <span className="text-text">Elevate Your</span>
                 <br />
-                <span className="relative">
-                  <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">Community</span>
+                <span className="relative inline-block">
+                  <span className="bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">Community</span>
                   <motion.div
-                    className="absolute -top-2 -right-2"
-                    animate={{ rotate: [0, 10, -10, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+                    className="absolute -top-4 -right-4"
+                    animate={{ 
+                      rotate: [0, 10, -10, 0],
+                      scale: [1, 1.1, 1, 1]
+                    }}
+                    transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
                   >
-                    <Star className="h-8 w-8 text-amber-500 fill-amber-500" />
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-radial from-glow/50 via-transparent to-transparent rounded-full blur-sm" />
+                      <Star className="h-10 w-10 text-glow fill-glow relative z-10" />
+                    </div>
                   </motion.div>
                 </span>
                 <br />
-                Experience
+                <span className="text-text">Experience</span>
               </h1>
               
-              <p className="text-xl md:text-2xl text-slate-600 dark:text-slate-300 mb-12 max-w-3xl mx-auto leading-relaxed">
-                Join exclusive, curated communities where meaningful connections flourish. 
+              <p className="text-xl md:text-2xl text-muted mb-16 max-w-4xl mx-auto leading-relaxed">
+                Join exclusive, curated communities where meaningful connections flourish like fireflies in the night.
                 <br className="hidden md:block" />
                 Experience premium features designed for authentic community building.
               </p>
@@ -194,15 +218,18 @@ export default function CommunitiesLandingPage() {
         </div>
 
         {/* Premium Pricing Section */}
-        <div className="max-w-5xl mx-auto px-6 py-20">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">
-              Choose Your
-              <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent"> Premium </span>
-              Experience
+        <div className="relative max-w-5xl mx-auto px-6 py-20">
+          {/* More firefly glows */}
+          <div className="absolute top-10 right-20 w-32 h-32 bg-gradient-radial from-copper-500/20 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '1.5s' }} />
+          <div className="absolute bottom-20 left-16 w-40 h-40 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '2.5s' }} />
+          
+          <div className="relative text-center mb-20">
+            <h2 className="font-fraunces text-4xl md:text-5xl font-bold mb-8">
+              <span className="text-text">Choose Your</span>
+              <span className="block bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">Premium Experience</span>
             </h2>
-            <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
-              Unlock exclusive access to curated communities, premium features, and elevated networking opportunities.
+            <p className="text-lg text-muted max-w-3xl mx-auto leading-relaxed">
+              Unlock exclusive access to curated communities, premium features, and elevated networking opportunities in Vancouver's cultural scene.
             </p>
           </div>
           
@@ -212,23 +239,31 @@ export default function CommunitiesLandingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="relative"
+              className="relative group"
             >
-              <Card className="border-2 border-slate-200 dark:border-slate-700 hover:border-amber-300 dark:hover:border-amber-600 transition-all duration-300 hover:shadow-xl">
-                <CardHeader className="text-center pb-8">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 mx-auto mb-4">
-                    <Zap className="h-8 w-8 text-amber-600" />
+              {/* Firefly glow around card */}
+              <div className="absolute inset-0 bg-gradient-radial from-copper-500/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl blur-xl" />
+              
+              <Card className="relative border border-border bg-card backdrop-blur-sm hover:border-copper-500/50 transition-all duration-300 hover:shadow-glow overflow-hidden">
+                {/* Inner glow */}
+                <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-transparent to-glow/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                <CardHeader className="relative text-center pb-8">
+                  <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-full border border-copper-500/20 bg-copper-500/10 mx-auto mb-6">
+                    <div className="absolute inset-0 bg-gradient-radial from-copper-500/30 via-transparent to-transparent rounded-full animate-pulse" />
+                    <Zap className="h-10 w-10 text-accent relative z-10" />
                   </div>
-                  <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Monthly Access</CardTitle>
-                  <div className="space-y-2">
-                    <div className="text-4xl font-bold text-slate-900 dark:text-white">
-                      $19<span className="text-lg font-normal text-slate-500">.99</span>
+                  <CardTitle className="font-fraunces text-2xl font-bold text-text mb-4">Monthly Access</CardTitle>
+                  <div className="space-y-3">
+                    <div className="text-5xl font-bold text-text">
+                      <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent">$19</span>
+                      <span className="text-lg font-normal text-muted">.99</span>
                     </div>
-                    <p className="text-slate-600 dark:text-slate-400">per month</p>
+                    <p className="text-muted">per month</p>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3">
+                <CardContent className="relative space-y-6">
+                  <div className="space-y-4">
                     {[
                       'Access to all premium communities',
                       'Priority member verification',
@@ -236,14 +271,23 @@ export default function CommunitiesLandingPage() {
                       'Exclusive events & experiences',
                       'Premium support'
                     ].map((feature, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        <span className="text-slate-700 dark:text-slate-300">{feature}</span>
-                      </div>
+                      <motion.div 
+                        key={index} 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 + index * 0.1 }}
+                        className="flex items-center gap-3"
+                      >
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full" />
+                          <Check className="h-5 w-5 text-glow flex-shrink-0 relative z-10" />
+                        </div>
+                        <span className="text-text leading-relaxed">{feature}</span>
+                      </motion.div>
                     ))}
                   </div>
                   <Link href="/account/signup" className="block">
-                    <Button className="w-full mt-6 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold py-3" data-testid="monthly-signup-button">
+                    <Button className="w-full mt-8 bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-semibold py-4 rounded-xl shadow-soft hover:shadow-glow transition-all duration-300" data-testid="monthly-signup-button">
                       Start Monthly Plan
                     </Button>
                   </Link>
@@ -256,53 +300,73 @@ export default function CommunitiesLandingPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.4 }}
-              className="relative"
+              className="relative group"
             >
-              {/* Popular Badge */}
-              <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
-                <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
-                  <Award className="h-4 w-4 inline mr-1" />
-                  Most Popular
+              {/* Popular Badge with glow */}
+              <div className="absolute -top-5 left-1/2 transform -translate-x-1/2 z-20">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-radial from-glow/50 via-transparent to-transparent rounded-full blur-md" />
+                  <div className="relative bg-gradient-to-r from-copper-500 to-accent text-black px-6 py-2 rounded-full text-sm font-bold shadow-glow">
+                    <Award className="h-4 w-4 inline mr-2" />
+                    Most Popular
+                  </div>
                 </div>
               </div>
               
-              <Card className="border-2 border-amber-300 dark:border-amber-600 hover:border-amber-400 dark:hover:border-amber-500 transition-all duration-300 hover:shadow-2xl relative overflow-hidden">
-                {/* Gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-orange-50/50 dark:from-amber-900/10 dark:to-orange-900/10" />
+              {/* Strong firefly glow around featured card */}
+              <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-copper-500/20 to-transparent opacity-60 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl blur-2xl" />
+              
+              <Card className="relative border-2 border-accent hover:border-glow transition-all duration-300 hover:shadow-glow-strong bg-card backdrop-blur-sm overflow-hidden">
+                {/* Inner magical glow */}
+                <div className="absolute inset-0 bg-gradient-to-br from-copper-500/10 via-accent/5 to-glow/10" />
                 
-                <CardHeader className="text-center pb-8 relative">
-                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 mx-auto mb-4">
-                    <Crown className="h-8 w-8 text-white" />
+                <CardHeader className="relative text-center pb-8">
+                  <div className="relative inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-r from-copper-500 to-accent mx-auto mb-8">
+                    <div className="absolute inset-0 bg-gradient-radial from-glow/40 via-transparent to-transparent rounded-full animate-pulse" />
+                    <Crown className="h-12 w-12 text-black relative z-10" />
                   </div>
-                  <CardTitle className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Annual Access</CardTitle>
-                  <div className="space-y-2">
-                    <div className="text-4xl font-bold text-slate-900 dark:text-white">
-                      $199<span className="text-lg font-normal text-slate-500">.00</span>
+                  <CardTitle className="font-fraunces text-2xl font-bold text-text mb-4">Annual Access</CardTitle>
+                  <div className="space-y-3">
+                    <div className="text-5xl font-bold text-text">
+                      <span className="bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">$199</span>
+                      <span className="text-lg font-normal text-muted">.00</span>
                     </div>
-                    <p className="text-slate-600 dark:text-slate-400">per year</p>
-                    <div className="inline-block px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-medium">
-                      Save $40 yearly
+                    <p className="text-muted">per year</p>
+                    <div className="relative inline-block">
+                      <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full blur-sm" />
+                      <div className="relative px-4 py-2 bg-gradient-to-r from-glow/20 to-accent/20 text-accent rounded-full text-sm font-medium border border-accent/30">
+                        Save $40 yearly
+                      </div>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4 relative">
-                  <div className="space-y-3">
+                <CardContent className="relative space-y-6">
+                  <div className="space-y-4">
                     {[
                       'Everything in Monthly plan',
-                      'Exclusive annual member perks',
+                      'Exclusive annual member perks', 
                       'Priority community placement',
                       'Quarterly networking events',
                       'VIP concierge support',
                       '2 months completely FREE'
                     ].map((feature, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
-                        <span className="text-slate-700 dark:text-slate-300">{feature}</span>
-                      </div>
+                      <motion.div 
+                        key={index} 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.6 + index * 0.1 }}
+                        className="flex items-center gap-3"
+                      >
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-radial from-glow/40 via-transparent to-transparent rounded-full" />
+                          <Check className="h-5 w-5 text-glow flex-shrink-0 relative z-10" />
+                        </div>
+                        <span className="text-text leading-relaxed font-medium">{feature}</span>
+                      </motion.div>
                     ))}
                   </div>
                   <Link href="/account/signup" className="block">
-                    <Button className="w-full mt-6 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold py-3 shadow-lg" data-testid="annual-signup-button">
+                    <Button className="w-full mt-8 bg-gradient-to-r from-accent to-glow hover:from-copper-500 hover:to-accent text-black font-bold py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300" data-testid="annual-signup-button">
                       Start Annual Plan
                     </Button>
                   </Link>
@@ -315,15 +379,21 @@ export default function CommunitiesLandingPage() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="text-center mt-16"
+            transition={{ duration: 0.6, delay: 0.8 }}
+            className="relative text-center mt-20"
           >
-            <p className="text-slate-600 dark:text-slate-400 mb-6">
+            <p className="text-muted mb-8 text-lg">
               Already have an account?
             </p>
             <Link href="/account/signin">
-              <Button variant="outline" size="lg" className="border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-600 dark:text-amber-300 dark:hover:bg-amber-900/20" data-testid="signin-button">
-                Sign In to Your Communities
+              <Button 
+                variant="outline" 
+                size="lg" 
+                className="relative border-accent/50 text-accent hover:bg-accent/10 hover:border-accent backdrop-blur-sm px-8 py-4 rounded-xl transition-all duration-300 hover:shadow-glow" 
+                data-testid="signin-button"
+              >
+                <div className="absolute inset-0 bg-gradient-radial from-accent/20 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300 rounded-xl" />
+                <span className="relative z-10 font-medium">Sign In to Your Communities</span>
               </Button>
             </Link>
           </motion.div>
@@ -334,114 +404,141 @@ export default function CommunitiesLandingPage() {
   
   // Signed in users see community discovery
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50/20 to-orange-50/20 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900">
+    <div className="min-h-screen bg-bg relative overflow-hidden">
+      {/* Ambient firefly atmosphere */}
+      <div className="absolute inset-0 bg-gradient-radial from-glow/5 via-transparent to-transparent" />
+      <div className="absolute top-32 left-20 w-48 h-48 bg-gradient-radial from-copper-500/15 via-transparent to-transparent rounded-full animate-pulse" />
+      <div className="absolute bottom-40 right-32 w-64 h-64 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '1.5s' }} />
+      
       {/* Premium Header for Signed In Users */}
-      <div className="bg-gradient-to-r from-slate-800 via-amber-900 to-orange-900 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-100/20 via-orange-100/20 to-red-100/20 opacity-30" />
+      <div className="relative bg-gradient-to-br from-premium-surface to-premium-surface-elevated border-b border-premium-border overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-copper-500/10 via-accent/5 to-glow/10" />
         
-        <div className="relative max-w-7xl mx-auto px-6 py-16">
+        <div className="relative max-w-7xl mx-auto px-6 py-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="text-center"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm text-amber-200 text-sm font-medium mb-6">
-              <Crown className="h-4 w-4" />
-              Premium Member
-              <Sparkles className="h-4 w-4" />
+            {/* Premium member badge with enhanced glow */}
+            <div className="relative inline-flex items-center gap-3 px-6 py-3 rounded-full border border-accent/30 bg-copper-500/10 text-accent text-sm font-medium mb-10 backdrop-blur-sm">
+              <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full animate-pulse" />
+              <Crown className="h-5 w-5 relative z-10" />
+              <span className="relative z-10 font-semibold">Premium Member</span>
+              <Sparkles className="h-5 w-5 relative z-10" />
             </div>
             
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-              Welcome to Your
+            <h1 className="font-fraunces text-4xl md:text-6xl font-bold mb-8 leading-tight">
+              <span className="text-text">Welcome to Your</span>
               <br />
-              <span className="bg-gradient-to-r from-amber-200 to-orange-200 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">
                 Exclusive Communities
               </span>
             </h1>
             
-            <p className="text-xl md:text-2xl mb-8 text-slate-200 max-w-3xl mx-auto leading-relaxed">
-              Discover, connect, and engage with premium communities curated for meaningful connections.
+            <p className="text-xl md:text-2xl mb-12 text-muted max-w-4xl mx-auto leading-relaxed">
+              Discover, connect, and engage with premium communities curated for meaningful connections in Vancouver's vibrant cultural scene.
             </p>
           </motion.div>
         </div>
       </div>
 
       {/* Premium Tab Navigation */}
-      <div className="max-w-6xl mx-auto px-6 pt-8">
-        <div className="flex space-x-1 mb-8 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-xl p-2 shadow-lg">
+      <div className="relative max-w-6xl mx-auto px-6 pt-8">
+        <div className="relative flex space-x-1 mb-12 bg-card/80 backdrop-blur-sm rounded-2xl p-2 shadow-large border border-border">
+          {/* Subtle inner glow */}
+          <div className="absolute inset-0 bg-gradient-to-r from-copper-500/5 via-accent/5 to-glow/5 rounded-2xl" />
+          
           <button
             onClick={() => setSelectedTab('all')}
-            className={`flex-1 px-6 py-3 rounded-lg transition-all duration-200 font-medium ${
+            className={`relative flex-1 px-6 py-4 rounded-xl transition-all duration-300 font-medium ${
               selectedTab === 'all'
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
-                : 'text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                ? 'bg-gradient-to-r from-copper-500 to-accent text-black shadow-glow'
+                : 'text-muted hover:text-accent hover:bg-copper-500/10'
             }`}
             data-testid="tab-all-communities"
           >
-            <Calendar className="h-4 w-4 inline mr-2" />
-            All Communities
+            {selectedTab === 'all' && (
+              <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-xl" />
+            )}
+            <Calendar className="h-4 w-4 inline mr-2 relative z-10" />
+            <span className="relative z-10">All Communities</span>
           </button>
           <button
             onClick={() => setSelectedTab('my')}
-            className={`flex-1 px-6 py-3 rounded-lg transition-all duration-200 font-medium ${
+            className={`relative flex-1 px-6 py-4 rounded-xl transition-all duration-300 font-medium ${
               selectedTab === 'my'
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
-                : 'text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                ? 'bg-gradient-to-r from-copper-500 to-accent text-black shadow-glow'
+                : 'text-muted hover:text-accent hover:bg-copper-500/10'
             }`}
             data-testid="tab-my-communities"
           >
-            <Heart className="h-4 w-4 inline mr-2" />
-            My Communities
+            {selectedTab === 'my' && (
+              <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-xl" />
+            )}
+            <Heart className="h-4 w-4 inline mr-2 relative z-10" />
+            <span className="relative z-10">My Communities</span>
           </button>
           <button
             onClick={() => setSelectedTab('discover')}
-            className={`flex-1 px-6 py-3 rounded-lg transition-all duration-200 font-medium ${
+            className={`relative flex-1 px-6 py-4 rounded-xl transition-all duration-300 font-medium ${
               selectedTab === 'discover'
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
-                : 'text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                ? 'bg-gradient-to-r from-copper-500 to-accent text-black shadow-glow'
+                : 'text-muted hover:text-accent hover:bg-copper-500/10'
             }`}
             data-testid="tab-discover"
           >
-            <Sparkles className="h-4 w-4 inline mr-2" />
-            Discover
+            {selectedTab === 'discover' && (
+              <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-xl" />
+            )}
+            <Sparkles className="h-4 w-4 inline mr-2 relative z-10" />
+            <span className="relative z-10">Discover</span>
           </button>
         </div>
       </div>
 
       {/* Premium Communities Grid */}
-      <div className="max-w-6xl mx-auto px-6 pb-12">
+      <div className="relative max-w-6xl mx-auto px-6 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {communities.map((community: Community) => (
+          {communities.map((community: Community, index) => (
             <motion.div
               key={community.id}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              whileHover={{ y: -5 }}
+              transition={{ duration: 0.6, delay: index * 0.1 }}
+              whileHover={{ 
+                y: -8,
+                scale: 1.02
+              }}
               data-testid={`community-card-${community.id}`}
+              className="group"
             >
-              <Card className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm overflow-hidden relative">
-                {/* Gradient Border Effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-400 via-orange-400 to-red-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-[1px] rounded-lg">
-                  <div className="h-full w-full bg-white dark:bg-slate-800 rounded-lg" />
+              {/* Firefly glow around each card */}
+              <div className="absolute inset-0 bg-gradient-radial from-copper-500/20 via-accent/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl blur-xl" />
+              
+              <Card className="relative hover:shadow-glow-strong transition-all duration-500 cursor-pointer border border-border bg-card/90 backdrop-blur-sm overflow-hidden rounded-2xl">
+                {/* Magical border effect on hover */}
+                <div className="absolute inset-0 bg-gradient-to-r from-copper-500/50 via-accent/50 to-glow/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-[1px] rounded-2xl">
+                  <div className="h-full w-full bg-card rounded-2xl" />
                 </div>
                 
-                <div className="relative">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30">
-                        <Users className="h-6 w-6 text-amber-600" />
+                <div className="relative p-6">
+                  <CardHeader className="p-0 pb-6">
+                    <div className="flex items-start justify-between mb-6">
+                      <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-full border border-copper-500/30 bg-copper-500/10">
+                        <div className="absolute inset-0 bg-gradient-radial from-accent/30 via-transparent to-transparent rounded-full animate-pulse" />
+                        <Users className="h-8 w-8 text-accent relative z-10" />
                       </div>
                       
                       <div className="flex items-center gap-2">
                         {community.isPrivate ? (
-                          <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-xs">
+                          <Badge className="bg-gradient-to-r from-copper-500 to-accent text-black border-0 text-xs font-medium shadow-soft">
                             <Lock className="h-3 w-3 mr-1" />
                             Private
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="border-amber-300 text-amber-600 text-xs">
+                          <Badge variant="outline" className="border-accent/50 text-accent text-xs font-medium bg-accent/10">
                             <Globe className="h-3 w-3 mr-1" />
                             Public
                           </Badge>
@@ -449,33 +546,42 @@ export default function CommunitiesLandingPage() {
                       </div>
                     </div>
                     
-                    <CardTitle className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                    <CardTitle className="font-fraunces text-xl font-bold text-text mb-4 group-hover:text-accent transition-colors duration-300">
                       {community.name}
                     </CardTitle>
                     
-                    <CardDescription className="text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
+                    <CardDescription className="text-muted line-clamp-3 leading-relaxed">
                       {community.description}
                     </CardDescription>
                   </CardHeader>
                   
-                  <CardContent className="pt-0">
-                    <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400 mb-6">
-                      <div className="flex items-center">
-                        <Users className="h-4 w-4 mr-1.5 text-amber-500" />
-                        <span className="font-medium">{community.memberCount || 0}</span>
-                        <span className="ml-1">members</span>
+                  <CardContent className="p-0">
+                    {/* Community stats with firefly accents */}
+                    <div className="flex items-center justify-between text-sm text-muted mb-8">
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-radial from-accent/30 via-transparent to-transparent rounded-full" />
+                          <Users className="h-4 w-4 text-accent relative z-10" />
+                        </div>
+                        <span className="font-semibold text-text">{community.memberCount || 0}</span>
+                        <span>members</span>
                       </div>
-                      <div className="flex items-center">
-                        <MessageSquare className="h-4 w-4 mr-1.5 text-amber-500" />
-                        <span className="font-medium">{community.postCount || 0}</span>
-                        <span className="ml-1">posts</span>
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full" />
+                          <MessageSquare className="h-4 w-4 text-glow relative z-10" />
+                        </div>
+                        <span className="font-semibold text-text">{community.postCount || 0}</span>
+                        <span>posts</span>
                       </div>
                     </div>
                     
                     <Link href={`/communities/${community.slug || community.id}`}>
-                      <Button className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all" data-testid={`join-community-${community.id}`}>
-                        <Crown className="h-4 w-4 mr-2" />
-                        Enter Community
+                      <Button className="relative w-full bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold py-3 rounded-xl shadow-soft hover:shadow-glow transition-all duration-300 group/btn overflow-hidden" data-testid={`join-community-${community.id}`}>
+                        {/* Button glow effect */}
+                        <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
+                        <Crown className="h-5 w-5 mr-2 relative z-10" />
+                        <span className="relative z-10">Enter Community</span>
                       </Button>
                     </Link>
                   </CardContent>
@@ -488,31 +594,54 @@ export default function CommunitiesLandingPage() {
 
       {/* Premium Empty State */}
       {communities.length === 0 && (
-        <div className="text-center py-20">
+        <div className="relative text-center py-24">
+          {/* Additional firefly atmosphere for empty state */}
+          <div className="absolute top-16 left-1/4 w-32 h-32 bg-gradient-radial from-copper-500/20 via-transparent to-transparent rounded-full animate-pulse" />
+          <div className="absolute bottom-20 right-1/3 w-40 h-40 bg-gradient-radial from-glow/25 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '1s' }} />
+          
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-md mx-auto"
+            transition={{ duration: 0.8 }}
+            className="relative max-w-lg mx-auto"
           >
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 mx-auto mb-6">
-              <Sparkles className="h-10 w-10 text-amber-600" />
+            {/* Enhanced firefly icon */}
+            <div className="relative inline-flex items-center justify-center w-28 h-28 rounded-full border border-copper-500/30 bg-copper-500/10 mx-auto mb-12">
+              <div className="absolute inset-0 bg-gradient-radial from-glow/40 via-accent/20 to-transparent rounded-full animate-pulse" />
+              <div className="absolute inset-2 bg-gradient-radial from-copper-500/20 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
+              <Sparkles className="h-14 w-14 text-accent relative z-10" />
             </div>
             
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-              {selectedTab === 'discover' ? 'New Communities Coming Soon' : 'No Communities Yet'}
+            <h3 className="font-fraunces text-3xl font-bold text-text mb-6">
+              {selectedTab === 'discover' ? (
+                <>
+                  <span>New Communities</span>
+                  <br />
+                  <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent">Coming Soon</span>
+                </>
+              ) : (
+                <>
+                  <span>No Communities</span>
+                  <br />
+                  <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent">Yet</span>
+                </>
+              )}
             </h3>
             
-            <p className="text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">
+            <p className="text-muted mb-12 leading-relaxed text-lg">
               {selectedTab === 'discover' 
-                ? 'We\'re curating exclusive communities for our premium members. Check back soon for exciting new connections!' 
-                : 'Start your community journey by creating or joining premium communities tailored to your interests.'}
+                ? 'We\'re curating exclusive communities for our premium members. Like fireflies gathering in the night, check back soon for exciting new connections!' 
+                : 'Start your community journey by creating or joining premium communities tailored to your interests in Vancouver\'s vibrant cultural scene.'}
             </p>
             
             {user?.role === 'organizer' && selectedTab !== 'discover' && (
-              <Button className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-semibold shadow-lg hover:shadow-xl" data-testid="create-community-button">
-                <Plus className="h-5 w-5 mr-2" />
-                Create Premium Community
+              <Button 
+                className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-8 py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
+                data-testid="create-community-button"
+              >
+                <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <Plus className="h-6 w-6 mr-2 relative z-10" />
+                <span className="relative z-10">Create Premium Community</span>
               </Button>
             )}
           </motion.div>
