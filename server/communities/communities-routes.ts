@@ -1081,7 +1081,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"name":"My Community","description":"A great community"}'
    */
-  app.post('/api/communities', checkCommunitiesFeatureFlag, requireSessionApprovedOrganizer, async (req: Request, res: Response) => {
+  app.post('/api/communities', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
     try {
       const organizer = (req as any).organizer;
 
