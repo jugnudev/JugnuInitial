@@ -312,10 +312,10 @@ export default function CommunitiesLandingPage() {
   const organizer = authData?.organizer;
   const organizerApplication = authData?.organizerApplication;
 
-  // Get user's communities if they're an approved organizer
+  // Get user's communities for all authenticated users
   const { data: userCommunitiesData } = useQuery<{ communities: Community[], count: number }>({
     queryKey: ['/api/user/communities'],
-    enabled: !!organizer,
+    enabled: !!user,
     retry: false,
   });
 
