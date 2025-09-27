@@ -133,6 +133,117 @@ export default function CommunitiesLandingPage() {
   const totalSteps = 4;
   const { toast } = useToast();
 
+  // Enhanced SEO Meta Tags for Communities conversion funnel
+  useEffect(() => {
+    // Store original title and meta tag values for restoration
+    const originalTitle = document.title;
+    const originalValues: { element: HTMLMetaElement; originalContent: string }[] = [];
+    const createdMetas: HTMLMetaElement[] = [];
+    
+    // Set optimized page title
+    document.title = "Premium Communities - Jugnu | Create & Join Cultural Communities Vancouver";
+    
+    // Create or update meta tags for Communities page SEO
+    const metaTags = [
+      { name: 'description', content: 'Join Vancouver\'s premier cultural communities platform. Create premium communities, connect with like-minded members, and grow your cultural business with advanced member management tools.' },
+      { name: 'keywords', content: 'premium communities Vancouver, cultural communities, South Asian community platform, business networking Vancouver, event organizer tools, community management, Vancouver cultural groups' },
+      { property: 'og:title', content: 'Premium Communities - Jugnu | Create & Join Cultural Communities' },
+      { property: 'og:description', content: 'Build and grow premium cultural communities with advanced member management, communication tools, and business features. Join Vancouver\'s leading cultural platform.' },
+      { property: 'og:type', content: 'website' },
+      { property: 'og:url', content: `https://thehouseofjugnu.com/communities` },
+      { property: 'og:image', content: 'https://thehouseofjugnu.com/communities-og.jpg' },
+      { property: 'og:locale', content: 'en_CA' },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: 'Premium Communities - Jugnu | Cultural Community Platform' },
+      { name: 'twitter:description', content: 'Create and manage premium cultural communities with advanced tools and features. Perfect for event organizers and cultural businesses.' },
+      { name: 'twitter:image', content: 'https://thehouseofjugnu.com/communities-twitter.jpg' }
+    ];
+    
+    metaTags.forEach(({ name, property, content }) => {
+      const selector = name ? `meta[name="${name}"]` : `meta[property="${property}"]`;
+      let meta = document.querySelector(selector) as HTMLMetaElement;
+      
+      if (!meta) {
+        // Create new meta tag
+        meta = document.createElement('meta');
+        if (name) meta.setAttribute('name', name);
+        if (property) meta.setAttribute('property', property);
+        document.head.appendChild(meta);
+        createdMetas.push(meta);
+      } else {
+        // Store original content for restoration
+        originalValues.push({ 
+          element: meta, 
+          originalContent: meta.getAttribute('content') || '' 
+        });
+      }
+      meta.setAttribute('content', content);
+    });
+
+    // Add structured data for Communities platform
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Jugnu Communities",
+      "applicationCategory": "CommunityApplication",
+      "description": "Premium community platform for cultural organizations and event organizers in Vancouver",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "CAD",
+        "description": "Free to join, premium features for organizers"
+      },
+      "featureList": [
+        "Advanced Member Management",
+        "Premium Communication Tools", 
+        "Event Organization",
+        "Business Networking",
+        "Analytics & Insights",
+        "Multi-channel Promotion"
+      ],
+      "provider": {
+        "@type": "Organization",
+        "name": "Jugnu",
+        "url": "https://thehouseofjugnu.com"
+      }
+    };
+
+    let jsonLdScript = document.querySelector('script[type="application/ld+json"][data-communities]') as HTMLScriptElement;
+    if (!jsonLdScript) {
+      jsonLdScript = document.createElement('script');
+      jsonLdScript.type = 'application/ld+json';
+      jsonLdScript.setAttribute('data-communities', 'true');
+      document.head.appendChild(jsonLdScript);
+    }
+    jsonLdScript.textContent = JSON.stringify(structuredData);
+
+    // Cleanup function - restore original state
+    return () => {
+      // Restore original title
+      document.title = originalTitle;
+      
+      // Remove created meta tags
+      createdMetas.forEach(meta => {
+        if (meta.parentNode) {
+          document.head.removeChild(meta);
+        }
+      });
+      
+      // Restore original meta tag values
+      originalValues.forEach(({ element, originalContent }) => {
+        if (element.parentNode) {
+          element.setAttribute('content', originalContent);
+        }
+      });
+      
+      // Remove structured data
+      if (jsonLdScript && jsonLdScript.parentNode) {
+        document.head.removeChild(jsonLdScript);
+      }
+    };
+  }, []);
+
   // Wizard navigation functions
   const nextStep = () => {
     if (wizardStep < totalSteps) {
