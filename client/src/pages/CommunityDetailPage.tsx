@@ -23,7 +23,15 @@ import {
   Shield,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  BarChart3,
+  TrendingUp,
+  Edit3,
+  Trash2,
+  UserCheck,
+  UserX,
+  Plus,
+  Send
 } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -135,7 +143,7 @@ export default function CommunityDetailPage() {
   const [match, params] = useRoute("/communities/:slug");
   const communitySlug = params?.slug;
   
-  const [activeTab, setActiveTab] = useState("posts");
+  const [activeTab, setActiveTab] = useState("announcements");
   const { toast } = useToast();
 
   // Get current user (fixed authentication pattern)
@@ -175,6 +183,15 @@ export default function CommunityDetailPage() {
         variant: "destructive" 
       });
     },
+  });
+
+  // Organizer-only state for console features
+  const [showCreateAnnouncement, setShowCreateAnnouncement] = useState(false);
+  const [announcementForm, setAnnouncementForm] = useState({
+    title: '',
+    content: '',
+    postType: 'announcement' as 'announcement' | 'update' | 'event',
+    isPinned: false
   });
 
   const community = communityData?.community;
@@ -503,28 +520,30 @@ export default function CommunityDetailPage() {
           </Card>
         </motion.div>
 
-        {/* Premium Community Content */}
+        {/* Community Content - Visible to approved members and organizers */}
         {membership?.status === 'approved' || canManage ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
+            {/* Organizer Console - Only visible when user canManage */}
+            {canManage && (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="relative grid w-full grid-cols-3 bg-card/80 backdrop-blur-sm p-2 rounded-2xl shadow-large border border-border">
+              <TabsList className="relative grid w-full grid-cols-4 bg-card/80 backdrop-blur-sm p-2 rounded-2xl shadow-large border border-border">
                 {/* Subtle inner glow */}
                 <div className="absolute inset-0 bg-gradient-to-r from-copper-500/5 via-accent/5 to-glow/5 rounded-2xl" />
                 
                 <TabsTrigger 
-                  value="posts" 
+                  value="announcements" 
                   className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-glow font-bold transition-all duration-300 data-[state=inactive]:text-muted data-[state=inactive]:hover:text-accent data-[state=inactive]:hover:bg-copper-500/10 rounded-xl"
-                  data-testid="tab-posts"
+                  data-testid="tab-announcements"
                 >
-                  {activeTab === 'posts' && (
+                  {activeTab === 'announcements' && (
                     <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-xl" />
                   )}
                   <MessageSquare className="h-4 w-4 mr-2 relative z-10" />
-                  <span className="relative z-10">Posts</span>
+                  <span className="relative z-10">Announcements</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="members" 
@@ -538,19 +557,44 @@ export default function CommunityDetailPage() {
                   <span className="relative z-10">Members</span>
                 </TabsTrigger>
                 <TabsTrigger 
-                  value="about" 
+                  value="analytics" 
                   className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-glow font-bold transition-all duration-300 data-[state=inactive]:text-muted data-[state=inactive]:hover:text-accent data-[state=inactive]:hover:bg-copper-500/10 rounded-xl"
-                  data-testid="tab-about"
+                  data-testid="tab-analytics"
                 >
-                  {activeTab === 'about' && (
+                  {activeTab === 'analytics' && (
                     <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-xl" />
                   )}
-                  <Shield className="h-4 w-4 mr-2 relative z-10" />
-                  <span className="relative z-10">About</span>
+                  <BarChart3 className="h-4 w-4 mr-2 relative z-10" />
+                  <span className="relative z-10">Analytics</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="settings" 
+                  className="relative data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-glow font-bold transition-all duration-300 data-[state=inactive]:text-muted data-[state=inactive]:hover:text-accent data-[state=inactive]:hover:bg-copper-500/10 rounded-xl"
+                  data-testid="tab-settings"
+                >
+                  {activeTab === 'settings' && (
+                    <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-xl" />
+                  )}
+                  <Settings className="h-4 w-4 mr-2 relative z-10" />
+                  <span className="relative z-10">Settings</span>
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="posts" className="space-y-6 mt-8">
+              {/* Announcements Tab - Enhanced with Create Functionality */}
+              <TabsContent value="announcements" className="space-y-6 mt-8">
+                {/* Create Announcement Button */}
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={() => setShowCreateAnnouncement(true)}
+                    className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
+                    data-testid="create-announcement-button"
+                  >
+                    <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <Plus className="h-5 w-5 mr-2 relative z-10" />
+                    <span className="relative z-10">New Announcement</span>
+                  </Button>
+                </div>
+
                 {posts.length > 0 ? (
                   posts.map((post: Post, index) => (
                     <motion.div
@@ -597,6 +641,25 @@ export default function CommunityDetailPage() {
                                 {post.title}
                               </CardTitle>
                             </div>
+                            {/* Organizer Action Buttons */}
+                            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 hover:bg-accent/20 text-accent"
+                                data-testid={`edit-post-${post.id}`}
+                              >
+                                <Edit3 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 hover:bg-destructive/20 text-destructive"
+                                data-testid={`delete-post-${post.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </CardHeader>
                         <CardContent className="pt-0">
@@ -618,18 +681,66 @@ export default function CommunityDetailPage() {
                       <MessageSquare className="h-10 w-10 text-accent relative z-10" />
                     </div>
                     <h3 className="font-fraunces text-2xl font-bold text-text mb-4">
-                      <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent">No posts yet</span>
+                      <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent">No announcements yet</span>
                     </h3>
-                    <p className="text-muted leading-relaxed">
-                      Be the first to start a conversation in this premium community like a firefly lighting up the night!
+                    <p className="text-muted leading-relaxed mb-6">
+                      Create your first announcement to keep your premium community informed and engaged!
                     </p>
+                    <Button 
+                      onClick={() => setShowCreateAnnouncement(true)}
+                      className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
+                      data-testid="create-first-announcement-button"
+                    >
+                      <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <Plus className="h-5 w-5 mr-2 relative z-10" />
+                      <span className="relative z-10">Create First Announcement</span>
+                    </Button>
                   </motion.div>
                 )}
               </TabsContent>
 
-              <TabsContent value="members" className="mt-8">
+              {/* Members Tab - Enhanced with Management Features */}
+              <TabsContent value="members" className="mt-8 space-y-6">
+                {/* Members Overview Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large overflow-hidden rounded-2xl">
+                    <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-accent/5 to-glow/5" />
+                    <CardContent className="p-6 text-center">
+                      <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-copper-500 to-accent mx-auto mb-4">
+                        <Users className="h-6 w-6 text-black" />
+                      </div>
+                      <div className="text-2xl font-bold text-text">{members.length}</div>
+                      <div className="text-sm text-muted">Total Members</div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large overflow-hidden rounded-2xl">
+                    <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-glow/5 to-copper-500/5" />
+                    <CardContent className="p-6 text-center">
+                      <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-accent to-glow mx-auto mb-4">
+                        <Clock className="h-6 w-6 text-black" />
+                      </div>
+                      <div className="text-2xl font-bold text-text">
+                        {members.filter(m => m.status === 'pending').length}
+                      </div>
+                      <div className="text-sm text-muted">Pending Requests</div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large overflow-hidden rounded-2xl">
+                    <div className="absolute inset-0 bg-gradient-to-br from-glow/5 via-copper-500/5 to-accent/5" />
+                    <CardContent className="p-6 text-center">
+                      <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-glow to-copper-500 mx-auto mb-4">
+                        <TrendingUp className="h-6 w-6 text-black" />
+                      </div>
+                      <div className="text-2xl font-bold text-text">+5</div>
+                      <div className="text-sm text-muted">This Month</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Members List with Management */}
                 <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large group overflow-hidden rounded-2xl">
-                  {/* Firefly glow for members section */}
                   <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-accent/5 to-glow/5" />
                   
                   <CardHeader className="relative pb-6">
@@ -639,11 +750,11 @@ export default function CommunityDetailPage() {
                         <Users className="h-6 w-6 text-black relative z-10" />
                       </div>
                       <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent font-fraunces">
-                        Premium Members
+                        Manage Members
                       </span>
                     </CardTitle>
                     <p className="text-muted mt-3 leading-relaxed">
-                      Connect with verified members of this exclusive community, each bringing their own light to our gathering.
+                      Approve new members and manage your premium community.
                     </p>
                   </CardHeader>
                   <CardContent>
@@ -657,22 +768,55 @@ export default function CommunityDetailPage() {
                             transition={{ duration: 0.5, delay: index * 0.1 }}
                             className="relative flex items-center space-x-4 p-6 rounded-xl bg-gradient-to-r from-card/80 to-accent/10 hover:shadow-glow transition-all duration-300 group/member border border-border/50"
                           >
-                            {/* Member glow effect */}
                             <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover/member:opacity-100 transition-opacity duration-300 rounded-xl" />
                             
                             <Avatar className="relative h-14 w-14 ring-2 ring-accent/50 group-hover/member:ring-accent transition-colors">
                               <AvatarFallback className="bg-gradient-to-r from-copper-500 to-accent text-black font-bold text-lg relative z-10">
-                                OR
+                                {member.role === 'owner' ? 'OR' : 'MB'}
                               </AvatarFallback>
                             </Avatar>
+                            
                             <div className="flex-1 relative z-10">
-                              <p className="font-bold text-text group-hover/member:text-accent transition-colors">Community Organizer</p>
-                              <p className="text-sm text-muted">Leading this premium community with passion</p>
+                              <p className="font-bold text-text group-hover/member:text-accent transition-colors">
+                                {member.role === 'owner' ? 'Community Organizer' : 'Premium Member'}
+                              </p>
+                              <p className="text-sm text-muted">
+                                {member.status === 'pending' ? 'Awaiting approval' : 'Active member'}
+                              </p>
                             </div>
-                            <Badge className="relative bg-gradient-to-r from-copper-600 to-copper-800 text-white border-0 shadow-soft px-3 py-1">
-                              <Crown className="h-3 w-3 mr-1" />
-                              Owner
-                            </Badge>
+                            
+                            <div className="flex items-center gap-2">
+                              <Badge className={`relative border-0 shadow-soft px-3 py-1 ${
+                                member.role === 'owner' 
+                                  ? 'bg-gradient-to-r from-copper-600 to-copper-800 text-white'
+                                  : member.status === 'pending'
+                                  ? 'bg-gradient-to-r from-yellow-500 to-yellow-600 text-black'
+                                  : 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                              }`}>
+                                {member.role === 'owner' && <Crown className="h-3 w-3 mr-1" />}
+                                {member.role === 'owner' ? 'Owner' : member.status === 'pending' ? 'Pending' : 'Member'}
+                              </Badge>
+                              
+                              {member.status === 'pending' && (
+                                <div className="flex gap-1">
+                                  <Button
+                                    size="sm"
+                                    className="h-8 px-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                                    data-testid={`approve-member-${index}`}
+                                  >
+                                    <UserCheck className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="h-8 px-3"
+                                    data-testid={`reject-member-${index}`}
+                                  >
+                                    <UserX className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
                           </motion.div>
                         ))}
                       </div>
@@ -683,10 +827,10 @@ export default function CommunityDetailPage() {
                           <Users className="h-10 w-10 text-accent relative z-10" />
                         </div>
                         <h3 className="font-fraunces text-xl font-bold text-text mb-4">
-                          <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent">Building our community</span>
+                          <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent">No members yet</span>
                         </h3>
                         <p className="text-muted leading-relaxed">
-                          More premium members will gather here like fireflies drawn to our light as they join
+                          Your premium community is ready for members to join and create meaningful connections.
                         </p>
                       </div>
                     )}
@@ -694,35 +838,157 @@ export default function CommunityDetailPage() {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="about" className="mt-8">
+              {/* Analytics Tab - New Analytics Dashboard */}
+              <TabsContent value="analytics" className="mt-8 space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {/* Key Metrics Cards */}
+                  <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large overflow-hidden rounded-2xl">
+                    <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-accent/5 to-glow/5" />
+                    <CardContent className="p-6 text-center">
+                      <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-copper-500 to-accent mx-auto mb-4">
+                        <Users className="h-6 w-6 text-black" />
+                      </div>
+                      <div className="text-3xl font-bold text-text mb-2">{members.length}</div>
+                      <div className="text-sm text-muted">Total Members</div>
+                      <div className="text-xs text-accent mt-1">+12% this month</div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large overflow-hidden rounded-2xl">
+                    <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-glow/5 to-copper-500/5" />
+                    <CardContent className="p-6 text-center">
+                      <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-accent to-glow mx-auto mb-4">
+                        <MessageSquare className="h-6 w-6 text-black" />
+                      </div>
+                      <div className="text-3xl font-bold text-text mb-2">{posts.length}</div>
+                      <div className="text-sm text-muted">Announcements</div>
+                      <div className="text-xs text-accent mt-1">+3 this week</div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large overflow-hidden rounded-2xl">
+                    <div className="absolute inset-0 bg-gradient-to-br from-glow/5 via-copper-500/5 to-accent/5" />
+                    <CardContent className="p-6 text-center">
+                      <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-glow to-copper-500 mx-auto mb-4">
+                        <TrendingUp className="h-6 w-6 text-black" />
+                      </div>
+                      <div className="text-3xl font-bold text-text mb-2">89%</div>
+                      <div className="text-sm text-muted">Engagement Rate</div>
+                      <div className="text-xs text-accent mt-1">Above average</div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large overflow-hidden rounded-2xl">
+                    <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-glow/5 to-accent/5" />
+                    <CardContent className="p-6 text-center">
+                      <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-copper-500 via-accent to-glow mx-auto mb-4">
+                        <BarChart3 className="h-6 w-6 text-black" />
+                      </div>
+                      <div className="text-3xl font-bold text-text mb-2">7.2k</div>
+                      <div className="text-sm text-muted">Total Views</div>
+                      <div className="text-xs text-accent mt-1">+24% growth</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Analytics Charts Section */}
                 <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large group overflow-hidden rounded-2xl">
-                  {/* About section glow */}
                   <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-accent/5 to-glow/5" />
                   
                   <CardHeader className="relative pb-6">
                     <CardTitle className="flex items-center text-2xl font-bold text-text">
-                      <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-muted-foreground/80 to-muted-foreground mr-4">
-                        <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-full animate-pulse" />
-                        <Shield className="h-6 w-6 text-white relative z-10" />
+                      <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-copper-500 to-accent mr-4">
+                        <div className="absolute inset-0 bg-gradient-radial from-glow/40 via-transparent to-transparent rounded-full animate-pulse" />
+                        <BarChart3 className="h-6 w-6 text-black relative z-10" />
                       </div>
                       <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent font-fraunces">
-                        About This Community
+                        Community Analytics
                       </span>
                     </CardTitle>
+                    <p className="text-muted mt-3 leading-relaxed">
+                      Track your community growth and engagement like fireflies illuminating the night.
+                    </p>
                   </CardHeader>
-                  <CardContent className="space-y-8">
-                    <div>
-                      <h4 className="font-bold text-text mb-4">Community Description</h4>
-                      <p className="text-lg text-muted whitespace-pre-line leading-relaxed">
-                        {community?.description}
+                  <CardContent>
+                    <div className="text-center py-12">
+                      <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-full border border-copper-500/30 bg-copper-500/10 mx-auto mb-6">
+                        <div className="absolute inset-0 bg-gradient-radial from-accent/30 via-transparent to-transparent rounded-full animate-pulse" />
+                        <BarChart3 className="h-10 w-10 text-accent relative z-10" />
+                      </div>
+                      <h3 className="font-fraunces text-2xl font-bold text-text mb-4">
+                        <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent">Analytics Dashboard</span>
+                      </h3>
+                      <p className="text-muted leading-relaxed">
+                        Detailed charts and insights coming soon to help you understand your community better.
                       </p>
                     </div>
-                    
-                    <div className="grid md:grid-cols-2 gap-6">
-                      <div className="space-y-4">
-                        <h4 className="font-bold text-text mb-4">Community Settings</h4>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Community Settings Tab - Enhanced Management */}
+              <TabsContent value="settings" className="mt-8 space-y-6">
+                {/* Community Edit Form */}
+                <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large group overflow-hidden rounded-2xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-accent/5 to-glow/5" />
+                  
+                  <CardHeader className="relative pb-6">
+                    <CardTitle className="flex items-center text-2xl font-bold text-text">
+                      <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-copper-500 to-accent mr-4">
+                        <div className="absolute inset-0 bg-gradient-radial from-glow/40 via-transparent to-transparent rounded-full animate-pulse" />
+                        <Settings className="h-6 w-6 text-black relative z-10" />
+                      </div>
+                      <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent font-fraunces">
+                        Community Settings
+                      </span>
+                    </CardTitle>
+                    <p className="text-muted mt-3 leading-relaxed">
+                      Manage your premium community settings and customize the experience for your members.
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-8">
+                    {/* Basic Information */}
+                    <div className="space-y-6">
+                      <h4 className="font-bold text-text text-lg flex items-center gap-2">
+                        <Edit3 className="h-5 w-5 text-accent" />
+                        Basic Information
+                      </h4>
+                      
+                      <div className="grid gap-6">
+                        <div>
+                          <label className="text-sm font-medium text-text mb-2 block">Community Name</label>
+                          <div className="relative p-4 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50">
+                            <div className="font-semibold text-text">{community?.name}</div>
+                          </div>
+                        </div>
                         
-                        <div className="relative flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50 mb-4 group/setting">
+                        <div>
+                          <label className="text-sm font-medium text-text mb-2 block">Description</label>
+                          <div className="relative p-4 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50">
+                            <div className="text-muted leading-relaxed">{community?.description}</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
+                        data-testid="edit-community-info-button"
+                      >
+                        <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <Edit3 className="h-5 w-5 mr-2 relative z-10" />
+                        <span className="relative z-10">Edit Information</span>
+                      </Button>
+                    </div>
+
+                    {/* Privacy & Access Settings */}
+                    <div className="space-y-6">
+                      <h4 className="font-bold text-text text-lg flex items-center gap-2">
+                        <Shield className="h-5 w-5 text-accent" />
+                        Privacy & Access
+                      </h4>
+                      
+                      <div className="grid md:grid-cols-2 gap-6">
+                        <div className="relative flex items-center justify-between p-6 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50 group/setting">
                           <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover/setting:opacity-100 transition-opacity duration-300 rounded-xl" />
                           <div className="flex items-center gap-4 relative z-10">
                             {community?.isPrivate ? (
@@ -736,55 +1002,71 @@ export default function CommunityDetailPage() {
                                 <Globe className="h-6 w-6 text-glow relative z-10" />
                               </div>
                             )}
-                            <span className="font-semibold text-text">Privacy Level</span>
+                            <div>
+                              <div className="font-semibold text-text">Privacy Level</div>
+                              <div className="text-sm text-muted">
+                                {community?.isPrivate ? 'Only invited members can join' : 'Community is publicly discoverable'}
+                              </div>
+                            </div>
                           </div>
                           <Badge className={`relative ${community?.isPrivate 
                             ? 'bg-gradient-to-r from-copper-600 to-copper-800' 
                             : 'bg-gradient-to-r from-glow/80 to-accent'
-                          } ${community?.isPrivate ? 'text-white' : 'text-black'} border-0 shadow-soft px-3 py-1 z-10`}>
-                            {community?.isPrivate ? 'Exclusive Private' : 'Open Public'}
+                          } ${community?.isPrivate ? 'text-white' : 'text-black'} border-0 shadow-soft px-4 py-2 z-10 font-bold`}>
+                            {community?.isPrivate ? 'Private' : 'Public'}
                           </Badge>
                         </div>
                         
-                        <div className="relative flex items-center justify-between p-5 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50 group/setting">
+                        <div className="relative flex items-center justify-between p-6 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50 group/setting">
                           <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover/setting:opacity-100 transition-opacity duration-300 rounded-xl" />
                           <div className="flex items-center gap-4 relative z-10">
                             <div className="relative">
                               <div className="absolute inset-0 bg-gradient-radial from-accent/30 via-transparent to-transparent rounded-full" />
-                              <Shield className="h-6 w-6 text-accent relative z-10" />
+                              <UserPlus className="h-6 w-6 text-accent relative z-10" />
                             </div>
-                            <span className="font-semibold text-text">Membership Policy</span>
+                            <div>
+                              <div className="font-semibold text-text">Membership Policy</div>
+                              <div className="text-sm text-muted">How new members join your community</div>
+                            </div>
                           </div>
-                          <Badge className="relative bg-gradient-to-r from-copper-500 to-accent text-black border-0 shadow-soft capitalize px-3 py-1 z-10">
+                          <Badge className="relative bg-gradient-to-r from-copper-500 to-accent text-black border-0 shadow-soft capitalize px-4 py-2 z-10 font-bold">
                             {community?.membershipPolicy?.replace('_', ' ')}
                           </Badge>
                         </div>
                       </div>
                       
-                      <div className="space-y-4">
-                        <h4 className="font-bold text-text mb-4">Premium Features</h4>
-                        <div className="space-y-4">
-                          {[
-                            'Exclusive member discussions',
-                            'Premium content access', 
-                            'Priority event notifications',
-                            'Direct organizer contact',
-                            'Community networking'
-                          ].map((feature, index) => (
-                            <motion.div 
-                              key={index}
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: 0.6 + index * 0.1 }}
-                              className="flex items-center gap-4"
-                            >
-                              <div className="relative">
-                                <div className="absolute inset-0 bg-gradient-radial from-glow/40 via-transparent to-transparent rounded-full" />
-                                <CheckCircle className="h-5 w-5 text-glow flex-shrink-0 relative z-10" />
-                              </div>
-                              <span className="text-text leading-relaxed font-medium">{feature}</span>
-                            </motion.div>
-                          ))}
+                      <Button 
+                        className="bg-gradient-to-r from-accent to-glow hover:from-glow hover:to-accent text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
+                        data-testid="edit-privacy-settings-button"
+                      >
+                        <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <Shield className="h-5 w-5 mr-2 relative z-10" />
+                        <span className="relative z-10">Update Privacy Settings</span>
+                      </Button>
+                    </div>
+
+                    {/* Danger Zone */}
+                    <div className="space-y-6 pt-8 border-t border-destructive/20">
+                      <h4 className="font-bold text-destructive text-lg flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5" />
+                        Danger Zone
+                      </h4>
+                      <div className="p-6 rounded-xl bg-gradient-to-r from-destructive/10 to-destructive/5 border border-destructive/30">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h5 className="font-bold text-text mb-2">Delete Community</h5>
+                            <p className="text-muted text-sm leading-relaxed">
+                              Permanently delete this community and all its content. This action cannot be undone and will remove all member access.
+                            </p>
+                          </div>
+                          <Button 
+                            variant="destructive"
+                            className="ml-4 font-bold px-6 py-3 hover:shadow-lg"
+                            data-testid="delete-community-button"
+                          >
+                            <Trash2 className="h-5 w-5 mr-2" />
+                            Delete
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -792,6 +1074,104 @@ export default function CommunityDetailPage() {
                 </Card>
               </TabsContent>
             </Tabs>
+            )}
+
+            {/* Member Content - Always visible to approved members and organizers */}
+            {!canManage && (
+              <div className="mt-8">
+                <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large group overflow-hidden rounded-2xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-accent/5 to-glow/5" />
+                  
+                  <CardHeader className="relative pb-6">
+                    <CardTitle className="flex items-center text-2xl font-bold text-text">
+                      <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-copper-500 to-accent mr-4">
+                        <div className="absolute inset-0 bg-gradient-radial from-glow/40 via-transparent to-transparent rounded-full animate-pulse" />
+                        <MessageSquare className="h-6 w-6 text-black relative z-10" />
+                      </div>
+                      <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent font-fraunces">
+                        Community Posts
+                      </span>
+                    </CardTitle>
+                    <p className="text-muted mt-3 leading-relaxed">
+                      Stay connected with your premium community updates and announcements.
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {posts.length > 0 ? (
+                      <div className="space-y-6">
+                        {posts.map((post: Post, index) => (
+                          <motion.div
+                            key={post.id}
+                            initial={{ opacity: 0, y: 30 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: index * 0.1 }}
+                            data-testid={`member-post-${post.id}`}
+                            className="group"
+                          >
+                            <Card className={`relative border border-border bg-card/90 backdrop-blur-sm shadow-large hover:shadow-glow-strong transition-all duration-500 overflow-hidden group rounded-2xl ${
+                              post.isPinned 
+                                ? 'ring-2 ring-accent/50 bg-gradient-to-br from-accent/10 via-copper-500/5 to-glow/10' 
+                                : 'hover:ring-2 hover:ring-copper-500/30'
+                            }`}>
+                              <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
+                              <CardHeader className="pb-4">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-3">
+                                      {post.isPinned && (
+                                        <div className="relative flex items-center gap-1 px-3 py-2 bg-gradient-to-r from-accent to-glow text-black rounded-full text-xs font-bold shadow-glow">
+                                          <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full" />
+                                          <Pin className="h-3 w-3 relative z-10" />
+                                          <span className="relative z-10">Pinned</span>
+                                        </div>
+                                      )}
+                                      <Badge className={`capitalize font-medium ${
+                                        post.postType === 'announcement' 
+                                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0'
+                                          : post.postType === 'event'
+                                          ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0'
+                                          : 'bg-gradient-to-r from-green-500 to-green-600 text-white border-0'
+                                      }`}>
+                                        {post.postType}
+                                      </Badge>
+                                      <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                                        <Clock className="h-3 w-3" />
+                                        {new Date(post.createdAt).toLocaleDateString()}
+                                      </div>
+                                    </div>
+                                    <CardTitle className="font-fraunces text-xl font-bold text-text group-hover:text-accent transition-colors duration-300 relative z-10">
+                                      {post.title}
+                                    </CardTitle>
+                                  </div>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="pt-0">
+                                <p className="text-muted whitespace-pre-line leading-relaxed relative z-10">
+                                  {post.content}
+                                </p>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-full border border-copper-500/30 bg-copper-500/10 mx-auto mb-6">
+                          <div className="absolute inset-0 bg-gradient-radial from-accent/30 via-transparent to-transparent rounded-full animate-pulse" />
+                          <MessageSquare className="h-10 w-10 text-accent relative z-10" />
+                        </div>
+                        <h3 className="font-fraunces text-2xl font-bold text-text mb-4">
+                          <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent">No posts yet</span>
+                        </h3>
+                        <p className="text-muted leading-relaxed">
+                          Your community organizer will share updates and announcements here soon!
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </motion.div>
         ) : (
           /* Premium Members-Only Gate */
