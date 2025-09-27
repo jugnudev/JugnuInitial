@@ -4,7 +4,13 @@ import { motion, useScroll, useSpring, useTransform, useInView, AnimatePresence,
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, MessageSquare, Heart, Plus, Lock, Globe, Crown, Star, Sparkles, Check, Zap, Calendar, Award } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Users, MessageSquare, Heart, Plus, Lock, Globe, Crown, Star, Sparkles, Check, Zap, Calendar, Award, X } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -106,6 +112,13 @@ const useScrollAnimation = () => {
 
 export default function CommunitiesLandingPage() {
   const [selectedTab, setSelectedTab] = useState<'all' | 'my' | 'discover'>('all');
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [communityForm, setCommunityForm] = useState({
+    name: '',
+    description: '',
+    isPrivate: false,
+    membershipPolicy: 'approval_required'
+  });
   const { toast } = useToast();
   
   // Scroll progress for enhanced effects
@@ -116,17 +129,23 @@ export default function CommunitiesLandingPage() {
     restDelta: 0.001
   });
 
-  // Get current user
-  const { data: authData, isLoading: userLoading } = useQuery<{ user?: User }>({
+  // Get current user and organizer status
+  const { data: authData, isLoading: userLoading } = useQuery<{ 
+    user?: User; 
+    organizer?: any; 
+    organizerApplication?: any 
+  }>({
     queryKey: ['/api/auth/me'],
     retry: false,
   });
   const user = authData?.user;
+  const organizer = authData?.organizer;
+  const organizerApplication = authData?.organizerApplication;
 
-  // Get user's own community if they're an organizer
+  // Get user's own community if they're an approved organizer
   const { data: userCommunity } = useQuery<Community>({
     queryKey: ['/api/organizers/community'],
-    enabled: !!user && user.role === 'organizer',
+    enabled: !!organizer,
     retry: false,
   });
 
@@ -140,18 +159,17 @@ export default function CommunitiesLandingPage() {
   // Create community mutation
   const createCommunityMutation = useMutation({
     mutationFn: async (data: { name: string; description: string; isPrivate?: boolean; membershipPolicy?: string }) => {
-      const response = await fetch('/api/communities', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest('POST', '/api/communities', data);
       if (!response.ok) {
         throw new Error('Failed to create community');
       }
-      return response.json();
+      return response;
     },
     onSuccess: () => {
       toast({ title: "Community created successfully!" });
+      setShowCreateDialog(false);
+      setCommunityForm({ name: '', description: '', isPrivate: false, membershipPolicy: 'approval_required' });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
       queryClient.invalidateQueries({ queryKey: ['/api/organizers/community'] });
       queryClient.invalidateQueries({ queryKey: ['/api/user/memberships'] });
     },
@@ -163,6 +181,16 @@ export default function CommunitiesLandingPage() {
       });
     },
   });
+
+  // Handle community creation form submission
+  const handleCreateCommunity = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!communityForm.name.trim()) {
+      toast({ title: "Community name is required", variant: "destructive" });
+      return;
+    }
+    createCommunityMutation.mutate(communityForm);
+  };
 
   // Determine what to show based on tab and user status
   let communities: Community[] = [];
@@ -763,19 +791,125 @@ export default function CommunitiesLandingPage() {
                 : 'Start your community journey by creating or joining premium communities tailored to your interests in Vancouver\'s vibrant cultural scene.'}
             </p>
             
-            {user?.role === 'organizer' && selectedTab !== 'discover' && (
+            {organizer && selectedTab !== 'discover' && !userCommunity && (
               <Button 
+                onClick={() => setShowCreateDialog(true)}
+                disabled={createCommunityMutation.isPending}
                 className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-8 py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
                 data-testid="create-community-button"
               >
                 <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <Plus className="h-6 w-6 mr-2 relative z-10" />
-                <span className="relative z-10">Create Premium Community</span>
+                <span className="relative z-10">
+                  {createCommunityMutation.isPending ? 'Creating...' : 'Create Premium Community'}
+                </span>
               </Button>
             )}
           </motion.div>
         </div>
       )}
+
+      {/* Create Community Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="sm:max-w-[500px] bg-card border border-border overflow-hidden">
+          {/* Premium dialog background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-accent/5 to-glow/5" />
+          
+          <DialogHeader className="relative">
+            <DialogTitle className="font-fraunces text-2xl font-bold text-text flex items-center gap-3">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full" />
+                <Crown className="h-6 w-6 text-accent relative z-10" />
+              </div>
+              Create Premium Community
+            </DialogTitle>
+            <DialogDescription className="text-muted leading-relaxed">
+              Build an exclusive community for your members with premium features and copper-bronze-gold design.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleCreateCommunity} className="relative space-y-6">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="communityName" className="text-text font-medium">Community Name *</Label>
+                <Input
+                  id="communityName"
+                  value={communityForm.name}
+                  onChange={(e) => setCommunityForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Enter your community name"
+                  className="mt-2 bg-input border-border focus:border-accent"
+                  required
+                  data-testid="input-community-name"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="communityDescription" className="text-text font-medium">Description</Label>
+                <Textarea
+                  id="communityDescription"
+                  value={communityForm.description}
+                  onChange={(e) => setCommunityForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Describe your community and its purpose"
+                  className="mt-2 bg-input border-border focus:border-accent"
+                  rows={3}
+                  data-testid="input-community-description"
+                />
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-text font-medium">Private Community</Label>
+                    <p className="text-sm text-muted">Only invited members can see and join</p>
+                  </div>
+                  <Switch
+                    checked={communityForm.isPrivate}
+                    onCheckedChange={(checked) => setCommunityForm(prev => ({ ...prev, isPrivate: checked }))}
+                    data-testid="switch-community-private"
+                  />
+                </div>
+                
+                <div>
+                  <Label className="text-text font-medium">Membership Policy</Label>
+                  <Select
+                    value={communityForm.membershipPolicy}
+                    onValueChange={(value) => setCommunityForm(prev => ({ ...prev, membershipPolicy: value }))}
+                  >
+                    <SelectTrigger className="mt-2 bg-input border-border focus:border-accent" data-testid="select-membership-policy">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="approval_required">Requires Approval</SelectItem>
+                      <SelectItem value="open">Open to All</SelectItem>
+                      <SelectItem value="closed">Invite Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter className="gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowCreateDialog(false)}
+                className="border-border text-muted hover:bg-muted/10"
+                data-testid="button-cancel-create"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={createCommunityMutation.isPending || !communityForm.name.trim()}
+                className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold shadow-glow hover:shadow-glow-strong transition-all duration-300"
+                data-testid="button-submit-create"
+              >
+                {createCommunityMutation.isPending ? 'Creating...' : 'Create Community'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
