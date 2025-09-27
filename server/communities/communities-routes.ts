@@ -971,17 +971,37 @@ export function addCommunitiesRoutes(app: Express) {
   const requireApprovedOrganizer = async (req: Request, res: Response, next: any) => {
     const user = (req as any).user;
     
-    if (user.role !== 'organizer') {
-      return res.status(403).json({ ok: false, error: 'Only organizers can perform this action' });
-    }
-
     try {
-      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      // Check if user has an approved organizer application
+      const organizerApplication = await communitiesStorage.getOrganizerApplicationByUserId(user.id);
+      
+      if (!organizerApplication || organizerApplication.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Approved organizer status required' });
+      }
+
+      // Get or create organizer record for approved application
+      let organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      
+      if (!organizer && organizerApplication.status === 'approved') {
+        // Create organizer record if approved application exists but organizer record doesn't
+        organizer = await communitiesStorage.createOrganizer({
+          userId: user.id,
+          applicationId: organizerApplication.id,
+          businessName: organizerApplication.businessName,
+          businessWebsite: organizerApplication.businessWebsite,
+          businessDescription: organizerApplication.businessDescription,
+          businessType: organizerApplication.businessType,
+          verified: false,
+          status: 'active'
+        });
+      }
+
       if (!organizer || organizer.status !== 'active') {
         return res.status(403).json({ ok: false, error: 'Organizer account not active' });
       }
       
       (req as any).organizer = organizer;
+      (req as any).organizerApplication = organizerApplication;
       next();
     } catch (error) {
       console.error('Organizer check error:', error);
