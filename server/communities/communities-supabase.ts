@@ -533,6 +533,41 @@ export class CommunitiesSupabaseDB {
     };
   }
 
+  async getOrganizerApplicationByUserId(userId: string): Promise<OrganizerApplication | null> {
+    const { data, error } = await this.client
+      .from('organizer_applications')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    
+    if (!data) return null;
+    
+    // Map database column names to JavaScript property names
+    return {
+      id: data.id,
+      userId: data.user_id,
+      businessName: data.business_name,
+      businessWebsite: data.business_website,
+      businessDescription: data.business_description,
+      businessType: data.business_type,
+      yearsExperience: data.years_experience,
+      sampleEvents: data.sample_events,
+      socialMediaHandles: data.social_media_handles,
+      businessEmail: data.business_email,
+      businessPhone: data.business_phone,
+      businessAddress: data.business_address,
+      status: data.status,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      reviewedBy: data.reviewed_by,
+      reviewedAt: data.reviewed_at,
+      rejectionReason: data.rejection_reason,
+      adminNotes: data.admin_notes
+    };
+  }
+
   async updateOrganizerApplication(
     id: string, 
     data: { 

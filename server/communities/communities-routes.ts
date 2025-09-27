@@ -36,6 +36,28 @@ const requireAuth = async (req: Request, res: Response, next: any) => {
   }
 };
 
+// Session-based authentication middleware for platform integration
+const requireSessionAuth = async (req: Request, res: Response, next: any) => {
+  // Check if user is authenticated via express-session (platform-wide auth)
+  if (!req.session?.userId) {
+    return res.status(401).json({ ok: false, error: 'Authentication required' });
+  }
+
+  try {
+    // Get user from Communities database using session user ID
+    const user = await communitiesStorage.getUserById(req.session.userId);
+    if (!user) {
+      return res.status(401).json({ ok: false, error: 'User not found' });
+    }
+
+    (req as any).user = user;
+    next();
+  } catch (error) {
+    console.error('Session auth middleware error:', error);
+    res.status(401).json({ ok: false, error: 'Authentication failed' });
+  }
+};
+
 // Validation schemas
 const signupSchema = insertUserSchema.extend({
   email: z.string().email('Invalid email address'),
@@ -967,6 +989,54 @@ export function addCommunitiesRoutes(app: Express) {
     }
   };
 
+  // Session-based approved organizer middleware for platform integration
+  const requireSessionApprovedOrganizer = async (req: Request, res: Response, next: any) => {
+    const userId = req.session?.userId;
+    
+    if (!userId) {
+      return res.status(401).json({ ok: false, error: 'Authentication required' });
+    }
+
+    try {
+      // Check if user has approved organizer application in the main platform
+      const organizerApplication = await communitiesStorage.getOrganizerApplicationByUserId(userId);
+      
+      if (!organizerApplication || organizerApplication.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Only approved organizers can perform this action' });
+      }
+
+      // Get or create organizer record
+      let organizer = await communitiesStorage.getOrganizerByUserId(userId);
+      
+      if (!organizer && organizerApplication.status === 'approved') {
+        // Create organizer record if approved application exists but organizer record doesn't
+        const user = await communitiesStorage.getUserById(userId);
+        if (user) {
+          organizer = await communitiesStorage.createOrganizer({
+            userId: userId,
+            businessName: organizerApplication.businessName,
+            businessEmail: organizerApplication.businessEmail,
+            businessPhone: organizerApplication.businessPhone,
+            businessWebsite: organizerApplication.businessWebsite,
+            businessDescription: organizerApplication.businessDescription,
+            status: 'active'
+          });
+        }
+      }
+
+      if (!organizer || organizer.status !== 'active') {
+        return res.status(403).json({ ok: false, error: 'Organizer account not active' });
+      }
+
+      (req as any).organizer = organizer;
+      (req as any).organizerApplication = organizerApplication;
+      next();
+    } catch (error) {
+      console.error('Session organizer check error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to check organizer status' });
+    }
+  };
+
   // Validation schemas for communities
   const createCommunitySchema = z.object({
     name: z.string().min(1, 'Community name is required').max(100, 'Name too long'),
@@ -1011,7 +1081,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"name":"My Community","description":"A great community"}'
    */
-  app.post('/api/communities', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
+  app.post('/api/communities', checkCommunitiesFeatureFlag, requireSessionApprovedOrganizer, async (req: Request, res: Response) => {
     try {
       const organizer = (req as any).organizer;
 
