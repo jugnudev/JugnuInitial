@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Users, MessageSquare, Heart, Plus, Lock, Globe, Crown, Star, Sparkles, Check, Zap, Calendar, Award, X } from "lucide-react";
+import { Users, MessageSquare, Heart, Plus, Lock, Globe, Crown, Star, Sparkles, Check, Zap, Calendar, Award, X, CheckCircle, Clock, TrendingUp, Shield } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -559,7 +559,12 @@ export default function CommunitiesLandingPage() {
     );
   }
   
-  // Signed in users see community discovery
+  // Check if user has approved business account
+  const isApprovedOrganizer = organizer || (organizerApplication?.status === 'approved');
+  const isPendingOrganizer = organizerApplication?.status === 'pending';
+  const hasNoOrganizerApplication = !organizer && !organizerApplication;
+
+  // Signed in users see community discovery OR community creation funnel
   return (
     <div className="min-h-screen bg-bg relative overflow-hidden">
       {/* Ambient firefly atmosphere */}
@@ -567,36 +572,130 @@ export default function CommunitiesLandingPage() {
       <div className="absolute top-32 left-20 w-48 h-48 bg-gradient-radial from-copper-500/15 via-transparent to-transparent rounded-full animate-pulse" />
       <div className="absolute bottom-40 right-32 w-64 h-64 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-full animate-pulse" style={{ animationDelay: '1.5s' }} />
       
-      {/* Premium Header for Signed In Users */}
+      {/* Community Creation Hero - Conversion Focused */}
       <div className="relative bg-gradient-to-br from-premium-surface to-premium-surface-elevated border-b border-premium-border overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-copper-500/10 via-accent/5 to-glow/10" />
         
-        <div className="relative max-w-7xl mx-auto px-6 py-20">
+        <div className="relative max-w-7xl mx-auto px-6 py-24">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             className="text-center"
           >
-            {/* Premium member badge with enhanced glow */}
-            <div className="relative inline-flex items-center gap-3 px-6 py-3 rounded-full border border-accent/30 bg-copper-500/10 text-accent text-sm font-medium mb-10 backdrop-blur-sm">
+            {/* Status Badge */}
+            <div className="relative inline-flex items-center gap-3 px-6 py-3 rounded-full border border-accent/30 bg-copper-500/10 text-accent text-sm font-medium mb-12 backdrop-blur-sm">
               <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full animate-pulse" />
-              <Crown className="h-5 w-5 relative z-10" />
-              <span className="relative z-10 font-semibold">Premium Member</span>
-              <Sparkles className="h-5 w-5 relative z-10" />
+              {isApprovedOrganizer ? (
+                <>
+                  <CheckCircle className="h-5 w-5 relative z-10 text-glow" />
+                  <span className="relative z-10 font-semibold">Business Account Approved</span>
+                  <Crown className="h-5 w-5 relative z-10" />
+                </>
+              ) : isPendingOrganizer ? (
+                <>
+                  <Clock className="h-5 w-5 relative z-10" />
+                  <span className="relative z-10 font-semibold">Application Under Review</span>
+                  <Sparkles className="h-5 w-5 relative z-10" />
+                </>
+              ) : (
+                <>
+                  <Users className="h-5 w-5 relative z-10" />
+                  <span className="relative z-10 font-semibold">Ready to Build Your Community?</span>
+                  <Star className="h-5 w-5 relative z-10" />
+                </>
+              )}
             </div>
             
-            <h1 className="font-fraunces text-4xl md:text-6xl font-bold mb-8 leading-tight">
-              <span className="text-text">Welcome to Your</span>
-              <br />
-              <span className="bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">
-                Exclusive Communities
-              </span>
+            {/* Dynamic Headline Based on Status */}
+            <h1 className="font-fraunces text-4xl md:text-7xl font-bold mb-10 leading-tight">
+              {isApprovedOrganizer ? (
+                <>
+                  <span className="text-text">Create Your</span>
+                  <br />
+                  <span className="bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">
+                    Premium Community
+                  </span>
+                </>
+              ) : isPendingOrganizer ? (
+                <>
+                  <span className="text-text">Your Application is</span>
+                  <br />
+                  <span className="bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">
+                    Under Review
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-text">Want to Create Your</span>
+                  <br />
+                  <span className="bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">
+                    Own Community?
+                  </span>
+                </>
+              )}
             </h1>
             
-            <p className="text-xl md:text-2xl mb-12 text-muted max-w-4xl mx-auto leading-relaxed">
-              Discover, connect, and engage with premium communities curated for meaningful connections in Vancouver's vibrant cultural scene.
+            {/* Dynamic Value Proposition */}
+            <p className="text-xl md:text-2xl mb-16 text-muted max-w-5xl mx-auto leading-relaxed">
+              {isApprovedOrganizer ? (
+                "Your business account is approved! Launch your premium community with advanced features, member management tools, and premium branding designed for authentic connections in Vancouver's cultural scene."
+              ) : isPendingOrganizer ? (
+                "Thank you for applying to become a community organizer! Our team is reviewing your application. You'll receive an email notification once approved, and then you can create your premium community."
+              ) : (
+                "Build an exclusive, premium community for your audience with advanced member management, custom branding, and powerful engagement tools. Join Vancouver's leading cultural organizers in creating meaningful connections."
+              )}
             </p>
+
+            {/* Primary Call to Action */}
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+              {isApprovedOrganizer ? (
+                <Button 
+                  onClick={() => setShowCreateDialog(true)}
+                  disabled={createCommunityMutation.isPending}
+                  size="lg"
+                  className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-10 py-6 text-xl rounded-2xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
+                  data-testid="create-community-cta-button"
+                >
+                  <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <Plus className="h-6 w-6 mr-3 relative z-10" />
+                  <span className="relative z-10">
+                    {createCommunityMutation.isPending ? 'Creating Your Community...' : 'Create Your Community Now'}
+                  </span>
+                </Button>
+              ) : isPendingOrganizer ? (
+                <div className="flex flex-col items-center gap-4">
+                  <Button 
+                    disabled
+                    size="lg"
+                    className="relative bg-gradient-to-r from-copper-500/50 to-accent/50 text-black/70 font-bold px-10 py-6 text-xl rounded-2xl cursor-not-allowed"
+                  >
+                    <Clock className="h-6 w-6 mr-3" />
+                    Application Under Review
+                  </Button>
+                  <p className="text-sm text-muted">We'll notify you via email once your application is approved</p>
+                </div>
+              ) : (
+                <Link href="/account/apply-organizer">
+                  <Button 
+                    size="lg"
+                    className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-10 py-6 text-xl rounded-2xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
+                    data-testid="apply-business-account-cta"
+                  >
+                    <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <Star className="h-6 w-6 mr-3 relative z-10" />
+                    <span className="relative z-10">Apply for Business Account</span>
+                  </Button>
+                </Link>
+              )}
+              
+              {!isPendingOrganizer && (
+                <Link href="#features" className="text-accent hover:text-glow font-semibold text-lg transition-colors duration-300 flex items-center gap-2">
+                  Learn More About Premium Communities
+                  <TrendingUp className="h-5 w-5" />
+                </Link>
+              )}
+            </div>
           </motion.div>
         </div>
       </div>
