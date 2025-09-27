@@ -700,6 +700,111 @@ export default function CommunitiesLandingPage() {
         </div>
       </div>
 
+      {/* Premium Features Section for Community Creation Funnel */}
+      <section id="features" className="relative py-24">
+        <div className="absolute inset-0 bg-gradient-radial from-copper-500/5 via-transparent to-glow/5" />
+        
+        <div className="relative max-w-7xl mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-20"
+          >
+            <h2 className="font-fraunces text-4xl md:text-5xl font-bold mb-8">
+              <span className="text-text">Premium Community</span>
+              <br />
+              <span className="bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">
+                Features & Benefits
+              </span>
+            </h2>
+            <p className="text-xl text-muted max-w-3xl mx-auto leading-relaxed">
+              Everything you need to build, manage, and grow an engaged premium community in Vancouver's vibrant cultural ecosystem.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: Users,
+                title: "Advanced Member Management",
+                description: "Intelligent member approval system, role management, and detailed member analytics to build your ideal community.",
+                highlight: "Smart Analytics"
+              },
+              {
+                icon: MessageSquare,
+                title: "Premium Communication Tools",
+                description: "Rich announcements, threaded discussions, and exclusive content channels for deeper member engagement.",
+                highlight: "Engagement Focused"
+              },
+              {
+                icon: Crown,
+                title: "Custom Premium Branding",
+                description: "Copper-bronze-gold design system, custom community colors, and professional branding that reflects quality.",
+                highlight: "Luxury Design"
+              },
+              {
+                icon: Shield,
+                title: "Privacy & Security Controls",
+                description: "Private communities, invitation management, and content moderation tools to maintain community standards.",
+                highlight: "Total Control"
+              },
+              {
+                icon: TrendingUp,
+                title: "Growth & Marketing Tools",
+                description: "SEO optimization, social sharing, member referral systems, and growth analytics to expand your reach.",
+                highlight: "Scale Smartly"
+              },
+              {
+                icon: Award,
+                title: "Vancouver Cultural Network",
+                description: "Connect with other premium communities, cross-promote events, and access exclusive networking opportunities.",
+                highlight: "Community Network"
+              }
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                className="group"
+              >
+                <Card className="relative border border-border bg-card/90 backdrop-blur-sm hover:border-accent/50 transition-all duration-500 hover:shadow-glow-strong overflow-hidden h-full">
+                  {/* Firefly glow effect */}
+                  <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  
+                  <CardHeader className="relative pb-6">
+                    <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-full border border-copper-500/30 bg-copper-500/10 mb-6">
+                      <div className="absolute inset-0 bg-gradient-radial from-accent/30 via-transparent to-transparent rounded-full animate-pulse" />
+                      <feature.icon className="h-8 w-8 text-accent relative z-10" />
+                    </div>
+                    
+                    <div className="relative inline-block mb-4">
+                      <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-full blur-sm" />
+                      <Badge className="relative bg-gradient-to-r from-copper-500 to-accent text-black border-0 text-xs font-bold">
+                        {feature.highlight}
+                      </Badge>
+                    </div>
+                    
+                    <CardTitle className="font-fraunces text-xl font-bold text-text mb-4 group-hover:text-accent transition-colors duration-300">
+                      {feature.title}
+                    </CardTitle>
+                  </CardHeader>
+                  
+                  <CardContent className="relative pt-0">
+                    <p className="text-muted leading-relaxed">
+                      {feature.description}
+                    </p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Premium Tab Navigation with Create Button */}
       <div className="relative max-w-6xl mx-auto px-6 pt-8">
         <div className="flex items-center justify-between mb-8">
