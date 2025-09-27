@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Users, MessageSquare, Heart, Plus, Lock, Globe, Crown, Star, Sparkles, Check, Zap, Calendar, Award, X, CheckCircle, Clock, TrendingUp, Shield } from "lucide-react";
+import { Users, MessageSquare, Heart, Plus, Lock, Globe, Crown, Star, Sparkles, Check, Zap, Calendar, Award, X, CheckCircle, Clock, TrendingUp, Shield, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -113,13 +113,72 @@ const useScrollAnimation = () => {
 export default function CommunitiesLandingPage() {
   const [selectedTab, setSelectedTab] = useState<'all' | 'my' | 'discover'>('all');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  // Enhanced wizard state management
+  const [wizardStep, setWizardStep] = useState(1);
   const [communityForm, setCommunityForm] = useState({
     name: '',
     description: '',
     isPrivate: false,
-    membershipPolicy: 'approval_required'
+    membershipPolicy: 'approval_required',
+    category: '',
+    tags: [],
+    welcomeMessage: '',
+    guidelines: '',
+    allowDiscussions: true,
+    allowEvents: true,
+    allowResources: true,
+    moderationLevel: 'moderate'
   });
+
+  const totalSteps = 4;
   const { toast } = useToast();
+
+  // Wizard navigation functions
+  const nextStep = () => {
+    if (wizardStep < totalSteps) {
+      setWizardStep(prev => prev + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (wizardStep > 1) {
+      setWizardStep(prev => prev - 1);
+    }
+  };
+
+  const resetWizard = () => {
+    setWizardStep(1);
+    setCommunityForm({
+      name: '',
+      description: '',
+      isPrivate: false,
+      membershipPolicy: 'approval_required',
+      category: '',
+      tags: [],
+      welcomeMessage: '',
+      guidelines: '',
+      allowDiscussions: true,
+      allowEvents: true,
+      allowResources: true,
+      moderationLevel: 'moderate'
+    });
+  };
+
+  // Step validation
+  const isStepValid = (step: number) => {
+    switch (step) {
+      case 1:
+        return communityForm.name.trim().length >= 3;
+      case 2:
+        return true; // Settings are optional
+      case 3:
+        return true; // Advanced features are optional
+      case 4:
+        return communityForm.name.trim().length >= 3;
+      default:
+        return false;
+    }
+  };
   
   // Scroll progress for enhanced effects
   const { scrollYProgress } = useScroll();
@@ -166,9 +225,9 @@ export default function CommunitiesLandingPage() {
       return response;
     },
     onSuccess: () => {
-      toast({ title: "Community created successfully!" });
+      toast({ title: "Premium community created successfully!" });
       setShowCreateDialog(false);
-      setCommunityForm({ name: '', description: '', isPrivate: false, membershipPolicy: 'approval_required' });
+      resetWizard(); // Use proper wizard reset with all enhanced fields
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
       queryClient.invalidateQueries({ queryKey: ['/api/organizers/community'] });
       queryClient.invalidateQueries({ queryKey: ['/api/user/memberships'] });
@@ -1031,105 +1090,411 @@ export default function CommunitiesLandingPage() {
         </div>
       )}
 
-      {/* Create Community Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="sm:max-w-[500px] bg-card border border-border overflow-hidden">
-          {/* Premium dialog background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 via-accent/5 to-glow/5" />
+      {/* Premium Community Creation Wizard */}
+      <Dialog open={showCreateDialog} onOpenChange={(open) => {
+        setShowCreateDialog(open);
+        if (!open) resetWizard();
+      }}>
+        <DialogContent className="sm:max-w-[600px] bg-card border border-border overflow-hidden">
+          {/* Premium wizard background with enhanced gradients */}
+          <div className="absolute inset-0 bg-gradient-to-br from-copper-500/8 via-accent/8 to-glow/8" />
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-copper-500 via-accent to-glow" />
           
-          <DialogHeader className="relative">
-            <DialogTitle className="font-fraunces text-2xl font-bold text-text flex items-center gap-3">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full" />
-                <Crown className="h-6 w-6 text-accent relative z-10" />
-              </div>
-              Create Premium Community
-            </DialogTitle>
-            <DialogDescription className="text-muted leading-relaxed">
-              Build an exclusive community for your members with premium features and copper-bronze-gold design.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <form onSubmit={handleCreateCommunity} className="relative space-y-6">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="communityName" className="text-text font-medium">Community Name *</Label>
-                <Input
-                  id="communityName"
-                  value={communityForm.name}
-                  onChange={(e) => setCommunityForm(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Enter your community name"
-                  className="mt-2 bg-input border-border focus:border-accent"
-                  required
-                  data-testid="input-community-name"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="communityDescription" className="text-text font-medium">Description</Label>
-                <Textarea
-                  id="communityDescription"
-                  value={communityForm.description}
-                  onChange={(e) => setCommunityForm(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Describe your community and its purpose"
-                  className="mt-2 bg-input border-border focus:border-accent"
-                  rows={3}
-                  data-testid="input-community-description"
-                />
-              </div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-text font-medium">Private Community</Label>
-                    <p className="text-sm text-muted">Only invited members can see and join</p>
-                  </div>
-                  <Switch
-                    checked={communityForm.isPrivate}
-                    onCheckedChange={(checked) => setCommunityForm(prev => ({ ...prev, isPrivate: checked }))}
-                    data-testid="switch-community-private"
-                  />
+          {/* Wizard Header with Step Progress */}
+          <DialogHeader className="relative pb-8">
+            <div className="flex items-center justify-between mb-6">
+              <DialogTitle className="font-fraunces text-2xl font-bold text-text flex items-center gap-3">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full" />
+                  <Crown className="h-6 w-6 text-accent relative z-10" />
                 </div>
-                
-                <div>
-                  <Label className="text-text font-medium">Membership Policy</Label>
-                  <Select
-                    value={communityForm.membershipPolicy}
-                    onValueChange={(value) => setCommunityForm(prev => ({ ...prev, membershipPolicy: value }))}
-                  >
-                    <SelectTrigger className="mt-2 bg-input border-border focus:border-accent" data-testid="select-membership-policy">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="approval_required">Requires Approval</SelectItem>
-                      <SelectItem value="open">Open to All</SelectItem>
-                      <SelectItem value="closed">Invite Only</SelectItem>
-                    </SelectContent>
-                  </Select>
+                Premium Community Wizard
+              </DialogTitle>
+              
+              {/* Step indicator */}
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-muted">Step</span>
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-radial from-accent/20 via-transparent to-transparent rounded-full" />
+                  <Badge className="relative bg-gradient-to-r from-copper-500 to-accent text-black border-0 font-bold">
+                    {wizardStep} of {totalSteps}
+                  </Badge>
                 </div>
               </div>
             </div>
             
-            <DialogFooter className="gap-3">
+            {/* Premium Step Progress Bar */}
+            <div className="relative w-full h-2 bg-muted/30 rounded-full overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-radial from-glow/10 via-transparent to-transparent" />
+              <motion.div
+                className="h-full bg-gradient-to-r from-copper-500 via-accent to-glow rounded-full shadow-glow"
+                initial={{ width: "0%" }}
+                animate={{ width: `${(wizardStep / totalSteps) * 100}%` }}
+                transition={{ duration: 0.6, ease: "easeInOut" }}
+              />
+            </div>
+            
+            {/* Dynamic step descriptions */}
+            <DialogDescription className="text-muted leading-relaxed mt-4">
+              {wizardStep === 1 && "Let's start with the basics. Give your community a name and describe its purpose."}
+              {wizardStep === 2 && "Configure privacy settings and membership policies for your community."}
+              {wizardStep === 3 && "Customize advanced features and community guidelines to enhance engagement."}
+              {wizardStep === 4 && "Review your settings and launch your premium community."}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {/* Progressive Wizard Steps with Premium Animations */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={wizardStep}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              className="relative space-y-6 min-h-[400px]"
+            >
+              {/* Step 1: Basic Information */}
+              {wizardStep === 1 && (
+                <div className="space-y-6">
+                  <div className="text-center mb-8">
+                    <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-full border border-copper-500/30 bg-copper-500/10 mb-4">
+                      <div className="absolute inset-0 bg-gradient-radial from-accent/30 via-transparent to-transparent rounded-full animate-pulse" />
+                      <MessageSquare className="h-8 w-8 text-accent relative z-10" />
+                    </div>
+                    <h3 className="font-fraunces text-xl font-bold text-text mb-2">Community Basics</h3>
+                    <p className="text-muted text-sm">Give your community a compelling identity</p>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="communityName" className="text-text font-medium">Community Name *</Label>
+                    <Input
+                      id="communityName"
+                      value={communityForm.name}
+                      onChange={(e) => setCommunityForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="e.g., Vancouver Creative Collective"
+                      className="mt-2 bg-input border-border focus:border-accent"
+                      required
+                      data-testid="input-community-name"
+                    />
+                    {communityForm.name.trim().length > 0 && communityForm.name.trim().length < 3 && (
+                      <p className="text-sm text-red-400 mt-1">Community name must be at least 3 characters</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="communityDescription" className="text-text font-medium">Description</Label>
+                    <Textarea
+                      id="communityDescription"
+                      value={communityForm.description}
+                      onChange={(e) => setCommunityForm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Describe your community's mission, values, and what members can expect..."
+                      className="mt-2 bg-input border-border focus:border-accent"
+                      rows={4}
+                      data-testid="input-community-description"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="communityCategory" className="text-text font-medium">Category</Label>
+                    <Select
+                      value={communityForm.category}
+                      onValueChange={(value) => setCommunityForm(prev => ({ ...prev, category: value }))}
+                    >
+                      <SelectTrigger className="mt-2 bg-input border-border focus:border-accent">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="arts">Arts & Culture</SelectItem>
+                        <SelectItem value="music">Music & Entertainment</SelectItem>
+                        <SelectItem value="business">Business & Professional</SelectItem>
+                        <SelectItem value="wellness">Health & Wellness</SelectItem>
+                        <SelectItem value="technology">Technology & Innovation</SelectItem>
+                        <SelectItem value="community">Community & Social</SelectItem>
+                        <SelectItem value="education">Education & Learning</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Privacy & Settings */}
+              {wizardStep === 2 && (
+                <div className="space-y-6">
+                  <div className="text-center mb-8">
+                    <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-full border border-copper-500/30 bg-copper-500/10 mb-4">
+                      <div className="absolute inset-0 bg-gradient-radial from-accent/30 via-transparent to-transparent rounded-full animate-pulse" />
+                      <Shield className="h-8 w-8 text-accent relative z-10" />
+                    </div>
+                    <h3 className="font-fraunces text-xl font-bold text-text mb-2">Privacy & Access</h3>
+                    <p className="text-muted text-sm">Configure how members discover and join your community</p>
+                  </div>
+
+                  <div className="space-y-6">
+                    <Card className="border border-border bg-card/50 p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-text font-medium">Private Community</Label>
+                          <p className="text-sm text-muted">Only invited members can see and join</p>
+                        </div>
+                        <Switch
+                          checked={communityForm.isPrivate}
+                          onCheckedChange={(checked) => setCommunityForm(prev => ({ ...prev, isPrivate: checked }))}
+                          data-testid="switch-community-private"
+                        />
+                      </div>
+                    </Card>
+                    
+                    <div>
+                      <Label className="text-text font-medium">Membership Policy</Label>
+                      <Select
+                        value={communityForm.membershipPolicy}
+                        onValueChange={(value) => setCommunityForm(prev => ({ ...prev, membershipPolicy: value }))}
+                      >
+                        <SelectTrigger className="mt-2 bg-input border-border focus:border-accent" data-testid="select-membership-policy">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="approval_required">Requires Approval - Organizers review applications</SelectItem>
+                          <SelectItem value="open">Open to All - Anyone can join instantly</SelectItem>
+                          <SelectItem value="closed">Invite Only - Completely private, invitation required</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="welcomeMessage" className="text-text font-medium">Welcome Message</Label>
+                      <Textarea
+                        id="welcomeMessage"
+                        value={communityForm.welcomeMessage}
+                        onChange={(e) => setCommunityForm(prev => ({ ...prev, welcomeMessage: e.target.value }))}
+                        placeholder="Welcome new members with a personalized message..."
+                        className="mt-2 bg-input border-border focus:border-accent"
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Advanced Features */}
+              {wizardStep === 3 && (
+                <div className="space-y-6">
+                  <div className="text-center mb-8">
+                    <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-full border border-copper-500/30 bg-copper-500/10 mb-4">
+                      <div className="absolute inset-0 bg-gradient-radial from-accent/30 via-transparent to-transparent rounded-full animate-pulse" />
+                      <Star className="h-8 w-8 text-accent relative z-10" />
+                    </div>
+                    <h3 className="font-fraunces text-xl font-bold text-text mb-2">Premium Features</h3>
+                    <p className="text-muted text-sm">Customize engagement tools and community guidelines</p>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div>
+                      <Label className="text-text font-medium mb-4 block">Community Features</Label>
+                      <div className="grid grid-cols-1 gap-4">
+                        {[
+                          { key: 'allowDiscussions', label: 'Discussion Forums', icon: MessageSquare, desc: 'Enable threaded discussions and conversations' },
+                          { key: 'allowEvents', label: 'Event Management', icon: Calendar, desc: 'Create and manage community events' },
+                          { key: 'allowResources', label: 'Resource Library', icon: Zap, desc: 'Share files, documents, and resources' }
+                        ].map((feature) => (
+                          <Card key={feature.key} className="border border-border bg-card/50 p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="relative">
+                                  <div className="absolute inset-0 bg-gradient-radial from-accent/20 via-transparent to-transparent rounded-full" />
+                                  <feature.icon className="h-5 w-5 text-accent relative z-10" />
+                                </div>
+                                <div>
+                                  <Label className="text-text font-medium">{feature.label}</Label>
+                                  <p className="text-sm text-muted">{feature.desc}</p>
+                                </div>
+                              </div>
+                              <Switch
+                                checked={communityForm[feature.key as keyof typeof communityForm] as boolean}
+                                onCheckedChange={(checked) => setCommunityForm(prev => ({ ...prev, [feature.key]: checked }))}
+                              />
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="guidelines" className="text-text font-medium">Community Guidelines</Label>
+                      <Textarea
+                        id="guidelines"
+                        value={communityForm.guidelines}
+                        onChange={(e) => setCommunityForm(prev => ({ ...prev, guidelines: e.target.value }))}
+                        placeholder="Set clear expectations for member behavior and community standards..."
+                        className="mt-2 bg-input border-border focus:border-accent"
+                        rows={4}
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="text-text font-medium">Moderation Level</Label>
+                      <Select
+                        value={communityForm.moderationLevel}
+                        onValueChange={(value) => setCommunityForm(prev => ({ ...prev, moderationLevel: value }))}
+                      >
+                        <SelectTrigger className="mt-2 bg-input border-border focus:border-accent">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="light">Light - Minimal moderation, community self-regulated</SelectItem>
+                          <SelectItem value="moderate">Moderate - Balanced moderation with guidelines enforcement</SelectItem>
+                          <SelectItem value="strict">Strict - Active moderation with strict guidelines</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Review & Launch */}
+              {wizardStep === 4 && (
+                <div className="space-y-6">
+                  <div className="text-center mb-8">
+                    <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-full border border-copper-500/30 bg-copper-500/10 mb-4">
+                      <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full animate-pulse" />
+                      <Check className="h-8 w-8 text-glow relative z-10" />
+                    </div>
+                    <h3 className="font-fraunces text-xl font-bold text-text mb-2">Review & Launch</h3>
+                    <p className="text-muted text-sm">Everything looks great! Ready to create your premium community?</p>
+                  </div>
+
+                  <Card className="border border-accent/30 bg-gradient-to-br from-copper-500/5 via-accent/5 to-glow/5 p-6">
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <div className="relative">
+                          <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-full" />
+                          <Crown className="h-5 w-5 text-accent relative z-10" />
+                        </div>
+                        <h4 className="font-fraunces text-lg font-bold text-text">{communityForm.name}</h4>
+                        <Badge className="bg-gradient-to-r from-copper-500 to-accent text-black border-0 text-xs">
+                          {communityForm.category || 'Uncategorized'}
+                        </Badge>
+                      </div>
+                      
+                      {communityForm.description && (
+                        <p className="text-muted text-sm leading-relaxed">{communityForm.description}</p>
+                      )}
+                      
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-medium text-text">Privacy:</span>
+                          <span className="text-muted ml-2">{communityForm.isPrivate ? 'Private' : 'Public'}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-text">Membership:</span>
+                          <span className="text-muted ml-2">
+                            {communityForm.membershipPolicy === 'approval_required' ? 'Requires Approval' :
+                             communityForm.membershipPolicy === 'open' ? 'Open to All' : 'Invite Only'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-sm pt-4 border-t border-border">
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-glow" />
+                          <span className="text-muted">Premium Design</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-glow" />
+                          <span className="text-muted">Advanced Features</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-glow" />
+                          <span className="text-muted">Analytics Dashboard</span>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Premium Wizard Navigation */}
+          <div className="relative pt-8 border-t border-border">
+            <div className="flex items-center justify-between">
+              {/* Previous Button */}
               <Button
                 type="button"
                 variant="outline"
+                onClick={prevStep}
+                disabled={wizardStep === 1}
+                className="border-border text-muted hover:bg-muted/10 disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Previous
+              </Button>
+
+              {/* Step Indicators */}
+              <div className="flex items-center gap-2">
+                {Array.from({ length: totalSteps }, (_, i) => (
+                  <div
+                    key={i}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      i < wizardStep 
+                        ? 'bg-gradient-to-r from-copper-500 to-accent shadow-glow' 
+                        : i === wizardStep - 1
+                        ? 'bg-accent'
+                        : 'bg-muted/30'
+                    }`}
+                  />
+                ))}
+              </div>
+
+              {/* Next/Create Button */}
+              {wizardStep < totalSteps ? (
+                <Button
+                  type="button"
+                  onClick={nextStep}
+                  disabled={!isStepValid(wizardStep)}
+                  className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold shadow-glow hover:shadow-glow-strong transition-all duration-300 disabled:opacity-50"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              ) : (
+                <form onSubmit={handleCreateCommunity} className="inline">
+                  <Button
+                    type="submit"
+                    disabled={createCommunityMutation.isPending || !isStepValid(wizardStep)}
+                    className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold shadow-glow hover:shadow-glow-strong transition-all duration-300"
+                    data-testid="button-submit-create"
+                  >
+                    {createCommunityMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Creating Community...
+                      </>
+                    ) : (
+                      <>
+                        <Crown className="h-4 w-4 mr-2" />
+                        Launch Premium Community
+                      </>
+                    )}
+                  </Button>
+                </form>
+              )}
+            </div>
+
+            {/* Cancel Button */}
+            <div className="text-center mt-4">
+              <Button
+                type="button"
+                variant="ghost"
                 onClick={() => setShowCreateDialog(false)}
-                className="border-border text-muted hover:bg-muted/10"
+                className="text-muted hover:text-text text-sm"
                 data-testid="button-cancel-create"
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={createCommunityMutation.isPending || !communityForm.name.trim()}
-                className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold shadow-glow hover:shadow-glow-strong transition-all duration-300"
-                data-testid="button-submit-create"
-              >
-                {createCommunityMutation.isPending ? 'Creating...' : 'Create Community'}
-              </Button>
-            </DialogFooter>
-          </form>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
