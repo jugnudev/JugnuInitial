@@ -601,13 +601,14 @@ export default function CommunitiesLandingPage() {
         </div>
       </div>
 
-      {/* Premium Tab Navigation */}
+      {/* Premium Tab Navigation with Create Button */}
       <div className="relative max-w-6xl mx-auto px-6 pt-8">
-        <div className="relative flex space-x-1 mb-12 bg-card/80 backdrop-blur-sm rounded-2xl p-2 shadow-large border border-border">
-          {/* Subtle inner glow */}
-          <div className="absolute inset-0 bg-gradient-to-r from-copper-500/5 via-accent/5 to-glow/5 rounded-2xl" />
+        <div className="flex items-center justify-between mb-8">
+          <div className="relative flex space-x-1 bg-card/80 backdrop-blur-sm rounded-2xl p-2 shadow-large border border-border">
+            {/* Subtle inner glow */}
+            <div className="absolute inset-0 bg-gradient-to-r from-copper-500/5 via-accent/5 to-glow/5 rounded-2xl" />
           
-          <button
+            <button
             onClick={() => setSelectedTab('all')}
             className={`relative flex-1 px-6 py-4 rounded-xl transition-all duration-300 font-medium ${
               selectedTab === 'all'
@@ -652,6 +653,23 @@ export default function CommunitiesLandingPage() {
             <Sparkles className="h-4 w-4 inline mr-2 relative z-10" />
             <span className="relative z-10">Discover</span>
           </button>
+          </div>
+          
+          {/* Create Community Button - Always Visible for Approved Organizers */}
+          {organizer && (
+            <Button 
+              onClick={() => setShowCreateDialog(true)}
+              disabled={createCommunityMutation.isPending}
+              className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
+              data-testid="create-community-button-header"
+            >
+              <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <Plus className="h-5 w-5 mr-2 relative z-10" />
+              <span className="relative z-10">
+                {createCommunityMutation.isPending ? 'Creating...' : 'Create Community'}
+              </span>
+            </Button>
+          )}
         </div>
       </div>
 
