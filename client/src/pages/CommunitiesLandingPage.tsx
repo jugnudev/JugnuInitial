@@ -405,8 +405,10 @@ export default function CommunitiesLandingPage() {
     );
   }
   
-  // Signed out users see simple signup flow, signed in users see communities
-  if (!user) {
+  // Show hero section differently based on authentication, but always show tabs
+  const showAuthenticatedHero = !!user;
+  
+  if (false && !user) {
     return (
       <div className="min-h-screen bg-bg relative overflow-hidden">
         {/* Firefly atmosphere */}
