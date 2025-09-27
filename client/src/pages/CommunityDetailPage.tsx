@@ -144,6 +144,7 @@ export default function CommunityDetailPage() {
   const communitySlug = params?.slug;
   
   const [activeTab, setActiveTab] = useState("announcements");
+  const [showCreateAnnouncement, setShowCreateAnnouncement] = useState(false);
   const { toast } = useToast();
 
   // Get current user (fixed authentication pattern)
@@ -185,14 +186,156 @@ export default function CommunityDetailPage() {
     },
   });
 
+  // ============ ORGANIZER CONSOLE MUTATIONS ============
+
+  // Create Announcement Mutation
+  const createAnnouncementMutation = useMutation({
+    mutationFn: async (announcementData: { title: string; content: string; postType?: string; isPinned?: boolean }) => {
+      if (!community?.id) {
+        throw new Error('Community ID not available');
+      }
+      const data = await apiRequest('POST', `/api/communities/${community.id}/posts`, announcementData);
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: "Announcement created successfully!" });
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', communitySlug] });
+      setShowCreateAnnouncement(false);
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to create announcement", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Delete Announcement Mutation
+  const deleteAnnouncementMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      if (!community?.id) {
+        throw new Error('Community ID not available');
+      }
+      const data = await apiRequest('DELETE', `/api/communities/${community.id}/posts/${postId}`);
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: "Announcement deleted successfully!" });
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', communitySlug] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to delete announcement", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Approve Member Mutation
+  const approveMemberMutation = useMutation({
+    mutationFn: async ({ userId, action }: { userId: string; action: 'approve' | 'decline' }) => {
+      if (!community?.id) {
+        throw new Error('Community ID not available');
+      }
+      const data = await apiRequest('POST', `/api/communities/${community.id}/members/${userId}/manage`, { action });
+      return data;
+    },
+    onSuccess: (data, variables) => {
+      toast({ 
+        title: `Member ${variables.action === 'approve' ? 'approved' : 'declined'} successfully!` 
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', communitySlug] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to manage member", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Update Community Settings Mutation
+  const updateCommunityMutation = useMutation({
+    mutationFn: async (communityData: { name?: string; description?: string; isPrivate?: boolean; membershipPolicy?: string }) => {
+      if (!community?.id) {
+        throw new Error('Community ID not available');
+      }
+      const data = await apiRequest('PUT', `/api/communities/${community.id}`, communityData);
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: "Community settings updated successfully!" });
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', communitySlug] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to update community settings", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Delete Community Mutation
+  const deleteCommunityMutation = useMutation({
+    mutationFn: async () => {
+      if (!community?.id) {
+        throw new Error('Community ID not available');
+      }
+      const data = await apiRequest('DELETE', `/api/communities/${community.id}`);
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: "Community deleted successfully!" });
+      // Redirect to communities landing page
+      window.location.href = '/communities';
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to delete community", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
   // Organizer-only state for console features
-  const [showCreateAnnouncement, setShowCreateAnnouncement] = useState(false);
   const [announcementForm, setAnnouncementForm] = useState({
     title: '',
     content: '',
     postType: 'announcement' as 'announcement' | 'update' | 'event',
     isPinned: false
   });
+
+  // Handle form submissions
+  const handleCreateAnnouncement = async () => {
+    if (!announcementForm.title.trim() || !announcementForm.content.trim()) {
+      toast({
+        title: "Please fill in all fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    createAnnouncementMutation.mutate(announcementForm);
+  };
+
+  const handleDeleteAnnouncement = (postId: string) => {
+    if (confirm("Are you sure you want to delete this announcement?")) {
+      deleteAnnouncementMutation.mutate(postId);
+    }
+  };
+
+  const handleApproveMember = (userId: string) => {
+    approveMemberMutation.mutate({ userId, action: 'approve' });
+  };
+
+  const handleRejectMember = (userId: string) => {
+    approveMemberMutation.mutate({ userId, action: 'decline' });
+  };
 
   const community = communityData?.community;
   const membership = communityData?.membership;
@@ -655,6 +798,8 @@ export default function CommunityDetailPage() {
                                 size="sm"
                                 variant="ghost"
                                 className="h-8 w-8 p-0 hover:bg-destructive/20 text-destructive"
+                                onClick={() => handleDeleteAnnouncement(post.id)}
+                                disabled={deleteAnnouncementMutation.isPending}
                                 data-testid={`delete-post-${post.id}`}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -802,6 +947,8 @@ export default function CommunityDetailPage() {
                                   <Button
                                     size="sm"
                                     className="h-8 px-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                                    onClick={() => handleApproveMember(member.userId)}
+                                    disabled={approveMemberMutation.isPending}
                                     data-testid={`approve-member-${index}`}
                                   >
                                     <UserCheck className="h-4 w-4" />
@@ -810,6 +957,8 @@ export default function CommunityDetailPage() {
                                     size="sm"
                                     variant="destructive"
                                     className="h-8 px-3"
+                                    onClick={() => handleRejectMember(member.userId)}
+                                    disabled={approveMemberMutation.isPending}
                                     data-testid={`reject-member-${index}`}
                                   >
                                     <UserX className="h-4 w-4" />
@@ -1062,10 +1211,16 @@ export default function CommunityDetailPage() {
                           <Button 
                             variant="destructive"
                             className="ml-4 font-bold px-6 py-3 hover:shadow-lg"
+                            onClick={() => {
+                              if (confirm("Are you sure you want to permanently delete this community? This action cannot be undone.")) {
+                                deleteCommunityMutation.mutate();
+                              }
+                            }}
+                            disabled={deleteCommunityMutation.isPending}
                             data-testid="delete-community-button"
                           >
                             <Trash2 className="h-5 w-5 mr-2" />
-                            Delete
+                            {deleteCommunityMutation.isPending ? 'Deleting...' : 'Delete'}
                           </Button>
                         </div>
                       </div>
@@ -1245,6 +1400,76 @@ export default function CommunityDetailPage() {
               </CardContent>
             </Card>
           </motion.div>
+        )}
+
+        {/* Create Announcement Dialog */}
+        {showCreateAnnouncement && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-card border border-border rounded-2xl shadow-large max-w-md w-full p-6"
+            >
+              <h3 className="text-xl font-bold text-text mb-6 font-fraunces">
+                Create New Announcement
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-text mb-2 block">Title</label>
+                  <input
+                    type="text"
+                    className="w-full p-3 rounded-xl bg-background border border-border text-text focus:ring-2 focus:ring-accent focus:border-transparent"
+                    placeholder="Enter announcement title..."
+                    value={announcementForm.title}
+                    onChange={(e) => setAnnouncementForm(prev => ({ ...prev, title: e.target.value }))}
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-text mb-2 block">Content</label>
+                  <textarea
+                    className="w-full p-3 rounded-xl bg-background border border-border text-text focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
+                    rows={4}
+                    placeholder="Write your announcement..."
+                    value={announcementForm.content}
+                    onChange={(e) => setAnnouncementForm(prev => ({ ...prev, content: e.target.value }))}
+                  />
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="pinned"
+                    className="rounded border-border"
+                    checked={announcementForm.isPinned}
+                    onChange={(e) => setAnnouncementForm(prev => ({ ...prev, isPinned: e.target.checked }))}
+                  />
+                  <label htmlFor="pinned" className="text-sm text-text">Pin this announcement</label>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowCreateAnnouncement(false);
+                    setAnnouncementForm({ title: '', content: '', postType: 'announcement', isPinned: false });
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreateAnnouncement}
+                  disabled={createAnnouncementMutation.isPending}
+                  className="flex-1 bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold"
+                >
+                  {createAnnouncementMutation.isPending ? 'Creating...' : 'Create'}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </div>
     </div>
