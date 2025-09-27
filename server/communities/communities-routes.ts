@@ -1138,6 +1138,29 @@ export function addCommunitiesRoutes(app: Express) {
   });
 
   /**
+   * GET /api/user/communities
+   * Get communities owned by the current user
+   * curl -X GET http://localhost:5000/api/user/communities \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.get('/api/user/communities', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
+    try {
+      const organizer = (req as any).organizer;
+
+      const communities = await communitiesStorage.getCommunitiesByOrganizerId(organizer.id);
+
+      res.json({
+        ok: true,
+        communities,
+        count: communities.length
+      });
+    } catch (error: any) {
+      console.error('Get user communities error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get communities' });
+    }
+  });
+
+  /**
    * GET /api/communities/:id
    * Get community details - returns different data based on user role/membership
    * curl -X GET http://localhost:5000/api/communities/COMMUNITY_ID \

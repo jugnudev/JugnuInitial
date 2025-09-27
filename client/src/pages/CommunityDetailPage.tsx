@@ -366,7 +366,7 @@ export default function CommunityDetailPage() {
             <h2 className="font-fraunces text-3xl font-bold text-text mb-6">
               Loading Your
               <span className="block bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">
-                Premium Community
+                Community
               </span>
             </h2>
             <p className="text-muted leading-relaxed">
@@ -403,8 +403,8 @@ export default function CommunityDetailPage() {
               <span className="bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">Required</span>
             </h1>
             <p className="text-xl text-muted mb-12 max-w-3xl mx-auto leading-relaxed">
-              This exclusive community is reserved for authenticated premium members like fireflies gathering in their special place. 
-              Sign in to unlock your premium community experience.
+              This exclusive community is reserved for authenticated members like fireflies gathering in their special place. 
+              Sign in to unlock your community experience.
             </p>
             <Link href="/account/signin">
               <MotionButton 
@@ -426,7 +426,7 @@ export default function CommunityDetailPage() {
     );
   }
 
-  // Premium community not found page
+  // Community not found page
   if (!community && !isLoading) {
     return (
       <div className="min-h-screen bg-bg relative overflow-hidden">
@@ -472,7 +472,7 @@ export default function CommunityDetailPage() {
     );
   }
 
-  // Premium loading state for community data
+  // Loading state for community data
   if (isLoading) {
     return (
       <div className="min-h-screen bg-bg relative overflow-hidden">
@@ -543,7 +543,7 @@ export default function CommunityDetailPage() {
           </Link>
         </motion.div>
 
-        {/* Premium Community Header */}
+        {/* Community Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -579,7 +579,7 @@ export default function CommunityDetailPage() {
                           <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full" />
                           <Star className="h-5 w-5 text-glow fill-glow relative z-10" />
                         </div>
-                        <span className="text-sm font-semibold text-accent">Premium Community</span>
+                        <span className="text-sm font-semibold text-accent">Community</span>
                       </div>
                     </div>
                   </div>
@@ -647,7 +647,7 @@ export default function CommunityDetailPage() {
                     >
                       <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                       <UserPlus className="h-5 w-5 mr-2 relative z-10" />
-                      <span className="relative z-10">Join Premium Community</span>
+                      <span className="relative z-10">Join Community</span>
                     </MotionButton>
                   )}
                   {membership?.status === 'approved' && (
@@ -829,7 +829,7 @@ export default function CommunityDetailPage() {
                       <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent">No announcements yet</span>
                     </h3>
                     <p className="text-muted leading-relaxed mb-6">
-                      Create your first announcement to keep your premium community informed and engaged!
+                      Create your first announcement to keep your community informed and engaged!
                     </p>
                     <Button 
                       onClick={() => setShowCreateAnnouncement(true)}
@@ -899,7 +899,7 @@ export default function CommunityDetailPage() {
                       </span>
                     </CardTitle>
                     <p className="text-muted mt-3 leading-relaxed">
-                      Approve new members and manage your premium community.
+                      Approve new members and manage your community.
                     </p>
                   </CardHeader>
                   <CardContent>
@@ -923,7 +923,7 @@ export default function CommunityDetailPage() {
                             
                             <div className="flex-1 relative z-10">
                               <p className="font-bold text-text group-hover/member:text-accent transition-colors">
-                                {member.role === 'owner' ? 'Community Organizer' : 'Premium Member'}
+                                {member.role === 'owner' ? 'Community Organizer' : 'Member'}
                               </p>
                               <p className="text-sm text-muted">
                                 {member.status === 'pending' ? 'Awaiting approval' : 'Active member'}
@@ -979,7 +979,7 @@ export default function CommunityDetailPage() {
                           <span className="bg-gradient-to-r from-copper-500 to-accent bg-clip-text text-transparent">No members yet</span>
                         </h3>
                         <p className="text-muted leading-relaxed">
-                          Your premium community is ready for members to join and create meaningful connections.
+                          Your community is ready for members to join and create meaningful connections.
                         </p>
                       </div>
                     )}
@@ -1092,7 +1092,7 @@ export default function CommunityDetailPage() {
                       </span>
                     </CardTitle>
                     <p className="text-muted mt-3 leading-relaxed">
-                      Manage your premium community settings and customize the experience for your members.
+                      Manage your community settings and customize the experience for your members.
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-8">
@@ -1248,7 +1248,7 @@ export default function CommunityDetailPage() {
                       </span>
                     </CardTitle>
                     <p className="text-muted mt-3 leading-relaxed">
-                      Stay connected with your premium community updates and announcements.
+                      Stay connected with your community updates and announcements.
                     </p>
                   </CardHeader>
                   <CardContent>
@@ -1361,7 +1361,7 @@ export default function CommunityDetailPage() {
                 <p className="text-lg text-muted mb-12 max-w-2xl mx-auto leading-relaxed">
                   {membership?.status === 'pending' 
                     ? 'Your membership request has been submitted and is awaiting approval from the community organizers. Like a firefly awaiting its turn to join the dance.'
-                    : 'This exclusive community content is reserved for verified premium members. Join our luminous gathering to unlock access to member discussions, events, and exclusive content that sparkles with meaning.'
+                    : 'This exclusive community content is reserved for verified members. Join our luminous gathering to unlock access to member discussions, events, and exclusive content that sparkles with meaning.'
                   }
                 </p>
                 
@@ -1393,7 +1393,7 @@ export default function CommunityDetailPage() {
                       <UserPlus className="h-6 w-6 mr-2 relative z-10" />
                     )}
                     <span className="relative z-10">
-                      {joinCommunityMutation.isPending ? 'Submitting Request...' : 'Request Premium Access'}
+                      {joinCommunityMutation.isPending ? 'Submitting Request...' : 'Request Access'}
                     </span>
                   </Button>
                 )}

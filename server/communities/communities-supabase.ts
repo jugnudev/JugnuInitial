@@ -677,6 +677,18 @@ export class CommunitiesSupabaseDB {
     return data ? this.mapCommunityFromDb(data) : null;
   }
 
+  async getCommunitiesByOrganizerId(organizerId: string): Promise<Community[]> {
+    const { data, error } = await this.client
+      .from('communities')
+      .select('*')
+      .eq('organizer_id', organizerId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data ? data.map(this.mapCommunityFromDb) : [];
+  }
+
   async updateCommunity(id: string, data: Partial<InsertCommunity>): Promise<Community> {
     const updateData: any = { updated_at: new Date().toISOString() };
     
@@ -863,7 +875,8 @@ export class CommunitiesSupabaseDB {
       imageUrl: data.image_url,
       isPrivate: data.is_private,
       membershipPolicy: data.membership_policy,
-      status: data.status
+      status: data.status,
+      slug: data.slug || null
     };
   }
 

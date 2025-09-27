@@ -57,9 +57,9 @@ export const getPageTitle = (path: string): string => {
     '/admin/leads': `Admin Portal - ${baseBrand} | Leads Management`, 
     '/admin/analytics': `Admin Portal - ${baseBrand} | Analytics Dashboard`,
     // Communities SEO-optimized titles for conversion funnel
-    '/communities': `Premium Communities - ${baseBrand} | Create & Join Cultural Communities Vancouver`,
+    '/communities': `Communities - ${baseBrand} | Create & Join Cultural Communities Vancouver`,
     '/account/signin': `Sign In - ${baseBrand} | Access Your Community Account`,
-    '/account/signup': `Join ${baseBrand} - Create Your Premium Community Account`,
+    '/account/signup': `Join ${baseBrand} - Create Your Community Account`,
     '/account/profile': `My Profile - ${baseBrand} | Account Settings & Community Management`,
     '/account/apply-organizer': `Become an Organizer - ${baseBrand} | Apply for Business Community Account`,
     '/admin/organizers': `Admin Portal - ${baseBrand} | Organizer Applications Management`
