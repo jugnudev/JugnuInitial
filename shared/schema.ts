@@ -688,6 +688,7 @@ export const communities = pgTable("communities", {
   slug: text("slug").unique(),
   description: text("description"),
   imageUrl: text("image_url"),
+  coverUrl: text("cover_url"),
   isPrivate: boolean("is_private").notNull().default(false),
   membershipPolicy: text("membership_policy").notNull().default("approval_required"), // approval_required | open | closed
   status: text("status").notNull().default("active"), // active | suspended | archived
@@ -717,6 +718,11 @@ export const communityPosts = pgTable("community_posts", {
   title: text("title").notNull(),
   content: text("content").notNull(),
   imageUrl: text("image_url"),
+  linkUrl: text("link_url"),
+  linkText: text("link_text"),
+  linkDescription: text("link_description"),
+  tags: text("tags").array(),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
   postType: text("post_type").notNull().default("announcement"), // announcement | update | event
   isPinned: boolean("is_pinned").notNull().default(false),
   status: text("status").notNull().default("published"), // published | draft | archived
