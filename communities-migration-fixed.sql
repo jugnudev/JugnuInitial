@@ -10,6 +10,7 @@
 
 -- Safely enhance communities table with missing fields
 ALTER TABLE public.communities 
+ADD COLUMN IF NOT EXISTS slug text UNIQUE,  -- Add the slug column first!
 ADD COLUMN IF NOT EXISTS short_description text,
 ADD COLUMN IF NOT EXISTS welcome_text text,
 ADD COLUMN IF NOT EXISTS chat_mode text DEFAULT 'owner_only',
