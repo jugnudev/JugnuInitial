@@ -678,6 +678,44 @@ export class CommunitiesSupabaseDB {
     return data ? this.mapCommunityFromDb(data) : null;
   }
 
+  async getCommunityBySlug(slug: string): Promise<Community | null> {
+    const { data, error } = await this.client
+      .from('communities')
+      .select('*')
+      .eq('slug', slug)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? this.mapCommunityFromDb(data) : null;
+  }
+
+  async getAllCommunities(limit: number = 20, offset: number = 0): Promise<{ communities: Community[], total: number }> {
+    // Get total count
+    const { count, error: countError } = await this.client
+      .from('communities')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'active')
+      .eq('is_private', false);
+
+    if (countError) throw countError;
+
+    // Get paginated results
+    const { data, error } = await this.client
+      .from('communities')
+      .select('*')
+      .eq('status', 'active')
+      .eq('is_private', false)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) throw error;
+    
+    return {
+      communities: data ? data.map(this.mapCommunityFromDb) : [],
+      total: count || 0
+    };
+  }
+
   async getCommunitiesByOrganizerId(organizerId: string): Promise<Community[]> {
     const { data, error } = await this.client
       .from('communities')
@@ -762,6 +800,29 @@ export class CommunitiesSupabaseDB {
     return data ? data.map(this.mapMembershipFromDb) : [];
   }
 
+  async getPendingMembershipsByCommunityId(communityId: string): Promise<CommunityMembershipWithUser[]> {
+    const { data, error } = await this.client
+      .from('community_memberships')
+      .select(`
+        *,
+        users!community_memberships_user_id_fkey (
+          id,
+          email,
+          first_name,
+          last_name,
+          profile_image_url,
+          created_at,
+          role
+        )
+      `)
+      .eq('community_id', communityId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return data ? data.map(this.mapMembershipFromDb) : [];
+  }
+
   async getMembershipByUserAndCommunity(userId: string, communityId: string): Promise<CommunityMembership | null> {
     const { data, error } = await this.client
       .from('community_memberships')
@@ -822,17 +883,32 @@ export class CommunitiesSupabaseDB {
     return this.mapPostFromDb(post);
   }
 
-  async getPostsByCommunityId(communityId: string): Promise<CommunityPost[]> {
+  async getPostsByCommunityId(communityId: string, limit: number = 20, offset: number = 0): Promise<{ posts: CommunityPost[], total: number }> {
+    // Get total count
+    const { count, error: countError } = await this.client
+      .from('community_posts')
+      .select('*', { count: 'exact', head: true })
+      .eq('community_id', communityId)
+      .eq('status', 'published');
+
+    if (countError) throw countError;
+
+    // Get paginated results
     const { data, error } = await this.client
       .from('community_posts')
       .select('*')
       .eq('community_id', communityId)
       .eq('status', 'published')
       .order('is_pinned', { ascending: false })
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
-    return data ? data.map(this.mapPostFromDb) : [];
+    
+    return {
+      posts: data ? data.map(this.mapPostFromDb) : [],
+      total: count || 0
+    };
   }
 
   async getPostById(id: string): Promise<CommunityPost | null> {
@@ -873,6 +949,288 @@ export class CommunitiesSupabaseDB {
       .eq('id', id);
 
     if (error) throw error;
+  }
+
+  // ============ COMMUNITY POST IMAGES ============
+  async addPostImage(postId: string, imageUrl: string, position: number): Promise<any> {
+    const { data, error } = await this.client
+      .from('community_post_images')
+      .insert({
+        post_id: postId,
+        image_url: imageUrl,
+        position
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async getPostImages(postId: string): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('community_post_images')
+      .select('*')
+      .eq('post_id', postId)
+      .order('position', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async deletePostImage(imageId: string): Promise<void> {
+    const { error } = await this.client
+      .from('community_post_images')
+      .delete()
+      .eq('id', imageId);
+
+    if (error) throw error;
+  }
+
+  async reorderPostImages(postId: string, imageIds: string[]): Promise<void> {
+    // Update positions for each image
+    const updates = imageIds.map((id, index) => 
+      this.client
+        .from('community_post_images')
+        .update({ position: index })
+        .eq('id', id)
+        .eq('post_id', postId)
+    );
+
+    await Promise.all(updates);
+  }
+
+  // ============ COMMUNITY COMMENTS ============
+  async createComment(data: any): Promise<any> {
+    const { data: comment, error } = await this.client
+      .from('community_comments')
+      .insert({
+        post_id: data.postId,
+        author_id: data.authorId,
+        content: data.content,
+        parent_id: data.parentId || null,
+        is_hidden: false,
+        status: 'published'
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return comment;
+  }
+
+  async getCommentsByPostId(postId: string): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('community_comments')
+      .select(`
+        *,
+        users!community_comments_author_id_fkey (
+          id,
+          email,
+          first_name,
+          last_name,
+          profile_image_url
+        )
+      `)
+      .eq('post_id', postId)
+      .eq('status', 'published')
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getCommentById(id: string): Promise<any | null> {
+    const { data, error } = await this.client
+      .from('community_comments')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  async updateComment(id: string, content: string): Promise<any> {
+    const { data, error } = await this.client
+      .from('community_comments')
+      .update({
+        content,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async deleteComment(id: string): Promise<void> {
+    const { error } = await this.client
+      .from('community_comments')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  async hideComment(id: string): Promise<void> {
+    const { error } = await this.client
+      .from('community_comments')
+      .update({ is_hidden: true })
+      .eq('id', id);
+
+    if (error) throw error;
+  }
+
+  // ============ COMMUNITY REACTIONS ============
+  async addReaction(data: { postId: string; userId: string; type: string }): Promise<any> {
+    const { data: reaction, error } = await this.client
+      .from('community_post_reactions')
+      .insert({
+        post_id: data.postId,
+        user_id: data.userId,
+        reaction_type: data.type
+      })
+      .select()
+      .single();
+
+    if (error) {
+      // If unique constraint violation, reaction already exists
+      if (error.code === '23505') {
+        return null;
+      }
+      throw error;
+    }
+    return reaction;
+  }
+
+  async removeReaction(postId: string, userId: string, type: string): Promise<void> {
+    const { error } = await this.client
+      .from('community_post_reactions')
+      .delete()
+      .eq('post_id', postId)
+      .eq('user_id', userId)
+      .eq('reaction_type', type);
+
+    if (error) throw error;
+  }
+
+  async getReactionsByPostId(postId: string): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('community_post_reactions')
+      .select(`
+        *,
+        users!community_post_reactions_user_id_fkey (
+          id,
+          first_name,
+          last_name,
+          profile_image_url
+        )
+      `)
+      .eq('post_id', postId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getUserReactionForPost(postId: string, userId: string): Promise<any | null> {
+    const { data, error } = await this.client
+      .from('community_post_reactions')
+      .select('*')
+      .eq('post_id', postId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  // ============ POST ANALYTICS ============
+  async trackPostView(postId: string, viewerId: string | null): Promise<void> {
+    try {
+      const { error } = await this.client
+        .from('community_post_analytics')
+        .upsert({
+          post_id: postId,
+          views: 1,
+          unique_views: viewerId ? 1 : 0,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'post_id'
+        });
+
+      if (error) console.error('Failed to track post view:', error);
+    } catch (error) {
+      console.error('Failed to track post view:', error);
+    }
+  }
+
+  async incrementPostAnalytics(postId: string, field: 'views' | 'reactions' | 'comments' | 'shares'): Promise<void> {
+    const { error } = await this.client
+      .rpc('increment_post_analytics', {
+        post_id_param: postId,
+        field_name: field
+      });
+
+    if (error) {
+      // Fallback if RPC doesn't exist
+      const { data: analytics } = await this.client
+        .from('community_post_analytics')
+        .select(field)
+        .eq('post_id', postId)
+        .single();
+      
+      if (analytics) {
+        await this.client
+          .from('community_post_analytics')
+          .update({ [field]: (analytics[field] || 0) + 1 })
+          .eq('post_id', postId);
+      } else {
+        await this.client
+          .from('community_post_analytics')
+          .insert({ post_id: postId, [field]: 1 });
+      }
+    }
+  }
+
+  // ============ COMMUNITY ANALYTICS ============
+  async trackCommunityActivity(communityId: string, field: 'views' | 'posts' | 'members' | 'reactions'): Promise<void> {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      const { error } = await this.client
+        .from('community_analytics')
+        .upsert({
+          community_id: communityId,
+          date: today,
+          [field]: 1,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'community_id,date'
+        });
+
+      if (error) console.error('Failed to track community activity:', error);
+    } catch (error) {
+      console.error('Failed to track community activity:', error);
+    }
+  }
+
+  async getCommunityAnalytics(communityId: string, days: number = 30): Promise<any[]> {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    const { data, error } = await this.client
+      .from('community_analytics')
+      .select('*')
+      .eq('community_id', communityId)
+      .gte('date', since.toISOString().split('T')[0])
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
   }
 
   // ============ MAPPING HELPERS ============
