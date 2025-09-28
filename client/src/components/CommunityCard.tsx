@@ -109,7 +109,7 @@ export function CommunityCard({
       variants={cardAnimation}
       className="group relative"
     >
-      <Link href={`/communities/${slug}`}>
+      <Link href={`/communities/${slug || id}`}>
         <Card 
           className="h-full overflow-hidden bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border hover:border-premium-border-hover transition-all duration-300 cursor-pointer hover:shadow-glow"
           data-testid={`community-card-${id}`}

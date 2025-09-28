@@ -143,10 +143,9 @@ export default function CommunitiesIndexPage() {
     retry: false,
   });
 
-  // Get all public communities for discovery
+  // Get all public communities for discovery - always enabled for discovery
   const { data: publicCommunitiesData, isLoading: publicCommunitiesLoading } = useQuery<{ communities: Community[] }>({
-    queryKey: ['/api/communities/public'],
-    enabled: !!user,
+    queryKey: ['/api/communities'],
     retry: false,
   });
 
@@ -189,6 +188,9 @@ export default function CommunitiesIndexPage() {
   let ownedCommunities: Community[] = [];
   let memberCommunities: Community[] = [];
   
+  // Public communities are always available
+  const publicCommunities = publicCommunitiesData?.communities || [];
+  
   if (user) {
     const userCommunities = userCommunitiesData?.communities || [];
     ownedCommunities = userCommunities.filter(c => c.membership?.role === 'owner');
@@ -197,8 +199,11 @@ export default function CommunitiesIndexPage() {
     if (selectedTab === 'my') {
       communities = userCommunities;
     } else {
-      communities = publicCommunitiesData?.communities || [];
+      communities = publicCommunities;
     }
+  } else {
+    // For unauthenticated users, always show discover tab with public communities
+    communities = publicCommunities;
   }
 
   // Show loading state
