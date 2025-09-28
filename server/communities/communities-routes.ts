@@ -2749,7 +2749,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X GET http://localhost:5000/api/communities/COMMUNITY_ID/posts/POST_ID/comments \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.get('/api/communities/:id/posts/:postId/comments', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+  app.get('/api/communities/:id/posts/:postId/comments', checkCommunitiesFeatureFlag, requireEitherAuth, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const user = (req as any).user;
