@@ -1044,11 +1044,20 @@ export function addCommunitiesRoutes(app: Express) {
         return res.status(404).json({ ok: false, error: 'Community not found' });
       }
 
-      if (community.organizerId !== user.id) {
+      // Get the organizer record for the current user
+      const userOrganizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      
+      if (!userOrganizer) {
+        return res.status(403).json({ ok: false, error: 'User is not an organizer' });
+      }
+
+      // Check if the user's organizer ID matches the community's organizer ID
+      if (community.organizerId !== userOrganizer.id) {
         return res.status(403).json({ ok: false, error: 'Only community owners can perform this action' });
       }
 
       (req as any).community = community;
+      (req as any).organizer = userOrganizer;
       next();
     } catch (error) {
       console.error('Community ownership check error:', error);
