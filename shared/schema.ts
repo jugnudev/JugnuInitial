@@ -787,5 +787,17 @@ export type Community = typeof communities.$inferSelect;
 export type InsertCommunity = z.infer<typeof insertCommunitySchema>;
 export type CommunityMembership = typeof communityMemberships.$inferSelect;
 export type InsertCommunityMembership = z.infer<typeof insertCommunityMembershipSchema>;
+// Extended membership type with user information for display
+export type CommunityMembershipWithUser = CommunityMembership & {
+  user?: {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    profileImageUrl?: string;
+    createdAt: string;
+    role: string;
+  };
+};
 export type CommunityPost = typeof communityPosts.$inferSelect;
 export type InsertCommunityPost = z.infer<typeof insertCommunityPostSchema>;

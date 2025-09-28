@@ -1179,17 +1179,38 @@ export default function CommunityDetailPage() {
                             <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover/member:opacity-100 transition-opacity duration-300 rounded-xl" />
                             
                             <Avatar className="relative h-14 w-14 ring-2 ring-accent/50 group-hover/member:ring-accent transition-colors">
+                              {member.user?.profileImageUrl ? (
+                                <AvatarImage 
+                                  src={member.user.profileImageUrl} 
+                                  alt={member.user?.firstName && member.user?.lastName 
+                                    ? `${member.user.firstName} ${member.user.lastName}`
+                                    : member.user?.email || 'Member'}
+                                />
+                              ) : null}
                               <AvatarFallback className="bg-gradient-to-r from-copper-500 to-accent text-black font-bold text-lg relative z-10">
-                                {member.role === 'owner' ? 'OR' : 'MB'}
+                                {member.user?.firstName && member.user?.lastName 
+                                  ? `${member.user.firstName.charAt(0)}${member.user.lastName.charAt(0)}`.toUpperCase()
+                                  : member.user?.email 
+                                  ? member.user.email.charAt(0).toUpperCase() + member.user.email.charAt(1).toUpperCase()
+                                  : member.role === 'owner' ? 'OR' : 'MB'}
                               </AvatarFallback>
                             </Avatar>
                             
                             <div className="flex-1 relative z-10">
                               <p className="font-bold text-text group-hover/member:text-accent transition-colors">
-                                {member.role === 'owner' ? 'Community Organizer' : 'Member'}
+                                {member.user?.firstName && member.user?.lastName 
+                                  ? `${member.user.firstName} ${member.user.lastName}`
+                                  : member.user?.email || `${member.role === 'owner' ? 'Community Owner' : 'Member'} (ID: ${member.userId?.slice(0, 8)})`}
                               </p>
                               <p className="text-sm text-muted">
-                                {member.status === 'pending' ? 'Awaiting approval' : 'Active member'}
+                                {member.user?.email && (
+                                  <span className="block text-muted-foreground">{member.user.email}</span>
+                                )}
+                                <span className="text-xs">
+                                  {member.status === 'pending' ? 'Awaiting approval' : 
+                                   member.role === 'owner' ? 'Community Owner' : 'Active member'} •{' '}
+                                  Joined {new Date(member.createdAt).toLocaleDateString()}
+                                </span>
                               </p>
                             </div>
                             

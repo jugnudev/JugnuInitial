@@ -16,6 +16,7 @@ import type {
   InsertCommunity,
   CommunityMembership,
   InsertCommunityMembership,
+  CommunityMembershipWithUser,
   CommunityPost,
   InsertCommunityPost
 } from '@shared/schema';
@@ -739,10 +740,21 @@ export class CommunitiesSupabaseDB {
     return this.mapMembershipFromDb(membership);
   }
 
-  async getMembershipsByCommunityId(communityId: string): Promise<CommunityMembership[]> {
+  async getMembershipsByCommunityId(communityId: string): Promise<CommunityMembershipWithUser[]> {
     const { data, error } = await this.client
       .from('community_memberships')
-      .select('*')
+      .select(`
+        *,
+        users!community_memberships_user_id_fkey (
+          id,
+          email,
+          first_name,
+          last_name,
+          profile_image_url,
+          created_at,
+          role
+        )
+      `)
       .eq('community_id', communityId)
       .order('created_at', { ascending: false });
 
@@ -873,6 +885,7 @@ export class CommunitiesSupabaseDB {
       name: data.name,
       description: data.description,
       imageUrl: data.image_url,
+      coverUrl: data.cover_url,
       isPrivate: data.is_private,
       membershipPolicy: data.membership_policy,
       status: data.status,
@@ -880,8 +893,8 @@ export class CommunitiesSupabaseDB {
     };
   }
 
-  private mapMembershipFromDb(data: any): CommunityMembership {
-    return {
+  private mapMembershipFromDb(data: any): CommunityMembershipWithUser {
+    const membership: CommunityMembership = {
       id: data.id,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
@@ -893,6 +906,25 @@ export class CommunitiesSupabaseDB {
       approvedBy: data.approved_by,
       role: data.role
     };
+    
+    // Add user information if available from join
+    const user = data.users;
+    if (user) {
+      return {
+        ...membership,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          profileImageUrl: user.profile_image_url,
+          createdAt: user.created_at,
+          role: user.role
+        }
+      };
+    }
+    
+    return membership;
   }
 
   private mapPostFromDb(data: any): CommunityPost {
@@ -905,6 +937,11 @@ export class CommunitiesSupabaseDB {
       title: data.title,
       content: data.content,
       imageUrl: data.image_url || undefined,
+      linkUrl: data.link_url,
+      linkText: data.link_text,
+      linkDescription: data.link_description,
+      tags: data.tags,
+      metadata: data.metadata,
       postType: data.post_type,
       isPinned: data.is_pinned,
       status: data.status
