@@ -716,6 +716,7 @@ export const communityPosts = pgTable("community_posts", {
   authorId: uuid("author_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   title: text("title").notNull(),
   content: text("content").notNull(),
+  imageUrl: text("image_url"),
   postType: text("post_type").notNull().default("announcement"), // announcement | update | event
   isPinned: boolean("is_pinned").notNull().default(false),
   status: text("status").notNull().default("published"), // published | draft | archived

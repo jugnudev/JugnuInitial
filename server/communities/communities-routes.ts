@@ -1077,6 +1077,7 @@ export function addCommunitiesRoutes(app: Express) {
   const createPostSchema = z.object({
     title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
     content: z.string().min(1, 'Content is required').max(5000, 'Content too long'),
+    imageUrl: z.string().url().optional().or(z.literal('')),
     postType: z.enum(['announcement', 'update', 'event']).optional(),
     isPinned: z.boolean().optional(),
   });
@@ -1084,6 +1085,7 @@ export function addCommunitiesRoutes(app: Express) {
   const updatePostSchema = z.object({
     title: z.string().min(1).max(200).optional(),
     content: z.string().min(1).max(5000).optional(),
+    imageUrl: z.string().url().optional().or(z.literal('')),
     postType: z.enum(['announcement', 'update', 'event']).optional(),
     isPinned: z.boolean().optional(),
   });

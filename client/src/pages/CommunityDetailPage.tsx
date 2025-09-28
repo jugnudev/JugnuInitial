@@ -63,6 +63,7 @@ interface Post {
   id: string;
   title: string;
   content: string;
+  imageUrl?: string;
   postType: 'announcement' | 'update' | 'event';
   isPinned: boolean;
   createdAt: string;
@@ -194,7 +195,7 @@ export default function CommunityDetailPage() {
 
   // Create Announcement Mutation
   const createAnnouncementMutation = useMutation({
-    mutationFn: async (announcementData: { title: string; content: string; postType?: string; isPinned?: boolean }) => {
+    mutationFn: async (announcementData: { title: string; content: string; imageUrl?: string; postType?: string; isPinned?: boolean }) => {
       if (!community?.id) {
         throw new Error('Community ID not available');
       }
@@ -310,6 +311,7 @@ export default function CommunityDetailPage() {
   const [announcementForm, setAnnouncementForm] = useState({
     title: '',
     content: '',
+    imageUrl: '',
     postType: 'announcement' as 'announcement' | 'update' | 'event',
     isPinned: false
   });
@@ -878,6 +880,16 @@ export default function CommunityDetailPage() {
                           <p className="text-muted whitespace-pre-line leading-relaxed relative z-10">
                             {post.content}
                           </p>
+                          {post.imageUrl && (
+                            <div className="mt-4">
+                              <img
+                                src={post.imageUrl}
+                                alt=""
+                                className="w-full max-h-96 object-cover rounded-xl border border-border shadow-soft"
+                                loading="lazy"
+                              />
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     </motion.div>
@@ -1411,6 +1423,16 @@ export default function CommunityDetailPage() {
                                 <p className="text-muted whitespace-pre-line leading-relaxed relative z-10">
                                   {post.content}
                                 </p>
+                                {post.imageUrl && (
+                                  <div className="mt-4">
+                                    <img
+                                      src={post.imageUrl}
+                                      alt=""
+                                      className="w-full max-h-96 object-cover rounded-xl border border-border shadow-soft"
+                                      loading="lazy"
+                                    />
+                                  </div>
+                                )}
                               </CardContent>
                             </Card>
                           </motion.div>
@@ -1544,6 +1566,34 @@ export default function CommunityDetailPage() {
                   />
                 </div>
                 
+                <div>
+                  <label className="text-sm font-medium text-text mb-2 block">Image (Optional)</label>
+                  <input
+                    type="url"
+                    className="w-full p-3 rounded-xl bg-background border border-border text-text focus:ring-2 focus:ring-accent focus:border-transparent"
+                    placeholder="Enter image URL (e.g., https://example.com/image.jpg)"
+                    value={announcementForm.imageUrl}
+                    onChange={(e) => setAnnouncementForm(prev => ({ ...prev, imageUrl: e.target.value }))}
+                    data-testid="input-announcement-image"
+                  />
+                  {announcementForm.imageUrl && (
+                    <div className="mt-3">
+                      <p className="text-xs text-muted mb-2">Image Preview:</p>
+                      <img
+                        src={announcementForm.imageUrl}
+                        alt="Preview"
+                        className="max-w-full h-32 object-cover rounded-lg border border-border"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                        onLoad={(e) => {
+                          e.currentTarget.style.display = 'block';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+                
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -1561,7 +1611,7 @@ export default function CommunityDetailPage() {
                   variant="outline"
                   onClick={() => {
                     setShowCreateAnnouncement(false);
-                    setAnnouncementForm({ title: '', content: '', postType: 'announcement', isPinned: false });
+                    setAnnouncementForm({ title: '', content: '', imageUrl: '', postType: 'announcement', isPinned: false });
                   }}
                   className="flex-1"
                 >
