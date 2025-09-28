@@ -1066,6 +1066,50 @@ export const communityInviteLinks = pgTable("community_invite_links", {
   metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // campaign tracking, etc
 });
 
+// Notification preferences per user per community
+export const communityNotificationPreferences = pgTable("community_notification_preferences", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  communityId: uuid("community_id").references(() => communities.id, { onDelete: 'cascade' }), // null = global preferences
+  
+  // Channel preferences
+  inAppEnabled: boolean("in_app_enabled").notNull().default(true),
+  emailEnabled: boolean("email_enabled").notNull().default(true),
+  pushEnabled: boolean("push_enabled").notNull().default(false),
+  
+  // Notification type preferences
+  newPosts: boolean("new_posts").notNull().default(true),
+  postComments: boolean("post_comments").notNull().default(true),
+  commentReplies: boolean("comment_replies").notNull().default(true),
+  mentions: boolean("mentions").notNull().default(true),
+  pollResults: boolean("poll_results").notNull().default(true),
+  membershipUpdates: boolean("membership_updates").notNull().default(true),
+  communityAnnouncements: boolean("community_announcements").notNull().default(true),
+  newDeals: boolean("new_deals").notNull().default(true),
+  
+  // Email frequency
+  emailFrequency: text("email_frequency").notNull().default("immediate"), // immediate | daily | weekly | never
+  emailDigestTime: text("email_digest_time").default("09:00"), // Time in HH:MM format
+  emailDigestTimezone: text("email_digest_timezone").default("America/Vancouver"),
+  
+  // Quiet hours
+  quietHoursEnabled: boolean("quiet_hours_enabled").notNull().default(false),
+  quietHoursStart: text("quiet_hours_start").default("22:00"), // Time in HH:MM format
+  quietHoursEnd: text("quiet_hours_end").default("08:00"), // Time in HH:MM format
+  
+  // Last digest sent timestamp
+  lastDigestSentAt: timestamp("last_digest_sent_at", { withTimezone: true }),
+});
+
+// Notification Preferences Insert Schema
+export const insertCommunityNotificationPreferencesSchema = createInsertSchema(communityNotificationPreferences).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Authentication & Organizer Insert Schemas
 export const insertAuthCodeSchema = createInsertSchema(authCodes).omit({
   id: true,
@@ -1276,3 +1320,5 @@ export type CommunityDealRedemption = typeof communityDealRedemptions.$inferSele
 export type InsertCommunityDealRedemption = z.infer<typeof insertCommunityDealRedemptionSchema>;
 export type CommunityInviteLink = typeof communityInviteLinks.$inferSelect;
 export type InsertCommunityInviteLink = z.infer<typeof insertCommunityInviteLinkSchema>;
+export type CommunityNotificationPreferences = typeof communityNotificationPreferences.$inferSelect;
+export type InsertCommunityNotificationPreferences = z.infer<typeof insertCommunityNotificationPreferencesSchema>;

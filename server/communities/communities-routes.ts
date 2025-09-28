@@ -1748,6 +1748,43 @@ export function addCommunitiesRoutes(app: Express) {
       // Track analytics
       await communitiesStorage.trackCommunityActivity(community.id, 'members');
 
+      // Send notification to approved user
+      try {
+        const approvedUser = await communitiesStorage.getUserById(userId);
+        if (approvedUser) {
+          // Create notification
+          const notification = await communitiesStorage.createNotification({
+            recipientId: userId,
+            communityId: community.id,
+            type: 'membership_approved',
+            title: 'Membership Approved!',
+            body: `Your membership request for ${community.name} has been approved. Welcome to the community!`,
+            actionUrl: `/communities/${community.slug}`,
+            metadata: {
+              communityName: community.name,
+              communitySlug: community.slug,
+              approvedBy: user.firstName + ' ' + user.lastName
+            }
+          });
+
+          // Send email notification
+          await emailService.sendNotificationEmail(notification, approvedUser, community);
+          
+          // Send real-time notification via WebSocket
+          const { sendNotificationToUser } = require('./chat-server');
+          sendNotificationToUser(userId, {
+            id: notification.id,
+            type: notification.type,
+            title: notification.title,
+            body: notification.body,
+            actionUrl: notification.actionUrl
+          });
+        }
+      } catch (notifError) {
+        console.error('Failed to send membership approval notification:', notifError);
+        // Don't fail the request if notification fails
+      }
+
       res.json({
         ok: true,
         membership: updatedMembership,
@@ -1957,6 +1994,65 @@ export function addCommunitiesRoutes(app: Express) {
 
       // Track analytics
       await communitiesStorage.trackCommunityActivity(community.id, 'posts');
+
+      // Send notifications to community members if post is published immediately
+      if (!scheduledAt) {
+        try {
+          // Get all approved community members
+          const members = await communitiesStorage.getMembershipsByCommunityId(community.id);
+          const approvedMembers = members.filter(m => m.status === 'approved' && m.userId !== user.id);
+
+          // Create notifications for all members
+          const notifications = await Promise.all(approvedMembers.map(async (member) => {
+            try {
+              const memberUser = await communitiesStorage.getUserById(member.userId);
+              if (!memberUser) return null;
+
+              // Check preferences
+              const prefs = await communitiesStorage.getNotificationPreferences(member.userId, community.id);
+              if (prefs && !prefs.newPosts) return null;
+
+              return {
+                recipientId: member.userId,
+                communityId: community.id,
+                type: 'post_published',
+                title: `New post in ${community.name}`,
+                body: `${user.firstName} ${user.lastName} posted: "${title}"`,
+                actionUrl: `/communities/${community.slug}/posts/${post.id}`,
+                metadata: {
+                  postId: post.id,
+                  postTitle: title,
+                  postExcerpt: content.substring(0, 100),
+                  authorName: `${user.firstName} ${user.lastName}`,
+                  communityName: community.name
+                }
+              };
+            } catch (err) {
+              console.error(`Failed to prepare notification for user ${member.userId}:`, err);
+              return null;
+            }
+          }));
+
+          // Filter out nulls and create batch notifications
+          const validNotifications = notifications.filter(n => n !== null);
+          if (validNotifications.length > 0) {
+            await communitiesStorage.batchCreateNotifications(validNotifications);
+            
+            // Send real-time notifications
+            const { broadcastNotificationToCommunity } = require('./chat-server');
+            broadcastNotificationToCommunity(community.id, {
+              id: post.id,
+              type: 'post_published',
+              title: `New post in ${community.name}`,
+              body: `${user.firstName} ${user.lastName} posted: "${title}"`,
+              actionUrl: `/communities/${community.slug}/posts/${post.id}`
+            });
+          }
+        } catch (notifError) {
+          console.error('Failed to send new post notifications:', notifError);
+          // Don't fail the request if notifications fail
+        }
+      }
 
       res.json({
         ok: true,
@@ -3629,6 +3725,273 @@ export function addCommunitiesRoutes(app: Express) {
     } catch (error: any) {
       console.error('Webhook processing error:', error);
       res.status(500).json({ ok: false, error: error.message || 'Failed to process webhook' });
+    }
+  });
+
+  // ============ NOTIFICATION ENDPOINTS ============
+  
+  /**
+   * GET /api/notifications
+   * Get all user notifications across communities
+   * curl -X GET http://localhost:5000/api/notifications \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.get('/api/notifications', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const { limit = 20, offset = 0, unread_only = false } = req.query;
+
+      const { notifications, total } = await communitiesStorage.getNotifications(user.id, {
+        limit: Number(limit),
+        offset: Number(offset),
+        unreadOnly: unread_only === 'true'
+      });
+
+      const unreadCount = await communitiesStorage.getUnreadCount(user.id);
+
+      res.json({
+        ok: true,
+        notifications,
+        total,
+        unreadCount,
+        hasMore: Number(offset) + notifications.length < total
+      });
+    } catch (error: any) {
+      console.error('Get notifications error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get notifications' });
+    }
+  });
+
+  /**
+   * GET /api/communities/:id/notifications
+   * Get user's notifications for a specific community
+   * curl -X GET http://localhost:5000/api/communities/COMMUNITY_ID/notifications \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.get('/api/communities/:id/notifications', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+      const { limit = 20, offset = 0, unread_only = false } = req.query;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      const { notifications, total } = await communitiesStorage.getNotifications(user.id, {
+        communityId: community.id,
+        limit: Number(limit),
+        offset: Number(offset),
+        unreadOnly: unread_only === 'true'
+      });
+
+      const unreadCount = await communitiesStorage.getUnreadCount(user.id, community.id);
+
+      res.json({
+        ok: true,
+        notifications,
+        total,
+        unreadCount,
+        hasMore: Number(offset) + notifications.length < total
+      });
+    } catch (error: any) {
+      console.error('Get community notifications error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get notifications' });
+    }
+  });
+
+  /**
+   * PATCH /api/notifications/:id/read
+   * Mark a notification as read
+   * curl -X PATCH http://localhost:5000/api/notifications/NOTIFICATION_ID/read \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.patch('/api/notifications/:id/read', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+
+      const notification = await communitiesStorage.markAsRead(id, user.id);
+
+      res.json({
+        ok: true,
+        notification,
+        message: 'Notification marked as read'
+      });
+    } catch (error: any) {
+      console.error('Mark notification as read error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to mark notification as read' });
+    }
+  });
+
+  /**
+   * PATCH /api/notifications/read-all
+   * Mark all notifications as read
+   * curl -X PATCH http://localhost:5000/api/notifications/read-all \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.patch('/api/notifications/read-all', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const { communityId } = req.body;
+
+      const count = await communitiesStorage.markAllAsRead(user.id, communityId);
+
+      res.json({
+        ok: true,
+        markedCount: count,
+        message: `Marked ${count} notifications as read`
+      });
+    } catch (error: any) {
+      console.error('Mark all notifications as read error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to mark notifications as read' });
+    }
+  });
+
+  /**
+   * DELETE /api/notifications/:id
+   * Delete a notification
+   * curl -X DELETE http://localhost:5000/api/notifications/NOTIFICATION_ID \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.delete('/api/notifications/:id', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+
+      await communitiesStorage.deleteNotification(id, user.id);
+
+      res.json({
+        ok: true,
+        message: 'Notification deleted successfully'
+      });
+    } catch (error: any) {
+      console.error('Delete notification error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to delete notification' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/notifications/test
+   * Test notification (owner only)
+   * curl -X POST http://localhost:5000/api/communities/COMMUNITY_ID/notifications/test \
+   *   -H "Authorization: Bearer YOUR_TOKEN" \
+   *   -H "Content-Type: application/json" \
+   *   -d '{"type":"test","title":"Test Notification","body":"This is a test"}'
+   */
+  app.post('/api/communities/:id/notifications/test', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+      const community = (req as any).community;
+      const { type = 'test', title = 'Test Notification', body = 'This is a test notification' } = req.body;
+
+      // Create test notification for the owner
+      const notification = await communitiesStorage.createNotification({
+        recipientId: user.id,
+        communityId: community.id,
+        type,
+        title,
+        body,
+        actionUrl: `/communities/${community.slug}`,
+        metadata: { test: true, timestamp: new Date() }
+      });
+
+      // Send test email if enabled
+      const emailSent = await emailService.sendNotificationEmail(notification, user, community);
+
+      res.json({
+        ok: true,
+        notification,
+        emailSent,
+        message: 'Test notification created successfully'
+      });
+    } catch (error: any) {
+      console.error('Test notification error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to create test notification' });
+    }
+  });
+
+  /**
+   * GET /api/notifications/preferences
+   * Get notification preferences for the current user
+   * curl -X GET http://localhost:5000/api/notifications/preferences \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.get('/api/notifications/preferences', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const { communityId } = req.query;
+
+      const preferences = await communitiesStorage.getNotificationPreferences(
+        user.id,
+        communityId as string | undefined
+      );
+
+      // If no preferences exist, return defaults
+      if (!preferences) {
+        return res.json({
+          ok: true,
+          preferences: {
+            inAppEnabled: true,
+            emailEnabled: true,
+            pushEnabled: false,
+            newPosts: true,
+            postComments: true,
+            commentReplies: true,
+            mentions: true,
+            pollResults: true,
+            membershipUpdates: true,
+            communityAnnouncements: true,
+            newDeals: true,
+            emailFrequency: 'immediate',
+            emailDigestTime: '09:00',
+            emailDigestTimezone: 'America/Vancouver',
+            quietHoursEnabled: false,
+            quietHoursStart: '22:00',
+            quietHoursEnd: '08:00'
+          }
+        });
+      }
+
+      res.json({
+        ok: true,
+        preferences
+      });
+    } catch (error: any) {
+      console.error('Get notification preferences error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get notification preferences' });
+    }
+  });
+
+  /**
+   * PATCH /api/notifications/preferences
+   * Update notification preferences
+   * curl -X PATCH http://localhost:5000/api/notifications/preferences \
+   *   -H "Authorization: Bearer YOUR_TOKEN" \
+   *   -H "Content-Type: application/json" \
+   *   -d '{"emailEnabled":false,"emailFrequency":"daily"}'
+   */
+  app.patch('/api/notifications/preferences', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const { communityId, ...preferences } = req.body;
+
+      const updatedPreferences = await communitiesStorage.upsertNotificationPreferences(
+        user.id,
+        preferences,
+        communityId
+      );
+
+      res.json({
+        ok: true,
+        preferences: updatedPreferences,
+        message: 'Notification preferences updated successfully'
+      });
+    } catch (error: any) {
+      console.error('Update notification preferences error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to update notification preferences' });
     }
   });
 

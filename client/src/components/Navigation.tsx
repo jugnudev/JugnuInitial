@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -168,6 +169,11 @@ export default function Navigation() {
               >
                 Join
               </Link>
+              
+              {/* Notification Bell - Show for authenticated users */}
+              {isAuthenticated && (
+                <NotificationBell />
+              )}
               
               {/* Authentication - Show different content based on auth state */}
               {authLoading ? (

@@ -5,13 +5,14 @@ import { nanoid } from 'nanoid';
 
 // Types for WebSocket messages
 interface WSMessage {
-  type: 'auth' | 'message' | 'typing' | 'typing_stop' | 'ping' | 'error';
+  type: 'auth' | 'message' | 'typing' | 'typing_stop' | 'ping' | 'error' | 'subscribe' | 'unsubscribe';
   payload?: any;
+  channel?: string;
 }
 
 interface AuthPayload {
   token: string;
-  communityId: string;
+  communityId?: string;
 }
 
 interface MessagePayload {
@@ -23,14 +24,24 @@ interface TypingPayload {
   isTyping: boolean;
 }
 
+interface NotificationPayload {
+  id: string;
+  type: string;
+  title: string;
+  body?: string;
+  actionUrl?: string;
+  metadata?: any;
+}
+
 interface AuthenticatedClient {
   ws: WebSocket;
   userId: string;
-  communityId: string;
+  communityId?: string;
   userName: string;
-  userRole: string;
+  userRole?: string;
   lastActivity: Date;
   isTyping: boolean;
+  subscribedChannels: Set<string>;
 }
 
 // Track online users per community
@@ -95,6 +106,14 @@ export function startChatServer() {
             handleTyping(ws, false);
             break;
             
+          case 'subscribe':
+            handleSubscribe(ws, message.channel || 'notifications');
+            break;
+            
+          case 'unsubscribe':
+            handleUnsubscribe(ws, message.channel || 'notifications');
+            break;
+            
           case 'ping':
             ws.send(JSON.stringify({ type: 'pong' }));
             break;
@@ -137,20 +156,26 @@ export function startChatServer() {
         return;
       }
 
-      // Check community membership
-      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
-      if (!membership || membership.status !== 'approved') {
-        ws.send(JSON.stringify({ type: 'error', payload: 'Not a member of this community' }));
-        ws.close();
-        return;
-      }
+      // If communityId is provided, check membership (for chat)
+      let membership = null;
+      let community = null;
+      
+      if (communityId) {
+        // Check community membership
+        membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+        if (!membership || membership.status !== 'approved') {
+          ws.send(JSON.stringify({ type: 'error', payload: 'Not a member of this community' }));
+          ws.close();
+          return;
+        }
 
-      // Get community details
-      const community = await communitiesStorage.getCommunityById(communityId);
-      if (!community) {
-        ws.send(JSON.stringify({ type: 'error', payload: 'Community not found' }));
-        ws.close();
-        return;
+        // Get community details
+        community = await communitiesStorage.getCommunityById(communityId);
+        if (!community) {
+          ws.send(JSON.stringify({ type: 'error', payload: 'Community not found' }));
+          ws.close();
+          return;
+        }
       }
 
       // Store authenticated client
@@ -159,9 +184,10 @@ export function startChatServer() {
         userId: user.id,
         communityId,
         userName: `${user.firstName} ${user.lastName}`,
-        userRole: membership.role,
+        userRole: membership?.role,
         lastActivity: new Date(),
         isTyping: false,
+        subscribedChannels: new Set(),
       };
 
       authenticatedClients.set(ws, client);
@@ -410,5 +436,79 @@ export function startChatServer() {
     }
   }
 
+  // Handle channel subscription
+  function handleSubscribe(ws: WebSocket, channel: string) {
+    const client = authenticatedClients.get(ws);
+    if (!client) {
+      ws.send(JSON.stringify({ type: 'error', payload: 'Not authenticated' }));
+      return;
+    }
+
+    client.subscribedChannels.add(channel);
+    ws.send(JSON.stringify({ 
+      type: 'subscribed', 
+      channel,
+      payload: `Successfully subscribed to ${channel}` 
+    }));
+    
+    console.log(`[WS] User ${client.userName} subscribed to ${channel}`);
+  }
+
+  // Handle channel unsubscribe
+  function handleUnsubscribe(ws: WebSocket, channel: string) {
+    const client = authenticatedClients.get(ws);
+    if (!client) {
+      ws.send(JSON.stringify({ type: 'error', payload: 'Not authenticated' }));
+      return;
+    }
+
+    client.subscribedChannels.delete(channel);
+    ws.send(JSON.stringify({ 
+      type: 'unsubscribed', 
+      channel,
+      payload: `Successfully unsubscribed from ${channel}` 
+    }));
+    
+    console.log(`[WS] User ${client.userName} unsubscribed from ${channel}`);
+  }
+
   return wss;
+}
+
+// Export function to send notifications to users
+export function sendNotificationToUser(userId: string, notification: NotificationPayload) {
+  const userSockets = userIdToClients.get(userId);
+  if (!userSockets || userSockets.size === 0) {
+    console.log(`[WS] No active connections for user ${userId}`);
+    return;
+  }
+
+  const message = {
+    type: 'notification',
+    data: notification
+  };
+
+  userSockets.forEach(ws => {
+    const client = authenticatedClients.get(ws);
+    if (client && client.subscribedChannels.has('notifications') && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(message));
+      console.log(`[WS] Sent notification to user ${userId}: ${notification.title}`);
+    }
+  });
+}
+
+// Export function to broadcast notification to community members
+export function broadcastNotificationToCommunity(communityId: string, notification: NotificationPayload) {
+  authenticatedClients.forEach((client, ws) => {
+    if (client.communityId === communityId && 
+        client.subscribedChannels.has('notifications') && 
+        ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({
+        type: 'notification',
+        data: notification
+      }));
+    }
+  });
+  
+  console.log(`[WS] Broadcast notification to community ${communityId}: ${notification.title}`);
 }

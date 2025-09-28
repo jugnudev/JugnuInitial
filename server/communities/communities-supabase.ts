@@ -1939,6 +1939,398 @@ export class CommunitiesSupabaseDB {
       error: data.error
     };
   }
+
+  // ============ NOTIFICATIONS ============
+  
+  // Create a single notification
+  async createNotification(data: {
+    recipientId: string;
+    communityId?: string;
+    type: string;
+    title: string;
+    body?: string;
+    actionUrl?: string;
+    metadata?: any;
+  }): Promise<CommunityNotification> {
+    const { data: notification, error } = await this.client
+      .from('community_notifications')
+      .insert({
+        recipient_id: data.recipientId,
+        community_id: data.communityId,
+        type: data.type,
+        title: data.title,
+        body: data.body,
+        action_url: data.actionUrl,
+        metadata: data.metadata || {},
+        is_read: false,
+        is_email_sent: false
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapNotificationFromDb(notification);
+  }
+
+  // Create multiple notifications at once (for bulk operations)
+  async batchCreateNotifications(notifications: Array<{
+    recipientId: string;
+    communityId?: string;
+    type: string;
+    title: string;
+    body?: string;
+    actionUrl?: string;
+    metadata?: any;
+  }>): Promise<CommunityNotification[]> {
+    if (!notifications.length) return [];
+
+    const notificationData = notifications.map(n => ({
+      recipient_id: n.recipientId,
+      community_id: n.communityId,
+      type: n.type,
+      title: n.title,
+      body: n.body,
+      action_url: n.actionUrl,
+      metadata: n.metadata || {},
+      is_read: false,
+      is_email_sent: false
+    }));
+
+    const { data: created, error } = await this.client
+      .from('community_notifications')
+      .insert(notificationData)
+      .select();
+
+    if (error) throw error;
+    return created.map(n => this.mapNotificationFromDb(n));
+  }
+
+  // Get notifications for a user
+  async getNotifications(
+    userId: string, 
+    options?: {
+      communityId?: string;
+      limit?: number;
+      offset?: number;
+      unreadOnly?: boolean;
+    }
+  ): Promise<{ notifications: CommunityNotification[]; total: number }> {
+    let query = this.client
+      .from('community_notifications')
+      .select('*', { count: 'exact' })
+      .eq('recipient_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (options?.communityId) {
+      query = query.eq('community_id', options.communityId);
+    }
+
+    if (options?.unreadOnly) {
+      query = query.eq('is_read', false);
+    }
+
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+
+    if (options?.offset) {
+      query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+    }
+
+    const { data, error, count } = await query;
+    if (error) throw error;
+
+    return {
+      notifications: data.map(n => this.mapNotificationFromDb(n)),
+      total: count || 0
+    };
+  }
+
+  // Get unread notification count for a user
+  async getUnreadCount(userId: string, communityId?: string): Promise<number> {
+    let query = this.client
+      .from('community_notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('recipient_id', userId)
+      .eq('is_read', false);
+
+    if (communityId) {
+      query = query.eq('community_id', communityId);
+    }
+
+    const { count, error } = await query;
+    if (error) throw error;
+    return count || 0;
+  }
+
+  // Mark a notification as read
+  async markAsRead(notificationId: string, userId: string): Promise<CommunityNotification> {
+    const { data, error } = await this.client
+      .from('community_notifications')
+      .update({
+        is_read: true,
+        read_at: new Date().toISOString()
+      })
+      .eq('id', notificationId)
+      .eq('recipient_id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapNotificationFromDb(data);
+  }
+
+  // Mark all notifications as read
+  async markAllAsRead(userId: string, communityId?: string): Promise<number> {
+    let query = this.client
+      .from('community_notifications')
+      .update({
+        is_read: true,
+        read_at: new Date().toISOString()
+      })
+      .eq('recipient_id', userId)
+      .eq('is_read', false);
+
+    if (communityId) {
+      query = query.eq('community_id', communityId);
+    }
+
+    const { data, error } = await query.select();
+    if (error) throw error;
+    return data ? data.length : 0;
+  }
+
+  // Delete a notification
+  async deleteNotification(notificationId: string, userId: string): Promise<boolean> {
+    const { error } = await this.client
+      .from('community_notifications')
+      .delete()
+      .eq('id', notificationId)
+      .eq('recipient_id', userId);
+
+    if (error) throw error;
+    return true;
+  }
+
+  // Clean up old notifications (>30 days)
+  async cleanupOldNotifications(): Promise<number> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const { data, error } = await this.client
+      .from('community_notifications')
+      .delete()
+      .lt('created_at', thirtyDaysAgo.toISOString())
+      .select();
+
+    if (error) throw error;
+    return data ? data.length : 0;
+  }
+
+  // ============ NOTIFICATION PREFERENCES ============
+  
+  // Get notification preferences for a user
+  async getNotificationPreferences(userId: string, communityId?: string): Promise<CommunityNotificationPreferences | null> {
+    const { data, error } = await this.client
+      .from('community_notification_preferences')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('community_id', communityId || null)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    if (!data) return null;
+    
+    return this.mapNotificationPreferencesFromDb(data);
+  }
+
+  // Create or update notification preferences
+  async upsertNotificationPreferences(
+    userId: string,
+    preferences: Partial<InsertCommunityNotificationPreferences>,
+    communityId?: string
+  ): Promise<CommunityNotificationPreferences> {
+    // Check if preferences exist
+    const existing = await this.getNotificationPreferences(userId, communityId);
+    
+    const preferencesData = {
+      user_id: userId,
+      community_id: communityId || null,
+      in_app_enabled: preferences.inAppEnabled,
+      email_enabled: preferences.emailEnabled,
+      push_enabled: preferences.pushEnabled,
+      new_posts: preferences.newPosts,
+      post_comments: preferences.postComments,
+      comment_replies: preferences.commentReplies,
+      mentions: preferences.mentions,
+      poll_results: preferences.pollResults,
+      membership_updates: preferences.membershipUpdates,
+      community_announcements: preferences.communityAnnouncements,
+      new_deals: preferences.newDeals,
+      email_frequency: preferences.emailFrequency,
+      email_digest_time: preferences.emailDigestTime,
+      email_digest_timezone: preferences.emailDigestTimezone,
+      quiet_hours_enabled: preferences.quietHoursEnabled,
+      quiet_hours_start: preferences.quietHoursStart,
+      quiet_hours_end: preferences.quietHoursEnd,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = existing
+      ? await this.client
+          .from('community_notification_preferences')
+          .update(preferencesData)
+          .eq('id', existing.id)
+          .select()
+          .single()
+      : await this.client
+          .from('community_notification_preferences')
+          .insert(preferencesData)
+          .select()
+          .single();
+
+    if (error) throw error;
+    return this.mapNotificationPreferencesFromDb(data);
+  }
+
+  // ============ EMAIL QUEUE ============
+  
+  // Add email to queue
+  async queueEmail(data: {
+    recipientEmail: string;
+    recipientName?: string;
+    communityId?: string;
+    templateId: string;
+    subject: string;
+    variables?: any;
+    scheduledFor?: Date;
+  }): Promise<CommunityEmailQueue> {
+    const { data: email, error } = await this.client
+      .from('community_email_queue')
+      .insert({
+        recipient_email: data.recipientEmail,
+        recipient_name: data.recipientName,
+        community_id: data.communityId,
+        template_id: data.templateId,
+        subject: data.subject,
+        variables: data.variables || {},
+        status: 'pending',
+        scheduled_for: data.scheduledFor?.toISOString()
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapEmailQueueFromDb(email);
+  }
+
+  // Get pending emails from queue
+  async getPendingEmails(limit: number = 10): Promise<CommunityEmailQueue[]> {
+    const { data, error } = await this.client
+      .from('community_email_queue')
+      .select('*')
+      .eq('status', 'pending')
+      .or(`scheduled_for.is.null,scheduled_for.lte.${new Date().toISOString()}`)
+      .order('created_at', { ascending: true })
+      .limit(limit);
+
+    if (error) throw error;
+    return data.map(e => this.mapEmailQueueFromDb(e));
+  }
+
+  // Mark email as sent
+  async markEmailSent(emailId: string): Promise<void> {
+    const { error } = await this.client
+      .from('community_email_queue')
+      .update({
+        status: 'sent',
+        sent_at: new Date().toISOString()
+      })
+      .eq('id', emailId);
+
+    if (error) throw error;
+  }
+
+  // Mark email as failed
+  async markEmailFailed(emailId: string, errorMessage: string, retryCount: number): Promise<void> {
+    const { error } = await this.client
+      .from('community_email_queue')
+      .update({
+        status: retryCount >= 3 ? 'failed' : 'pending',
+        error_message: errorMessage,
+        retry_count: retryCount,
+        failed_at: retryCount >= 3 ? new Date().toISOString() : null
+      })
+      .eq('id', emailId);
+
+    if (error) throw error;
+  }
+
+  // Helper methods to map database records to TypeScript types
+  private mapNotificationFromDb(data: any): CommunityNotification {
+    return {
+      id: data.id,
+      createdAt: data.created_at,
+      recipientId: data.recipient_id,
+      communityId: data.community_id,
+      type: data.type,
+      title: data.title,
+      body: data.body,
+      actionUrl: data.action_url,
+      metadata: data.metadata,
+      isRead: data.is_read,
+      readAt: data.read_at,
+      isEmailSent: data.is_email_sent,
+      emailSentAt: data.email_sent_at
+    };
+  }
+
+  private mapNotificationPreferencesFromDb(data: any): CommunityNotificationPreferences {
+    return {
+      id: data.id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      userId: data.user_id,
+      communityId: data.community_id,
+      inAppEnabled: data.in_app_enabled,
+      emailEnabled: data.email_enabled,
+      pushEnabled: data.push_enabled,
+      newPosts: data.new_posts,
+      postComments: data.post_comments,
+      commentReplies: data.comment_replies,
+      mentions: data.mentions,
+      pollResults: data.poll_results,
+      membershipUpdates: data.membership_updates,
+      communityAnnouncements: data.community_announcements,
+      newDeals: data.new_deals,
+      emailFrequency: data.email_frequency,
+      emailDigestTime: data.email_digest_time,
+      emailDigestTimezone: data.email_digest_timezone,
+      quietHoursEnabled: data.quiet_hours_enabled,
+      quietHoursStart: data.quiet_hours_start,
+      quietHoursEnd: data.quiet_hours_end,
+      lastDigestSentAt: data.last_digest_sent_at
+    };
+  }
+
+  private mapEmailQueueFromDb(data: any): CommunityEmailQueue {
+    return {
+      id: data.id,
+      createdAt: data.created_at,
+      recipientEmail: data.recipient_email,
+      recipientName: data.recipient_name,
+      communityId: data.community_id,
+      templateId: data.template_id,
+      subject: data.subject,
+      variables: data.variables,
+      status: data.status,
+      sentAt: data.sent_at,
+      failedAt: data.failed_at,
+      errorMessage: data.error_message,
+      retryCount: data.retry_count,
+      scheduledFor: data.scheduled_for
+    };
+  }
 }
 
 // Export singleton instance
