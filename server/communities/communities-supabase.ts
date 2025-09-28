@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { nanoid } from 'nanoid';
-import { cache } from './cache';
+import { queryCache } from './cache';
 import type { 
   User, 
   InsertUser,
@@ -1075,7 +1075,7 @@ export class CommunitiesSupabaseDB {
         )
       `)
       .eq('post_id', postId)
-      .eq('status', 'published')
+      .eq('is_hidden', false)
       .order('created_at', { ascending: true });
 
     if (error) throw error;
@@ -1243,12 +1243,26 @@ export class CommunitiesSupabaseDB {
     try {
       const today = new Date().toISOString().split('T')[0];
       
+      // Map field names to actual database columns
+      const fieldMapping = {
+        'views': 'pageviews',
+        'posts': 'total_posts', 
+        'members': 'total_members',
+        'reactions': 'total_reactions'
+      };
+      
+      const dbField = fieldMapping[field];
+      if (!dbField) {
+        console.error(`Unknown analytics field: ${field}`);
+        return;
+      }
+      
       const { error } = await this.client
         .from('community_analytics')
         .upsert({
           community_id: communityId,
           date: today,
-          [field]: 1
+          [dbField]: 1
         }, {
           onConflict: 'community_id,date'
         });

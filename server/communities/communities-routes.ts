@@ -2831,8 +2831,13 @@ export function addCommunitiesRoutes(app: Express) {
         parentId
       });
 
-      // Track analytics
-      await communitiesStorage.incrementPostAnalytics(postId, 'comments');
+      // Track analytics (non-blocking)
+      try {
+        await communitiesStorage.incrementPostAnalytics(postId, 'comments');
+        await communitiesStorage.trackCommunityActivity(community.id, 'posts');
+      } catch (analyticsError) {
+        console.warn('Analytics tracking failed (non-blocking):', analyticsError);
+      }
 
       res.json({
         ok: true,
