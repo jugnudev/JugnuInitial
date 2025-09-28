@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'wouter';
-import { Target, Users, BarChart3, Tag } from 'lucide-react';
+import { Target, Users, BarChart3, Tag, Building2, Users2 } from 'lucide-react';
 
 export default function AdminNav() {
   const [location] = useLocation();
@@ -8,6 +8,8 @@ export default function AdminNav() {
     { path: '/admin/promote', label: 'Campaigns', icon: Target },
     { path: '/admin/leads', label: 'Leads', icon: Users },
     { path: '/admin/analytics', label: 'Visitor Analytics', icon: BarChart3 },
+    { path: '/admin/organizers', label: 'Organizer Applications', icon: Building2 },
+    { path: '/admin/communities', label: 'Communities', icon: Users2 },
   ];
 
   return (

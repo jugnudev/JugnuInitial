@@ -2331,7 +2331,754 @@ export class CommunitiesSupabaseDB {
       scheduledFor: data.scheduled_for
     };
   }
+
+  // ============ ADMIN METHODS ============
+  
+  // Get all communities with stats for admin dashboard
+  async getAllCommunitiesAdmin(filters?: {
+    status?: string;
+    plan?: string;
+    searchTerm?: string;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<{ communities: any[], total: number }> {
+    let query = this.client
+      .from('communities')
+      .select(`
+        *,
+        organizers!inner (
+          id,
+          user_id,
+          business_name,
+          users!inner (
+            id,
+            email,
+            first_name,
+            last_name,
+            created_at
+          )
+        ),
+        community_subscriptions (
+          id,
+          plan,
+          status,
+          current_period_start,
+          current_period_end,
+          stripe_subscription_id
+        ),
+        community_memberships!inner (
+          id,
+          status
+        )
+      `, { count: 'exact' });
+    
+    // Apply filters
+    if (filters?.status) {
+      query = query.eq('status', filters.status);
+    }
+    if (filters?.plan) {
+      query = query.eq('community_subscriptions.plan', filters.plan);
+    }
+    if (filters?.searchTerm) {
+      query = query.or(`name.ilike.%${filters.searchTerm}%,description.ilike.%${filters.searchTerm}%`);
+    }
+    
+    // Apply sorting
+    const sortBy = pagination?.sortBy || 'created_at';
+    const sortOrder = pagination?.sortOrder || 'desc';
+    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+    
+    // Apply pagination
+    const limit = pagination?.limit || 50;
+    const offset = pagination?.offset || 0;
+    query = query.range(offset, offset + limit - 1);
+    
+    const { data, error, count } = await query;
+    if (error) throw error;
+    
+    // Process the data to calculate member counts
+    const communities = data?.map(community => ({
+      ...this.mapCommunityFromDb(community),
+      owner: community.organizers ? {
+        id: community.organizers.id,
+        userId: community.organizers.user_id,
+        businessName: community.organizers.business_name,
+        email: community.organizers.users?.email,
+        fullName: community.organizers.users 
+          ? `${community.organizers.users.first_name || ''} ${community.organizers.users.last_name || ''}`.trim()
+          : null
+      } : null,
+      subscription: community.community_subscriptions?.[0] || null,
+      memberCount: community.community_memberships?.filter((m: any) => m.status === 'active').length || 0,
+      lastActivity: community.updated_at
+    })) || [];
+    
+    return {
+      communities,
+      total: count || 0
+    };
+  }
+  
+  // Get detailed stats for a specific community
+  async getCommunityStats(communityId: string): Promise<any> {
+    const { data: community, error: communityError } = await this.client
+      .from('communities')
+      .select(`
+        *,
+        organizers!inner (
+          id,
+          user_id,
+          business_name,
+          users!inner (
+            id,
+            email,
+            first_name,
+            last_name,
+            created_at
+          )
+        ),
+        community_subscriptions (
+          id,
+          plan,
+          status,
+          current_period_start,
+          current_period_end,
+          stripe_subscription_id,
+          created_at
+        ),
+        community_memberships!inner (
+          id,
+          status,
+          created_at,
+          approved_at,
+          users!inner (
+            id,
+            email,
+            first_name,
+            last_name,
+            created_at
+          )
+        ),
+        community_posts (
+          id,
+          created_at,
+          post_type,
+          status
+        ),
+        community_comments (
+          id,
+          created_at
+        )
+      `)
+      .eq('id', communityId)
+      .single();
+    
+    if (communityError) throw communityError;
+    
+    // Calculate various stats
+    const stats = {
+      community: this.mapCommunityFromDb(community),
+      owner: community.organizers ? {
+        id: community.organizers.id,
+        userId: community.organizers.user_id,
+        businessName: community.organizers.business_name,
+        email: community.organizers.users?.email,
+        fullName: community.organizers.users 
+          ? `${community.organizers.users.first_name || ''} ${community.organizers.users.last_name || ''}`.trim()
+          : null
+      } : null,
+      subscription: community.community_subscriptions?.[0] || null,
+      memberStats: {
+        total: community.community_memberships?.length || 0,
+        active: community.community_memberships?.filter((m: any) => m.status === 'active').length || 0,
+        pending: community.community_memberships?.filter((m: any) => m.status === 'pending').length || 0,
+        banned: community.community_memberships?.filter((m: any) => m.status === 'banned').length || 0
+      },
+      activityStats: {
+        totalPosts: community.community_posts?.length || 0,
+        totalComments: community.community_comments?.length || 0,
+        lastPostDate: community.community_posts?.[0]?.created_at || null,
+        postsThisMonth: community.community_posts?.filter((p: any) => {
+          const postDate = new Date(p.created_at);
+          const now = new Date();
+          return postDate.getMonth() === now.getMonth() && postDate.getFullYear() === now.getFullYear();
+        }).length || 0
+      },
+      members: community.community_memberships?.map((m: any) => ({
+        id: m.id,
+        status: m.status,
+        joinedAt: m.created_at,
+        approvedAt: m.approved_at,
+        user: {
+          id: m.users.id,
+          email: m.users.email,
+          fullName: `${m.users.first_name || ''} ${m.users.last_name || ''}`.trim()
+        }
+      })) || []
+    };
+    
+    return stats;
+  }
+  
+  // Suspend a community
+  async suspendCommunity(communityId: string, reason: string, adminId: string): Promise<Community> {
+    const { data, error } = await this.client
+      .from('communities')
+      .update({
+        status: 'suspended',
+        suspended_at: new Date().toISOString(),
+        suspension_reason: reason,
+        suspended_by: adminId,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', communityId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    // Log admin action
+    await this.logAdminAction({
+      adminId,
+      action: 'suspend_community',
+      targetType: 'community',
+      targetId: communityId,
+      metadata: { reason }
+    });
+    
+    return this.mapCommunityFromDb(data);
+  }
+  
+  // Restore a suspended community
+  async restoreCommunity(communityId: string, adminId: string): Promise<Community> {
+    const { data, error } = await this.client
+      .from('communities')
+      .update({
+        status: 'active',
+        suspended_at: null,
+        suspension_reason: null,
+        suspended_by: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', communityId)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    // Log admin action
+    await this.logAdminAction({
+      adminId,
+      action: 'restore_community',
+      targetType: 'community',
+      targetId: communityId,
+      metadata: {}
+    });
+    
+    return this.mapCommunityFromDb(data);
+  }
+  
+  // Get platform-wide metrics
+  async getPlatformMetrics(): Promise<any> {
+    // Get community counts by status
+    const { data: communityCounts, error: communityError } = await this.client
+      .from('communities')
+      .select('status', { count: 'exact' });
+    
+    if (communityError) throw communityError;
+    
+    // Get subscription counts by plan
+    const { data: subscriptionCounts, error: subError } = await this.client
+      .from('community_subscriptions')
+      .select('plan, status', { count: 'exact' });
+    
+    if (subError) throw subError;
+    
+    // Get user counts
+    const { data: userCounts, error: userError } = await this.client
+      .from('users')
+      .select('role, status', { count: 'exact' });
+    
+    if (userError) throw userError;
+    
+    // Get membership counts
+    const { data: membershipCounts, error: memberError } = await this.client
+      .from('community_memberships')
+      .select('status', { count: 'exact' });
+    
+    if (memberError) throw memberError;
+    
+    // Calculate metrics
+    const metrics = {
+      communities: {
+        total: communityCounts?.length || 0,
+        active: communityCounts?.filter((c: any) => c.status === 'active').length || 0,
+        suspended: communityCounts?.filter((c: any) => c.status === 'suspended').length || 0
+      },
+      subscriptions: {
+        total: subscriptionCounts?.length || 0,
+        free: subscriptionCounts?.filter((s: any) => s.plan === 'free').length || 0,
+        monthly: subscriptionCounts?.filter((s: any) => s.plan === 'monthly').length || 0,
+        yearly: subscriptionCounts?.filter((s: any) => s.plan === 'yearly').length || 0,
+        active: subscriptionCounts?.filter((s: any) => s.status === 'active').length || 0,
+        trialing: subscriptionCounts?.filter((s: any) => s.status === 'trialing').length || 0
+      },
+      users: {
+        total: userCounts?.length || 0,
+        active: userCounts?.filter((u: any) => u.status === 'active').length || 0,
+        organizers: userCounts?.filter((u: any) => u.role === 'organizer').length || 0,
+        admins: userCounts?.filter((u: any) => u.role === 'admin').length || 0
+      },
+      memberships: {
+        total: membershipCounts?.length || 0,
+        active: membershipCounts?.filter((m: any) => m.status === 'active').length || 0,
+        pending: membershipCounts?.filter((m: any) => m.status === 'pending').length || 0
+      }
+    };
+    
+    return metrics;
+  }
+  
+  // Get revenue analytics
+  async getRevenueAnalytics(startDate: Date, endDate: Date): Promise<any> {
+    const { data: payments, error } = await this.client
+      .from('community_payments')
+      .select(`
+        *,
+        community_subscriptions!inner (
+          plan,
+          community_id,
+          communities!inner (
+            name
+          )
+        )
+      `)
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate.toISOString())
+      .eq('status', 'succeeded')
+      .order('created_at', { ascending: true });
+    
+    if (error) throw error;
+    
+    // Calculate revenue metrics
+    const totalRevenue = payments?.reduce((sum, p) => sum + (p.amount_paid || 0), 0) || 0;
+    const revenueByPlan: { [key: string]: number } = {};
+    const revenueByMonth: { [key: string]: number } = {};
+    const topCommunities: { [key: string]: { name: string; revenue: number } } = {};
+    
+    payments?.forEach(payment => {
+      // Revenue by plan
+      const plan = payment.community_subscriptions?.plan || 'unknown';
+      revenueByPlan[plan] = (revenueByPlan[plan] || 0) + payment.amount_paid;
+      
+      // Revenue by month
+      const date = new Date(payment.created_at);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      revenueByMonth[monthKey] = (revenueByMonth[monthKey] || 0) + payment.amount_paid;
+      
+      // Top communities by revenue
+      const communityId = payment.community_subscriptions?.community_id;
+      const communityName = payment.community_subscriptions?.communities?.name;
+      if (communityId && communityName) {
+        if (!topCommunities[communityId]) {
+          topCommunities[communityId] = { name: communityName, revenue: 0 };
+        }
+        topCommunities[communityId].revenue += payment.amount_paid;
+      }
+    });
+    
+    // Sort top communities by revenue
+    const topCommunitiesList = Object.entries(topCommunities)
+      .map(([id, data]) => ({ id, ...data }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+    
+    return {
+      totalRevenue,
+      revenueByPlan,
+      revenueByMonth,
+      topCommunities: topCommunitiesList,
+      transactionCount: payments?.length || 0,
+      averageTransactionValue: payments?.length ? totalRevenue / payments.length : 0
+    };
+  }
+  
+  // Log admin actions for audit trail
+  async logAdminAction(data: {
+    adminId: string;
+    action: string;
+    targetType: string;
+    targetId?: string;
+    metadata?: any;
+  }): Promise<void> {
+    try {
+      await this.client
+        .from('admin_audit_log')
+        .insert({
+          admin_id: data.adminId,
+          action: data.action,
+          target_type: data.targetType,
+          target_id: data.targetId,
+          metadata: data.metadata || {},
+          ip_address: null, // Would need to pass from request
+          user_agent: null  // Would need to pass from request
+        });
+    } catch (error) {
+      console.error('Failed to log admin action:', error);
+      // Don't throw - audit logging failure shouldn't break the main action
+    }
+  }
+  
+  // Get audit log entries
+  async getAuditLog(filters?: {
+    adminId?: string;
+    targetType?: string;
+    targetId?: string;
+    action?: string;
+    startDate?: Date;
+    endDate?: Date;
+  }, pagination?: {
+    limit?: number;
+    offset?: number;
+  }): Promise<{ entries: any[], total: number }> {
+    let query = this.client
+      .from('admin_audit_log')
+      .select(`
+        *,
+        admins:admin_id (
+          id,
+          email,
+          first_name,
+          last_name
+        )
+      `, { count: 'exact' })
+      .order('created_at', { ascending: false });
+    
+    // Apply filters
+    if (filters?.adminId) {
+      query = query.eq('admin_id', filters.adminId);
+    }
+    if (filters?.targetType) {
+      query = query.eq('target_type', filters.targetType);
+    }
+    if (filters?.targetId) {
+      query = query.eq('target_id', filters.targetId);
+    }
+    if (filters?.action) {
+      query = query.eq('action', filters.action);
+    }
+    if (filters?.startDate) {
+      query = query.gte('created_at', filters.startDate.toISOString());
+    }
+    if (filters?.endDate) {
+      query = query.lte('created_at', filters.endDate.toISOString());
+    }
+    
+    // Apply pagination
+    const limit = pagination?.limit || 100;
+    const offset = pagination?.offset || 0;
+    query = query.range(offset, offset + limit - 1);
+    
+    const { data, error, count } = await query;
+    if (error) throw error;
+    
+    return {
+      entries: data || [],
+      total: count || 0
+    };
+  }
+
+  // ============ ADMIN METHODS ============
+  async testDatabaseConnection(): Promise<{ ok: boolean; responseTime: number; message: string }> {
+    const startTime = Date.now();
+    try {
+      // Simple query to test database connectivity
+      const { data, error } = await this.client
+        .from('users')
+        .select('id')
+        .limit(1)
+        .single();
+      
+      const responseTime = Date.now() - startTime;
+      
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+      
+      return {
+        ok: true,
+        responseTime,
+        message: 'Database connection successful'
+      };
+    } catch (error: any) {
+      return {
+        ok: false,
+        responseTime: Date.now() - startTime,
+        message: error.message || 'Database connection failed'
+      };
+    }
+  }
+
+  async getAllCommunitiesForAdmin(options?: { 
+    limit?: number; 
+    offset?: number; 
+    searchTerm?: string;
+    status?: string;
+  }): Promise<{ communities: any[]; total: number }> {
+    try {
+      let query = this.client
+        .from('communities')
+        .select(`
+          *,
+          owner:users!communities_owner_id_fkey(
+            id,
+            email,
+            first_name,
+            last_name
+          ),
+          community_memberships(count),
+          community_posts(count),
+          community_subscriptions(
+            id,
+            status,
+            stripe_subscription_id,
+            current_period_end,
+            stripe_price_id
+          )
+        `, { count: 'exact' });
+
+      // Apply search filter
+      if (options?.searchTerm) {
+        query = query.or(`name.ilike.%${options.searchTerm}%,id.eq.${options.searchTerm}`);
+      }
+
+      // Apply status filter
+      if (options?.status && options.status !== 'all') {
+        if (options.status === 'suspended') {
+          query = query.eq('is_suspended', true);
+        } else {
+          query = query.eq('is_suspended', false);
+        }
+      }
+
+      // Apply pagination
+      if (options?.limit) {
+        query = query.limit(options.limit);
+      }
+      if (options?.offset) {
+        query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+      }
+
+      const { data, error, count } = await query
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Process the data to match the expected format
+      const communities = (data || []).map((community: any) => {
+        const subscription = community.community_subscriptions?.[0];
+        const memberCount = community.community_memberships?.[0]?.count || 0;
+        const postCount = community.community_posts?.[0]?.count || 0;
+        
+        // Calculate monthly revenue based on stripe_price_id
+        let monthlyRevenue = 0;
+        if (subscription?.status === 'active' && subscription?.stripe_price_id) {
+          // These would typically match your actual Stripe price IDs
+          // For now using placeholder logic
+          monthlyRevenue = subscription.stripe_price_id.includes('yearly') ? 199 / 12 : 19.99;
+        }
+
+        return {
+          id: community.id,
+          name: community.name,
+          slug: community.slug,
+          ownerId: community.owner_id,
+          ownerEmail: community.owner?.email || '',
+          ownerName: community.owner ? `${community.owner.first_name} ${community.owner.last_name}`.trim() : '',
+          memberCount,
+          postCount,
+          subscriptionStatus: subscription?.status || 'none',
+          subscriptionEndDate: subscription?.current_period_end,
+          monthlyRevenue,
+          createdAt: community.created_at,
+          updatedAt: community.updated_at,
+          lastActivity: community.last_activity_at,
+          isSuspended: community.is_suspended || false,
+          suspendedReason: community.suspended_reason,
+          suspendedAt: community.suspended_at
+        };
+      });
+
+      return {
+        communities,
+        total: count || 0
+      };
+    } catch (error) {
+      console.error('Error fetching communities for admin:', error);
+      throw error;
+    }
+  }
+
+  async getPlatformMetrics(): Promise<{
+    totalCommunities: number;
+    activeSubscriptions: number;
+    totalMembers: number;
+    monthlyRevenue: number;
+    trialCommunities: number;
+    suspendedCommunities: number;
+  }> {
+    try {
+      // Get total communities count
+      const { count: totalCommunities } = await this.client
+        .from('communities')
+        .select('*', { count: 'exact', head: true });
+
+      // Get suspended communities count
+      const { count: suspendedCommunities } = await this.client
+        .from('communities')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_suspended', true);
+
+      // Get active subscriptions count
+      const { count: activeSubscriptions } = await this.client
+        .from('community_subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+
+      // Get trial subscriptions count
+      const { count: trialCommunities } = await this.client
+        .from('community_subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'trialing');
+
+      // Get total members count
+      const { count: totalMembers } = await this.client
+        .from('community_memberships')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+
+      // Calculate monthly revenue from active subscriptions
+      const { data: activeSubsData } = await this.client
+        .from('community_subscriptions')
+        .select('stripe_price_id')
+        .eq('status', 'active');
+
+      let monthlyRevenue = 0;
+      if (activeSubsData) {
+        activeSubsData.forEach((sub: any) => {
+          // Calculate based on price ID (would match your Stripe price IDs)
+          if (sub.stripe_price_id) {
+            monthlyRevenue += sub.stripe_price_id.includes('yearly') ? 199 / 12 : 19.99;
+          }
+        });
+      }
+
+      return {
+        totalCommunities: totalCommunities || 0,
+        activeSubscriptions: activeSubscriptions || 0,
+        totalMembers: totalMembers || 0,
+        monthlyRevenue: Math.round(monthlyRevenue * 100) / 100,
+        trialCommunities: trialCommunities || 0,
+        suspendedCommunities: suspendedCommunities || 0
+      };
+    } catch (error) {
+      console.error('Error fetching platform metrics:', error);
+      throw error;
+    }
+  }
+
+  async suspendCommunity(communityId: string, reason: string): Promise<Community> {
+    const { data, error } = await this.client
+      .from('communities')
+      .update({
+        is_suspended: true,
+        suspended_reason: reason,
+        suspended_at: new Date().toISOString()
+      })
+      .eq('id', communityId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async restoreCommunity(communityId: string): Promise<Community> {
+    const { data, error } = await this.client
+      .from('communities')
+      .update({
+        is_suspended: false,
+        suspended_reason: null,
+        suspended_at: null
+      })
+      .eq('id', communityId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async getCommunityDetails(communityId: string): Promise<any> {
+    const { data, error } = await this.client
+      .from('communities')
+      .select(`
+        *,
+        owner:users!communities_owner_id_fkey(
+          id,
+          email,
+          first_name,
+          last_name
+        ),
+        community_memberships(
+          id,
+          user_id,
+          role,
+          status,
+          joined_at,
+          user:users(
+            email,
+            first_name,
+            last_name
+          )
+        ),
+        community_posts(
+          id,
+          title,
+          created_at
+        ),
+        community_subscriptions(
+          id,
+          status,
+          stripe_subscription_id,
+          stripe_customer_id,
+          stripe_price_id,
+          current_period_start,
+          current_period_end,
+          cancel_at,
+          canceled_at,
+          trial_end,
+          created_at
+        )
+      `)
+      .eq('id', communityId)
+      .single();
+
+    if (error) throw error;
+
+    // Process and return detailed information
+    return {
+      ...data,
+      memberCount: data.community_memberships?.length || 0,
+      postCount: data.community_posts?.length || 0,
+      subscription: data.community_subscriptions?.[0] || null,
+      recentPosts: data.community_posts?.slice(0, 5) || [],
+      members: data.community_memberships?.slice(0, 10) || []
+    };
+  }
 }
 
-// Export singleton instance
 export const communitiesStorage = new CommunitiesSupabaseDB();

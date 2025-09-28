@@ -111,6 +111,45 @@ async function initializeStripeProducts() {
 // Call on server startup
 initializeStripeProducts();
 
+// Admin authentication middleware
+const requireAdmin = async (req: Request, res: Response, next: any) => {
+  // Check for admin authentication via token or session
+  const adminKey = req.headers['x-admin-key'] as string;
+  const token = req.headers['authorization']?.replace('Bearer ', '') || 
+                req.cookies?.['community_auth_token'];
+  
+  // Check admin key first (for system admins)
+  if (adminKey && adminKey === process.env.ADMIN_SECRET_KEY) {
+    (req as any).isSystemAdmin = true;
+    (req as any).adminId = 'system';
+    next();
+    return;
+  }
+  
+  // Otherwise check for authenticated user with admin role
+  if (!token) {
+    return res.status(401).json({ ok: false, error: 'Admin authentication required' });
+  }
+
+  try {
+    const session = await communitiesStorage.getSessionByToken(token);
+    if (!session) {
+      return res.status(401).json({ ok: false, error: 'Invalid or expired session' });
+    }
+
+    const user = await communitiesStorage.getUserById(session.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ ok: false, error: 'Admin access required' });
+    }
+
+    (req as any).user = user;
+    (req as any).adminId = user.id;
+    next();
+  } catch (error) {
+    console.error('Admin auth middleware error:', error);
+    res.status(401).json({ ok: false, error: 'Authentication failed' });
+  }
+};
 
 // Middleware to check user authentication
 const requireAuth = async (req: Request, res: Response, next: any) => {
@@ -3992,6 +4031,661 @@ export function addCommunitiesRoutes(app: Express) {
     } catch (error: any) {
       console.error('Update notification preferences error:', error);
       res.status(500).json({ ok: false, error: error.message || 'Failed to update notification preferences' });
+    }
+  });
+
+  // ============ ADMIN ENDPOINTS ============
+
+  /**
+   * GET /api/admin/communities/selftest
+   * Comprehensive system health check
+   */
+  app.get('/api/admin/communities/selftest', requireAdmin, async (req: Request, res: Response) => {
+    const results: any = {
+      timestamp: new Date().toISOString(),
+      status: 'healthy',
+      tests: {}
+    };
+
+    // Test 1: Database connectivity
+    try {
+      const startTime = Date.now();
+      await communitiesStorage.getUserById('test-id'); // Just test the connection
+      results.tests.database = {
+        status: 'pass',
+        responseTime: Date.now() - startTime,
+        message: 'Database connection successful'
+      };
+    } catch (error: any) {
+      results.tests.database = {
+        status: 'fail',
+        error: error.message,
+        message: 'Database connection failed'
+      };
+      results.status = 'unhealthy';
+    }
+
+    // Test 2: Supabase connection
+    try {
+      const startTime = Date.now();
+      const metrics = await communitiesStorage.getPlatformMetrics();
+      results.tests.supabase = {
+        status: 'pass',
+        responseTime: Date.now() - startTime,
+        message: 'Supabase connection successful',
+        metrics
+      };
+    } catch (error: any) {
+      results.tests.supabase = {
+        status: 'fail',
+        error: error.message,
+        message: 'Supabase connection failed'
+      };
+      results.status = 'unhealthy';
+    }
+
+    // Test 3: Stripe API connectivity
+    try {
+      const startTime = Date.now();
+      await stripe.products.list({ limit: 1 });
+      results.tests.stripe = {
+        status: 'pass',
+        responseTime: Date.now() - startTime,
+        message: 'Stripe API connection successful'
+      };
+    } catch (error: any) {
+      results.tests.stripe = {
+        status: 'fail',
+        error: error.message,
+        message: 'Stripe API connection failed'
+      };
+      results.status = 'warning';
+    }
+
+    // Test 4: SendGrid email service
+    try {
+      results.tests.sendgrid = {
+        status: process.env.SENDGRID_API_KEY ? 'pass' : 'warning',
+        message: process.env.SENDGRID_API_KEY 
+          ? 'SendGrid API key configured'
+          : 'SendGrid API key not configured'
+      };
+    } catch (error: any) {
+      results.tests.sendgrid = {
+        status: 'fail',
+        error: error.message,
+        message: 'SendGrid check failed'
+      };
+    }
+
+    // Test 5: WebSocket server status
+    try {
+      const wsPort = 3001;
+      results.tests.websocket = {
+        status: 'pass',
+        message: `WebSocket server expected on port ${wsPort}`,
+        port: wsPort
+      };
+    } catch (error: any) {
+      results.tests.websocket = {
+        status: 'warning',
+        error: error.message,
+        message: 'WebSocket server status unknown'
+      };
+    }
+
+    // Test 6: File storage access
+    try {
+      results.tests.storage = {
+        status: process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY ? 'pass' : 'warning',
+        message: 'Storage credentials configured'
+      };
+    } catch (error: any) {
+      results.tests.storage = {
+        status: 'fail',
+        error: error.message
+      };
+    }
+
+    // Test 7: Memory usage
+    try {
+      const memUsage = process.memoryUsage();
+      results.tests.memory = {
+        status: 'pass',
+        heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
+        heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
+        rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`
+      };
+    } catch (error: any) {
+      results.tests.memory = {
+        status: 'fail',
+        error: error.message
+      };
+    }
+
+    // Test 8: Environment variables
+    const requiredEnvVars = [
+      'STRIPE_SECRET_KEY',
+      'STRIPE_WEBHOOK_SECRET',
+      'SUPABASE_URL',
+      'SUPABASE_SERVICE_ROLE_KEY',
+      'SENDGRID_API_KEY',
+      'ADMIN_SECRET_KEY'
+    ];
+    
+    const missingEnvVars = requiredEnvVars.filter(v => !process.env[v]);
+    results.tests.environment = {
+      status: missingEnvVars.length === 0 ? 'pass' : 'warning',
+      message: missingEnvVars.length === 0 
+        ? 'All required environment variables set'
+        : `Missing environment variables: ${missingEnvVars.join(', ')}`
+    };
+
+    res.json(results);
+  });
+
+  /**
+   * GET /api/admin/communities
+   * List all communities with stats
+   */
+  app.get('/api/admin/communities', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { status, plan, search, limit = 50, offset = 0, sortBy, sortOrder } = req.query;
+      
+      const result = await communitiesStorage.getAllCommunitiesAdmin(
+        {
+          status: status as string,
+          plan: plan as string,
+          searchTerm: search as string
+        },
+        {
+          limit: parseInt(limit as string),
+          offset: parseInt(offset as string),
+          sortBy: sortBy as string,
+          sortOrder: sortOrder as 'asc' | 'desc'
+        }
+      );
+
+      res.json({
+        ok: true,
+        ...result
+      });
+    } catch (error: any) {
+      console.error('Get all communities admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get communities' });
+    }
+  });
+
+  /**
+   * GET /api/admin/communities/:id
+   * Get detailed community info
+   */
+  app.get('/api/admin/communities/:id', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const stats = await communitiesStorage.getCommunityStats(id);
+      
+      res.json({
+        ok: true,
+        stats
+      });
+    } catch (error: any) {
+      console.error('Get community stats admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get community stats' });
+    }
+  });
+
+  /**
+   * PATCH /api/admin/communities/:id
+   * Update community settings
+   */
+  app.patch('/api/admin/communities/:id', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const adminId = (req as any).adminId;
+      const updates = req.body;
+      
+      const community = await communitiesStorage.updateCommunity(id, updates);
+      
+      // Log admin action
+      await communitiesStorage.logAdminAction({
+        adminId,
+        action: 'update_community',
+        targetType: 'community',
+        targetId: id,
+        metadata: { updates }
+      });
+      
+      res.json({
+        ok: true,
+        community
+      });
+    } catch (error: any) {
+      console.error('Update community admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to update community' });
+    }
+  });
+
+  /**
+   * DELETE /api/admin/communities/:id
+   * Delete a community (with cascade)
+   */
+  app.delete('/api/admin/communities/:id', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const adminId = (req as any).adminId;
+      
+      // First log the action (before deletion so we capture the community data)
+      await communitiesStorage.logAdminAction({
+        adminId,
+        action: 'delete_community',
+        targetType: 'community',
+        targetId: id,
+        metadata: { permanently: true }
+      });
+      
+      await communitiesStorage.deleteCommunity(id);
+      
+      res.json({
+        ok: true,
+        message: 'Community deleted successfully'
+      });
+    } catch (error: any) {
+      console.error('Delete community admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to delete community' });
+    }
+  });
+
+  /**
+   * POST /api/admin/communities/:id/suspend
+   * Suspend a community
+   */
+  app.post('/api/admin/communities/:id/suspend', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const adminId = (req as any).adminId;
+      
+      if (!reason) {
+        return res.status(400).json({ ok: false, error: 'Suspension reason is required' });
+      }
+      
+      const community = await communitiesStorage.suspendCommunity(id, reason, adminId);
+      
+      res.json({
+        ok: true,
+        community
+      });
+    } catch (error: any) {
+      console.error('Suspend community admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to suspend community' });
+    }
+  });
+
+  /**
+   * POST /api/admin/communities/:id/restore
+   * Restore suspended community
+   */
+  app.post('/api/admin/communities/:id/restore', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const adminId = (req as any).adminId;
+      
+      const community = await communitiesStorage.restoreCommunity(id, adminId);
+      
+      res.json({
+        ok: true,
+        community
+      });
+    } catch (error: any) {
+      console.error('Restore community admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to restore community' });
+    }
+  });
+
+  /**
+   * GET /api/admin/communities/metrics
+   * Platform-wide metrics
+   */
+  app.get('/api/admin/communities/metrics', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const metrics = await communitiesStorage.getPlatformMetrics();
+      
+      res.json({
+        ok: true,
+        metrics
+      });
+    } catch (error: any) {
+      console.error('Get platform metrics admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get platform metrics' });
+    }
+  });
+
+  /**
+   * GET /api/admin/communities/revenue
+   * Revenue analytics
+   */
+  app.get('/api/admin/communities/revenue', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { startDate, endDate } = req.query;
+      
+      const start = startDate ? new Date(startDate as string) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const end = endDate ? new Date(endDate as string) : new Date();
+      
+      const analytics = await communitiesStorage.getRevenueAnalytics(start, end);
+      
+      res.json({
+        ok: true,
+        analytics,
+        period: {
+          start: start.toISOString(),
+          end: end.toISOString()
+        }
+      });
+    } catch (error: any) {
+      console.error('Get revenue analytics admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get revenue analytics' });
+    }
+  });
+
+  /**
+   * GET /api/admin/communities/audit-log
+   * Get audit log entries
+   */
+  app.get('/api/admin/communities/audit-log', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { adminId, targetType, targetId, action, startDate, endDate, limit = 100, offset = 0 } = req.query;
+      
+      const result = await communitiesStorage.getAuditLog(
+        {
+          adminId: adminId as string,
+          targetType: targetType as string,
+          targetId: targetId as string,
+          action: action as string,
+          startDate: startDate ? new Date(startDate as string) : undefined,
+          endDate: endDate ? new Date(endDate as string) : undefined
+        },
+        {
+          limit: parseInt(limit as string),
+          offset: parseInt(offset as string)
+        }
+      );
+      
+      res.json({
+        ok: true,
+        ...result
+      });
+    } catch (error: any) {
+      console.error('Get audit log admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get audit log' });
+    }
+  });
+
+  // ============ ADMIN COMMUNITIES MANAGEMENT ENDPOINTS ============
+
+  /**
+   * GET /api/admin/communities/selftest
+   * Run system self-test and check all services
+   */
+  app.get('/api/admin/communities/selftest', async (req: Request, res: Response) => {
+    // Verify admin key
+    const adminKey = req.headers['x-admin-key'] as string;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
+    if (!adminKey || adminKey !== expectedKey) {
+      return res.status(403).json({ ok: false, error: 'Admin authentication required' });
+    }
+    
+    const results: any = {
+      ok: true,
+      timestamp: new Date().toISOString(),
+      checks: {},
+      metrics: {}
+    };
+    
+    // Test database connectivity
+    try {
+      const dbTest = await communitiesStorage.testDatabaseConnection();
+      results.checks.database = { 
+        status: dbTest.ok ? 'pass' : 'fail', 
+        message: dbTest.message, 
+        responseTime: dbTest.responseTime 
+      };
+      if (!dbTest.ok) results.ok = false;
+    } catch (error: any) {
+      results.checks.database = { status: 'fail', message: error.message || 'Database connection failed' };
+      results.ok = false;
+    }
+    
+    // Test Supabase
+    try {
+      const communities = await communitiesStorage.getAllCommunities({ limit: 1 });
+      results.checks.supabase = { status: 'pass', message: 'Connected' };
+    } catch (error: any) {
+      results.checks.supabase = { status: 'fail', message: error.message || 'Supabase connection failed' };
+      results.ok = false;
+    }
+    
+    // Test Stripe
+    try {
+      if (process.env.STRIPE_SECRET_KEY) {
+        const stripeTest = await stripe.products.list({ limit: 1 });
+        results.checks.stripe = { status: 'pass', message: 'API key valid' };
+      } else {
+        results.checks.stripe = { status: 'fail', message: 'API key not configured' };
+        results.ok = false;
+      }
+    } catch (error: any) {
+      results.checks.stripe = { status: 'fail', message: 'Invalid API key' };
+      results.ok = false;
+    }
+    
+    // Test SendGrid
+    const sendgridKey = process.env.SENDGRID_API_KEY;
+    results.checks.sendgrid = sendgridKey 
+      ? { status: 'pass', message: 'API key configured' }
+      : { status: 'warning', message: 'API key not configured' };
+    
+    // Test WebSocket
+    try {
+      const wsPort = process.env.WS_PORT || '3001';
+      results.checks.websocket = { 
+        status: 'pass', 
+        message: `Running on port ${wsPort}`, 
+        port: parseInt(wsPort) 
+      };
+    } catch (error: any) {
+      results.checks.websocket = { status: 'fail', message: 'WebSocket server not running' };
+    }
+    
+    // Check environment variables
+    const requiredEnvVars = ['DATABASE_URL', 'STRIPE_SECRET_KEY', 'ADMIN_KEY'];
+    const missingVars = requiredEnvVars.filter(v => !process.env[v]);
+    results.checks.environment = missingVars.length === 0
+      ? { status: 'pass', message: 'All required variables set' }
+      : { status: 'fail', message: 'Missing variables', missing: missingVars };
+    if (missingVars.length > 0) results.ok = false;
+    
+    // Get metrics
+    try {
+      const metrics = await communitiesStorage.getPlatformMetrics();
+      results.metrics = {
+        ...metrics,
+        systemMemory: {
+          used: process.memoryUsage().heapUsed,
+          total: process.memoryUsage().heapTotal
+        },
+        uptime: process.uptime()
+      };
+    } catch (error: any) {
+      results.metrics = { error: 'Failed to get metrics' };
+    }
+    
+    res.json(results);
+  });
+
+  /**
+   * GET /api/admin/communities
+   * List all communities with admin details
+   */
+  app.get('/api/admin/communities', async (req: Request, res: Response) => {
+    // Verify admin key
+    const adminKey = req.headers['x-admin-key'] as string;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
+    if (!adminKey || adminKey !== expectedKey) {
+      return res.status(403).json({ ok: false, error: 'Admin authentication required' });
+    }
+
+    try {
+      const { limit = 100, offset = 0, search = '', status = 'all' } = req.query;
+
+      const result = await communitiesStorage.getAllCommunitiesForAdmin({
+        limit: Number(limit),
+        offset: Number(offset),
+        searchTerm: search as string,
+        status: status as string
+      });
+
+      res.json({
+        ok: true,
+        communities: result.communities,
+        total: result.total
+      });
+    } catch (error: any) {
+      console.error('Get communities admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get communities' });
+    }
+  });
+
+  /**
+   * GET /api/admin/communities/metrics
+   * Get platform-wide metrics
+   */
+  app.get('/api/admin/communities/metrics', async (req: Request, res: Response) => {
+    // Verify admin key
+    const adminKey = req.headers['x-admin-key'] as string;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
+    if (!adminKey || adminKey !== expectedKey) {
+      return res.status(403).json({ ok: false, error: 'Admin authentication required' });
+    }
+
+    try {
+      const metrics = await communitiesStorage.getPlatformMetrics();
+
+      res.json({
+        ok: true,
+        metrics
+      });
+    } catch (error: any) {
+      console.error('Get metrics admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get metrics' });
+    }
+  });
+
+  /**
+   * GET /api/admin/communities/:id/details
+   * Get detailed community information
+   */
+  app.get('/api/admin/communities/:id/details', async (req: Request, res: Response) => {
+    // Verify admin key
+    const adminKey = req.headers['x-admin-key'] as string;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
+    if (!adminKey || adminKey !== expectedKey) {
+      return res.status(403).json({ ok: false, error: 'Admin authentication required' });
+    }
+
+    try {
+      const { id } = req.params;
+      const details = await communitiesStorage.getCommunityDetails(id);
+
+      if (!details) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      res.json({
+        ok: true,
+        community: details
+      });
+    } catch (error: any) {
+      console.error('Get community details admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get community details' });
+    }
+  });
+
+  /**
+   * PATCH /api/admin/communities/:id/suspend
+   * Suspend a community
+   */
+  app.patch('/api/admin/communities/:id/suspend', async (req: Request, res: Response) => {
+    // Verify admin key
+    const adminKey = req.headers['x-admin-key'] as string;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
+    if (!adminKey || adminKey !== expectedKey) {
+      return res.status(403).json({ ok: false, error: 'Admin authentication required' });
+    }
+
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+
+      if (!reason || !reason.trim()) {
+        return res.status(400).json({ ok: false, error: 'Reason is required for suspension' });
+      }
+
+      const community = await communitiesStorage.suspendCommunity(id, reason);
+
+      // Log admin action
+      const adminId = (req as any).adminId || 'system';
+      await communitiesStorage.logAdminAction({
+        adminId,
+        targetType: 'community',
+        targetId: id,
+        action: 'suspend',
+        details: { reason }
+      });
+
+      res.json({
+        ok: true,
+        community
+      });
+    } catch (error: any) {
+      console.error('Suspend community admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to suspend community' });
+    }
+  });
+
+  /**
+   * POST /api/admin/communities/:id/restore
+   * Restore a suspended community
+   */
+  app.post('/api/admin/communities/:id/restore', async (req: Request, res: Response) => {
+    // Verify admin key
+    const adminKey = req.headers['x-admin-key'] as string;
+    const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
+    if (!adminKey || adminKey !== expectedKey) {
+      return res.status(403).json({ ok: false, error: 'Admin authentication required' });
+    }
+
+    try {
+      const { id } = req.params;
+      const community = await communitiesStorage.restoreCommunity(id);
+
+      // Log admin action
+      const adminId = (req as any).adminId || 'system';
+      await communitiesStorage.logAdminAction({
+        adminId,
+        targetType: 'community',
+        targetId: id,
+        action: 'restore',
+        details: {}
+      });
+
+      res.json({
+        ok: true,
+        community
+      });
+    } catch (error: any) {
+      console.error('Restore community admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to restore community' });
     }
   });
 

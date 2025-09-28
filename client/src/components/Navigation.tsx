@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { useEvents, useGallery } from "@/lib/events";
 import logoImage from "@assets/Upscaled Logo copy_1754763190534.png";
 import { Button } from "@/components/ui/button";
-import { UserPlus, User, LogOut, Settings, Loader2 } from "lucide-react";
+import { UserPlus, User, LogOut, Settings, Loader2, Shield, BarChart3 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
@@ -222,6 +222,30 @@ export default function Navigation() {
                         Settings
                       </Link>
                     </DropdownMenuItem>
+                    
+                    {/* Admin Menu Items - Only show for admin users */}
+                    {(user?.role === 'admin' || user?.role === 'organizer') && (
+                      <>
+                        <DropdownMenuSeparator />
+                        {user?.role === 'admin' && (
+                          <>
+                            <DropdownMenuItem asChild>
+                              <Link href="/admin/communities" className="flex items-center gap-2 cursor-pointer">
+                                <Shield className="h-4 w-4" />
+                                Admin Dashboard
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href="/admin/organizers" className="flex items-center gap-2 cursor-pointer">
+                                <BarChart3 className="h-4 w-4" />
+                                Manage Organizers
+                              </Link>
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </>
+                    )}
+                    
                     <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       className="flex items-center gap-2 text-red-600 focus:text-red-600 cursor-pointer"

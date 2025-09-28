@@ -48,6 +48,7 @@ import { CommunitiesOrganizerApplicationPage } from "@/pages/CommunitiesOrganize
 import CommunitiesIndexPage from "@/pages/CommunitiesIndexPage";
 import EnhancedCommunityDetailPage from "@/pages/EnhancedCommunityDetailPage";
 import AdminOrganizers from "@/pages/AdminOrganizers";
+import AdminCommunitiesPage from "@/pages/AdminCommunitiesPage";
 import NotificationCenter from "@/pages/NotificationCenter";
 
 function Router() {
@@ -115,6 +116,8 @@ function Router() {
             <Route path="/account/profile" component={CommunitiesProfilePage} />
             <Route path="/account/apply-organizer" component={CommunitiesOrganizerApplicationPage} />
             <Route path="/admin/organizers" component={AdminOrganizers} />
+            <Route path="/admin/communities" component={AdminCommunitiesPage} />
+            <Route path="/admin/communities/selftest" component={AdminCommunitiesPage} />
             <Route path="/notifications" component={NotificationCenter} />
           </>
         )}
