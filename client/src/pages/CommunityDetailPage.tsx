@@ -1304,12 +1304,11 @@ export default function CommunityDetailPage() {
                       ) : (
                         <Button 
                           onClick={handleEditInfo}
-                          className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
+                          className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300"
                           data-testid="edit-community-info-button"
                         >
-                          <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none pointer-events-none" />
-                          <Edit3 className="h-5 w-5 mr-2 relative z-10" />
-                          <span className="relative z-10">Edit Information</span>
+                          <Edit3 className="h-5 w-5 mr-2" />
+                          <span>Edit Information</span>
                         </Button>
                       )}
                     </div>
@@ -1322,9 +1321,8 @@ export default function CommunityDetailPage() {
                       </h4>
                       
                       <div className="grid md:grid-cols-2 gap-6">
-                        <div className="relative flex items-center justify-between p-6 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50 group/setting">
-                          <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover/setting:opacity-100 transition-opacity duration-300 rounded-xl" />
-                          <div className="flex items-center gap-4 relative z-10">
+                        <div className="flex items-center justify-between p-6 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50">
+                          <div className="flex items-center gap-4">
                             {community?.isPrivate ? (
                               <div className="relative">
                                 <div className="absolute inset-0 bg-gradient-radial from-copper-600/30 via-transparent to-transparent rounded-full" />
@@ -1351,9 +1349,8 @@ export default function CommunityDetailPage() {
                           </Badge>
                         </div>
                         
-                        <div className="relative flex items-center justify-between p-6 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50 group/setting">
-                          <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover/setting:opacity-100 transition-opacity duration-300 rounded-xl" />
-                          <div className="flex items-center gap-4 relative z-10">
+                        <div className="flex items-center justify-between p-6 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50">
+                          <div className="flex items-center gap-4">
                             <div className="relative">
                               <div className="absolute inset-0 bg-gradient-radial from-accent/30 via-transparent to-transparent rounded-full" />
                               <UserPlus className="h-6 w-6 text-accent relative z-10" />
@@ -1370,12 +1367,11 @@ export default function CommunityDetailPage() {
                       </div>
                       
                       <Button 
-                        className="bg-gradient-to-r from-accent to-glow hover:from-glow hover:to-accent text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
+                        className="bg-gradient-to-r from-accent to-glow hover:from-glow hover:to-accent text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300"
                         data-testid="edit-privacy-settings-button"
                       >
-                        <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                        <Shield className="h-5 w-5 mr-2 relative z-10" />
-                        <span className="relative z-10">Update Privacy Settings</span>
+                        <Shield className="h-5 w-5 mr-2" />
+                        <span>Update Privacy Settings</span>
                       </Button>
                     </div>
 
