@@ -1,7 +1,9 @@
 import { Express, Request, Response } from 'express';
 import { z } from 'zod';
+import multer from 'multer';
 import { communitiesStorage } from './communities-supabase';
 import { insertUserSchema } from '@shared/schema';
+import { uploadCommunityPostImage, uploadCommunityCoverImage } from '../services/storageService';
 
 
 // Middleware to check user authentication
@@ -119,6 +121,23 @@ const sendEmailCode = async (email: string, code: string, purpose: string = 'log
     return false;
   }
 };
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept images only
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  },
+});
 
 export function addCommunitiesRoutes(app: Express) {
   console.log('✅ Adding Communities routes...');
@@ -1499,6 +1518,77 @@ export function addCommunitiesRoutes(app: Express) {
     } catch (error: any) {
       console.error('Get posts error:', error);
       res.status(500).json({ ok: false, error: error.message || 'Failed to get posts' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/upload-post-image
+   * Upload image for community post
+   * curl -X POST http://localhost:5000/api/communities/COMMUNITY_ID/upload-post-image \
+   *   -H "Authorization: Bearer YOUR_TOKEN" \
+   *   -F "image=@path/to/image.jpg"
+   */
+  app.post('/api/communities/:id/upload-post-image', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const file = req.file;
+      const organizer = (req as any).organizer;
+
+      if (!file) {
+        return res.status(400).json({ ok: false, error: 'No image file provided' });
+      }
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community || community.organizerId !== organizer.id) {
+        return res.status(404).json({ ok: false, error: 'Community not found or access denied' });
+      }
+
+      const imageUrl = await uploadCommunityPostImage(file, community.id);
+
+      res.json({
+        ok: true,
+        imageUrl
+      });
+    } catch (error: any) {
+      console.error('Community post image upload error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to upload image' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/upload-cover-image
+   * Upload cover image for community
+   * curl -X POST http://localhost:5000/api/communities/COMMUNITY_ID/upload-cover-image \
+   *   -H "Authorization: Bearer YOUR_TOKEN" \
+   *   -F "image=@path/to/cover.jpg"
+   */
+  app.post('/api/communities/:id/upload-cover-image', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const file = req.file;
+      const organizer = (req as any).organizer;
+
+      if (!file) {
+        return res.status(400).json({ ok: false, error: 'No image file provided' });
+      }
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community || community.organizerId !== organizer.id) {
+        return res.status(404).json({ ok: false, error: 'Community not found or access denied' });
+      }
+
+      const coverUrl = await uploadCommunityCoverImage(file, community.id);
+
+      // Update community with new cover image
+      await communitiesStorage.updateCommunity(community.id, { coverUrl });
+
+      res.json({
+        ok: true,
+        coverUrl
+      });
+    } catch (error: any) {
+      console.error('Community cover image upload error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to upload cover image' });
     }
   });
 

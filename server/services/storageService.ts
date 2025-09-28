@@ -169,6 +169,126 @@ export async function uploadFeaturedEventImage(
   return urlData.publicUrl;
 }
 
+// Upload community post image
+export async function uploadCommunityPostImage(
+  file: Express.Multer.File,
+  communityId: string
+): Promise<string> {
+  const supabase = getStorageClient();
+  const bucketName = 'community-posts';
+  
+  // Validate file type
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  if (!allowedTypes.includes(file.mimetype)) {
+    throw new Error(`Invalid file type: ${file.mimetype}. Only JPEG, PNG, WebP, and GIF images are allowed.`);
+  }
+  
+  // Validate file size (max 5MB)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxSize) {
+    throw new Error('File size must be less than 5MB');
+  }
+  
+  // Generate unique path
+  const timestamp = Date.now();
+  const safeFilename = slugify(file.originalname, { lower: true, strict: true });
+  const path = `communities/${communityId}/posts/${timestamp}-${safeFilename}`;
+  
+  // Create bucket if it doesn't exist
+  const { error: bucketError } = await supabase.storage.getBucket(bucketName);
+  if (bucketError && bucketError.message.includes('not found')) {
+    const { error: createError } = await supabase.storage.createBucket(bucketName, {
+      public: true,
+      fileSizeLimit: maxSize,
+      allowedMimeTypes: allowedTypes
+    });
+    if (createError) {
+      console.error('Failed to create community posts bucket:', createError);
+      throw new Error(`Failed to create storage bucket: ${createError.message}`);
+    }
+  }
+  
+  // Upload to Supabase Storage
+  const { data, error } = await supabase.storage
+    .from(bucketName)
+    .upload(path, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false
+    });
+  
+  if (error) {
+    console.error('Community post image upload error:', error);
+    throw new Error(`Failed to upload image: ${error.message}`);
+  }
+  
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from(bucketName)
+    .getPublicUrl(data.path);
+  
+  return urlData.publicUrl;
+}
+
+// Upload community cover image
+export async function uploadCommunityCoverImage(
+  file: Express.Multer.File,
+  communityId: string
+): Promise<string> {
+  const supabase = getStorageClient();
+  const bucketName = 'community-covers';
+  
+  // Validate file type
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(file.mimetype)) {
+    throw new Error(`Invalid file type: ${file.mimetype}. Only JPEG, PNG, and WebP images are allowed.`);
+  }
+  
+  // Validate file size (max 5MB)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxSize) {
+    throw new Error('File size must be less than 5MB');
+  }
+  
+  // Generate unique path
+  const timestamp = Date.now();
+  const safeFilename = slugify(file.originalname, { lower: true, strict: true });
+  const path = `communities/${communityId}/cover/${timestamp}-${safeFilename}`;
+  
+  // Create bucket if it doesn't exist
+  const { error: bucketError } = await supabase.storage.getBucket(bucketName);
+  if (bucketError && bucketError.message.includes('not found')) {
+    const { error: createError } = await supabase.storage.createBucket(bucketName, {
+      public: true,
+      fileSizeLimit: maxSize,
+      allowedMimeTypes: allowedTypes
+    });
+    if (createError) {
+      console.error('Failed to create community covers bucket:', createError);
+      throw new Error(`Failed to create storage bucket: ${createError.message}`);
+    }
+  }
+  
+  // Upload to Supabase Storage
+  const { data, error } = await supabase.storage
+    .from(bucketName)
+    .upload(path, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false
+    });
+  
+  if (error) {
+    console.error('Community cover image upload error:', error);
+    throw new Error(`Failed to upload cover image: ${error.message}`);
+  }
+  
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from(bucketName)
+    .getPublicUrl(data.path);
+  
+  return urlData.publicUrl;
+}
+
 // Generate signed URL for private assets (optional, for future use)
 export async function getSignedUrl(path: string, expiresIn: number = 300): Promise<string> {
   const supabase = getStorageClient();

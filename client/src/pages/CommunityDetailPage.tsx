@@ -40,12 +40,14 @@ import {
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ObjectUploader } from "@/components/ObjectUploader";
 
 interface Community {
   id: string;
   name: string;
   description: string;
   imageUrl?: string;
+  coverUrl?: string;
   isPrivate: boolean;
   membershipPolicy: 'open' | 'approval_required' | 'closed';
   status: string;
@@ -64,6 +66,11 @@ interface Post {
   title: string;
   content: string;
   imageUrl?: string;
+  linkUrl?: string;
+  linkText?: string;
+  linkDescription?: string;
+  tags?: string[];
+  metadata?: any;
   postType: 'announcement' | 'update' | 'event';
   isPinned: boolean;
   createdAt: string;
@@ -185,6 +192,46 @@ export default function CommunityDetailPage() {
     onError: (error: any) => {
       toast({ 
         title: "Failed to join community", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Cover Image Upload Mutation
+  const uploadCoverImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!community?.id) {
+        throw new Error('Community ID not available');
+      }
+      
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch(`/api/communities/${community.id}/upload-cover-image`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload cover image');
+      }
+      
+      const data = await response.json();
+      const { coverUrl } = data;
+      if (!coverUrl) {
+        throw new Error('Invalid response: missing coverUrl');
+      }
+      return coverUrl;
+    },
+    onSuccess: (data) => {
+      toast({ title: "Cover image updated successfully!" });
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', communitySlug] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to upload cover image", 
         description: error.message,
         variant: "destructive" 
       });
@@ -484,6 +531,7 @@ export default function CommunityDetailPage() {
   const posts = communityData?.posts || [];
   const members = communityData?.members || [];
   const canManage = communityData?.canManage || false;
+  const isOwner = membership?.role === 'owner' || false;
   
   // Initialize edit form when community data loads
   useEffect(() => {
@@ -710,6 +758,39 @@ export default function CommunityDetailPage() {
           </div>
           
           <Card className="relative border border-border bg-card/90 backdrop-blur-sm shadow-large mb-8 overflow-hidden hover:shadow-glow-strong transition-all duration-500">
+            {/* Cover Image Section */}
+            {isOwner && (
+              <div className="relative h-48 bg-gradient-to-br from-copper-500/20 via-accent/20 to-glow/20 border-b border-border/50">
+                <ObjectUploader
+                  onUpload={(file) => uploadCoverImageMutation.mutateAsync(file)}
+                  placeholder="Drop cover image here or click to upload"
+                  existingUrl={community?.coverUrl}
+                  onRemove={() => {
+                    // Add remove cover image functionality if needed
+                  }}
+                  className="h-full"
+                  data-testid="community-cover-uploader"
+                />
+                {uploadCoverImageMutation.isPending && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <Loader2 className="w-8 h-8 text-white animate-spin" />
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Cover Image Display (for non-owners) */}
+            {!isOwner && community?.coverUrl && (
+              <div className="relative h-48 bg-gradient-to-br from-copper-500/20 via-accent/20 to-glow/20 border-b border-border/50">
+                <img
+                  src={community.coverUrl}
+                  alt={`${community.name} cover`}
+                  className="w-full h-full object-cover"
+                  data-testid="community-cover-image"
+                />
+              </div>
+            )}
+            
             {/* Magical header background */}
             <div className="absolute top-0 right-0 w-80 h-40 bg-gradient-to-br from-copper-500/10 via-accent/10 to-glow/10 rounded-bl-[120px]" />
             <div className="absolute top-4 right-4 w-16 h-16 bg-gradient-radial from-glow/30 via-transparent to-transparent rounded-full animate-pulse" />
@@ -798,14 +879,14 @@ export default function CommunityDetailPage() {
         </motion.div>
 
         {/* Community Content - Visible to approved members and organizers */}
-        {membership?.status === 'approved' || canManage ? (
+        {membership?.status === 'approved' || isOwner ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            {/* Organizer Console - Only visible when user canManage */}
-            {canManage && (
+            {/* Organizer Console - Only visible when user is owner */}
+            {isOwner && (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="relative grid w-full grid-cols-4 bg-card/80 backdrop-blur-sm p-2 rounded-2xl shadow-large border border-border">
                 {/* Subtle inner glow */}
