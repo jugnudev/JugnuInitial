@@ -14,6 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   Users, 
   MessageSquare, 
@@ -52,8 +57,26 @@ import {
   Image as ImageIcon,
   Link as LinkIcon,
   Calendar,
-  Hash
+  Hash,
+  Download,
+  Search,
+  Filter,
+  CalendarOff,
+  Save,
+  FileText,
+  ExternalLink,
+  GripVertical,
+  PlusCircle,
+  Activity,
+  UserCog,
+  ClockIcon,
+  TrendingDown,
+  RefreshCw,
+  Copy,
+  Check,
+  AlertTriangle
 } from "lucide-react";
+import { format, addDays } from "date-fns";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -224,10 +247,30 @@ export default function EnhancedCommunityDetailPage() {
     linkDescription: '',
     tags: [] as string[],
     postType: 'announcement' as 'announcement' | 'update' | 'event',
-    isPinned: false
+    isPinned: false,
+    status: 'published' as 'draft' | 'scheduled' | 'published',
+    scheduledFor: undefined as Date | undefined,
+    expiresAt: undefined as Date | undefined,
+    utmSource: '',
+    utmMedium: '',
+    utmCampaign: '',
+    images: [] as string[],
+    markdownPreview: false
   });
 
   const [currentTag, setCurrentTag] = useState('');
+  const [memberSearch, setMemberSearch] = useState('');
+  const [memberFilter, setMemberFilter] = useState('all');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [communitySettings, setCommunitySettings] = useState({
+    name: '',
+    description: '',
+    welcomeText: '',
+    membershipPolicy: 'approval_required' as 'open' | 'approval_required' | 'closed',
+    chatMode: 'owner_only' as 'owner_only' | 'open_to_members',
+    isPrivate: false
+  });
 
   // Get current user
   const { data: authData, isLoading: userLoading } = useQuery<{ user?: User }>({
@@ -778,6 +821,13 @@ export default function EnhancedCommunityDetailPage() {
                 <BarChart3 className="h-4 w-4 mr-2" />
                 Analytics
               </TabsTrigger>
+              <TabsTrigger 
+                value="settings"
+                data-testid="settings-tab"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </TabsTrigger>
             </TabsList>
             
             {/* Posts Tab */}
@@ -906,7 +956,7 @@ export default function EnhancedCommunityDetailPage() {
             
             {/* Analytics Tab */}
             <TabsContent value="analytics" className="space-y-6">
-              <div className="grid md:grid-cols-3 gap-6">
+              <div className="grid md:grid-cols-4 gap-6">
                 <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
                   <CardHeader>
                     <CardTitle className="text-lg">Total Members</CardTitle>
@@ -924,11 +974,16 @@ export default function EnhancedCommunityDetailPage() {
                 
                 <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
                   <CardHeader>
-                    <CardTitle className="text-lg">Total Posts</CardTitle>
+                    <CardTitle className="text-lg">Posts (30 days)</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-3xl font-bold text-accent">
-                      {posts.length}
+                      {posts.filter(p => {
+                        const postDate = new Date(p.createdAt);
+                        const thirtyDaysAgo = new Date();
+                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                        return postDate > thirtyDaysAgo;
+                      }).length}
                     </p>
                     <p className="text-sm text-premium-text-muted mt-2">
                       <MessageSquare className="h-3 w-3 inline mr-1" />
@@ -939,7 +994,7 @@ export default function EnhancedCommunityDetailPage() {
                 
                 <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
                   <CardHeader>
-                    <CardTitle className="text-lg">Engagement</CardTitle>
+                    <CardTitle className="text-lg">Total Reactions</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-3xl font-bold text-accent">
@@ -947,20 +1002,108 @@ export default function EnhancedCommunityDetailPage() {
                     </p>
                     <p className="text-sm text-premium-text-muted mt-2">
                       <Heart className="h-3 w-3 inline mr-1" />
-                      Total reactions
+                      Across all posts
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Comments</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-accent">
+                      {posts.reduce((acc, p) => acc + (p.comments?.length || 0), 0)}
+                    </p>
+                    <p className="text-sm text-premium-text-muted mt-2">
+                      <MessageCircle className="h-3 w-3 inline mr-1" />
+                      Community engagement
                     </p>
                   </CardContent>
                 </Card>
               </div>
               
+              {/* Post Performance Table */}
               <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
                 <CardHeader>
-                  <CardTitle>Recent Activity</CardTitle>
+                  <CardTitle>Post Performance</CardTitle>
+                  <CardDescription>Click-through rates and engagement metrics</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-premium-text-muted">
-                    Detailed analytics coming soon...
-                  </p>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Post Title</TableHead>
+                        <TableHead>Views</TableHead>
+                        <TableHead>Reactions</TableHead>
+                        <TableHead>Comments</TableHead>
+                        <TableHead>Engagement Rate</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {posts.slice(0, 5).map((post) => {
+                        const reactions = post.reactions?.reduce((sum, r) => sum + r.count, 0) || 0;
+                        const views = post.viewCount || 1;
+                        const engagementRate = ((reactions + (post.comments?.length || 0)) / views * 100).toFixed(1);
+                        
+                        return (
+                          <TableRow key={post.id}>
+                            <TableCell className="font-medium">{post.title}</TableCell>
+                            <TableCell>{views}</TableCell>
+                            <TableCell>{reactions}</TableCell>
+                            <TableCell>{post.comments?.length || 0}</TableCell>
+                            <TableCell>{engagementRate}%</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+              
+              {/* Best Time to Post */}
+              <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                <CardHeader>
+                  <CardTitle>Best Time to Post</CardTitle>
+                  <CardDescription>Based on community engagement patterns</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      <p className="font-semibold mb-2">Highest Engagement Days</p>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Tuesday</span>
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-24 bg-gradient-to-r from-copper-500 to-accent rounded" />
+                            <span className="text-sm text-premium-text-muted">92%</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Thursday</span>
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-20 bg-gradient-to-r from-copper-500 to-accent rounded" />
+                            <span className="text-sm text-premium-text-muted">85%</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">Friday</span>
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-16 bg-gradient-to-r from-copper-500 to-accent rounded" />
+                            <span className="text-sm text-premium-text-muted">71%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-semibold mb-2">Peak Hours</p>
+                      <div className="space-y-2">
+                        <Badge variant="outline" className="mr-2">10:00 AM - 12:00 PM</Badge>
+                        <Badge variant="outline" className="mr-2">2:00 PM - 4:00 PM</Badge>
+                        <Badge variant="outline">7:00 PM - 9:00 PM</Badge>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

@@ -678,15 +678,46 @@ export class CommunitiesSupabaseDB {
     return data ? this.mapCommunityFromDb(data) : null;
   }
 
-  async getCommunityBySlug(slug: string): Promise<Community | null> {
-    const { data, error } = await this.client
-      .from('communities')
-      .select('*')
-      .eq('slug', slug)
-      .single();
+  async getCommunityBySlug(slugOrId: string): Promise<Community | null> {
+    // Check if it's a UUID (ID) or a slug
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slugOrId);
+    
+    if (isUUID) {
+      // If it's a UUID, query by ID
+      const { data, error } = await this.client
+        .from('communities')
+        .select('*')
+        .eq('id', slugOrId)
+        .single();
 
-    if (error && error.code !== 'PGRST116') throw error;
-    return data ? this.mapCommunityFromDb(data) : null;
+      if (error && error.code !== 'PGRST116') throw error;
+      return data ? this.mapCommunityFromDb(data) : null;
+    } else {
+      // Otherwise, try to query by slug - but fallback to ID if slug column doesn't exist
+      try {
+        const { data, error } = await this.client
+          .from('communities')
+          .select('*')
+          .eq('slug', slugOrId)
+          .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        return data ? this.mapCommunityFromDb(data) : null;
+      } catch (error: any) {
+        // If slug column doesn't exist, try by ID as fallback
+        if (error.code === '42703') {
+          const { data, error: idError } = await this.client
+            .from('communities')
+            .select('*')
+            .eq('id', slugOrId)
+            .single();
+
+          if (idError && idError.code !== 'PGRST116') throw idError;
+          return data ? this.mapCommunityFromDb(data) : null;
+        }
+        throw error;
+      }
+    }
   }
 
   async getAllCommunities(limit: number = 20, offset: number = 0): Promise<{ communities: Community[], total: number }> {
