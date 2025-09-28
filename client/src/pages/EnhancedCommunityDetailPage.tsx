@@ -74,7 +74,8 @@ import {
   RefreshCw,
   Copy,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  CreditCard
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { Link } from "wouter";
@@ -85,6 +86,8 @@ import { PostCard } from "@/components/PostCard";
 import { JoinGate } from "@/components/JoinGate";
 import CommunityChat from "@/components/CommunityChat";
 import CommunityPolls from "@/components/CommunityPolls";
+import CommunityBilling from "@/components/CommunityBilling";
+import BillingCheckout from "@/components/BillingCheckout";
 import {
   Dialog,
   DialogContent,
@@ -801,7 +804,7 @@ export default function EnhancedCommunityDetailPage() {
         {isOwner ? (
           // Owner Console with Tabs
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-lg grid-cols-6 bg-premium-surface border border-premium-border">
+            <TabsList className="grid w-full max-w-2xl grid-cols-7 bg-premium-surface border border-premium-border">
               <TabsTrigger 
                 value="announcements"
                 data-testid="announcements-tab"
@@ -843,6 +846,14 @@ export default function EnhancedCommunityDetailPage() {
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
+              </TabsTrigger>
+              <TabsTrigger 
+                value="billing"
+                data-testid="billing-tab"
+                className="relative"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Billing
               </TabsTrigger>
             </TabsList>
             
@@ -1354,6 +1365,15 @@ export default function EnhancedCommunityDetailPage() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Billing Tab */}
+            <TabsContent value="billing" className="space-y-6">
+              <CommunityBilling
+                communityId={community.id}
+                communitySlug={community.slug}
+                isOwner={true}
+              />
             </TabsContent>
           </Tabs>
         ) : (

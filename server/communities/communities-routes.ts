@@ -1,9 +1,115 @@
 import { Express, Request, Response } from 'express';
 import { z } from 'zod';
 import multer from 'multer';
+import Stripe from 'stripe';
 import { communitiesStorage } from './communities-supabase';
 import { insertUserSchema } from '@shared/schema';
 import { uploadCommunityPostImage, uploadCommunityCoverImage } from '../services/storageService';
+
+// Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-11-20.acacia',
+});
+
+// Stripe Price IDs - will be populated dynamically
+let STRIPE_PRICES = {
+  monthly: '', // $19.99 CAD per month
+  yearly: '', // $199 CAD per year (save $40!)
+};
+
+// Initialize Stripe products and prices on startup
+async function initializeStripeProducts() {
+  try {
+    // Check if product exists
+    let product: Stripe.Product;
+    try {
+      const products = await stripe.products.list({ limit: 100 });
+      const existingProduct = products.data.find(p => p.metadata.product_code === 'community_membership');
+      
+      if (existingProduct) {
+        product = existingProduct;
+      } else {
+        // Create product
+        product = await stripe.products.create({
+          name: 'Community Membership',
+          description: 'Premium community features including unlimited members, advanced analytics, and priority support',
+          metadata: {
+            product_code: 'community_membership'
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error checking/creating Stripe product:', error);
+      throw error;
+    }
+
+    // Find or create monthly price
+    const prices = await stripe.prices.list({ 
+      product: product.id,
+      active: true,
+      limit: 100 
+    });
+    
+    let monthlyPrice = prices.data.find(p => 
+      p.recurring?.interval === 'month' && 
+      p.unit_amount === 1999 && 
+      p.currency === 'cad'
+    );
+    
+    if (!monthlyPrice) {
+      monthlyPrice = await stripe.prices.create({
+        product: product.id,
+        unit_amount: 1999, // $19.99 CAD
+        currency: 'cad',
+        recurring: {
+          interval: 'month',
+          trial_period_days: 14
+        },
+        metadata: {
+          plan_type: 'monthly'
+        }
+      });
+      console.log('Created new monthly price:', monthlyPrice.id);
+    }
+    STRIPE_PRICES.monthly = monthlyPrice.id;
+
+    // Find or create yearly price
+    let yearlyPrice = prices.data.find(p => 
+      p.recurring?.interval === 'year' && 
+      p.unit_amount === 19900 && 
+      p.currency === 'cad'
+    );
+    
+    if (!yearlyPrice) {
+      yearlyPrice = await stripe.prices.create({
+        product: product.id,
+        unit_amount: 19900, // $199 CAD
+        currency: 'cad',
+        recurring: {
+          interval: 'year',
+          trial_period_days: 14
+        },
+        metadata: {
+          plan_type: 'yearly',
+          savings: '40' // Save $40 compared to monthly
+        }
+      });
+      console.log('Created new yearly price:', yearlyPrice.id);
+    }
+    STRIPE_PRICES.yearly = yearlyPrice.id;
+
+    console.log('✅ Stripe products and prices initialized:', {
+      monthly: STRIPE_PRICES.monthly,
+      yearly: STRIPE_PRICES.yearly
+    });
+  } catch (error) {
+    console.error('Failed to initialize Stripe products:', error);
+    // Continue running even if Stripe setup fails
+  }
+}
+
+// Call on server startup
+initializeStripeProducts();
 
 
 // Middleware to check user authentication
@@ -3057,5 +3163,474 @@ export function addCommunitiesRoutes(app: Express) {
     }
   });
 
-  console.log('✅ Platform authentication (/api/auth/*), organizer (/api/organizers/*), admin (/api/admin/organizers/*), and communities (/api/communities/*) routes added');
+  // ============ BILLING ENDPOINTS ============
+
+  /**
+   * POST /api/communities/:id/billing/create-checkout
+   * Create a Stripe checkout session for subscription
+   */
+  app.post('/api/communities/:id/billing/create-checkout', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { priceId } = req.body; // 'monthly' or 'yearly'
+      const user = (req as any).user;
+
+      // Get community and verify ownership
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      if (community.organizerId !== user.id) {
+        return res.status(403).json({ ok: false, error: 'Only community owners can manage billing' });
+      }
+
+      // Check if there's already an active subscription
+      const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(id);
+      if (existingSubscription && existingSubscription.status === 'active') {
+        return res.status(400).json({ ok: false, error: 'Community already has an active subscription' });
+      }
+
+      // Determine the actual Stripe price ID
+      const stripePriceId = priceId === 'yearly' ? STRIPE_PRICES.yearly : STRIPE_PRICES.monthly;
+
+      // Create or get Stripe customer
+      let customerId = existingSubscription?.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+          metadata: {
+            userId: user.id,
+            communityId: id
+          }
+        });
+        customerId = customer.id;
+      }
+
+      // Create Stripe checkout session
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [{
+          price: stripePriceId,
+          quantity: 1
+        }],
+        mode: 'subscription',
+        success_url: `${process.env.NODE_ENV === 'production' ? 'https://thehouseofjugnu.com' : 'http://localhost:5000'}/communities/${community.slug}?billing=success`,
+        cancel_url: `${process.env.NODE_ENV === 'production' ? 'https://thehouseofjugnu.com' : 'http://localhost:5000'}/communities/${community.slug}?billing=cancelled`,
+        metadata: {
+          communityId: id,
+          organizerId: user.id,
+          plan: priceId
+        },
+        subscription_data: {
+          trial_period_days: 14,
+          metadata: {
+            communityId: id,
+            organizerId: user.id
+          }
+        },
+        automatic_tax: {
+          enabled: true
+        },
+        tax_id_collection: {
+          enabled: true
+        }
+      });
+
+      res.json({ 
+        ok: true, 
+        checkoutUrl: session.url,
+        sessionId: session.id 
+      });
+    } catch (error: any) {
+      console.error('Create checkout error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to create checkout session' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/billing/manage
+   * Create a Stripe customer portal session
+   */
+  app.post('/api/communities/:id/billing/manage', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+
+      // Get community and verify ownership
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      if (community.organizerId !== user.id) {
+        return res.status(403).json({ ok: false, error: 'Only community owners can manage billing' });
+      }
+
+      // Get subscription
+      const subscription = await communitiesStorage.getSubscriptionByCommunityId(id);
+      if (!subscription || !subscription.stripeCustomerId) {
+        return res.status(400).json({ ok: false, error: 'No subscription found for this community' });
+      }
+
+      // Create customer portal session
+      const session = await stripe.billingPortal.sessions.create({
+        customer: subscription.stripeCustomerId,
+        return_url: `${process.env.NODE_ENV === 'production' ? 'https://thehouseofjugnu.com' : 'http://localhost:5000'}/communities/${community.slug}`
+      });
+
+      res.json({ 
+        ok: true, 
+        portalUrl: session.url 
+      });
+    } catch (error: any) {
+      console.error('Create portal session error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to create portal session' });
+    }
+  });
+
+  /**
+   * GET /api/communities/:id/billing/status
+   * Get subscription status for a community
+   */
+  app.get('/api/communities/:id/billing/status', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+
+      // Get community
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      // Check if user is the owner or member
+      const membership = await communitiesStorage.getMembershipByUserAndCommunity(user.id, id);
+      const isOwner = community.organizerId === user.id;
+      
+      if (!membership && !isOwner) {
+        return res.status(403).json({ ok: false, error: 'Access denied' });
+      }
+
+      // Get subscription
+      const subscription = await communitiesStorage.getSubscriptionByCommunityId(id);
+      
+      // If no subscription exists, create a trial subscription
+      if (!subscription) {
+        // Create trial subscription for new communities
+        const trialEndDate = new Date();
+        trialEndDate.setDate(trialEndDate.getDate() + 14); // 14-day trial
+
+        const newSubscription = await communitiesStorage.createSubscription({
+          communityId: id,
+          organizerId: community.organizerId,
+          plan: 'free',
+          status: 'trialing',
+          trialStart: new Date(),
+          trialEnd: trialEndDate,
+          memberLimit: 100
+        });
+
+        return res.json({
+          ok: true,
+          subscription: {
+            ...newSubscription,
+            trialDaysRemaining: 14,
+            canManage: isOwner
+          }
+        });
+      }
+
+      // Calculate trial days remaining if in trial
+      let trialDaysRemaining = 0;
+      if (subscription.status === 'trialing' && subscription.trialEnd) {
+        const now = new Date();
+        const trialEnd = new Date(subscription.trialEnd);
+        trialDaysRemaining = Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+      }
+
+      // Get payment history if owner
+      let payments = [];
+      if (isOwner) {
+        payments = await communitiesStorage.getPaymentsBySubscriptionId(subscription.id);
+      }
+
+      res.json({
+        ok: true,
+        subscription: {
+          ...subscription,
+          trialDaysRemaining,
+          canManage: isOwner,
+          payments
+        }
+      });
+    } catch (error: any) {
+      console.error('Get subscription status error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get subscription status' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/billing/cancel
+   * Cancel subscription at period end
+   */
+  app.post('/api/communities/:id/billing/cancel', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+
+      // Get community and verify ownership
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      if (community.organizerId !== user.id) {
+        return res.status(403).json({ ok: false, error: 'Only community owners can manage billing' });
+      }
+
+      // Get subscription
+      const subscription = await communitiesStorage.getSubscriptionByCommunityId(id);
+      if (!subscription || !subscription.stripeSubscriptionId) {
+        return res.status(400).json({ ok: false, error: 'No active subscription found' });
+      }
+
+      // Cancel in Stripe (at period end)
+      const stripeSubscription = await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+        cancel_at_period_end: true
+      });
+
+      // Update local subscription
+      await communitiesStorage.updateSubscriptionStatus(subscription.id, 'active', {
+        cancelAt: stripeSubscription.cancel_at ? new Date(stripeSubscription.cancel_at * 1000) : undefined
+      });
+
+      res.json({ ok: true, message: 'Subscription will be canceled at the end of the current billing period' });
+    } catch (error: any) {
+      console.error('Cancel subscription error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to cancel subscription' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/billing/resume
+   * Resume a canceled subscription
+   */
+  app.post('/api/communities/:id/billing/resume', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+
+      // Get community and verify ownership
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      if (community.organizerId !== user.id) {
+        return res.status(403).json({ ok: false, error: 'Only community owners can manage billing' });
+      }
+
+      // Get subscription
+      const subscription = await communitiesStorage.getSubscriptionByCommunityId(id);
+      if (!subscription || !subscription.stripeSubscriptionId) {
+        return res.status(400).json({ ok: false, error: 'No subscription found' });
+      }
+
+      // Resume in Stripe
+      const stripeSubscription = await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+        cancel_at_period_end: false
+      });
+
+      // Update local subscription
+      await communitiesStorage.updateSubscriptionStatus(subscription.id, 'active', {
+        cancelAt: null
+      });
+
+      res.json({ ok: true, message: 'Subscription resumed successfully' });
+    } catch (error: any) {
+      console.error('Resume subscription error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to resume subscription' });
+    }
+  });
+
+  /**
+   * POST /api/communities/billing/webhook
+   * Handle Stripe webhook events
+   */
+  app.post('/api/communities/billing/webhook', async (req: Request, res: Response) => {
+    const sig = req.headers['stripe-signature'];
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    if (!sig || !webhookSecret) {
+      return res.status(400).json({ ok: false, error: 'Missing webhook signature or secret' });
+    }
+
+    let event: Stripe.Event;
+
+    try {
+      // Verify webhook signature and construct event
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        webhookSecret
+      );
+    } catch (error: any) {
+      console.error('Webhook signature verification failed:', error.message);
+      return res.status(400).json({ ok: false, error: 'Invalid signature' });
+    }
+
+    try {
+      // Check if we've already processed this event
+      const existingEvent = await communitiesStorage.getBillingEventByStripeId(event.id);
+      if (existingEvent && existingEvent.processed) {
+        return res.json({ ok: true, message: 'Event already processed' });
+      }
+
+      // Record the event
+      await communitiesStorage.recordBillingEvent({
+        stripeEventId: event.id,
+        eventType: event.type,
+        data: event.data as any,
+        processed: false
+      });
+
+      // Handle the event
+      switch (event.type) {
+        case 'checkout.session.completed': {
+          const session = event.data.object as Stripe.Checkout.Session;
+          const { communityId, organizerId, plan } = session.metadata || {};
+          
+          if (communityId && organizerId) {
+            // Get or create subscription record
+            let subscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
+            
+            if (!subscription) {
+              subscription = await communitiesStorage.createSubscription({
+                communityId,
+                organizerId,
+                stripeCustomerId: session.customer as string,
+                stripeSubscriptionId: session.subscription as string,
+                plan: plan || 'monthly',
+                status: 'trialing', // Will be updated by subscription.updated event
+                trialStart: new Date(),
+                trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days
+              });
+            } else {
+              // Update existing subscription
+              await communitiesStorage.updateSubscriptionStatus(subscription.id, 'active', {
+                stripeCustomerId: session.customer as string,
+                stripeSubscriptionId: session.subscription as string,
+                stripePriceId: plan === 'yearly' ? STRIPE_PRICES.yearly : STRIPE_PRICES.monthly
+              });
+            }
+          }
+          break;
+        }
+
+        case 'customer.subscription.updated': {
+          const subscription = event.data.object as Stripe.Subscription;
+          const localSubscription = await communitiesStorage.getSubscriptionByStripeId(subscription.id);
+          
+          if (localSubscription) {
+            await communitiesStorage.updateSubscriptionStatus(localSubscription.id, subscription.status as any, {
+              currentPeriodStart: new Date(subscription.current_period_start * 1000),
+              currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+              cancelAt: subscription.cancel_at ? new Date(subscription.cancel_at * 1000) : null,
+              canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
+              trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null
+            });
+          }
+          break;
+        }
+
+        case 'customer.subscription.deleted': {
+          const subscription = event.data.object as Stripe.Subscription;
+          const localSubscription = await communitiesStorage.getSubscriptionByStripeId(subscription.id);
+          
+          if (localSubscription) {
+            await communitiesStorage.updateSubscriptionStatus(localSubscription.id, 'canceled', {
+              canceledAt: new Date()
+            });
+          }
+          break;
+        }
+
+        case 'invoice.payment_succeeded': {
+          const invoice = event.data.object as Stripe.Invoice;
+          const subscriptionId = invoice.subscription;
+          
+          if (subscriptionId) {
+            const localSubscription = await communitiesStorage.getSubscriptionByStripeId(subscriptionId as string);
+            
+            if (localSubscription) {
+              await communitiesStorage.recordPayment({
+                subscriptionId: localSubscription.id,
+                communityId: localSubscription.communityId,
+                stripeInvoiceId: invoice.id,
+                stripePaymentIntentId: invoice.payment_intent as string,
+                amountPaid: invoice.amount_paid,
+                currency: invoice.currency.toUpperCase(),
+                status: 'succeeded',
+                description: `Payment for ${invoice.lines.data[0]?.description || 'Community Membership'}`,
+                billingPeriodStart: new Date(invoice.period_start * 1000),
+                billingPeriodEnd: new Date(invoice.period_end * 1000),
+                receiptUrl: invoice.hosted_invoice_url || undefined
+              });
+
+              // Update subscription status to active if it was past_due
+              if (localSubscription.status === 'past_due') {
+                await communitiesStorage.updateSubscriptionStatus(localSubscription.id, 'active');
+              }
+            }
+          }
+          break;
+        }
+
+        case 'invoice.payment_failed': {
+          const invoice = event.data.object as Stripe.Invoice;
+          const subscriptionId = invoice.subscription;
+          
+          if (subscriptionId) {
+            const localSubscription = await communitiesStorage.getSubscriptionByStripeId(subscriptionId as string);
+            
+            if (localSubscription) {
+              await communitiesStorage.recordPayment({
+                subscriptionId: localSubscription.id,
+                communityId: localSubscription.communityId,
+                stripeInvoiceId: invoice.id,
+                stripePaymentIntentId: invoice.payment_intent as string,
+                amountPaid: 0,
+                currency: invoice.currency.toUpperCase(),
+                status: 'failed',
+                description: `Failed payment for ${invoice.lines.data[0]?.description || 'Community Membership'}`,
+                failureReason: 'Payment failed',
+                billingPeriodStart: new Date(invoice.period_start * 1000),
+                billingPeriodEnd: new Date(invoice.period_end * 1000)
+              });
+
+              // Update subscription status
+              await communitiesStorage.updateSubscriptionStatus(localSubscription.id, 'past_due');
+            }
+          }
+          break;
+        }
+
+        default:
+          console.log(`Unhandled webhook event type: ${event.type}`);
+      }
+
+      // Mark event as processed
+      await communitiesStorage.markBillingEventProcessed(event.id);
+      
+      res.json({ ok: true, message: 'Event processed successfully' });
+    } catch (error: any) {
+      console.error('Webhook processing error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to process webhook' });
+    }
+  });
+
+  console.log('✅ Platform authentication (/api/auth/*), organizer (/api/organizers/*), admin (/api/admin/organizers/*), communities (/api/communities/*), and billing routes added');
 }

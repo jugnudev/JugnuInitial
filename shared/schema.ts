@@ -914,17 +914,53 @@ export const communitySubscriptions = pgTable("community_subscriptions", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
   communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
+  organizerId: varchar("organizer_id").notNull().references(() => users.id),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
-  plan: text("plan").notNull().default("free"), // free | starter | pro | enterprise
-  status: text("status").notNull().default("active"), // active | past_due | canceled | trialing
+  stripePriceId: text("stripe_price_id"), // Current price ID (monthly or yearly)
+  plan: text("plan").notNull().default("free"), // free | monthly | yearly
+  status: text("status").notNull().default("trialing"), // trialing | active | past_due | canceled | paused | expired
   currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
   currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
   cancelAt: timestamp("cancel_at", { withTimezone: true }),
   canceledAt: timestamp("canceled_at", { withTimezone: true }),
+  trialStart: timestamp("trial_start", { withTimezone: true }),
   trialEnd: timestamp("trial_end", { withTimezone: true }),
   memberLimit: integer("member_limit").notNull().default(100),
   features: jsonb("features").default(sql`'{}'::jsonb`), // Feature flags/limits
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Additional Stripe metadata
+});
+
+// Community billing payments
+export const communityPayments = pgTable("community_payments", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  subscriptionId: uuid("subscription_id").notNull().references(() => communitySubscriptions.id),
+  communityId: uuid("community_id").notNull().references(() => communities.id),
+  stripeInvoiceId: text("stripe_invoice_id").unique(),
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  amountPaid: integer("amount_paid").notNull(), // Amount in cents
+  currency: text("currency").notNull().default("CAD"),
+  status: text("status").notNull(), // succeeded | failed | pending | refunded
+  description: text("description"),
+  billingPeriodStart: timestamp("billing_period_start", { withTimezone: true }),
+  billingPeriodEnd: timestamp("billing_period_end", { withTimezone: true }),
+  failureReason: text("failure_reason"),
+  receiptUrl: text("receipt_url"),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+});
+
+// Community billing events for webhook tracking
+export const communityBillingEvents = pgTable("community_billing_events", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  stripeEventId: text("stripe_event_id").unique().notNull(),
+  eventType: text("event_type").notNull(),
+  communityId: uuid("community_id").references(() => communities.id),
+  subscriptionId: uuid("subscription_id").references(() => communitySubscriptions.id),
+  processed: boolean("processed").notNull().default(false),
+  data: jsonb("data").notNull(),
+  error: text("error"),
 });
 
 // Community notifications
@@ -1132,6 +1168,16 @@ export const insertCommunitySubscriptionSchema = createInsertSchema(communitySub
   updatedAt: true,
 });
 
+export const insertCommunityPaymentSchema = createInsertSchema(communityPayments).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityBillingEventSchema = createInsertSchema(communityBillingEvents).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertCommunityNotificationSchema = createInsertSchema(communityNotifications).omit({
   id: true,
   createdAt: true,
@@ -1214,6 +1260,10 @@ export type CommunityAnalytics = typeof communityAnalytics.$inferSelect;
 export type InsertCommunityAnalytics = z.infer<typeof insertCommunityAnalyticsSchema>;
 export type CommunitySubscription = typeof communitySubscriptions.$inferSelect;
 export type InsertCommunitySubscription = z.infer<typeof insertCommunitySubscriptionSchema>;
+export type CommunityPayment = typeof communityPayments.$inferSelect;
+export type InsertCommunityPayment = z.infer<typeof insertCommunityPaymentSchema>;
+export type CommunityBillingEvent = typeof communityBillingEvents.$inferSelect;
+export type InsertCommunityBillingEvent = z.infer<typeof insertCommunityBillingEventSchema>;
 export type CommunityNotification = typeof communityNotifications.$inferSelect;
 export type InsertCommunityNotification = z.infer<typeof insertCommunityNotificationSchema>;
 export type CommunityEmailQueue = typeof communityEmailQueue.$inferSelect;

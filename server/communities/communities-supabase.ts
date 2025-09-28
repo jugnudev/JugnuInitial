@@ -18,7 +18,13 @@ import type {
   InsertCommunityMembership,
   CommunityMembershipWithUser,
   CommunityPost,
-  InsertCommunityPost
+  InsertCommunityPost,
+  CommunitySubscription,
+  InsertCommunitySubscription,
+  CommunityPayment,
+  InsertCommunityPayment,
+  CommunityBillingEvent,
+  InsertCommunityBillingEvent
 } from '@shared/schema';
 
 // Create Supabase client with service role for admin operations
@@ -1693,6 +1699,245 @@ export class CommunitiesSupabaseDB {
       .or(`expires_at.lt.${new Date().toISOString()},last_used_at.lt.${new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()}`); // Remove sessions expired or unused > 90 days
 
     if (error) console.error('Failed to cleanup expired sessions:', error);
+  }
+
+  // ============ BILLING AND SUBSCRIPTION METHODS ============
+  
+  async createSubscription(data: InsertCommunitySubscription): Promise<CommunitySubscription> {
+    const { data: subscription, error } = await this.client
+      .from('community_subscriptions')
+      .insert({
+        community_id: data.communityId,
+        organizer_id: data.organizerId,
+        stripe_customer_id: data.stripeCustomerId,
+        stripe_subscription_id: data.stripeSubscriptionId,
+        stripe_price_id: data.stripePriceId,
+        plan: data.plan || 'free',
+        status: data.status || 'trialing',
+        current_period_start: data.currentPeriodStart,
+        current_period_end: data.currentPeriodEnd,
+        cancel_at: data.cancelAt,
+        canceled_at: data.canceledAt,
+        trial_start: data.trialStart,
+        trial_end: data.trialEnd,
+        member_limit: data.memberLimit || 100,
+        features: data.features || {},
+        metadata: data.metadata || {}
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapSubscriptionFromDb(subscription);
+  }
+
+  async getSubscriptionByCommunityId(communityId: string): Promise<CommunitySubscription | null> {
+    const { data, error } = await this.client
+      .from('community_subscriptions')
+      .select()
+      .eq('community_id', communityId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? this.mapSubscriptionFromDb(data) : null;
+  }
+
+  async getSubscriptionByOrganizer(organizerId: string): Promise<CommunitySubscription[]> {
+    const { data, error } = await this.client
+      .from('community_subscriptions')
+      .select()
+      .eq('organizer_id', organizerId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []).map(sub => this.mapSubscriptionFromDb(sub));
+  }
+
+  async getSubscriptionByStripeId(stripeSubscriptionId: string): Promise<CommunitySubscription | null> {
+    const { data, error } = await this.client
+      .from('community_subscriptions')
+      .select()
+      .eq('stripe_subscription_id', stripeSubscriptionId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? this.mapSubscriptionFromDb(data) : null;
+  }
+
+  async updateSubscriptionStatus(
+    subscriptionId: string, 
+    status: string, 
+    metadata?: Partial<CommunitySubscription>
+  ): Promise<CommunitySubscription> {
+    const updateData: any = {
+      status,
+      updated_at: new Date().toISOString()
+    };
+
+    // Map metadata fields to database column names
+    if (metadata) {
+      if (metadata.stripeCustomerId !== undefined) updateData.stripe_customer_id = metadata.stripeCustomerId;
+      if (metadata.stripeSubscriptionId !== undefined) updateData.stripe_subscription_id = metadata.stripeSubscriptionId;
+      if (metadata.stripePriceId !== undefined) updateData.stripe_price_id = metadata.stripePriceId;
+      if (metadata.currentPeriodStart !== undefined) updateData.current_period_start = metadata.currentPeriodStart;
+      if (metadata.currentPeriodEnd !== undefined) updateData.current_period_end = metadata.currentPeriodEnd;
+      if (metadata.cancelAt !== undefined) updateData.cancel_at = metadata.cancelAt;
+      if (metadata.canceledAt !== undefined) updateData.canceled_at = metadata.canceledAt;
+      if (metadata.trialEnd !== undefined) updateData.trial_end = metadata.trialEnd;
+      if (metadata.features !== undefined) updateData.features = metadata.features;
+      if (metadata.metadata !== undefined) updateData.metadata = metadata.metadata;
+    }
+
+    const { data, error } = await this.client
+      .from('community_subscriptions')
+      .update(updateData)
+      .eq('id', subscriptionId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapSubscriptionFromDb(data);
+  }
+
+  async recordPayment(payment: InsertCommunityPayment): Promise<CommunityPayment> {
+    const { data, error } = await this.client
+      .from('community_payments')
+      .insert({
+        subscription_id: payment.subscriptionId,
+        community_id: payment.communityId,
+        stripe_invoice_id: payment.stripeInvoiceId,
+        stripe_payment_intent_id: payment.stripePaymentIntentId,
+        amount_paid: payment.amountPaid,
+        currency: payment.currency || 'CAD',
+        status: payment.status,
+        description: payment.description,
+        billing_period_start: payment.billingPeriodStart,
+        billing_period_end: payment.billingPeriodEnd,
+        failure_reason: payment.failureReason,
+        receipt_url: payment.receiptUrl,
+        metadata: payment.metadata || {}
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapPaymentFromDb(data);
+  }
+
+  async getPaymentsBySubscriptionId(subscriptionId: string): Promise<CommunityPayment[]> {
+    const { data, error } = await this.client
+      .from('community_payments')
+      .select()
+      .eq('subscription_id', subscriptionId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []).map(payment => this.mapPaymentFromDb(payment));
+  }
+
+  async recordBillingEvent(event: InsertCommunityBillingEvent): Promise<CommunityBillingEvent> {
+    const { data, error } = await this.client
+      .from('community_billing_events')
+      .insert({
+        stripe_event_id: event.stripeEventId,
+        event_type: event.eventType,
+        community_id: event.communityId,
+        subscription_id: event.subscriptionId,
+        processed: event.processed || false,
+        data: event.data,
+        error: event.error
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapBillingEventFromDb(data);
+  }
+
+  async getBillingEventByStripeId(stripeEventId: string): Promise<CommunityBillingEvent | null> {
+    const { data, error } = await this.client
+      .from('community_billing_events')
+      .select()
+      .eq('stripe_event_id', stripeEventId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? this.mapBillingEventFromDb(data) : null;
+  }
+
+  async markBillingEventProcessed(stripeEventId: string): Promise<void> {
+    const { error } = await this.client
+      .from('community_billing_events')
+      .update({ processed: true })
+      .eq('stripe_event_id', stripeEventId);
+
+    if (error) throw error;
+  }
+
+  async handleTrialEnd(subscriptionId: string): Promise<void> {
+    // Update subscription status to expired if trial ends without payment
+    await this.updateSubscriptionStatus(subscriptionId, 'expired', {
+      trialEnd: new Date()
+    });
+  }
+
+  // Helper methods to map database records to TypeScript types
+  private mapSubscriptionFromDb(data: any): CommunitySubscription {
+    return {
+      id: data.id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      communityId: data.community_id,
+      organizerId: data.organizer_id,
+      stripeCustomerId: data.stripe_customer_id,
+      stripeSubscriptionId: data.stripe_subscription_id,
+      stripePriceId: data.stripe_price_id,
+      plan: data.plan,
+      status: data.status,
+      currentPeriodStart: data.current_period_start,
+      currentPeriodEnd: data.current_period_end,
+      cancelAt: data.cancel_at,
+      canceledAt: data.canceled_at,
+      trialStart: data.trial_start,
+      trialEnd: data.trial_end,
+      memberLimit: data.member_limit,
+      features: data.features,
+      metadata: data.metadata
+    };
+  }
+
+  private mapPaymentFromDb(data: any): CommunityPayment {
+    return {
+      id: data.id,
+      createdAt: data.created_at,
+      subscriptionId: data.subscription_id,
+      communityId: data.community_id,
+      stripeInvoiceId: data.stripe_invoice_id,
+      stripePaymentIntentId: data.stripe_payment_intent_id,
+      amountPaid: data.amount_paid,
+      currency: data.currency,
+      status: data.status,
+      description: data.description,
+      billingPeriodStart: data.billing_period_start,
+      billingPeriodEnd: data.billing_period_end,
+      failureReason: data.failure_reason,
+      receiptUrl: data.receipt_url,
+      metadata: data.metadata
+    };
+  }
+
+  private mapBillingEventFromDb(data: any): CommunityBillingEvent {
+    return {
+      id: data.id,
+      createdAt: data.created_at,
+      stripeEventId: data.stripe_event_id,
+      eventType: data.event_type,
+      communityId: data.community_id,
+      subscriptionId: data.subscription_id,
+      processed: data.processed,
+      data: data.data,
+      error: data.error
+    };
   }
 }
 
