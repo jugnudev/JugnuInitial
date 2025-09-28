@@ -904,6 +904,7 @@ export class CommunitiesSupabaseDB {
       authorId: data.author_id,
       title: data.title,
       content: data.content,
+      imageUrl: data.image_url || undefined,
       postType: data.post_type,
       isPinned: data.is_pinned,
       status: data.status

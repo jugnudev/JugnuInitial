@@ -216,6 +216,36 @@ export default function CommunityDetailPage() {
     },
   });
 
+  // Update Announcement Mutation
+  const updateAnnouncementMutation = useMutation({
+    mutationFn: async ({ postId, data }: { postId: string; data: { title: string; content: string; imageUrl?: string; postType?: string; isPinned?: boolean } }) => {
+      if (!community?.id) {
+        throw new Error('Community ID not available');
+      }
+      const updateData = await apiRequest('PUT', `/api/communities/${community.id}/posts/${postId}`, data);
+      return updateData;
+    },
+    onSuccess: () => {
+      toast({ title: "Announcement updated successfully!" });
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', communitySlug] });
+      setEditingPostId(null);
+      setEditPostForm({
+        title: '',
+        content: '',
+        imageUrl: '',
+        postType: 'announcement',
+        isPinned: false
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to update announcement", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
   // Delete Announcement Mutation
   const deleteAnnouncementMutation = useMutation({
     mutationFn: async (postId: string) => {
@@ -316,6 +346,16 @@ export default function CommunityDetailPage() {
     isPinned: false
   });
   
+  // Edit announcement state
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editPostForm, setEditPostForm] = useState({
+    title: '',
+    content: '',
+    imageUrl: '',
+    postType: 'announcement' as 'announcement' | 'update' | 'event',
+    isPinned: false
+  });
+  
   // Settings editing state
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [isEditingPrivacy, setIsEditingPrivacy] = useState(false);
@@ -343,6 +383,45 @@ export default function CommunityDetailPage() {
   const handleDeleteAnnouncement = (postId: string) => {
     if (confirm("Are you sure you want to delete this announcement?")) {
       deleteAnnouncementMutation.mutate(postId);
+    }
+  };
+  
+  const handleEditAnnouncement = (post: Post) => {
+    setEditingPostId(post.id);
+    setEditPostForm({
+      title: post.title,
+      content: post.content,
+      imageUrl: post.imageUrl || '',
+      postType: post.postType,
+      isPinned: post.isPinned
+    });
+  };
+  
+  const handleCancelEdit = () => {
+    setEditingPostId(null);
+    setEditPostForm({
+      title: '',
+      content: '',
+      imageUrl: '',
+      postType: 'announcement',
+      isPinned: false
+    });
+  };
+  
+  const handleSaveEdit = () => {
+    if (!editPostForm.title.trim() || !editPostForm.content.trim()) {
+      toast({
+        title: "Please fill in all fields",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (editingPostId) {
+      updateAnnouncementMutation.mutate({
+        postId: editingPostId,
+        data: editPostForm
+      });
     }
   };
 
@@ -490,7 +569,7 @@ export default function CommunityDetailPage() {
                 whileHover="whileHover"
                 whileTap="whileTap"
               >
-                <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                 <Crown className="h-6 w-6 mr-2 relative z-10" />
                 <span className="relative z-10">Sign In to Continue</span>
               </MotionButton>
@@ -536,7 +615,7 @@ export default function CommunityDetailPage() {
                 whileHover="whileHover"
                 whileTap="whileTap"
               >
-                <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                 <ArrowLeft className="h-6 w-6 mr-2 relative z-10" />
                 <span className="relative z-10">Back to Communities</span>
               </MotionButton>
@@ -708,7 +787,7 @@ export default function CommunityDetailPage() {
                       whileHover="whileHover"
                       whileTap="whileTap"
                     >
-                      <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                       <Settings className="h-5 w-5 mr-2 relative z-10" />
                       <span className="relative z-10">Manage Community</span>
                     </MotionButton>
@@ -721,7 +800,7 @@ export default function CommunityDetailPage() {
                       whileHover="whileHover"
                       whileTap="whileTap"
                     >
-                      <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                       <UserPlus className="h-5 w-5 mr-2 relative z-10" />
                       <span className="relative z-10">Join Community</span>
                     </MotionButton>
@@ -801,7 +880,7 @@ export default function CommunityDetailPage() {
                     className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
                     data-testid="create-announcement-button"
                   >
-                    <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                     <Plus className="h-5 w-5 mr-2 relative z-10" />
                     <span className="relative z-10">New Announcement</span>
                   </Button>
@@ -823,7 +902,7 @@ export default function CommunityDetailPage() {
                           : 'hover:ring-2 hover:ring-copper-500/30'
                       }`}>
                         {/* Firefly glow effect for posts */}
-                        <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
+                        <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none" />
                         <CardHeader className="pb-4">
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
@@ -859,6 +938,7 @@ export default function CommunityDetailPage() {
                                 size="sm"
                                 variant="ghost"
                                 className="h-8 w-8 p-0 hover:bg-accent/20 text-accent"
+                                onClick={() => handleEditAnnouncement(post)}
                                 data-testid={`edit-post-${post.id}`}
                               >
                                 <Edit3 className="h-4 w-4" />
@@ -915,7 +995,7 @@ export default function CommunityDetailPage() {
                       className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
                       data-testid="create-first-announcement-button"
                     >
-                      <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                       <Plus className="h-5 w-5 mr-2 relative z-10" />
                       <span className="relative z-10">Create First Announcement</span>
                     </Button>
@@ -1241,7 +1321,7 @@ export default function CommunityDetailPage() {
                           className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
                           data-testid="edit-community-info-button"
                         >
-                          <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none pointer-events-none" />
                           <Edit3 className="h-5 w-5 mr-2 relative z-10" />
                           <span className="relative z-10">Edit Information</span>
                         </Button>
@@ -1307,7 +1387,7 @@ export default function CommunityDetailPage() {
                         className="bg-gradient-to-r from-accent to-glow hover:from-glow hover:to-accent text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
                         data-testid="edit-privacy-settings-button"
                       >
-                        <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                         <Shield className="h-5 w-5 mr-2 relative z-10" />
                         <span className="relative z-10">Update Privacy Settings</span>
                       </Button>
@@ -1387,7 +1467,7 @@ export default function CommunityDetailPage() {
                                 ? 'ring-2 ring-accent/50 bg-gradient-to-br from-accent/10 via-copper-500/5 to-glow/10' 
                                 : 'hover:ring-2 hover:ring-copper-500/30'
                             }`}>
-                              <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl" />
+                              <div className="absolute inset-0 bg-gradient-radial from-copper-500/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none" />
                               <CardHeader className="pb-4">
                                 <div className="flex items-start justify-between">
                                   <div className="flex-1">
@@ -1515,7 +1595,7 @@ export default function CommunityDetailPage() {
                     disabled={joinCommunityMutation.isPending}
                     data-testid="request-join-button"
                   >
-                    <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                     {joinCommunityMutation.isPending ? (
                       <Loader2 className="h-6 w-6 mr-2 animate-spin relative z-10" />
                     ) : (
@@ -1623,6 +1703,104 @@ export default function CommunityDetailPage() {
                   className="flex-1 bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold"
                 >
                   {createAnnouncementMutation.isPending ? 'Creating...' : 'Create'}
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {/* Edit Announcement Dialog */}
+        {editingPostId && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-card border border-border rounded-2xl shadow-large max-w-md w-full p-6"
+            >
+              <h3 className="text-xl font-bold text-text mb-6 font-fraunces">
+                Edit Announcement
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-text mb-2 block">Title</label>
+                  <input
+                    type="text"
+                    className="w-full p-3 rounded-xl bg-background border border-border text-text focus:ring-2 focus:ring-accent focus:border-transparent"
+                    placeholder="Enter announcement title..."
+                    value={editPostForm.title}
+                    onChange={(e) => setEditPostForm(prev => ({ ...prev, title: e.target.value }))}
+                    data-testid="input-title"
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-text mb-2 block">Content</label>
+                  <textarea
+                    className="w-full p-3 rounded-xl bg-background border border-border text-text focus:ring-2 focus:ring-accent focus:border-transparent resize-none"
+                    rows={4}
+                    placeholder="Write your announcement..."
+                    value={editPostForm.content}
+                    onChange={(e) => setEditPostForm(prev => ({ ...prev, content: e.target.value }))}
+                    data-testid="textarea-content"
+                  />
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-text mb-2 block">Image (Optional)</label>
+                  <input
+                    type="url"
+                    className="w-full p-3 rounded-xl bg-background border border-border text-text focus:ring-2 focus:ring-accent focus:border-transparent"
+                    placeholder="Enter image URL (e.g., https://example.com/image.jpg)"
+                    value={editPostForm.imageUrl}
+                    onChange={(e) => setEditPostForm(prev => ({ ...prev, imageUrl: e.target.value }))}
+                    data-testid="input-edit-image"
+                  />
+                  {editPostForm.imageUrl && (
+                    <div className="mt-3">
+                      <p className="text-xs text-muted mb-2">Image Preview:</p>
+                      <img
+                        src={editPostForm.imageUrl}
+                        alt="Preview"
+                        className="max-w-full h-32 object-cover rounded-lg border border-border"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                        onLoad={(e) => {
+                          e.currentTarget.style.display = 'block';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="edit-pinned"
+                    className="rounded border-border"
+                    checked={editPostForm.isPinned}
+                    onChange={(e) => setEditPostForm(prev => ({ ...prev, isPinned: e.target.checked }))}
+                  />
+                  <label htmlFor="edit-pinned" className="text-sm text-text">Pin this announcement</label>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveEdit}
+                  disabled={updateAnnouncementMutation.isPending}
+                  className="flex-1 bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold"
+                  data-testid="update-button"
+                >
+                  {updateAnnouncementMutation.isPending ? 'Updating...' : 'Update'}
                 </Button>
               </div>
             </motion.div>
