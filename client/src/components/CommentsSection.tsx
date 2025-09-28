@@ -145,7 +145,16 @@ function CommentItem({
               )}
               
               <span className="text-xs text-premium-text-muted">
-                {formatDistanceToNow(new Date(comment.createdAt))} ago
+                {(() => {
+                  try {
+                    if (!comment.createdAt) return 'Unknown time';
+                    const date = new Date(comment.createdAt);
+                    if (isNaN(date.getTime())) return 'Invalid date';
+                    return formatDistanceToNow(date);
+                  } catch (error) {
+                    return 'Date error';
+                  }
+                })()} ago
               </span>
               
               {comment.isEdited && (
