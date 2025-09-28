@@ -2798,7 +2798,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"content":"Great post!","parentId":null}'
    */
-  app.post('/api/communities/:id/posts/:postId/comments', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/posts/:postId/comments', checkCommunitiesFeatureFlag, requireEitherAuth, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const user = (req as any).user;
@@ -2853,7 +2853,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"content":"Updated comment"}'
    */
-  app.patch('/api/communities/:id/comments/:commentId', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+  app.patch('/api/communities/:id/comments/:commentId', checkCommunitiesFeatureFlag, requireEitherAuth, async (req: Request, res: Response) => {
     try {
       const { id, commentId } = req.params;
       const user = (req as any).user;
@@ -2891,7 +2891,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X DELETE http://localhost:5000/api/communities/COMMUNITY_ID/comments/COMMENT_ID \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.delete('/api/communities/:id/comments/:commentId', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+  app.delete('/api/communities/:id/comments/:commentId', checkCommunitiesFeatureFlag, requireEitherAuth, async (req: Request, res: Response) => {
     try {
       const { id, commentId } = req.params;
       const user = (req as any).user;
@@ -2933,7 +2933,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X POST http://localhost:5000/api/communities/COMMUNITY_ID/comments/COMMENT_ID/hide \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.post('/api/communities/:id/comments/:commentId/hide', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/comments/:commentId/hide', checkCommunitiesFeatureFlag, requireEitherAuth, requireCommunityOwner, async (req: Request, res: Response) => {
     try {
       const { id, commentId } = req.params;
       const community = (req as any).community;

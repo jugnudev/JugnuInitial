@@ -1051,9 +1051,8 @@ export class CommunitiesSupabaseDB {
         post_id: data.postId,
         author_id: data.authorId,
         content: data.content,
-        parent_id: data.parentId || null,
-        is_hidden: false,
-        status: 'published'
+        parent_comment_id: data.parentId || null,
+        is_hidden: false
       })
       .select()
       .single();
