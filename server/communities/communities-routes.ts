@@ -1801,7 +1801,7 @@ export function addCommunitiesRoutes(app: Express) {
         communityId: community.id,
         userId: user.id,
         status: community.membershipPolicy === 'open' ? 'approved' : 'pending',
-        approvedAt: community.membershipPolicy === 'open' ? new Date().toISOString() : undefined,
+        approvedAt: community.membershipPolicy === 'open' ? new Date() : undefined,
       });
 
       res.json({
