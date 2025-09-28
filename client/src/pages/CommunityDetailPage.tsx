@@ -1067,15 +1067,45 @@ export default function CommunityDetailPage() {
 
                             {/* Post Actions/Engagement (placeholder for future) */}
                             <div className="flex items-center gap-4 text-xs text-muted pt-2">
-                              <button className="flex items-center gap-1 hover:text-accent transition-colors">
+                              <button 
+                                className="flex items-center gap-1 hover:text-accent transition-colors"
+                                onClick={() => {
+                                  toast({
+                                    title: "Like Post",
+                                    description: "Post interactions are coming soon! Stay tuned for likes, reactions, and more.",
+                                    duration: 3000,
+                                  });
+                                }}
+                                data-testid="like-announcement-button"
+                              >
                                 <Heart className="h-3 w-3" />
                                 <span>Like</span>
                               </button>
-                              <button className="flex items-center gap-1 hover:text-accent transition-colors">
+                              <button 
+                                className="flex items-center gap-1 hover:text-accent transition-colors"
+                                onClick={() => {
+                                  toast({
+                                    title: "Comments",
+                                    description: "Comment functionality is coming soon! You'll be able to engage with community announcements.",
+                                    duration: 3000,
+                                  });
+                                }}
+                                data-testid="comment-announcement-button"
+                              >
                                 <MessageCircle className="h-3 w-3" />
                                 <span>Comment</span>
                               </button>
-                              <button className="flex items-center gap-1 hover:text-accent transition-colors">
+                              <button 
+                                className="flex items-center gap-1 hover:text-accent transition-colors"
+                                onClick={() => {
+                                  toast({
+                                    title: "Share Post",
+                                    description: "Sharing functionality is coming soon! You'll be able to share announcements with others.",
+                                    duration: 3000,
+                                  });
+                                }}
+                                data-testid="share-announcement-button"
+                              >
                                 <Share className="h-3 w-3" />
                                 <span>Share</span>
                               </button>
@@ -1541,6 +1571,13 @@ export default function CommunityDetailPage() {
                       <Button 
                         className="bg-gradient-to-r from-accent to-glow hover:from-glow hover:to-accent text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300"
                         data-testid="edit-privacy-settings-button"
+                        onClick={() => {
+                          toast({
+                            title: "Privacy Settings",
+                            description: "Privacy settings functionality is coming soon! Currently you can manage visibility via the membership policy settings above.",
+                            duration: 4000,
+                          });
+                        }}
                       >
                         <Shield className="h-5 w-5 mr-2" />
                         <span>Update Privacy Settings</span>
