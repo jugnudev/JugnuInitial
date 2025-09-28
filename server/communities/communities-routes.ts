@@ -1371,10 +1371,19 @@ export function addCommunitiesRoutes(app: Express) {
 
       const communities = await communitiesStorage.getCommunitiesByOrganizerId(organizer.id);
 
+      // Add membership information since these are owned communities
+      const communitiesWithMembership = communities.map(community => ({
+        ...community,
+        membership: {
+          status: 'approved',
+          role: 'owner'
+        }
+      }));
+
       res.json({
         ok: true,
-        communities,
-        count: communities.length
+        communities: communitiesWithMembership,
+        count: communitiesWithMembership.length
       });
     } catch (error: any) {
       console.error('Get user communities error:', error);
