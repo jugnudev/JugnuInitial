@@ -83,7 +83,7 @@ export function NotificationCenter() {
   const limit = 20;
 
   // Fetch user's communities for filter
-  const { data: communitiesData } = useQuery({
+  const { data: communitiesData } = useQuery<{ ok: boolean; communities: Community[] }>({
     queryKey: ['/api/communities/my'],
   });
 
@@ -544,3 +544,5 @@ export function NotificationCenter() {
     </div>
   );
 }
+
+export default NotificationCenter;
