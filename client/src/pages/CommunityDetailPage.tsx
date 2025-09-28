@@ -219,8 +219,16 @@ export default function CommunityDetailPage() {
       const formData = new FormData();
       formData.append('image', file);
       
+      // Get auth token from localStorage for authentication
+      const authToken = localStorage.getItem('community_auth_token');
+      const headers: Record<string, string> = {};
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
+      
       const response = await fetch(`/api/communities/${community.id}/upload-cover-image`, {
         method: 'POST',
+        headers,
         body: formData,
       });
       
