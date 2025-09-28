@@ -1,0 +1,144 @@
+
+
+What we’re building (vision)
+
+“Communities” is a premium, members-only space where organizers/businesses (on a paid plan) can run a modern, visual announcement feed + community chat, and manage members, analytics, and settings — all inside Jugnu. Regular users join communities to receive beautiful updates, participate in polls, and engage with posts. This should look/feel like a modern, luxury social feed (rich imagery, cards, micro-interactions), but content is private to members.
+
+
+
+Phase 2 — Communities core (data & APIs; members-only posts)
+
+Goal: Organizer can create exactly one community; users can request to join; organizer/admin approve; organizer posts announcements (private to members).
+
+Please implement:
+
+* Community: one per organizer; slug, cover image, short description, welcome text.
+* Membership: statuses pending | member | removed; requests, approvals, declines, remove.
+* Announcements (posts): 
+    * Members-only visibility (never public).
+    * Rich content: title, body (markdown), multi-image gallery (support 1–6 images; allow alt text), clickable links (auto-link + UTM merge helper), optional “primary link” CTA.
+    * Post states: draft, scheduled (UTC/Pacific), published; optional pin to top; optional expire_at to auto-hide.
+    * Reactions (❤️ 👍 🔥) and comments (thread depth 1). Members can react/comment; owner can moderate (hide/delete comments).
+    * Shares: in-platform “copy link to this post” (but still members-only gated on open).
+* RLS/Policies: Strict: only owner/admin can manage; only members can read posts; non-members cannot see post content at all (even API).
+* Storage: If image storage is needed, propose a Supabase storage bucket (e.g., communities) and output policies.
+
+Endpoints (suggested minimal):
+
+* Community: create (owner only), get (owner/member view vs non-member shell), update (owner), delete (owner/admin).
+* Membership: request join, list pending/approved (owner/admin), approve/decline, remove.
+* Posts: create/update/delete (owner); list (members only); react/unreact; comment add/delete (owner of comment or owner/admin).
+
+Deliverables: SQL + storage/RLS policy, and short curl examples.
+Acceptance: New community created; a user requests join; organizer approves; organizer posts; a member sees it; non-member cannot.
+
+Phase 3 — Communities UI (premium index & detail, gated)
+
+Goal: Beautiful, responsive UX, gated for non-members.
+
+/communities (Index)
+
+* If signed out: tasteful hero + product explainer, two panels: 
+    * For users: “Join communities hosted by your favourite businesses,” “members-only updates,” “exclusive polls/deals,” etc.
+    * For businesses: succinct pitch + pricing teaser ($19.99/mo or $199/year) and CTA to apply.
+* If signed in (user): discovery grid of communities as elegant cards (cover, name, description, member count).
+* If signed in (organizer): show your community first with an “Owner” pill.
+
+/communities/:slug (Detail)
+
+* Non-member: header + description + member count + “Request to join” gate; no posts rendered.
+* Member: premium announcement feed (grid + masonry or large hero first then cards), skeletons, subtle motion, multi-image lightbox; reactions + comments UX.
+* Owner/admin: an owner toolbar (tabs below) when viewing your own community.
+
+Design cues:
+
+* High-end typography, generous spacing, tasteful gradients, micro-interactions (hover, like bounces, toast confirmations).
+* Accessible (focus, ARIA on interactive elements), mobile-first.
+
+Acceptance: Looks/feels premium; gate works; non-members see no content; members have a delightful, modern feed experience.
+
+Phase 4 — Owner console (Announcements, Members, Analytics, Settings)
+
+Visible to owner/admin on /communities/:slug.
+
+* Announcements tab: create/edit (markdown + live preview), schedule, pin, expire; gallery manager (drag-reorder); link field (UTM appended once); visibility state badges; delete with confirm.
+* Members tab: pending queue, approve/decline; list members; remove; simple search; export members CSV (id, joined_at, last_seen_at).
+* Analytics tab (MVP): 
+    * Totals: members, pending, posts last 30d, reactions/comments last 30d.
+    * Post performance table: impressions (views by members), clicks on primary link, reactions, comments, CTR (clicks / impressions).
+    * Trend line by day (last 30d); “best time to post” hint (basic).
+* Settings tab: name, description, cover; welcome message; toggle join policy (open requires approval vs invite-only); chat mode (see Phase 5); delete community (hard confirm).
+
+Acceptance: Owner can operate end-to-end; analytics reflects activity; CSV export works.
+
+Phase 5 — Community Chat & Polls (configurable)
+
+Goal: A lightweight chat inside each community with an owner-controlled mode:
+
+* Chat mode: 
+    * Owner-only (broadcast channel) OR
+    * Open to all members (with slow-mode option e.g., one message per 30s
+* Features: text + emoji; owner/admin can pin a message; polls (single/multi-select, close date, show %).
+* Moderation: owner/admin can delete messages, mute members; simple profanity filter (configurable list) and URL allowlist; rate limiting.
+* Notifications: members get in-app notifications (and gated email if enabled) when the owner posts in chat or starts a poll.
+* Privacy: chat is private to members in that community; nothing public.
+
+Acceptance: Owner can post; members can post (if mode open); poll creation & voting works; moderation works.
+
+Phase 6 — Billing: Stripe subscriptions for organizers (Free 1 month trial / $19.99/mo or $199/yr)
+
+Goal: Full organizer paywall with beautiful branded flow.
+
+* Implement Stripe test-mode subscription for organizers with products/prices (monthly & annual).
+* Organizer features unlock when subscription status is trialing or active.
+* Show free month trial and the create the process for that too. 
+* “Activate your subscription” banner flows to checkout (Stripe Checkout or Elements — choose the reliable path).
+* Webhooks: checkout.session.completed, customer.subscription.updated, customer.subscription.deleted. Update organizer subscription status accordingly.
+* Manage Billing link (Stripe Customer Portal) from Settings.
+* Output required env vars and both dev/prod webhook URLs; do not commit secrets.
+
+Acceptance: New organizer can pay, return to Jugnu, and immediately create their one community. Cancellation downgrades access.
+
+Phase 7 — Notifications (in-app + email, dev-gated)
+
+Goal: Notify members when a new announcement is published (and optionally when owner posts in chat).
+
+* In-app: per-user unread counters (badge on Communities tab + per community).
+* Email: gated by COMMUNITIES_EMAIL_ENABLED=false. When disabled, just log the would-send payload.
+* Per-community email prefs: members can unsubscribe from email while keeping in-app notices.
+
+Acceptance: Announcements trigger in-app badges; when email enabled, members receive a nice branded email. Users can opt out.
+
+Phase 8 — Admin oversight & self-test
+
+Goal: Give admin visibility and a one-click health check.
+
+* Admin screen listing communities, organizer status, pending membership queues, most recent posts, basic metrics; link to moderate.
+* GET /api/communities/selftest creates a temp community + member + post (in dev only), verifies the critical flows, and returns a JSON PASS/FAIL report. Add a “Run self-test” button in the admin UI.
+
+Acceptance: Admin sees the system, can moderate, and self-test returns PASS.
+
+
+Extra polish & safeguards
+
+* SEO: Communities routes are noindex unless both flags true. When visible, add basic structured data for organization/community shells (not for private content).
+* Performance: image lazy-load; generate reasonable thumbnails; avoid layout shift; cache list endpoints.
+* Security/Abuse: rate limits on posting & comments; XSS-safe markdown; link allowlist; report content flow (owner/admin only triage); audit log for destructive actions.
+* Growth loops: Easy “Invite members” link (copy/share), QR code generator for community share link (still member-gated on open).
+* Deals (community-only): Allow owner to attach small community-exclusive deals to posts (title, short terms, expire_at). These do not show on the global Deals page.
+* Search/labels: Optional labels/tags on posts; simple search within a community.
+
+Bugs + redesign request
+
+* Bug sweep: There are known issues in current Communities; please do a full audit (backend & frontend) and list fixes in a brief changelog.
+* Visual redesign: Full redesign for a significantly more premium look: considered typography scale, refined spacing, motion on feed cards (soft hover/press), elegant empty states, and on-brand color system. Build funnels you deem sensible (join → engage → subscribe), but never expose private content publicly.
+
+What to output as you go
+1. SQL file(s) for Supabase (tables, RLS, storage buckets/policies), grouped by phase where needed.
+2. Env vars list (placeholders only) and dev/prod webhook URLs (for Stripe).
+3. Endpoint list with 1–2 curl examples each.
+4. QA checklist per phase + a short “How to test in dev” guide.
+5. A short changelog for bugs fixed and non-breaking changes.
+
+
+Reminder: Everything is behind ENABLE_COMMUNITIES + VITE_ENABLE_COMMUNITIES.  If you need DB/storage changes, generate the SQL & policies for me to paste into Supabase.
