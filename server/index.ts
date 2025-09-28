@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { startChatServer } from "./communities/chat-server";
 
 const app = express();
 app.use(express.json());
@@ -129,5 +130,13 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Start WebSocket server for real-time chat on port 3001
+    try {
+      startChatServer();
+      log(`WebSocket chat server started on port 3001`);
+    } catch (error) {
+      console.error('Failed to start WebSocket server:', error);
+    }
   });
 })();

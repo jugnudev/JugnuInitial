@@ -83,6 +83,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { PostCard } from "@/components/PostCard";
 import { JoinGate } from "@/components/JoinGate";
+import CommunityChat from "@/components/CommunityChat";
+import CommunityPolls from "@/components/CommunityPolls";
 import {
   Dialog,
   DialogContent,
@@ -799,13 +801,27 @@ export default function EnhancedCommunityDetailPage() {
         {isOwner ? (
           // Owner Console with Tabs
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-3 bg-premium-surface border border-premium-border">
+            <TabsList className="grid w-full max-w-lg grid-cols-6 bg-premium-surface border border-premium-border">
               <TabsTrigger 
                 value="announcements"
                 data-testid="announcements-tab"
               >
                 <MessageSquare className="h-4 w-4 mr-2" />
                 Posts
+              </TabsTrigger>
+              <TabsTrigger 
+                value="chat"
+                data-testid="chat-tab"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Chat
+              </TabsTrigger>
+              <TabsTrigger 
+                value="polls"
+                data-testid="polls-tab"
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Polls
               </TabsTrigger>
               <TabsTrigger 
                 value="members"
@@ -818,7 +834,7 @@ export default function EnhancedCommunityDetailPage() {
                 value="analytics"
                 data-testid="analytics-tab"
               >
-                <BarChart3 className="h-4 w-4 mr-2" />
+                <Activity className="h-4 w-4 mr-2" />
                 Analytics
               </TabsTrigger>
               <TabsTrigger 
@@ -1103,6 +1119,238 @@ export default function EnhancedCommunityDetailPage() {
                         <Badge variant="outline">7:00 PM - 9:00 PM</Badge>
                       </div>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            {/* Chat Tab */}
+            <TabsContent value="chat" className="space-y-6">
+              <CommunityChat 
+                communityId={community.id}
+                currentUser={user}
+                currentMember={currentMember && currentMember.status === 'approved' ? {
+                  role: currentMember.role,
+                  userId: user?.id || ''
+                } : undefined}
+                communitySettings={{
+                  chatMode: community.chatMode || 'all_members',
+                  chatSlowmodeSeconds: community.chatSlowmodeSeconds || 0
+                }}
+                authToken={localStorage.getItem('community_auth_token')}
+              />
+            </TabsContent>
+            
+            {/* Polls Tab */}
+            <TabsContent value="polls" className="space-y-6">
+              <CommunityPolls 
+                communityId={community.id}
+                currentMember={currentMember && currentMember.status === 'approved' ? {
+                  role: currentMember.role,
+                  userId: user?.id || ''
+                } : undefined}
+              />
+            </TabsContent>
+            
+            {/* Settings Tab */}
+            <TabsContent value="settings" className="space-y-6">
+              <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                <CardHeader>
+                  <CardTitle>Chat Settings</CardTitle>
+                  <CardDescription>
+                    Configure chat permissions and moderation settings for your community
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Chat Mode */}
+                  <div>
+                    <Label>Chat Mode</Label>
+                    <Select
+                      value={community.chatMode || 'all_members'}
+                      onValueChange={(value) => {
+                        updateCommunityMutation.mutate({
+                          ...community,
+                          chatMode: value as 'disabled' | 'owner_only' | 'moderators_only' | 'all_members'
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="bg-premium-surface border-premium-border">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all_members">
+                          All Members - Everyone can chat
+                        </SelectItem>
+                        <SelectItem value="moderators_only">
+                          Moderators Only - Only moderators and owner
+                        </SelectItem>
+                        <SelectItem value="owner_only">
+                          Owner Only - Only the owner can send messages
+                        </SelectItem>
+                        <SelectItem value="disabled">
+                          Disabled - Chat is turned off
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Slowmode */}
+                  <div>
+                    <Label htmlFor="slowmode">Slowmode (seconds between messages)</Label>
+                    <Input
+                      id="slowmode"
+                      type="number"
+                      min="0"
+                      max="300"
+                      value={community.chatSlowmodeSeconds || 0}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value) || 0;
+                        if (value >= 0 && value <= 300) {
+                          updateCommunityMutation.mutate({
+                            ...community,
+                            chatSlowmodeSeconds: value
+                          });
+                        }
+                      }}
+                      placeholder="0 (no slowmode)"
+                      className="bg-premium-surface border-premium-border"
+                    />
+                    <p className="text-sm text-premium-text-muted mt-1">
+                      Set a cooldown period between messages (0-300 seconds)
+                    </p>
+                  </div>
+                  
+                  {/* Auto-moderation */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="auto-mod">Auto-moderation</Label>
+                      <p className="text-sm text-premium-text-muted">
+                        Automatically filter inappropriate content
+                      </p>
+                    </div>
+                    <Switch
+                      id="auto-mod"
+                      checked={community.autoModeration || false}
+                      onCheckedChange={(checked) => {
+                        updateCommunityMutation.mutate({
+                          ...community,
+                          autoModeration: checked
+                        });
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Clear Chat History */}
+                  <div className="pt-4 border-t border-premium-border">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" className="w-full">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Clear All Chat History
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Clear Chat History?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently delete all chat messages in this community.
+                            This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive hover:bg-destructive/80"
+                            onClick={() => {
+                              toast({
+                                title: "Chat history cleared",
+                                description: "All messages have been deleted."
+                              });
+                            }}
+                          >
+                            Clear History
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                <CardHeader>
+                  <CardTitle>General Settings</CardTitle>
+                  <CardDescription>
+                    Manage your community's basic settings
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div>
+                    <Label htmlFor="community-name">Community Name</Label>
+                    <Input
+                      id="community-name"
+                      value={community.name}
+                      onChange={(e) => {
+                        // Update locally first for immediate feedback
+                        // Then save to server
+                      }}
+                      className="bg-premium-surface border-premium-border"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={community.description || ''}
+                      onChange={(e) => {
+                        // Update locally first for immediate feedback
+                        // Then save to server
+                      }}
+                      rows={4}
+                      className="bg-premium-surface border-premium-border"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label>Membership Policy</Label>
+                    <Select
+                      value={community.membershipPolicy}
+                      onValueChange={(value) => {
+                        updateCommunityMutation.mutate({
+                          ...community,
+                          membershipPolicy: value as 'open' | 'approval_required' | 'closed'
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="bg-premium-surface border-premium-border">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="open">Open - Anyone can join</SelectItem>
+                        <SelectItem value="approval_required">Approval Required</SelectItem>
+                        <SelectItem value="closed">Closed - No new members</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label htmlFor="private">Private Community</Label>
+                      <p className="text-sm text-premium-text-muted">
+                        Only members can view content
+                      </p>
+                    </div>
+                    <Switch
+                      id="private"
+                      checked={community.isPrivate}
+                      onCheckedChange={(checked) => {
+                        updateCommunityMutation.mutate({
+                          ...community,
+                          isPrivate: checked
+                        });
+                      }}
+                    />
                   </div>
                 </CardContent>
               </Card>

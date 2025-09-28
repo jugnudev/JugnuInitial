@@ -2583,6 +2583,349 @@ export function addCommunitiesRoutes(app: Express) {
     }
   });
 
+  // ============ CHAT ENDPOINTS ============
+  
+  /**
+   * POST /api/communities/:id/chat/messages
+   * Send a chat message to the community
+   */
+  app.post('/api/communities/:id/chat/messages', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId } = req.params;
+      const { content, isAnnouncement } = req.body;
+      const user = (req as any).user;
+
+      if (!content || content.trim().length === 0) {
+        return res.status(400).json({ ok: false, error: 'Message content is required' });
+      }
+
+      // Check membership
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      // Get community to check chat settings
+      const community = await communitiesStorage.getCommunityById(communityId);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      // Check chat permissions
+      const canSendMessage = 
+        community.chatMode === 'all_members' ||
+        (community.chatMode === 'moderators_only' && (membership.role === 'owner' || membership.role === 'moderator')) ||
+        (community.chatMode === 'owner_only' && membership.role === 'owner');
+
+      if (!canSendMessage) {
+        return res.status(403).json({ ok: false, error: 'You do not have permission to send messages in this chat' });
+      }
+
+      // Only owners can send announcements
+      if (isAnnouncement && membership.role !== 'owner') {
+        return res.status(403).json({ ok: false, error: 'Only owners can send announcement messages' });
+      }
+
+      const message = await communitiesStorage.saveChatMessage(
+        communityId,
+        user.id,
+        content,
+        isAnnouncement || false
+      );
+
+      res.json({ ok: true, message });
+    } catch (error: any) {
+      console.error('Send chat message error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to send message' });
+    }
+  });
+
+  /**
+   * GET /api/communities/:id/chat/messages
+   * Get chat history for the community
+   */
+  app.get('/api/communities/:id/chat/messages', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId } = req.params;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      const user = (req as any).user;
+
+      // Check membership
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      const messages = await communitiesStorage.getChatHistory(communityId, limit, offset);
+
+      res.json({ ok: true, messages });
+    } catch (error: any) {
+      console.error('Get chat history error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get chat history' });
+    }
+  });
+
+  /**
+   * DELETE /api/communities/:id/chat/messages/:messageId
+   * Delete a chat message
+   */
+  app.delete('/api/communities/:id/chat/messages/:messageId', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId, messageId } = req.params;
+      const user = (req as any).user;
+
+      // Check membership
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      // Get the message to check ownership
+      const { data: message } = await (communitiesStorage as any).client
+        .from('community_chat_messages')
+        .select('author_id')
+        .eq('id', messageId)
+        .single();
+
+      if (!message) {
+        return res.status(404).json({ ok: false, error: 'Message not found' });
+      }
+
+      // Only author or owner can delete messages
+      if (message.author_id !== user.id && membership.role !== 'owner') {
+        return res.status(403).json({ ok: false, error: 'You can only delete your own messages' });
+      }
+
+      await communitiesStorage.deleteChatMessage(messageId, user.id);
+
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error('Delete chat message error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to delete message' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/chat/messages/:messageId/pin
+   * Pin/unpin a message (owner only)
+   */
+  app.post('/api/communities/:id/chat/messages/:messageId/pin', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId, messageId } = req.params;
+      const { isPinned } = req.body;
+      const user = (req as any).user;
+
+      // Check membership and role
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      if (membership.role !== 'owner') {
+        return res.status(403).json({ ok: false, error: 'Only owners can pin messages' });
+      }
+
+      await communitiesStorage.pinChatMessage(messageId, !!isPinned);
+
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error('Pin chat message error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to pin message' });
+    }
+  });
+
+  /**
+   * GET /api/communities/:id/chat/pinned
+   * Get pinned messages
+   */
+  app.get('/api/communities/:id/chat/pinned', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId } = req.params;
+      const user = (req as any).user;
+
+      // Check membership
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      const messages = await communitiesStorage.getPinnedMessages(communityId);
+
+      res.json({ ok: true, messages });
+    } catch (error: any) {
+      console.error('Get pinned messages error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get pinned messages' });
+    }
+  });
+
+  // ============ POLLS ENDPOINTS ============
+  
+  /**
+   * POST /api/communities/:id/polls
+   * Create a new poll
+   */
+  app.post('/api/communities/:id/polls', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId } = req.params;
+      const user = (req as any).user;
+      const pollData = req.body;
+
+      // Check membership and role
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      // Only owners and moderators can create polls
+      if (membership.role !== 'owner' && membership.role !== 'moderator') {
+        return res.status(403).json({ ok: false, error: 'Only owners and moderators can create polls' });
+      }
+
+      // Validate poll data
+      if (!pollData.question || !pollData.options || pollData.options.length < 2) {
+        return res.status(400).json({ ok: false, error: 'Invalid poll data' });
+      }
+
+      const poll = await communitiesStorage.createPoll(communityId, user.id, pollData);
+
+      res.json({ ok: true, poll });
+    } catch (error: any) {
+      console.error('Create poll error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to create poll' });
+    }
+  });
+
+  /**
+   * GET /api/communities/:id/polls
+   * Get polls for the community
+   */
+  app.get('/api/communities/:id/polls', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId } = req.params;
+      const status = (req.query.status as 'active' | 'closed' | 'all') || 'active';
+      const user = (req as any).user;
+
+      // Check membership
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      const polls = await communitiesStorage.getPolls(communityId, status);
+
+      res.json({ ok: true, polls });
+    } catch (error: any) {
+      console.error('Get polls error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get polls' });
+    }
+  });
+
+  /**
+   * GET /api/communities/:id/polls/:pollId
+   * Get poll details with results
+   */
+  app.get('/api/communities/:id/polls/:pollId', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId, pollId } = req.params;
+      const user = (req as any).user;
+
+      // Check membership
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      const poll = await communitiesStorage.getPollDetails(pollId, user.id);
+
+      res.json({ ok: true, poll });
+    } catch (error: any) {
+      console.error('Get poll details error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get poll details' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/polls/:pollId/vote
+   * Vote on a poll
+   */
+  app.post('/api/communities/:id/polls/:pollId/vote', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId, pollId } = req.params;
+      const { optionIds } = req.body;
+      const user = (req as any).user;
+
+      // Check membership
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      if (!optionIds || !Array.isArray(optionIds) || optionIds.length === 0) {
+        return res.status(400).json({ ok: false, error: 'Please select at least one option' });
+      }
+
+      await communitiesStorage.votePoll(pollId, optionIds, user.id);
+
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error('Vote on poll error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to vote on poll' });
+    }
+  });
+
+  /**
+   * DELETE /api/communities/:id/polls/:pollId/vote
+   * Remove vote from a poll
+   */
+  app.delete('/api/communities/:id/polls/:pollId/vote', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId, pollId } = req.params;
+      const user = (req as any).user;
+
+      // Check membership
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      await communitiesStorage.removeVote(pollId, user.id);
+
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error('Remove vote error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to remove vote' });
+    }
+  });
+
+  /**
+   * PATCH /api/communities/:id/polls/:pollId
+   * Close a poll (owner only)
+   */
+  app.patch('/api/communities/:id/polls/:pollId', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId, pollId } = req.params;
+      const user = (req as any).user;
+
+      // Check membership and role
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      if (membership.role !== 'owner') {
+        return res.status(403).json({ ok: false, error: 'Only owners can close polls' });
+      }
+
+      await communitiesStorage.closePoll(pollId);
+
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error('Close poll error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to close poll' });
+    }
+  });
+
   /**
    * GET /api/communities/:id/analytics
    * Get community analytics data

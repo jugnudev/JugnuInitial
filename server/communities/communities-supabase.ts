@@ -1337,6 +1337,329 @@ export class CommunitiesSupabaseDB {
     };
   }
 
+  // ============ CHAT METHODS ============
+  async saveChatMessage(
+    communityId: string,
+    userId: string,
+    content: string,
+    isAnnouncement: boolean = false
+  ): Promise<any> {
+    const { data, error } = await this.client
+      .from('community_chat_messages')
+      .insert({
+        community_id: communityId,
+        author_id: userId,
+        content,
+        is_announcement: isAnnouncement,
+        is_pinned: false,
+        is_deleted: false
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async getChatHistory(
+    communityId: string,
+    limit: number = 50,
+    offset: number = 0
+  ): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('community_chat_messages')
+      .select(`
+        *,
+        author:author_id (id, first_name, last_name, profile_image_url)
+      `)
+      .eq('community_id', communityId)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) throw error;
+    return (data || []).reverse(); // Reverse to get chronological order
+  }
+
+  async getLastUserMessage(
+    communityId: string,
+    userId: string
+  ): Promise<any | null> {
+    const { data, error } = await this.client
+      .from('community_chat_messages')
+      .select('*')
+      .eq('community_id', communityId)
+      .eq('author_id', userId)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  async deleteChatMessage(
+    messageId: string,
+    userId: string
+  ): Promise<boolean> {
+    const { data, error } = await this.client
+      .from('community_chat_messages')
+      .update({
+        is_deleted: true,
+        deleted_by: userId,
+        deleted_at: new Date().toISOString()
+      })
+      .eq('id', messageId);
+
+    if (error) throw error;
+    return true;
+  }
+
+  async pinChatMessage(
+    messageId: string,
+    isPinned: boolean
+  ): Promise<boolean> {
+    const { data, error } = await this.client
+      .from('community_chat_messages')
+      .update({ is_pinned: isPinned })
+      .eq('id', messageId);
+
+    if (error) throw error;
+    return true;
+  }
+
+  async getPinnedMessages(communityId: string): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('community_chat_messages')
+      .select(`
+        *,
+        author:author_id (id, first_name, last_name, profile_image_url)
+      `)
+      .eq('community_id', communityId)
+      .eq('is_pinned', true)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  // ============ POLLS METHODS ============
+  async createPoll(
+    communityId: string,
+    userId: string,
+    pollData: {
+      question: string;
+      description?: string;
+      pollType: 'single' | 'multiple';
+      options: string[];
+      allowMultipleVotes?: boolean;
+      showResultsBeforeVote?: boolean;
+      anonymousVoting?: boolean;
+      closesAt?: Date;
+    }
+  ): Promise<any> {
+    const { data: poll, error: pollError } = await this.client
+      .from('community_polls')
+      .insert({
+        community_id: communityId,
+        author_id: userId,
+        question: pollData.question,
+        description: pollData.description,
+        poll_type: pollData.pollType,
+        allow_multiple_votes: pollData.allowMultipleVotes || false,
+        show_results_before_vote: pollData.showResultsBeforeVote || false,
+        anonymous_voting: pollData.anonymousVoting || false,
+        closes_at: pollData.closesAt?.toISOString(),
+        is_closed: false,
+        total_votes: 0,
+        unique_voters: 0
+      })
+      .select()
+      .single();
+
+    if (pollError) throw pollError;
+
+    // Create poll options
+    const optionsData = pollData.options.map((text, index) => ({
+      poll_id: poll.id,
+      text,
+      display_order: index,
+      vote_count: 0,
+      vote_percentage: 0
+    }));
+
+    const { data: options, error: optionsError } = await this.client
+      .from('community_poll_options')
+      .insert(optionsData)
+      .select();
+
+    if (optionsError) throw optionsError;
+
+    return { ...poll, options };
+  }
+
+  async getPolls(
+    communityId: string,
+    status: 'active' | 'closed' | 'all' = 'active'
+  ): Promise<any[]> {
+    let query = this.client
+      .from('community_polls')
+      .select(`
+        *,
+        options:community_poll_options(*),
+        author:author_id (id, first_name, last_name, profile_image_url)
+      `)
+      .eq('community_id', communityId)
+      .order('created_at', { ascending: false });
+
+    if (status === 'active') {
+      query = query.eq('is_closed', false);
+    } else if (status === 'closed') {
+      query = query.eq('is_closed', true);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getPollDetails(pollId: string, userId?: string): Promise<any> {
+    const { data: poll, error: pollError } = await this.client
+      .from('community_polls')
+      .select(`
+        *,
+        options:community_poll_options(*),
+        author:author_id (id, first_name, last_name, profile_image_url)
+      `)
+      .eq('id', pollId)
+      .single();
+
+    if (pollError) throw pollError;
+
+    // Check if user has voted
+    let userVotes = [];
+    if (userId) {
+      const { data, error } = await this.client
+        .from('community_poll_votes')
+        .select('option_id')
+        .eq('poll_id', pollId)
+        .eq('user_id', userId);
+
+      if (!error) {
+        userVotes = (data || []).map(v => v.option_id);
+      }
+    }
+
+    return { ...poll, userVotes };
+  }
+
+  async votePoll(
+    pollId: string,
+    optionIds: string[],
+    userId: string
+  ): Promise<boolean> {
+    // First remove any existing votes
+    await this.removeVote(pollId, userId);
+
+    // Add new votes
+    const votes = optionIds.map(optionId => ({
+      poll_id: pollId,
+      option_id: optionId,
+      user_id: userId
+    }));
+
+    const { error: voteError } = await this.client
+      .from('community_poll_votes')
+      .insert(votes);
+
+    if (voteError) throw voteError;
+
+    // Update vote counts
+    await this.updatePollResults(pollId);
+
+    return true;
+  }
+
+  async removeVote(pollId: string, userId: string): Promise<boolean> {
+    const { error } = await this.client
+      .from('community_poll_votes')
+      .delete()
+      .eq('poll_id', pollId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    // Update vote counts
+    await this.updatePollResults(pollId);
+
+    return true;
+  }
+
+  async closePoll(pollId: string): Promise<boolean> {
+    const { error } = await this.client
+      .from('community_polls')
+      .update({ is_closed: true })
+      .eq('id', pollId);
+
+    if (error) throw error;
+    return true;
+  }
+
+  async updatePollResults(pollId: string): Promise<void> {
+    // Get all votes for the poll
+    const { data: votes, error: votesError } = await this.client
+      .from('community_poll_votes')
+      .select('option_id, user_id')
+      .eq('poll_id', pollId);
+
+    if (votesError) throw votesError;
+
+    // Get unique voters count
+    const uniqueVoters = new Set((votes || []).map(v => v.user_id)).size;
+
+    // Count votes per option
+    const voteCounts = new Map<string, number>();
+    (votes || []).forEach(vote => {
+      const count = voteCounts.get(vote.option_id) || 0;
+      voteCounts.set(vote.option_id, count + 1);
+    });
+
+    const totalVotes = votes?.length || 0;
+
+    // Update poll totals
+    await this.client
+      .from('community_polls')
+      .update({
+        total_votes: totalVotes,
+        unique_voters: uniqueVoters
+      })
+      .eq('id', pollId);
+
+    // Update each option's count and percentage
+    const { data: options, error: optionsError } = await this.client
+      .from('community_poll_options')
+      .select('id')
+      .eq('poll_id', pollId);
+
+    if (optionsError) throw optionsError;
+
+    for (const option of options || []) {
+      const count = voteCounts.get(option.id) || 0;
+      const percentage = totalVotes > 0 ? (count / totalVotes) * 100 : 0;
+
+      await this.client
+        .from('community_poll_options')
+        .update({
+          vote_count: count,
+          vote_percentage: percentage.toFixed(2)
+        })
+        .eq('id', option.id);
+    }
+  }
+
   // ============ ANALYTICS METHODS ============
   async getVisitorAnalytics(since: Date): Promise<any[]> {
     const { data, error } = await this.client
