@@ -948,6 +948,22 @@ export class CommunitiesSupabaseDB {
     };
   }
 
+  // ============ ANALYTICS METHODS ============
+  async getVisitorAnalytics(since: Date): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('visitor_analytics')
+      .select('*')
+      .gte('day', since.toISOString().split('T')[0])
+      .order('day', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching visitor analytics:', error);
+      return [];
+    }
+
+    return data || [];
+  }
+
   // ============ UTILITY METHODS ============
   async cleanupExpiredCodes(): Promise<void> {
     const { error } = await this.client

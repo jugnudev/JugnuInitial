@@ -1716,5 +1716,136 @@ export function addCommunitiesRoutes(app: Express) {
     }
   });
 
+  /**
+   * GET /api/communities/:id/analytics
+   * Get community analytics data
+   * curl -X GET http://localhost:5000/api/communities/COMMUNITY_ID/analytics \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.get('/api/communities/:id/analytics', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      // Check if user is a member of the community or is the organizer
+      const membership = await communitiesStorage.getMembershipByUserAndCommunity(user.id, community.id);
+      const isOrganizer = community.organizerId === user.id;
+      
+      if (!membership && !isOrganizer) {
+        return res.status(403).json({ ok: false, error: 'Access denied - community members only' });
+      }
+
+      // Get community posts for engagement calculation
+      const posts = await communitiesStorage.getPostsByCommunityId(id);
+      const members = await communitiesStorage.getMembershipsByCommunityId(id);
+
+      // Calculate engagement rate based on real visitor analytics data
+      let engagementRate = 0;
+
+      // Get real visitor analytics data for community-specific pages
+      let totalViews = 0;
+      let recentGrowth = 0;
+      
+      try {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        const analytics = await communitiesStorage.getVisitorAnalytics(thirtyDaysAgo);
+        
+        if (analytics.length > 0) {
+          // Filter and sum pageviews for community-specific pages
+          const communityPath = `/communities/${id}`;
+          let communityViews = 0;
+          
+          for (const day of analytics) {
+            // Check topPages array for community-specific pages
+            if (day.topPages && Array.isArray(day.topPages)) {
+              const communityPageViews = day.topPages
+                .filter((page: any) => page.path && page.path.includes(communityPath))
+                .reduce((sum: number, page: any) => sum + (page.views || 0), 0);
+              communityViews += communityPageViews;
+            }
+          }
+          
+          totalViews = communityViews;
+          
+          // Calculate engagement rate using ONLY community-specific analytics data
+          // Engagement rate based only on community pageviews and activity
+          if (communityViews > 0) {
+            // Use community-specific view data to calculate engagement
+            // Higher engagement = more views relative to member count + recent activity
+            const viewsPerMember = communityViews / Math.max(members.length, 1);
+            const recentPostActivity = posts.filter(p => {
+              const postDate = new Date(p.createdAt);
+              const oneWeekAgo = new Date();
+              oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+              return postDate >= oneWeekAgo;
+            }).length;
+            
+            // Engagement formula: views per member (60%) + recent post activity (40%)
+            const normalizedViews = Math.min(viewsPerMember / 5, 1); // 5+ views per member = 100% score
+            const normalizedActivity = Math.min(recentPostActivity / 3, 1); // 3+ recent posts = 100% score
+            
+            engagementRate = Math.round((normalizedViews * 60 + normalizedActivity * 40));
+          }
+          
+          // Calculate growth rate (comparing first half vs second half of period)
+          const midPoint = Math.floor(analytics.length / 2);
+          const firstHalf = analytics.slice(0, midPoint);
+          const secondHalf = analytics.slice(midPoint);
+          
+          let firstHalfViews = 0;
+          let secondHalfViews = 0;
+          
+          // Sum community views for each half
+          for (const day of firstHalf) {
+            if (day.topPages && Array.isArray(day.topPages)) {
+              firstHalfViews += day.topPages
+                .filter((page: any) => page.path && page.path.includes(communityPath))
+                .reduce((sum: number, page: any) => sum + (page.views || 0), 0);
+            }
+          }
+          
+          for (const day of secondHalf) {
+            if (day.topPages && Array.isArray(day.topPages)) {
+              secondHalfViews += day.topPages
+                .filter((page: any) => page.path && page.path.includes(communityPath))
+                .reduce((sum: number, page: any) => sum + (page.views || 0), 0);
+            }
+          }
+          
+          if (firstHalfViews > 0) {
+            recentGrowth = Math.round(((secondHalfViews - firstHalfViews) / firstHalfViews) * 100);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch real visitor analytics:', error);
+        // Return zero values for real data when analytics fail
+        totalViews = 0;
+        recentGrowth = 0;
+      }
+
+      res.json({
+        ok: true,
+        analytics: {
+          totalMembers: members.length,
+          totalPosts: posts.length,
+          engagementRate: `${engagementRate}%`,
+          totalViews: totalViews.toLocaleString(),
+          recentGrowth: `+${recentGrowth}%`,
+          lastUpdated: new Date().toISOString()
+        }
+      });
+    } catch (error: any) {
+      console.error('Get community analytics error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get analytics' });
+    }
+  });
+
   console.log('✅ Platform authentication (/api/auth/*), organizer (/api/organizers/*), admin (/api/admin/organizers/*), and communities (/api/communities/*) routes added');
 }

@@ -177,6 +177,13 @@ export default function CommunityDetailPage() {
     retry: false,
   });
 
+  // Get community analytics data
+  const { data: analyticsData, isLoading: analyticsLoading, error: analyticsError } = useQuery<{ analytics: { totalMembers: number, totalPosts: number, engagementRate: string, totalViews: string, recentGrowth: string, lastUpdated: string } }>({
+    queryKey: ['/api/communities', communityData?.community?.id, 'analytics'],
+    enabled: !!communitySlug && !!user && !!communityData?.community?.id,
+    retry: false,
+  });
+
   // Join community mutation
   const joinCommunityMutation = useMutation({
     mutationFn: async () => {
@@ -1303,9 +1310,19 @@ export default function CommunityDetailPage() {
                       <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-glow to-copper-500 mx-auto mb-4">
                         <TrendingUp className="h-6 w-6 text-black" />
                       </div>
-                      <div className="text-3xl font-bold text-text mb-2">89%</div>
+                      <div className="text-3xl font-bold text-text mb-2">
+                        {analyticsLoading ? (
+                          <div className="h-8 w-16 bg-muted/30 animate-pulse rounded" />
+                        ) : analyticsError ? (
+                          <span className="text-destructive">--</span>
+                        ) : (
+                          analyticsData?.analytics?.engagementRate || '0%'
+                        )}
+                      </div>
                       <div className="text-sm text-muted">Engagement Rate</div>
-                      <div className="text-xs text-accent mt-1">Above average</div>
+                      <div className="text-xs text-accent mt-1">
+                        {analyticsError ? 'Error loading data' : 'Real-time data'}
+                      </div>
                     </CardContent>
                   </Card>
                   
@@ -1315,9 +1332,25 @@ export default function CommunityDetailPage() {
                       <div className="relative inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-copper-500 via-accent to-glow mx-auto mb-4">
                         <BarChart3 className="h-6 w-6 text-black" />
                       </div>
-                      <div className="text-3xl font-bold text-text mb-2">7.2k</div>
+                      <div className="text-3xl font-bold text-text mb-2">
+                        {analyticsLoading ? (
+                          <div className="h-8 w-16 bg-muted/30 animate-pulse rounded" />
+                        ) : analyticsError ? (
+                          <span className="text-destructive">--</span>
+                        ) : (
+                          analyticsData?.analytics?.totalViews || '0'
+                        )}
+                      </div>
                       <div className="text-sm text-muted">Total Views</div>
-                      <div className="text-xs text-accent mt-1">+24% growth</div>
+                      <div className="text-xs text-accent mt-1">
+                        {analyticsLoading ? (
+                          <div className="h-4 w-12 bg-muted/30 animate-pulse rounded" />
+                        ) : analyticsError ? (
+                          'Error loading data'
+                        ) : (
+                          `${analyticsData?.analytics?.recentGrowth || '+0%'} growth`
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
