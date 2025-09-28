@@ -755,20 +755,6 @@ export default function CommunityDetailPage() {
                       <Shield className="h-3 w-3 mr-1" />
                       {community?.membershipPolicy?.replace('_', ' ')}
                     </Badge>
-                    {membership && (
-                      <Badge 
-                        className={`${membership.status === 'approved' 
-                          ? 'bg-gradient-to-r from-glow/80 to-accent text-black' 
-                          : membership.status === 'pending'
-                          ? 'bg-gradient-to-r from-copper-400 to-copper-600 text-white'
-                          : 'bg-gradient-to-r from-destructive/80 to-destructive text-white'
-                        } border-0 shadow-soft capitalize font-medium px-3 py-1`}
-                      >
-                        {membership.status === 'approved' && <CheckCircle className="h-3 w-3 mr-1" />}
-                        {membership.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
-                        {membership.status}
-                      </Badge>
-                    )}
                   </div>
                   
                   <CardDescription className="text-lg text-muted leading-relaxed">
