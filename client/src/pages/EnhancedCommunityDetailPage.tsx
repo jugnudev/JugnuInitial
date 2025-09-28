@@ -1,0 +1,1277 @@
+import { useState, useEffect, useRef } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useRoute } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  Users, 
+  MessageSquare, 
+  Settings, 
+  UserPlus, 
+  Lock, 
+  Globe, 
+  Clock,
+  Pin,
+  ArrowLeft,
+  Crown,
+  Star,
+  Sparkles,
+  Shield,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  BarChart3,
+  TrendingUp,
+  Edit3,
+  Trash2,
+  UserCheck,
+  UserX,
+  Plus,
+  Send,
+  Heart,
+  MessageCircle,
+  Share2,
+  Building2,
+  Camera,
+  Upload,
+  X,
+  MoreVertical,
+  ChevronDown,
+  Eye,
+  Image as ImageIcon,
+  Link as LinkIcon,
+  Calendar,
+  Hash
+} from "lucide-react";
+import { Link } from "wouter";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { ObjectUploader } from "@/components/ObjectUploader";
+import { PostCard } from "@/components/PostCard";
+import { JoinGate } from "@/components/JoinGate";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+
+interface Community {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl?: string;
+  coverUrl?: string;
+  isPrivate: boolean;
+  membershipPolicy: 'open' | 'approval_required' | 'closed';
+  status: string;
+  memberCount?: number;
+  postCount?: number;
+}
+
+interface Membership {
+  id: string;
+  status: 'pending' | 'approved' | 'declined';
+  role: 'member' | 'moderator' | 'owner';
+  requestedAt: string;
+  approvedAt?: string;
+}
+
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  linkUrl?: string;
+  linkText?: string;
+  linkDescription?: string;
+  tags?: string[];
+  metadata?: any;
+  postType: 'announcement' | 'update' | 'event';
+  isPinned: boolean;
+  createdAt: string;
+  authorId: string;
+  authorName?: string;
+  authorAvatar?: string;
+  authorRole?: 'owner' | 'moderator' | 'member';
+  viewCount?: number;
+  reactions?: {
+    type: string;
+    count: number;
+    hasReacted?: boolean;
+  }[];
+  comments?: Comment[];
+}
+
+interface Comment {
+  id: string;
+  content: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  authorRole?: 'owner' | 'moderator' | 'member';
+  createdAt: string;
+  likes: number;
+  hasLiked?: boolean;
+  replies?: Comment[];
+  parentId?: string;
+  isEdited?: boolean;
+}
+
+interface Member {
+  id: string;
+  userId: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  status: 'pending' | 'approved' | 'declined';
+  role: 'member' | 'moderator' | 'owner';
+  joinedAt?: string;
+  requestedAt?: string;
+}
+
+interface User {
+  id: string;
+  email: string;
+  role?: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+interface CommunityDetailResponse {
+  community?: Community;
+  membership?: Membership;
+  posts?: Post[];
+  members?: Member[];
+  canManage?: boolean;
+}
+
+// Premium animation configurations
+const pageAnimation = {
+  initial: { opacity: 0 },
+  animate: { 
+    opacity: 1,
+    transition: {
+      duration: 0.5,
+      staggerChildren: 0.1
+    }
+  }
+};
+
+const headerAnimation = {
+  initial: { opacity: 0, y: -20 },
+  animate: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.25, 0.46, 0.45, 0.94]
+    }
+  }
+};
+
+const contentAnimation = {
+  initial: { opacity: 0, y: 20 },
+  animate: { 
+    opacity: 1, 
+    y: 0,
+    transition: {
+      duration: 0.5,
+      ease: "easeOut"
+    }
+  }
+};
+
+export default function EnhancedCommunityDetailPage() {
+  const [match, params] = useRoute("/communities/:slug");
+  const communitySlug = params?.slug;
+  
+  const [activeTab, setActiveTab] = useState("announcements");
+  const [showCreatePost, setShowCreatePost] = useState(false);
+  const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMorePosts, setHasMorePosts] = useState(true);
+  const { toast } = useToast();
+  const observerTarget = useRef<HTMLDivElement>(null);
+
+  // Form states
+  const [postForm, setPostForm] = useState({
+    title: '',
+    content: '',
+    imageUrl: '',
+    linkUrl: '',
+    linkText: '',
+    linkDescription: '',
+    tags: [] as string[],
+    postType: 'announcement' as 'announcement' | 'update' | 'event',
+    isPinned: false
+  });
+
+  const [currentTag, setCurrentTag] = useState('');
+
+  // Get current user
+  const { data: authData, isLoading: userLoading } = useQuery<{ user?: User }>({
+    queryKey: ['/api/auth/me'],
+    retry: false,
+  });
+  const user = authData?.user;
+
+  // Get community details
+  const { data: communityData, isLoading, error, refetch } = useQuery<CommunityDetailResponse>({
+    queryKey: ['/api/communities', communitySlug],
+    enabled: !!communitySlug,
+    retry: false,
+  });
+
+  const community = communityData?.community;
+  const membership = communityData?.membership;
+  const posts = communityData?.posts || [];
+  const members = communityData?.members || [];
+  const canManage = communityData?.canManage || false;
+  const isMember = membership?.status === 'approved';
+  const isPending = membership?.status === 'pending';
+  const isDeclined = membership?.status === 'declined';
+  const isOwner = membership?.role === 'owner' || canManage;
+
+  // Join/Leave community mutation
+  const joinCommunityMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/communities/${communitySlug}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to join community');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Membership request submitted!" });
+      refetch();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to join community", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Create/Update post mutation
+  const savePostMutation = useMutation({
+    mutationFn: async (data: typeof postForm & { id?: string }) => {
+      if (!community?.id) throw new Error('Community ID not available');
+      
+      if (data.id) {
+        // Update existing post
+        return apiRequest('PUT', `/api/communities/${community.id}/posts/${data.id}`, data);
+      } else {
+        // Create new post
+        return apiRequest('POST', `/api/communities/${community.id}/posts`, data);
+      }
+    },
+    onSuccess: () => {
+      toast({ title: editingPost ? "Post updated!" : "Post created!" });
+      setShowCreatePost(false);
+      setEditingPost(null);
+      setPostForm({
+        title: '',
+        content: '',
+        imageUrl: '',
+        linkUrl: '',
+        linkText: '',
+        linkDescription: '',
+        tags: [],
+        postType: 'announcement',
+        isPinned: false
+      });
+      refetch();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: `Failed to ${editingPost ? 'update' : 'create'} post`, 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Delete post mutation
+  const deletePostMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      if (!community?.id) throw new Error('Community ID not available');
+      return apiRequest('DELETE', `/api/communities/${community.id}/posts/${postId}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Post deleted!" });
+      refetch();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to delete post", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Handle post reactions
+  const handleReaction = async (postId: string, type: string) => {
+    if (!community?.id) return;
+    
+    try {
+      await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type });
+      refetch();
+    } catch (error) {
+      toast({ 
+        title: "Failed to add reaction", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  // Handle post comments
+  const handleComment = async (postId: string, content: string, parentId?: string) => {
+    if (!community?.id) return;
+    
+    try {
+      await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/comments`, { 
+        content, 
+        parentId 
+      });
+      refetch();
+    } catch (error) {
+      toast({ 
+        title: "Failed to add comment", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  // Handle share
+  const handleShare = async (post: Post) => {
+    const shareUrl = `${window.location.origin}/communities/${communitySlug}#post-${post.id}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: post.title,
+          text: post.content.substring(0, 100),
+          url: shareUrl
+        });
+      } catch (err) {
+        // User cancelled share
+      }
+    } else {
+      // Fallback to clipboard
+      await navigator.clipboard.writeText(shareUrl);
+      toast({ title: "Link copied to clipboard!" });
+    }
+  };
+
+  // Handle edit post
+  const handleEditPost = (post: Post) => {
+    setEditingPost(post);
+    setPostForm({
+      title: post.title,
+      content: post.content,
+      imageUrl: post.imageUrl || '',
+      linkUrl: post.linkUrl || '',
+      linkText: post.linkText || '',
+      linkDescription: post.linkDescription || '',
+      tags: post.tags || [],
+      postType: post.postType,
+      isPinned: post.isPinned
+    });
+    setShowCreatePost(true);
+  };
+
+  // Handle save post
+  const handleSavePost = () => {
+    if (!postForm.title.trim() || !postForm.content.trim()) {
+      toast({ 
+        title: "Please fill in required fields", 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    const data = {
+      ...postForm,
+      id: editingPost?.id
+    };
+    
+    savePostMutation.mutate(data);
+  };
+
+  // Add tag
+  const handleAddTag = () => {
+    if (currentTag.trim() && !postForm.tags.includes(currentTag.trim())) {
+      setPostForm(prev => ({
+        ...prev,
+        tags: [...prev.tags, currentTag.trim()]
+      }));
+      setCurrentTag('');
+    }
+  };
+
+  // Remove tag
+  const handleRemoveTag = (tag: string) => {
+    setPostForm(prev => ({
+      ...prev,
+      tags: prev.tags.filter(t => t !== tag)
+    }));
+  };
+
+  // Infinite scroll for posts
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting && hasMorePosts && !isLoadingMore) {
+          // Load more posts logic here
+          // This would typically involve pagination
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [hasMorePosts, isLoadingMore]);
+
+  // Sort posts - pinned first
+  const sortedPosts = [...posts].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+
+  // Show loading state
+  if (isLoading || userLoading) {
+    return (
+      <div className="min-h-screen bg-bg">
+        {/* Loading skeleton */}
+        <div className="relative h-64 bg-gradient-to-br from-copper-500/20 to-copper-900/30">
+          <Skeleton className="h-full w-full" />
+        </div>
+        
+        <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+          <div className="space-y-4">
+            <Skeleton className="h-12 w-1/3" />
+            <Skeleton className="h-6 w-2/3" />
+          </div>
+          
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <Card key={i} className="bg-premium-surface border-premium-border">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-5/6" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error || !community) {
+    return (
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <Card className="max-w-md w-full bg-premium-surface border-premium-border">
+          <CardContent className="py-12 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-premium-text-primary mb-2">
+              Community not found
+            </h2>
+            <p className="text-premium-text-secondary mb-6">
+              This community may have been removed or you don't have permission to view it.
+            </p>
+            <Link href="/communities">
+              <Button variant="outline">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Communities
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show join gate for non-members
+  if (!isMember && !isOwner) {
+    return (
+      <div className="min-h-screen bg-bg">
+        {/* Community Header Preview */}
+        <motion.div 
+          className="relative h-64 md:h-80 overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          {community.coverUrl ? (
+            <img 
+              src={community.coverUrl} 
+              alt={community.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-copper-500/30 via-copper-600/20 to-copper-900/30" />
+          )}
+          
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+          
+          {/* Back Button */}
+          <div className="absolute top-6 left-6">
+            <Link href="/communities">
+              <Button 
+                variant="outline" 
+                className="bg-black/50 backdrop-blur-md border-white/20 text-white hover:bg-black/70"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back
+              </Button>
+            </Link>
+          </div>
+          
+          {/* Community Info */}
+          <div className="absolute bottom-0 left-0 right-0 p-6">
+            <div className="max-w-6xl mx-auto">
+              <div className="flex items-end gap-6">
+                <Avatar className="h-20 w-20 border-4 border-premium-surface ring-4 ring-accent/20">
+                  <AvatarImage src={community.imageUrl} alt={community.name} />
+                  <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white text-2xl font-bold">
+                    {community.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                
+                <div className="flex-1 mb-2">
+                  <h1 className="font-fraunces text-3xl md:text-4xl font-bold text-white mb-2">
+                    {community.name}
+                  </h1>
+                  <p className="text-white/80">
+                    {community.description}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+        
+        {/* Join Gate */}
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <JoinGate
+            communityName={community.name}
+            description={community.description}
+            memberCount={community.memberCount}
+            isPrivate={community.isPrivate}
+            membershipPolicy={community.membershipPolicy}
+            isPending={isPending}
+            isDeclined={isDeclined}
+            coverUrl={community.coverUrl}
+            onJoinRequest={() => joinCommunityMutation.mutate()}
+            onSignIn={() => window.location.href = '/account/signin'}
+            isAuthenticated={!!user}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // Member/Owner view - Full community experience
+  return (
+    <motion.div 
+      className="min-h-screen bg-bg"
+      variants={pageAnimation}
+      initial="initial"
+      animate="animate"
+    >
+      {/* Community Header */}
+      <motion.div 
+        className="relative h-64 md:h-80 overflow-hidden"
+        variants={headerAnimation}
+      >
+        {community.coverUrl ? (
+          <img 
+            src={community.coverUrl} 
+            alt={community.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-copper-500/30 via-copper-600/20 to-copper-900/30" />
+        )}
+        
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+        
+        {/* Header Actions */}
+        <div className="absolute top-6 left-6 right-6 flex justify-between">
+          <Link href="/communities">
+            <Button 
+              variant="outline" 
+              className="bg-black/50 backdrop-blur-md border-white/20 text-white hover:bg-black/70"
+              data-testid="back-to-communities"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+          </Link>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                className="bg-black/50 backdrop-blur-md border-white/20 text-white hover:bg-black/70"
+                data-testid="community-options-menu"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleShare({ 
+                id: community.id,
+                title: community.name,
+                content: community.description
+              } as Post)}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Share Community
+              </DropdownMenuItem>
+              {isOwner && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Community Settings
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        
+        {/* Community Info */}
+        <div className="absolute bottom-0 left-0 right-0 p-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-end gap-6">
+              <Avatar className="h-24 w-24 border-4 border-premium-surface ring-4 ring-accent/20">
+                <AvatarImage src={community.imageUrl} alt={community.name} />
+                <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white text-3xl font-bold">
+                  {community.name.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1 mb-2">
+                <div className="flex items-center gap-3 mb-2">
+                  <h1 className="font-fraunces text-3xl md:text-4xl font-bold text-white">
+                    {community.name}
+                  </h1>
+                  {isOwner && (
+                    <Badge className="bg-amber-500/20 text-yellow-400 border-yellow-500/30">
+                      <Crown className="h-3 w-3 mr-1" />
+                      Owner
+                    </Badge>
+                  )}
+                  {community.isPrivate && (
+                    <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
+                      <Lock className="h-3 w-3 mr-1" />
+                      Private
+                    </Badge>
+                  )}
+                </div>
+                
+                <p className="text-white/80 mb-3">
+                  {community.description}
+                </p>
+                
+                <div className="flex items-center gap-6 text-white/60 text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <Users className="h-4 w-4" />
+                    <span>{community.memberCount || 0} members</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <MessageSquare className="h-4 w-4" />
+                    <span>{community.postCount || 0} posts</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Quick Actions */}
+              {isOwner && (
+                <Button
+                  onClick={() => setShowCreatePost(true)}
+                  className="bg-accent hover:bg-accent/80 text-white shadow-glow"
+                  data-testid="create-post-button"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Post
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+      
+      {/* Content Area */}
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        {isOwner ? (
+          // Owner Console with Tabs
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full max-w-md grid-cols-3 bg-premium-surface border border-premium-border">
+              <TabsTrigger 
+                value="announcements"
+                data-testid="announcements-tab"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Posts
+              </TabsTrigger>
+              <TabsTrigger 
+                value="members"
+                data-testid="members-tab"
+              >
+                <Users className="h-4 w-4 mr-2" />
+                Members
+              </TabsTrigger>
+              <TabsTrigger 
+                value="analytics"
+                data-testid="analytics-tab"
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Analytics
+              </TabsTrigger>
+            </TabsList>
+            
+            {/* Posts Tab */}
+            <TabsContent value="announcements" className="space-y-6">
+              <motion.div 
+                className="space-y-6"
+                variants={contentAnimation}
+              >
+                {sortedPosts.length === 0 ? (
+                  <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                    <CardContent className="py-16 text-center">
+                      <MessageSquare className="h-12 w-12 text-premium-text-muted mx-auto mb-4 opacity-50" />
+                      <h3 className="font-fraunces text-xl font-semibold text-premium-text-primary mb-2">
+                        No posts yet
+                      </h3>
+                      <p className="text-premium-text-secondary max-w-md mx-auto mb-6">
+                        Share your first announcement with the community.
+                      </p>
+                      <Button
+                        onClick={() => setShowCreatePost(true)}
+                        className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-700"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create First Post
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    {sortedPosts.map((post, idx) => (
+                      <PostCard
+                        key={post.id}
+                        {...post}
+                        canEdit={isOwner || post.authorId === user?.id}
+                        canDelete={isOwner}
+                        onEdit={() => handleEditPost(post)}
+                        onDelete={() => {
+                          if (confirm('Are you sure you want to delete this post?')) {
+                            deletePostMutation.mutate(post.id);
+                          }
+                        }}
+                        onReaction={(type) => handleReaction(post.id, type)}
+                        onComment={(content, parentId) => handleComment(post.id, content, parentId)}
+                        onShare={() => handleShare(post)}
+                      />
+                    ))}
+                    
+                    {/* Infinite scroll observer target */}
+                    <div ref={observerTarget} className="h-10" />
+                    
+                    {isLoadingMore && (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="h-6 w-6 text-accent animate-spin" />
+                      </div>
+                    )}
+                  </>
+                )}
+              </motion.div>
+            </TabsContent>
+            
+            {/* Members Tab */}
+            <TabsContent value="members" className="space-y-6">
+              <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                <CardHeader>
+                  <CardTitle>Community Members</CardTitle>
+                  <CardDescription>
+                    {members.filter(m => m.status === 'approved').length} active members
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-96">
+                    <div className="space-y-3">
+                      {members.map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between p-3 rounded-lg hover:bg-premium-surface transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white">
+                                {(member.firstName?.[0] || member.email?.[0] || 'U').toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium text-premium-text-primary">
+                                {member.firstName && member.lastName
+                                  ? `${member.firstName} ${member.lastName}`
+                                  : member.email}
+                              </p>
+                              <p className="text-sm text-premium-text-muted">
+                                {member.role === 'owner' && 'Owner'}
+                                {member.role === 'moderator' && 'Moderator'}
+                                {member.role === 'member' && 'Member'}
+                                {member.status === 'pending' && ' • Pending'}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {member.status === 'pending' && (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-green-500 border-green-500/30 hover:bg-green-500/10"
+                                data-testid={`approve-member-${member.id}`}
+                              >
+                                <UserCheck className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-red-500 border-red-500/30 hover:bg-red-500/10"
+                                data-testid={`decline-member-${member.id}`}
+                              >
+                                <UserX className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            {/* Analytics Tab */}
+            <TabsContent value="analytics" className="space-y-6">
+              <div className="grid md:grid-cols-3 gap-6">
+                <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Total Members</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-accent">
+                      {community.memberCount || 0}
+                    </p>
+                    <p className="text-sm text-premium-text-muted mt-2">
+                      <TrendingUp className="h-3 w-3 inline mr-1" />
+                      +12% this month
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Total Posts</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-accent">
+                      {posts.length}
+                    </p>
+                    <p className="text-sm text-premium-text-muted mt-2">
+                      <MessageSquare className="h-3 w-3 inline mr-1" />
+                      {posts.filter(p => p.isPinned).length} pinned
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Engagement</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-accent">
+                      {posts.reduce((acc, p) => acc + (p.reactions?.reduce((sum, r) => sum + r.count, 0) || 0), 0)}
+                    </p>
+                    <p className="text-sm text-premium-text-muted mt-2">
+                      <Heart className="h-3 w-3 inline mr-1" />
+                      Total reactions
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+              
+              <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                <CardHeader>
+                  <CardTitle>Recent Activity</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-premium-text-muted">
+                    Detailed analytics coming soon...
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          // Member view - Posts only
+          <motion.div 
+            className="space-y-6"
+            variants={contentAnimation}
+          >
+            {sortedPosts.length === 0 ? (
+              <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                <CardContent className="py-16 text-center">
+                  <MessageSquare className="h-12 w-12 text-premium-text-muted mx-auto mb-4 opacity-50" />
+                  <h3 className="font-fraunces text-xl font-semibold text-premium-text-primary mb-2">
+                    No posts yet
+                  </h3>
+                  <p className="text-premium-text-secondary">
+                    Check back later for updates from this community.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                {sortedPosts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    {...post}
+                    canEdit={post.authorId === user?.id}
+                    canDelete={false}
+                    onReaction={(type) => handleReaction(post.id, type)}
+                    onComment={(content, parentId) => handleComment(post.id, content, parentId)}
+                    onShare={() => handleShare(post)}
+                  />
+                ))}
+                
+                {/* Infinite scroll observer target */}
+                <div ref={observerTarget} className="h-10" />
+                
+                {isLoadingMore && (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-6 w-6 text-accent animate-spin" />
+                  </div>
+                )}
+              </>
+            )}
+          </motion.div>
+        )}
+      </div>
+      
+      {/* Create/Edit Post Dialog */}
+      <Dialog 
+        open={showCreatePost} 
+        onOpenChange={(open) => {
+          setShowCreatePost(open);
+          if (!open) {
+            setEditingPost(null);
+            setPostForm({
+              title: '',
+              content: '',
+              imageUrl: '',
+              linkUrl: '',
+              linkText: '',
+              linkDescription: '',
+              tags: [],
+              postType: 'announcement',
+              isPinned: false
+            });
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl bg-premium-surface border-premium-border max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-fraunces text-2xl">
+              {editingPost ? 'Edit Post' : 'Create New Post'}
+            </DialogTitle>
+            <DialogDescription>
+              Share updates, announcements, or events with your community.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Post Type */}
+            <div>
+              <Label>Post Type</Label>
+              <Select
+                value={postForm.postType}
+                onValueChange={(value: 'announcement' | 'update' | 'event') => 
+                  setPostForm(prev => ({ ...prev, postType: value }))
+                }
+              >
+                <SelectTrigger className="bg-premium-surface border-premium-border">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="announcement">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      Announcement
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="update">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      Update
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="event">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Event
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Title */}
+            <div>
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                value={postForm.title}
+                onChange={(e) => setPostForm(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Give your post a title..."
+                className="bg-premium-surface border-premium-border"
+                data-testid="post-title-input"
+              />
+            </div>
+            
+            {/* Content */}
+            <div>
+              <Label htmlFor="content">Content *</Label>
+              <Textarea
+                id="content"
+                value={postForm.content}
+                onChange={(e) => setPostForm(prev => ({ ...prev, content: e.target.value }))}
+                placeholder="Write your post content... (Markdown supported)"
+                rows={6}
+                className="bg-premium-surface border-premium-border"
+                data-testid="post-content-input"
+              />
+            </div>
+            
+            {/* Image URL */}
+            <div>
+              <Label htmlFor="image">Image URL (optional)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="image"
+                  value={postForm.imageUrl}
+                  onChange={(e) => setPostForm(prev => ({ ...prev, imageUrl: e.target.value }))}
+                  placeholder="https://example.com/image.jpg"
+                  className="bg-premium-surface border-premium-border"
+                  data-testid="post-image-input"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="flex-shrink-0"
+                >
+                  <ImageIcon className="h-4 w-4" />
+                </Button>
+              </div>
+              {postForm.imageUrl && (
+                <div className="mt-2 relative rounded-lg overflow-hidden">
+                  <img 
+                    src={postForm.imageUrl} 
+                    alt="Preview" 
+                    className="w-full h-32 object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPostForm(prev => ({ ...prev, imageUrl: '' }))}
+                    className="absolute top-2 right-2 bg-black/50 border-white/20 text-white hover:bg-black/70"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+            
+            {/* Link */}
+            <div className="space-y-3">
+              <Label>Link (optional)</Label>
+              <Input
+                value={postForm.linkUrl}
+                onChange={(e) => setPostForm(prev => ({ ...prev, linkUrl: e.target.value }))}
+                placeholder="https://example.com"
+                className="bg-premium-surface border-premium-border"
+                data-testid="post-link-url-input"
+              />
+              {postForm.linkUrl && (
+                <>
+                  <Input
+                    value={postForm.linkText}
+                    onChange={(e) => setPostForm(prev => ({ ...prev, linkText: e.target.value }))}
+                    placeholder="Link text (e.g., 'Read More')"
+                    className="bg-premium-surface border-premium-border"
+                  />
+                  <Textarea
+                    value={postForm.linkDescription}
+                    onChange={(e) => setPostForm(prev => ({ ...prev, linkDescription: e.target.value }))}
+                    placeholder="Brief description of the link..."
+                    rows={2}
+                    className="bg-premium-surface border-premium-border"
+                  />
+                </>
+              )}
+            </div>
+            
+            {/* Tags */}
+            <div>
+              <Label>Tags</Label>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  value={currentTag}
+                  onChange={(e) => setCurrentTag(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddTag();
+                    }
+                  }}
+                  placeholder="Add a tag..."
+                  className="bg-premium-surface border-premium-border"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddTag}
+                  disabled={!currentTag.trim()}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {postForm.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {postForm.tags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="outline"
+                      className="bg-copper-500/10 text-copper-400 border-copper-500/30"
+                    >
+                      <Hash className="h-3 w-3 mr-1" />
+                      {tag}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTag(tag)}
+                        className="ml-2 hover:text-red-400"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* Pin Post */}
+            {isOwner && (
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label htmlFor="pin">Pin this post</Label>
+                  <p className="text-sm text-premium-text-muted">
+                    Pinned posts appear at the top of the feed
+                  </p>
+                </div>
+                <Switch
+                  id="pin"
+                  checked={postForm.isPinned}
+                  onCheckedChange={(checked) => 
+                    setPostForm(prev => ({ ...prev, isPinned: checked }))
+                  }
+                />
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowCreatePost(false)}
+              disabled={savePostMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSavePost}
+              disabled={savePostMutation.isPending || !postForm.title.trim() || !postForm.content.trim()}
+              className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-700"
+              data-testid="save-post-button"
+            >
+              {savePostMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4 mr-2" />
+                  {editingPost ? 'Update Post' : 'Publish Post'}
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </motion.div>
+  );
+}
