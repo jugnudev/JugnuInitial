@@ -1261,13 +1261,13 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"name":"Updated Community Name"}'
    */
-  app.put('/api/communities/:id', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
+  app.put('/api/communities/:id', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const organizer = (req as any).organizer;
+      const user = (req as any).user;
 
       const community = await communitiesStorage.getCommunityById(id);
-      if (!community || community.organizerId !== organizer.id) {
+      if (!community || community.organizerId !== user.id) {
         return res.status(404).json({ ok: false, error: 'Community not found or access denied' });
       }
 
@@ -1299,13 +1299,13 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X DELETE http://localhost:5000/api/communities/COMMUNITY_ID \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.delete('/api/communities/:id', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
+  app.delete('/api/communities/:id', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const organizer = (req as any).organizer;
+      const user = (req as any).user;
 
       const community = await communitiesStorage.getCommunityById(id);
-      if (!community || community.organizerId !== organizer.id) {
+      if (!community || community.organizerId !== user.id) {
         return res.status(404).json({ ok: false, error: 'Community not found or access denied' });
       }
 
@@ -1562,18 +1562,18 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Authorization: Bearer YOUR_TOKEN" \
    *   -F "image=@path/to/cover.jpg"
    */
-  app.post('/api/communities/:id/upload-cover-image', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, upload.single('image'), async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/upload-cover-image', checkCommunitiesFeatureFlag, requireAuth, upload.single('image'), async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const file = req.file;
-      const organizer = (req as any).organizer;
+      const user = (req as any).user;
 
       if (!file) {
         return res.status(400).json({ ok: false, error: 'No image file provided' });
       }
 
       const community = await communitiesStorage.getCommunityById(id);
-      if (!community || community.organizerId !== organizer.id) {
+      if (!community || community.organizerId !== user.id) {
         return res.status(404).json({ ok: false, error: 'Community not found or access denied' });
       }
 
