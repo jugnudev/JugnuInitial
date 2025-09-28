@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
 import { nanoid } from 'nanoid';
+import { cache } from './cache';
 import type { 
   User, 
   InsertUser,

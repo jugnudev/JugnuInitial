@@ -5,6 +5,11 @@ import Stripe from 'stripe';
 import { communitiesStorage } from './communities-supabase';
 import { insertUserSchema } from '@shared/schema';
 import { uploadCommunityPostImage, uploadCommunityCoverImage } from '../services/storageService';
+import { rateLimiter, rateLimitPresets, ipBlocker } from './rate-limiter';
+import { sanitizeText, sanitizeHTML, validateFileUpload, CSRFProtection, sanitizeMiddleware } from './input-sanitizer';
+import { inviteSystem } from './invite-system';
+import { queryCache, cacheKeys, cacheTTL } from './cache';
+import { cleanupJobs } from './cleanup-jobs';
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
@@ -249,6 +254,12 @@ const updateProfileSchema = z.object({
 // Import the email service
 import { sendVerificationEmail } from '../services/emailService.js';
 
+// Start cleanup jobs in production
+if (process.env.NODE_ENV === 'production') {
+  cleanupJobs.start();
+  console.log('[Communities] Started cleanup jobs');
+}
+
 // Helper to send email codes using the proper email service
 const sendEmailCode = async (email: string, code: string, purpose: string = 'login', userName?: string) => {
   console.log(`[Communities] Email code for ${email}: ${code} (${purpose})`);
@@ -286,6 +297,14 @@ const upload = multer({
 
 export function addCommunitiesRoutes(app: Express) {
   console.log('✅ Adding Communities routes...');
+  
+  // Apply global middleware for Communities routes
+  app.use('/api/communities/*', ipBlocker.middleware());
+  app.use('/api/communities/*', sanitizeMiddleware());
+  app.use('/api/auth/*', ipBlocker.middleware());
+  app.use('/api/auth/*', sanitizeMiddleware());
+  app.use('/api/user/*', ipBlocker.middleware());
+  app.use('/api/user/*', sanitizeMiddleware());
 
   // ============ AUTHENTICATION ENDPOINTS ============
 
@@ -296,7 +315,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"email":"user@example.com","firstName":"John","lastName":"Doe"}'
    */
-  app.post('/api/auth/signup', async (req: Request, res: Response) => {
+  app.post('/api/auth/signup', rateLimiter.middleware(rateLimitPresets.sensitive), async (req: Request, res: Response) => {
     try {
       const validationResult = signupSchema.safeParse(req.body);
       if (!validationResult.success) {
@@ -359,7 +378,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"email":"user@example.com"}'
    */
-  app.post('/api/auth/signin', async (req: Request, res: Response) => {
+  app.post('/api/auth/signin', rateLimiter.middleware(rateLimitPresets.sensitive), async (req: Request, res: Response) => {
     try {
       const validationResult = signinSchema.safeParse(req.body);
       if (!validationResult.success) {
@@ -407,7 +426,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"email":"user@example.com","code":"123456"}'
    */
-  app.post('/api/auth/verify-code', async (req: Request, res: Response) => {
+  app.post('/api/auth/verify-code', rateLimiter.middleware(rateLimitPresets.sensitive), async (req: Request, res: Response) => {
     try {
       const validationResult = verifyCodeSchema.safeParse(req.body);
       if (!validationResult.success) {
@@ -4553,6 +4572,202 @@ export function addCommunitiesRoutes(app: Express) {
     } catch (error: any) {
       console.error('Get communities admin error:', error);
       res.status(500).json({ ok: false, error: error.message || 'Failed to get communities' });
+    }
+  });
+
+  // ============ INVITE LINKS SYSTEM ============
+
+  /**
+   * POST /api/communities/:id/invites
+   * Create an invite link for a community (owners only)
+   */
+  app.post('/api/communities/:id/invites', checkCommunitiesFeatureFlag, requireAuth, rateLimiter.middleware(rateLimitPresets.authenticated), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+      const { expiresInDays, maxUses, customCode } = req.body;
+
+      // Verify user is community owner
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      if (!organizer || organizer.id !== community.organizerId) {
+        return res.status(403).json({ ok: false, error: 'Only community owners can create invite links' });
+      }
+
+      // Create invite link
+      const invite = await inviteSystem.createInviteLink(
+        community.id,
+        user.id,
+        { expiresInDays, maxUses, customCode: sanitizeText(customCode || '') }
+      );
+
+      // Clear cache for community invites
+      queryCache.delete(cacheKeys.communityInvites(community.id));
+
+      res.json({
+        ok: true,
+        invite,
+        inviteUrl: `${process.env.APP_URL || 'https://thehouseofjugnu.com'}/invite/${invite.code}`
+      });
+    } catch (error: any) {
+      console.error('Create invite link error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to create invite link' });
+    }
+  });
+
+  /**
+   * GET /api/communities/:id/invites
+   * Get all invite links for a community (owners only)
+   */
+  app.get('/api/communities/:id/invites', checkCommunitiesFeatureFlag, requireAuth, rateLimiter.middleware(rateLimitPresets.authenticated), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = (req as any).user;
+
+      // Check cache first
+      const cacheKey = cacheKeys.communityInvites(id);
+      const cached = queryCache.get(cacheKey);
+      if (cached) {
+        return res.json({ ok: true, invites: cached });
+      }
+
+      // Verify user is community owner
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      if (!organizer || organizer.id !== community.organizerId) {
+        return res.status(403).json({ ok: false, error: 'Only community owners can view invite links' });
+      }
+
+      // Get invite links
+      const invites = await inviteSystem.getCommunityInvites(community.id);
+
+      // Cache the result
+      queryCache.set(cacheKey, invites, cacheTTL.medium);
+
+      res.json({ ok: true, invites });
+    } catch (error: any) {
+      console.error('Get invite links error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get invite links' });
+    }
+  });
+
+  /**
+   * GET /api/invite/:code
+   * Get invite details by code
+   */
+  app.get('/api/invite/:code', rateLimiter.middleware(rateLimitPresets.unauthenticated), async (req: Request, res: Response) => {
+    try {
+      const { code } = req.params;
+
+      // Check cache first
+      const cacheKey = cacheKeys.inviteLink(code);
+      const cached = queryCache.get(cacheKey);
+      if (cached) {
+        return res.json({ ok: true, invite: cached });
+      }
+
+      const invite = await inviteSystem.getInviteByCode(code);
+      if (!invite) {
+        return res.status(404).json({ ok: false, error: 'Invalid or expired invite code' });
+      }
+
+      // Cache the result
+      queryCache.set(cacheKey, invite, cacheTTL.short);
+
+      res.json({ ok: true, invite });
+    } catch (error: any) {
+      console.error('Get invite error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get invite details' });
+    }
+  });
+
+  /**
+   * POST /api/invite/:code/use
+   * Use an invite link to join a community
+   */
+  app.post('/api/invite/:code/use', requireAuth, rateLimiter.middleware(rateLimitPresets.sensitive), async (req: Request, res: Response) => {
+    try {
+      const { code } = req.params;
+      const user = (req as any).user;
+
+      const result = await inviteSystem.useInvite(code, user.id);
+      
+      if (!result.success) {
+        return res.status(400).json({ ok: false, error: result.error });
+      }
+
+      // Clear relevant caches
+      queryCache.delete(cacheKeys.inviteLink(code));
+      queryCache.delete(cacheKeys.userCommunities(user.id));
+      queryCache.delete(cacheKeys.userReferrals(user.id));
+      if (result.communityId) {
+        queryCache.delete(cacheKeys.communityMembers(result.communityId, 1));
+      }
+
+      res.json({
+        ok: true,
+        message: 'Successfully joined community',
+        communityId: result.communityId
+      });
+    } catch (error: any) {
+      console.error('Use invite error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to use invite' });
+    }
+  });
+
+  /**
+   * GET /api/user/referrals
+   * Get referral statistics for the current user
+   */
+  app.get('/api/user/referrals', requireAuth, rateLimiter.middleware(rateLimitPresets.authenticated), async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const communityId = req.query.communityId as string | undefined;
+
+      // Check cache first
+      const cacheKey = cacheKeys.userReferrals(user.id);
+      const cached = queryCache.get(cacheKey);
+      if (cached && !communityId) {
+        return res.json({ ok: true, stats: cached });
+      }
+
+      const stats = await inviteSystem.getReferralStats(user.id, communityId);
+
+      // Cache the result
+      if (!communityId) {
+        queryCache.set(cacheKey, stats, cacheTTL.medium);
+      }
+
+      res.json({ ok: true, stats });
+    } catch (error: any) {
+      console.error('Get referral stats error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get referral stats' });
+    }
+  });
+
+  /**
+   * GET /api/communities/:id/referral-leaderboard
+   * Get referral leaderboard for a community
+   */
+  app.get('/api/communities/:id/referral-leaderboard', checkCommunitiesFeatureFlag, requireAuth, rateLimiter.middleware(rateLimitPresets.authenticated), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const limit = parseInt(req.query.limit as string) || 10;
+
+      const leaderboard = await inviteSystem.getReferralLeaderboard(id, limit);
+
+      res.json({ ok: true, leaderboard });
+    } catch (error: any) {
+      console.error('Get referral leaderboard error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get leaderboard' });
     }
   });
 

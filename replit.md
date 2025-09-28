@@ -1,7 +1,7 @@
 # Replit.md
 
 ## Overview
-Jugnu is a cultural events platform, primarily focused on South Asian and global music experiences in Vancouver. It currently operates in a "Waitlist Mode" to capture user interest, with event-aware UI designed to activate full functionality upon the addition of real events. The platform's vision is to become a central hub for community events, offering robust event discovery, ticketing integrations, and sponsorship opportunities.
+Jugnu is a comprehensive cultural events and communities platform, primarily focused on South Asian and global music experiences in Vancouver. The platform features a robust Communities system with advanced performance optimizations, security features, and growth mechanisms. It supports exclusive member spaces, event discovery, ticketing integrations, and sponsorship opportunities. Phase 9 optimizations include comprehensive caching, rate limiting, invite systems, and analytics tracking.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -18,15 +18,20 @@ Preferred communication style: Simple, everyday language.
 
 ### Backend Architecture
 - **Framework**: Express.js with TypeScript.
-- **Database ORM**: Drizzle ORM for PostgreSQL with Neon Database.
-- **Session Management**: Connect-pg-simple for PostgreSQL session storage.
+- **Database ORM**: Drizzle ORM for PostgreSQL with Neon Database; Supabase for Communities.
+- **Session Management**: Connect-pg-simple for PostgreSQL session storage; 24-hour timeout.
 - **API Structure**: RESTful endpoints (`/api` prefix) with comprehensive error handling.
+- **Security**: Rate limiting (5 req/s authenticated, 1 req/s unauthenticated), input sanitization, CSRF protection, IP blocking.
+- **Performance**: In-memory caching with TTL, query optimization, background cleanup jobs.
+- **Analytics**: Event tracking, engagement metrics, conversion funnels, feature usage monitoring.
 
 ### Data Management
 - **Static Data**: Events and gallery images served from local JSON files.
 - **Event Logic**: UI conditionally renders based on purchasable events.
-- **Community Events System**: Automated import from Google Calendar ICS feeds with full bidirectional sync (adds, updates, and removes events). Parses structured descriptions for event details. Includes category filtering, monthly feed display, and featured event handling.
+- **Community Events System**: Automated import from Google Calendar ICS feeds with full bidirectional sync. Parses structured descriptions for event details.
 - **Waitlist Mode**: Single TBA event routes to a dedicated `/waitlist` page.
+- **Data Cleanup**: Automated jobs for cleaning old notifications (>30 days), expired sessions, abandoned drafts (>7 days), and archiving inactive communities (>90 days).
+- **Caching Strategy**: In-memory cache with configurable TTL (60s short, 300s medium, 900s long) for frequently accessed data.
 
 ### Responsive Design & Mobile Experience
 - **Mobile-First**: Tailwind CSS breakpoints for mobile-optimized layouts.
@@ -37,9 +42,11 @@ Preferred communication style: Simple, everyday language.
 ### Performance & SEO
 - **Build Optimization**: Vite for fast development and optimized production builds.
 - **Code Splitting**: Dynamic imports for route-based code splitting.
-- **SEO**: Meta tags, Open Graph, Twitter Cards, and JSON-LD structured data.
-- **Images**: Lazy loading with lightbox functionality.
-- **Accessibility**: ARIA labels, keyboard navigation, and screen reader support.
+- **SEO**: Meta tags, Open Graph, Twitter Cards, and JSON-LD structured data via SEOMetaTags component.
+- **Images**: Lazy loading with intersection observer, progressive loading, error handling.
+- **Accessibility**: ARIA labels, keyboard navigation, screen reader support, comprehensive data-testid attributes.
+- **Frontend Optimizations**: Infinite scroll for feeds, React.memo for expensive components, loading skeletons, lazy image loading.
+- **Error Handling**: Global error boundary with retry logic, user-friendly messages, error tracking.
 
 ### Admin & Sponsorship Systems
 - **Admin API**: Key-based system for managing campaigns, portal tokens, and onboarding.
@@ -63,6 +70,32 @@ Preferred communication style: Simple, everyday language.
 - **Schema Robustness**: All operations use 'day' column only, with safe schema cleanup approach.
 - **Security Hardening**: Test scripts sanitized to use environment variables; no hardcoded secrets in repository.
 - **Frequency Cap Support**: Full CRUD support for frequency capping with proper 0-value handling (0 = unlimited).
+
+## Communities Platform Features (Phase 9)
+
+### Growth Features
+- **Invite Links System**: Unique invite codes with expiration dates, usage limits, and tracking
+- **Member Referrals**: Referral statistics, leaderboards, conversion tracking
+- **Community Discovery**: Featured communities, trending sections, category filters, advanced search
+- **Social Sharing**: Share buttons for Twitter, Facebook, LinkedIn, WhatsApp with tracking
+
+### Security Enhancements
+- **Rate Limiting**: Configurable per-endpoint limits with IP blocking for suspicious activity
+- **Input Sanitization**: XSS prevention, file upload validation, SQL injection protection
+- **Session Security**: 24-hour timeout, secure token handling, request signing for sensitive ops
+- **CSRF Protection**: Token-based protection for forms and state-changing operations
+
+### Performance Features
+- **Database Caching**: In-memory cache with TTL for reducing database load
+- **Query Optimization**: Selective field queries, proper pagination, database indexes
+- **Frontend Performance**: Lazy loading, infinite scroll, loading skeletons, image optimization
+- **Background Jobs**: Automated cleanup of old data, session management, archive inactive communities
+
+### Analytics & Monitoring
+- **Event Tracking**: Page views, user engagement, conversion funnels, feature usage
+- **Error Monitoring**: Global error boundary, error logging, retry logic for failed operations
+- **Performance Metrics**: Timing tracking, load time monitoring, engagement metrics
+- **Admin Reports**: Weekly analytics reports, referral stats, community growth tracking
 
 ## External Dependencies
 
