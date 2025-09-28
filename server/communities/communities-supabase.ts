@@ -1248,8 +1248,7 @@ export class CommunitiesSupabaseDB {
         .upsert({
           community_id: communityId,
           date: today,
-          [field]: 1,
-          updated_at: new Date().toISOString()
+          [field]: 1
         }, {
           onConflict: 'community_id,date'
         });
