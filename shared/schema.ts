@@ -893,6 +893,7 @@ export const communityPostAnalytics = pgTable("community_post_analytics", {
 export const communityAnalytics = pgTable("community_analytics", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
   communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
   date: date("date").notNull().default(sql`CURRENT_DATE`),
   totalMembers: integer("total_members").notNull().default(0),

@@ -94,7 +94,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
   // Create poll mutation
   const createPollMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest(`/api/communities/${communityId}/polls`, 'POST', data);
+      return apiRequest('POST', `/api/communities/${communityId}/polls`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'polls'] });
@@ -117,7 +117,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
   // Vote mutation
   const voteMutation = useMutation({
     mutationFn: async ({ pollId, optionIds }: { pollId: string; optionIds: string[] }) => {
-      return apiRequest(`/api/communities/${communityId}/polls/${pollId}/vote`, 'POST', { optionIds });
+      return apiRequest('POST', `/api/communities/${communityId}/polls/${pollId}/vote`, { optionIds });
     },
     onSuccess: (_, { pollId }) => {
       queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'polls'] });
@@ -140,7 +140,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
   // Remove vote mutation
   const removeVoteMutation = useMutation({
     mutationFn: async (pollId: string) => {
-      return apiRequest(`/api/communities/${communityId}/polls/${pollId}/vote`, 'DELETE');
+      return apiRequest('DELETE', `/api/communities/${communityId}/polls/${pollId}/vote`);
     },
     onSuccess: (_, pollId) => {
       queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'polls'] });
@@ -155,7 +155,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
   // Close poll mutation
   const closePollMutation = useMutation({
     mutationFn: async (pollId: string) => {
-      return apiRequest(`/api/communities/${communityId}/polls/${pollId}`, 'PATCH');
+      return apiRequest('PATCH', `/api/communities/${communityId}/polls/${pollId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'polls'] });

@@ -305,14 +305,7 @@ export default function EnhancedCommunityDetailPage() {
   // Join/Leave community mutation
   const joinCommunityMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/communities/${communitySlug}/join`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!response.ok) {
-        throw new Error('Failed to join community');
-      }
-      return response.json();
+      return apiRequest('POST', `/api/communities/${communitySlug}/join`, {});
     },
     onSuccess: () => {
       toast({ title: "Membership request submitted!" });
@@ -321,6 +314,24 @@ export default function EnhancedCommunityDetailPage() {
     onError: (error: any) => {
       toast({ 
         title: "Failed to join community", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Update community mutation
+  const updateCommunityMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return apiRequest('PUT', `/api/communities/${communitySlug}`, data);
+    },
+    onSuccess: () => {
+      toast({ title: "Community settings updated!" });
+      refetch();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to update community", 
         description: error.message,
         variant: "destructive" 
       });

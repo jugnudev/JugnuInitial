@@ -202,6 +202,7 @@ const requireSessionAuth = async (req: Request, res: Response, next: any) => {
       return res.status(401).json({ ok: false, error: 'User not found' });
     }
 
+    // Set user on request object for consistency with requireAuth middleware
     (req as any).user = user;
     next();
   } catch (error) {
@@ -485,6 +486,41 @@ export function addCommunitiesRoutes(app: Express) {
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
       });
 
+      // Regenerate session to prevent session fixation attacks
+      await new Promise<void>((resolve, reject) => {
+        req.session.regenerate((err) => {
+          if (err) {
+            console.error('Session regeneration error:', err);
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+
+      // Set platform session userId for session-based auth integration
+      req.session.userId = user.id;
+      
+      // Explicitly save session to ensure userId is persisted - this MUST succeed
+      try {
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) {
+              console.error('Session save error:', err);
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        });
+      } catch (sessionError) {
+        console.error('Failed to save session:', sessionError);
+        return res.status(500).json({ 
+          ok: false, 
+          error: 'Authentication session could not be established. Please try again.' 
+        });
+      }
+
       // Get fresh user data (in case it was updated)
       const freshUser = await communitiesStorage.getUserById(user.id);
 
@@ -676,8 +712,32 @@ export function addCommunitiesRoutes(app: Express) {
       // Deactivate current session
       await communitiesStorage.deactivateSession(userSession.token);
 
-      // Clear cookie
+      // Clear Communities cookie
       res.clearCookie('community_auth_token');
+      
+      // Destroy platform session to prevent residual authentication - this MUST succeed
+      try {
+        await new Promise<void>((resolve, reject) => {
+          req.session.destroy((err) => {
+            if (err) {
+              console.error('Session destruction error:', err);
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        });
+        
+        // Clear session cookie to force browser discard
+        res.clearCookie('connect.sid');
+        
+      } catch (sessionError) {
+        console.error('Failed to destroy session:', sessionError);
+        return res.status(500).json({ 
+          ok: false, 
+          error: 'Sign-out could not be completed. Please try again.' 
+        });
+      }
 
       res.json({
         ok: true,
@@ -702,8 +762,32 @@ export function addCommunitiesRoutes(app: Express) {
       // Deactivate all user sessions
       await communitiesStorage.deactivateAllUserSessions(user.id);
 
-      // Clear cookie
+      // Clear Communities cookie
       res.clearCookie('community_auth_token');
+      
+      // Destroy platform session to prevent residual authentication - this MUST succeed
+      try {
+        await new Promise<void>((resolve, reject) => {
+          req.session.destroy((err) => {
+            if (err) {
+              console.error('Session destruction error:', err);
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        });
+        
+        // Clear session cookie to force browser discard
+        res.clearCookie('connect.sid');
+        
+      } catch (sessionError) {
+        console.error('Failed to destroy session:', sessionError);
+        return res.status(500).json({ 
+          ok: false, 
+          error: 'Sign-out could not be completed. Please try again.' 
+        });
+      }
 
       res.json({
         ok: true,
@@ -1674,7 +1758,26 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X POST http://localhost:5000/api/communities/COMMUNITY_ID/join \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.post('/api/communities/:id/join', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+  // Dual authentication middleware: accepts either session auth OR token auth for reliability
+  const requireEitherAuth = async (req: Request, res: Response, next: any) => {
+    // Try session auth first (platform integration)
+    if (req.session?.userId) {
+      try {
+        const user = await communitiesStorage.getUserById(req.session.userId);
+        if (user) {
+          (req as any).user = user;
+          return next();
+        }
+      } catch (error) {
+        console.error('Session auth error:', error);
+      }
+    }
+    
+    // Fallback to token auth (Communities system)
+    return requireAuth(req, res, next);
+  };
+
+  app.post('/api/communities/:id/join', checkCommunitiesFeatureFlag, requireEitherAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const user = (req as any).user;

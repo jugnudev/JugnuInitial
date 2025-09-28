@@ -873,6 +873,11 @@ export class CommunitiesSupabaseDB {
     return data ? this.mapMembershipFromDb(data) : null;
   }
 
+  // Alias for compatibility
+  async getCommunityMembership(communityId: string, userId: string): Promise<CommunityMembership | null> {
+    return this.getMembershipByUserAndCommunity(userId, communityId);
+  }
+
   async updateMembership(id: string, data: Partial<InsertCommunityMembership>): Promise<CommunityMembership> {
     const updateData: any = { updated_at: new Date().toISOString() };
     
