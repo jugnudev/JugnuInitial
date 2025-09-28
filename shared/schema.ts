@@ -687,10 +687,20 @@ export const communities = pgTable("communities", {
   name: text("name").notNull(),
   slug: text("slug").unique(),
   description: text("description"),
+  shortDescription: text("short_description"),
+  welcomeText: text("welcome_text"),
   imageUrl: text("image_url"),
   coverUrl: text("cover_url"),
   isPrivate: boolean("is_private").notNull().default(false),
-  membershipPolicy: text("membership_policy").notNull().default("approval_required"), // approval_required | open | closed
+  membershipPolicy: text("membership_policy").notNull().default("approval_required"), // approval_required | open | invite_only
+  chatMode: text("chat_mode").notNull().default("owner_only"), // owner_only | open_to_members
+  chatSlowmodeSeconds: integer("chat_slowmode_seconds").notNull().default(0),
+  allowMemberPosts: boolean("allow_member_posts").notNull().default(false),
+  subscriptionStatus: text("subscription_status").notNull().default("trialing"), // trialing | active | past_due | canceled
+  subscriptionEndsAt: timestamp("subscription_ends_at", { withTimezone: true }),
+  totalMembers: integer("total_members").notNull().default(0),
+  totalPosts: integer("total_posts").notNull().default(0),
+  lastActivityAt: timestamp("last_activity_at", { withTimezone: true }).notNull().default(sql`now()`),
   status: text("status").notNull().default("active"), // active | suspended | archived
 });
 
@@ -700,11 +710,23 @@ export const communityMemberships = pgTable("community_memberships", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
   communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
-  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   status: text("status").notNull().default("pending"), // pending | approved | declined | left
   requestedAt: timestamp("requested_at", { withTimezone: true }).notNull().default(sql`now()`),
   approvedAt: timestamp("approved_at", { withTimezone: true }),
-  approvedBy: uuid("approved_by").references(() => users.id),
+  approvedBy: varchar("approved_by").references(() => users.id),
+  joinedAt: timestamp("joined_at", { withTimezone: true }),
+  leftAt: timestamp("left_at", { withTimezone: true }),
+  rejectionReason: text("rejection_reason"),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().default(sql`now()`),
+  postsCount: integer("posts_count").notNull().default(0),
+  commentsCount: integer("comments_count").notNull().default(0),
+  emailNotifications: boolean("email_notifications").notNull().default(true),
+  inAppNotifications: boolean("in_app_notifications").notNull().default(true),
+  isMuted: boolean("is_muted").notNull().default(false),
+  mutedUntil: timestamp("muted_until", { withTimezone: true }),
+  mutedBy: varchar("muted_by").references(() => users.id),
+  muteReason: text("mute_reason"),
   role: text("role").notNull().default("member"), // member | moderator | admin
 });
 
@@ -714,18 +736,298 @@ export const communityPosts = pgTable("community_posts", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
   communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
-  authorId: uuid("author_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   title: text("title").notNull(),
   content: text("content").notNull(),
+  body: text("body"),
+  excerpt: text("excerpt"),
   imageUrl: text("image_url"),
   linkUrl: text("link_url"),
   linkText: text("link_text"),
   linkDescription: text("link_description"),
+  primaryLinkUrl: text("primary_link_url"),
+  primaryLinkText: text("primary_link_text"),
+  primaryLinkClicks: integer("primary_link_clicks").notNull().default(0),
+  scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  expireAt: timestamp("expire_at", { withTimezone: true }),
+  allowComments: boolean("allow_comments").notNull().default(true),
+  allowReactions: boolean("allow_reactions").notNull().default(true),
+  viewCount: integer("view_count").notNull().default(0),
+  uniqueViewers: integer("unique_viewers").notNull().default(0),
+  reactionCount: integer("reaction_count").notNull().default(0),
+  commentCount: integer("comment_count").notNull().default(0),
+  shareCount: integer("share_count").notNull().default(0),
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  ogImageUrl: text("og_image_url"),
+  category: text("category"),
   tags: text("tags").array(),
   metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
   postType: text("post_type").notNull().default("announcement"), // announcement | update | event
   isPinned: boolean("is_pinned").notNull().default(false),
   status: text("status").notNull().default("published"), // published | draft | archived
+});
+
+// Post image galleries (1-6 images per post)
+export const communityPostImages = pgTable("community_post_images", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  postId: uuid("post_id").notNull().references(() => communityPosts.id, { onDelete: 'cascade' }),
+  url: text("url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  altText: text("alt_text"),
+  caption: text("caption"),
+  width: integer("width"),
+  height: integer("height"),
+  sizeBytes: integer("size_bytes"),
+  mimeType: text("mime_type"),
+  displayOrder: integer("display_order").notNull().default(0),
+});
+
+// Post reactions with proper constraint
+export const communityPostReactions = pgTable("community_post_reactions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  postId: uuid("post_id").notNull().references(() => communityPosts.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  reactionType: text("reaction_type").notNull(), // heart | thumbs_up | fire
+});
+
+// Comments on posts
+export const communityComments = pgTable("community_comments", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  postId: uuid("post_id").notNull().references(() => communityPosts.id, { onDelete: 'cascade' }),
+  authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  parentCommentId: uuid("parent_comment_id").references(() => communityComments.id, { onDelete: 'cascade' }),
+  content: text("content").notNull(),
+  isHidden: boolean("is_hidden").notNull().default(false),
+  hiddenBy: varchar("hidden_by").references(() => users.id),
+  hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+  hideReason: text("hide_reason"),
+  likeCount: integer("like_count").notNull().default(0),
+  replyCount: integer("reply_count").notNull().default(0),
+});
+
+// Comment likes
+export const communityCommentLikes = pgTable("community_comment_likes", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  commentId: uuid("comment_id").notNull().references(() => communityComments.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+});
+
+// Community chat messages
+export const communityChatMessages = pgTable("community_chat_messages", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
+  authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  content: text("content").notNull(),
+  isPinned: boolean("is_pinned").notNull().default(false),
+  isAnnouncement: boolean("is_announcement").notNull().default(false),
+  isDeleted: boolean("is_deleted").notNull().default(false),
+  deletedBy: varchar("deleted_by").references(() => users.id),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
+// Polls with proper constraints
+export const communityPolls = pgTable("community_polls", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
+  postId: uuid("post_id").references(() => communityPosts.id, { onDelete: 'cascade' }),
+  authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  question: text("question").notNull(),
+  description: text("description"),
+  pollType: text("poll_type").notNull().default("single"), // single | multiple
+  allowMultipleVotes: boolean("allow_multiple_votes").notNull().default(false),
+  showResultsBeforeVote: boolean("show_results_before_vote").notNull().default(false),
+  anonymousVoting: boolean("anonymous_voting").notNull().default(false),
+  closesAt: timestamp("closes_at", { withTimezone: true }),
+  isClosed: boolean("is_closed").notNull().default(false),
+  totalVotes: integer("total_votes").notNull().default(0),
+  uniqueVoters: integer("unique_voters").notNull().default(0),
+});
+
+// Poll options
+export const communityPollOptions = pgTable("community_poll_options", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  pollId: uuid("poll_id").notNull().references(() => communityPolls.id, { onDelete: 'cascade' }),
+  text: text("text").notNull(),
+  description: text("description"),
+  displayOrder: integer("display_order").notNull().default(0),
+  voteCount: integer("vote_count").notNull().default(0),
+  votePercentage: numeric("vote_percentage", { precision: 5, scale: 2 }).default("0"),
+});
+
+// Poll votes
+export const communityPollVotes = pgTable("community_poll_votes", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  pollId: uuid("poll_id").notNull().references(() => communityPolls.id, { onDelete: 'cascade' }),
+  optionId: uuid("option_id").notNull().references(() => communityPollOptions.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+});
+
+// Post analytics
+export const communityPostAnalytics = pgTable("community_post_analytics", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  postId: uuid("post_id").notNull().references(() => communityPosts.id, { onDelete: 'cascade' }),
+  date: date("date").notNull().default(sql`CURRENT_DATE`),
+  impressions: integer("impressions").notNull().default(0),
+  uniqueViewers: integer("unique_viewers").notNull().default(0),
+  clicks: integer("clicks").notNull().default(0),
+  reactions: integer("reactions").notNull().default(0),
+  comments: integer("comments").notNull().default(0),
+  shares: integer("shares").notNull().default(0),
+  avgTimeOnPage: integer("avg_time_on_page").default(0), // in seconds
+});
+
+// Community-level analytics
+export const communityAnalytics = pgTable("community_analytics", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
+  date: date("date").notNull().default(sql`CURRENT_DATE`),
+  totalMembers: integer("total_members").notNull().default(0),
+  newMembers: integer("new_members").notNull().default(0),
+  activeMembers: integer("active_members").notNull().default(0),
+  totalPosts: integer("total_posts").notNull().default(0),
+  totalComments: integer("total_comments").notNull().default(0),
+  totalReactions: integer("total_reactions").notNull().default(0),
+  pageviews: integer("pageviews").notNull().default(0),
+  uniqueVisitors: integer("unique_visitors").notNull().default(0),
+  avgSessionDuration: integer("avg_session_duration").default(0), // in seconds
+  topPosts: jsonb("top_posts").default(sql`'[]'::jsonb`), // Array of {postId, views, engagement}
+  memberActivity: jsonb("member_activity").default(sql`'{}'::jsonb`), // Activity breakdown
+});
+
+// Community subscriptions
+export const communitySubscriptions = pgTable("community_subscriptions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  plan: text("plan").notNull().default("free"), // free | starter | pro | enterprise
+  status: text("status").notNull().default("active"), // active | past_due | canceled | trialing
+  currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  cancelAt: timestamp("cancel_at", { withTimezone: true }),
+  canceledAt: timestamp("canceled_at", { withTimezone: true }),
+  trialEnd: timestamp("trial_end", { withTimezone: true }),
+  memberLimit: integer("member_limit").notNull().default(100),
+  features: jsonb("features").default(sql`'{}'::jsonb`), // Feature flags/limits
+});
+
+// Community notifications
+export const communityNotifications = pgTable("community_notifications", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  recipientId: varchar("recipient_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  communityId: uuid("community_id").references(() => communities.id, { onDelete: 'cascade' }),
+  type: text("type").notNull(), // post_published | comment_reply | mention | membership_approved | etc
+  title: text("title").notNull(),
+  body: text("body"),
+  actionUrl: text("action_url"),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  isRead: boolean("is_read").notNull().default(false),
+  readAt: timestamp("read_at", { withTimezone: true }),
+  isEmailSent: boolean("is_email_sent").notNull().default(false),
+  emailSentAt: timestamp("email_sent_at", { withTimezone: true }),
+});
+
+// Email queue for community notifications
+export const communityEmailQueue = pgTable("community_email_queue", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  recipientEmail: text("recipient_email").notNull(),
+  recipientName: text("recipient_name"),
+  communityId: uuid("community_id").references(() => communities.id, { onDelete: 'cascade' }),
+  templateId: text("template_id").notNull(),
+  subject: text("subject").notNull(),
+  variables: jsonb("variables").default(sql`'{}'::jsonb`),
+  status: text("status").notNull().default("pending"), // pending | sent | failed
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  failedAt: timestamp("failed_at", { withTimezone: true }),
+  errorMessage: text("error_message"),
+  retryCount: integer("retry_count").notNull().default(0),
+  scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
+});
+
+// Community admin audit log
+export const communityAdminAudit = pgTable("community_admin_audit", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
+  actorId: varchar("actor_id").notNull().references(() => users.id),
+  action: text("action").notNull(), // member_removed | post_deleted | settings_changed | etc
+  targetType: text("target_type"), // user | post | comment | settings | etc
+  targetId: text("target_id"),
+  previousValue: jsonb("previous_value"),
+  newValue: jsonb("new_value"),
+  reason: text("reason"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+});
+
+// Community deals/offers
+export const communityDeals = pgTable("community_deals", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  shortDescription: text("short_description"),
+  imageUrl: text("image_url"),
+  dealType: text("deal_type").notNull().default("discount"), // discount | voucher | exclusive_access | freebie
+  discountType: text("discount_type"), // percent | fixed_amount
+  discountValue: numeric("discount_value"),
+  promoCode: text("promo_code"),
+  redeemUrl: text("redeem_url"),
+  termsConditions: text("terms_conditions"),
+  validFrom: timestamp("valid_from", { withTimezone: true }).notNull(),
+  validUntil: timestamp("valid_until", { withTimezone: true }),
+  maxRedemptions: integer("max_redemptions"),
+  redemptionCount: integer("redemption_count").notNull().default(0),
+  memberTierRequired: text("member_tier_required"), // all | premium | founding | etc
+  isActive: boolean("is_active").notNull().default(true),
+  isFeatured: boolean("is_featured").notNull().default(false),
+});
+
+// Deal redemption tracking
+export const communityDealRedemptions = pgTable("community_deal_redemptions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  dealId: uuid("deal_id").notNull().references(() => communityDeals.id, { onDelete: 'cascade' }),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  redeemedAt: timestamp("redeemed_at", { withTimezone: true }).notNull().default(sql`now()`),
+  redemptionCode: text("redemption_code"),
+  notes: text("notes"),
+});
+
+// Community invite links
+export const communityInviteLinks = pgTable("community_invite_links", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  code: text("code").notNull().unique(),
+  maxUses: integer("max_uses"),
+  useCount: integer("use_count").notNull().default(0),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  role: text("role").notNull().default("member"), // member | moderator
+  autoApprove: boolean("auto_approve").notNull().default(false),
+  isActive: boolean("is_active").notNull().default(true),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // campaign tracking, etc
 });
 
 // Authentication & Organizer Insert Schemas
@@ -772,6 +1074,95 @@ export const insertCommunityPostSchema = createInsertSchema(communityPosts).omit
   updatedAt: true,
 });
 
+export const insertCommunityPostImageSchema = createInsertSchema(communityPostImages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityPostReactionSchema = createInsertSchema(communityPostReactions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityCommentSchema = createInsertSchema(communityComments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCommunityCommentLikeSchema = createInsertSchema(communityCommentLikes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityChatMessageSchema = createInsertSchema(communityChatMessages).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityPollSchema = createInsertSchema(communityPolls).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCommunityPollOptionSchema = createInsertSchema(communityPollOptions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityPollVoteSchema = createInsertSchema(communityPollVotes).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityPostAnalyticsSchema = createInsertSchema(communityPostAnalytics).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityAnalyticsSchema = createInsertSchema(communityAnalytics).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunitySubscriptionSchema = createInsertSchema(communitySubscriptions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCommunityNotificationSchema = createInsertSchema(communityNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityEmailQueueSchema = createInsertSchema(communityEmailQueue).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityAdminAuditSchema = createInsertSchema(communityAdminAudit).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityDealSchema = createInsertSchema(communityDeals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCommunityDealRedemptionSchema = createInsertSchema(communityDealRedemptions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityInviteLinkSchema = createInsertSchema(communityInviteLinks).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Authentication & Organizer Type Exports
 export type AuthCode = typeof authCodes.$inferSelect;
 export type InsertAuthCode = z.infer<typeof insertAuthCodeSchema>;
@@ -801,3 +1192,37 @@ export type CommunityMembershipWithUser = CommunityMembership & {
 };
 export type CommunityPost = typeof communityPosts.$inferSelect;
 export type InsertCommunityPost = z.infer<typeof insertCommunityPostSchema>;
+export type CommunityPostImage = typeof communityPostImages.$inferSelect;
+export type InsertCommunityPostImage = z.infer<typeof insertCommunityPostImageSchema>;
+export type CommunityPostReaction = typeof communityPostReactions.$inferSelect;
+export type InsertCommunityPostReaction = z.infer<typeof insertCommunityPostReactionSchema>;
+export type CommunityComment = typeof communityComments.$inferSelect;
+export type InsertCommunityComment = z.infer<typeof insertCommunityCommentSchema>;
+export type CommunityCommentLike = typeof communityCommentLikes.$inferSelect;
+export type InsertCommunityCommentLike = z.infer<typeof insertCommunityCommentLikeSchema>;
+export type CommunityChatMessage = typeof communityChatMessages.$inferSelect;
+export type InsertCommunityChatMessage = z.infer<typeof insertCommunityChatMessageSchema>;
+export type CommunityPoll = typeof communityPolls.$inferSelect;
+export type InsertCommunityPoll = z.infer<typeof insertCommunityPollSchema>;
+export type CommunityPollOption = typeof communityPollOptions.$inferSelect;
+export type InsertCommunityPollOption = z.infer<typeof insertCommunityPollOptionSchema>;
+export type CommunityPollVote = typeof communityPollVotes.$inferSelect;
+export type InsertCommunityPollVote = z.infer<typeof insertCommunityPollVoteSchema>;
+export type CommunityPostAnalytics = typeof communityPostAnalytics.$inferSelect;
+export type InsertCommunityPostAnalytics = z.infer<typeof insertCommunityPostAnalyticsSchema>;
+export type CommunityAnalytics = typeof communityAnalytics.$inferSelect;
+export type InsertCommunityAnalytics = z.infer<typeof insertCommunityAnalyticsSchema>;
+export type CommunitySubscription = typeof communitySubscriptions.$inferSelect;
+export type InsertCommunitySubscription = z.infer<typeof insertCommunitySubscriptionSchema>;
+export type CommunityNotification = typeof communityNotifications.$inferSelect;
+export type InsertCommunityNotification = z.infer<typeof insertCommunityNotificationSchema>;
+export type CommunityEmailQueue = typeof communityEmailQueue.$inferSelect;
+export type InsertCommunityEmailQueue = z.infer<typeof insertCommunityEmailQueueSchema>;
+export type CommunityAdminAudit = typeof communityAdminAudit.$inferSelect;
+export type InsertCommunityAdminAudit = z.infer<typeof insertCommunityAdminAuditSchema>;
+export type CommunityDeal = typeof communityDeals.$inferSelect;
+export type InsertCommunityDeal = z.infer<typeof insertCommunityDealSchema>;
+export type CommunityDealRedemption = typeof communityDealRedemptions.$inferSelect;
+export type InsertCommunityDealRedemption = z.infer<typeof insertCommunityDealRedemptionSchema>;
+export type CommunityInviteLink = typeof communityInviteLinks.$inferSelect;
+export type InsertCommunityInviteLink = z.infer<typeof insertCommunityInviteLinkSchema>;
