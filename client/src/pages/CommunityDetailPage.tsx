@@ -7,6 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Users, 
   MessageSquare, 
@@ -309,6 +313,17 @@ export default function CommunityDetailPage() {
     postType: 'announcement' as 'announcement' | 'update' | 'event',
     isPinned: false
   });
+  
+  // Settings editing state
+  const [isEditingInfo, setIsEditingInfo] = useState(false);
+  const [isEditingPrivacy, setIsEditingPrivacy] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    description: '',
+    isPrivate: false,
+    membershipPolicy: 'approval_required' as 'open' | 'approval_required' | 'closed'
+  });
+  
 
   // Handle form submissions
   const handleCreateAnnouncement = async () => {
@@ -336,12 +351,70 @@ export default function CommunityDetailPage() {
   const handleRejectMember = (userId: string) => {
     approveMemberMutation.mutate({ userId, action: 'decline' });
   };
+  
+  const handleEditInfo = () => {
+    setIsEditingInfo(true);
+  };
+  
+  const handleSaveInfo = () => {
+    updateCommunityMutation.mutate({
+      name: editForm.name,
+      description: editForm.description
+    });
+    setIsEditingInfo(false);
+  };
+  
+  const handleCancelInfo = () => {
+    if (community) {
+      setEditForm(prev => ({
+        ...prev,
+        name: community.name || '',
+        description: community.description || ''
+      }));
+    }
+    setIsEditingInfo(false);
+  };
+  
+  const handleEditPrivacy = () => {
+    setIsEditingPrivacy(true);
+  };
+  
+  const handleSavePrivacy = () => {
+    updateCommunityMutation.mutate({
+      isPrivate: editForm.isPrivate,
+      membershipPolicy: editForm.membershipPolicy
+    });
+    setIsEditingPrivacy(false);
+  };
+  
+  const handleCancelPrivacy = () => {
+    if (community) {
+      setEditForm(prev => ({
+        ...prev,
+        isPrivate: community.isPrivate || false,
+        membershipPolicy: community.membershipPolicy || 'approval_required'
+      }));
+    }
+    setIsEditingPrivacy(false);
+  };
 
   const community = communityData?.community;
   const membership = communityData?.membership;
   const posts = communityData?.posts || [];
   const members = communityData?.members || [];
   const canManage = communityData?.canManage || false;
+  
+  // Initialize edit form when community data loads
+  useEffect(() => {
+    if (community) {
+      setEditForm({
+        name: community.name || '',
+        description: community.description || '',
+        isPrivate: community.isPrivate || false,
+        membershipPolicy: community.membershipPolicy || 'approval_required'
+      });
+    }
+  }, [community]);
 
   // Show premium loading state while checking authentication
   if (userLoading) {
@@ -628,6 +701,7 @@ export default function CommunityDetailPage() {
                     <MotionButton 
                       className="relative bg-gradient-to-r from-muted-foreground/80 to-muted-foreground hover:from-muted-foreground hover:to-foreground text-white font-bold px-6 py-3 rounded-xl shadow-soft hover:shadow-glow transition-all duration-300 group overflow-hidden" 
                       data-testid="manage-community-button"
+                      onClick={() => setActiveTab('settings')}
                       variants={buttonPress}
                       whileHover="whileHover"
                       whileTap="whileTap"
@@ -649,13 +723,6 @@ export default function CommunityDetailPage() {
                       <UserPlus className="h-5 w-5 mr-2 relative z-10" />
                       <span className="relative z-10">Join Community</span>
                     </MotionButton>
-                  )}
-                  {membership?.status === 'approved' && (
-                    <div className="relative flex items-center gap-3 px-4 py-3 bg-accent/10 rounded-xl border border-accent/30">
-                      <div className="absolute inset-0 bg-gradient-radial from-glow/20 via-transparent to-transparent rounded-xl" />
-                      <CheckCircle className="h-5 w-5 text-accent relative z-10" />
-                      <span className="text-sm font-bold text-accent relative z-10">Premium Member</span>
-                    </div>
                   )}
                 </div>
               </div>
@@ -999,7 +1066,6 @@ export default function CommunityDetailPage() {
                       </div>
                       <div className="text-3xl font-bold text-text mb-2">{members.length}</div>
                       <div className="text-sm text-muted">Total Members</div>
-                      <div className="text-xs text-accent mt-1">+12% this month</div>
                     </CardContent>
                   </Card>
                   
@@ -1011,7 +1077,6 @@ export default function CommunityDetailPage() {
                       </div>
                       <div className="text-3xl font-bold text-text mb-2">{posts.length}</div>
                       <div className="text-sm text-muted">Announcements</div>
-                      <div className="text-xs text-accent mt-1">+3 this week</div>
                     </CardContent>
                   </Card>
                   
@@ -1105,28 +1170,70 @@ export default function CommunityDetailPage() {
                       
                       <div className="grid gap-6">
                         <div>
-                          <label className="text-sm font-medium text-text mb-2 block">Community Name</label>
-                          <div className="relative p-4 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50">
-                            <div className="font-semibold text-text">{community?.name}</div>
-                          </div>
+                          <Label className="text-sm font-medium text-text mb-2 block">Community Name</Label>
+                          {isEditingInfo ? (
+                            <Input
+                              value={editForm.name}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                              className="bg-background border-border text-text"
+                              placeholder="Enter community name"
+                            />
+                          ) : (
+                            <div className="relative p-4 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50">
+                              <div className="font-semibold text-text">{community?.name}</div>
+                            </div>
+                          )}
                         </div>
                         
                         <div>
-                          <label className="text-sm font-medium text-text mb-2 block">Description</label>
-                          <div className="relative p-4 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50">
-                            <div className="text-muted leading-relaxed">{community?.description}</div>
-                          </div>
+                          <Label className="text-sm font-medium text-text mb-2 block">Description</Label>
+                          {isEditingInfo ? (
+                            <Textarea
+                              value={editForm.description}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                              className="bg-background border-border text-text resize-none"
+                              rows={4}
+                              placeholder="Enter community description"
+                            />
+                          ) : (
+                            <div className="relative p-4 rounded-xl bg-gradient-to-r from-card/80 to-accent/5 border border-border/50">
+                              <div className="text-muted leading-relaxed">{community?.description}</div>
+                            </div>
+                          )}
                         </div>
                       </div>
                       
-                      <Button 
-                        className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
-                        data-testid="edit-community-info-button"
-                      >
-                        <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <Edit3 className="h-5 w-5 mr-2 relative z-10" />
-                        <span className="relative z-10">Edit Information</span>
-                      </Button>
+                      {isEditingInfo ? (
+                        <div className="flex gap-3">
+                          <Button 
+                            onClick={handleSaveInfo}
+                            disabled={updateCommunityMutation.isPending}
+                            className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300"
+                            data-testid="save-community-info-button"
+                          >
+                            <CheckCircle className="h-5 w-5 mr-2" />
+                            {updateCommunityMutation.isPending ? 'Saving...' : 'Save Changes'}
+                          </Button>
+                          <Button 
+                            onClick={handleCancelInfo}
+                            variant="outline"
+                            className="border-border text-text hover:bg-accent/10"
+                            data-testid="cancel-edit-info-button"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button 
+                          onClick={handleEditInfo}
+                          className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
+                          data-testid="edit-community-info-button"
+                        >
+                          <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          <Edit3 className="h-5 w-5 mr-2 relative z-10" />
+                          <span className="relative z-10">Edit Information</span>
+                        </Button>
+                      )}
                     </div>
 
                     {/* Privacy & Access Settings */}
