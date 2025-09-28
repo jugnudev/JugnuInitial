@@ -194,6 +194,33 @@ interface CommunityDetailResponse {
   canManage?: boolean;
 }
 
+// PostCard wrapper that fetches comments for each post
+function PostCardWithComments({
+  post,
+  communityId,
+  ...otherProps
+}: {
+  post: Post;
+  communityId: string;
+  [key: string]: any;
+}) {
+  const { data: commentsData } = useQuery({
+    queryKey: ['/api/communities', communityId, 'posts', post.id, 'comments'],
+    enabled: !!communityId && !!post.id,
+    retry: false,
+  });
+  
+  const comments = commentsData?.comments || [];
+  
+  return (
+    <PostCard
+      {...post}
+      comments={comments}
+      {...otherProps}
+    />
+  );
+}
+
 // Premium animation configurations
 const pageAnimation = {
   initial: { opacity: 0 },
@@ -420,6 +447,8 @@ export default function EnhancedCommunityDetailPage() {
         content, 
         parentId 
       });
+      // Invalidate both community data and comments for this specific post
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', community.id, 'posts', postId, 'comments'] });
       refetch();
     } catch (error) {
       toast({ 
@@ -897,9 +926,10 @@ export default function EnhancedCommunityDetailPage() {
                 ) : (
                   <>
                     {sortedPosts.map((post, idx) => (
-                      <PostCard
+                      <PostCardWithComments
                         key={post.id}
-                        {...post}
+                        post={post}
+                        communityId={community?.id || ''}
                         canEdit={isOwner || post.authorId === user?.id}
                         canDelete={isOwner}
                         onEdit={() => handleEditPost(post)}
@@ -1409,9 +1439,10 @@ export default function EnhancedCommunityDetailPage() {
             ) : (
               <>
                 {sortedPosts.map((post) => (
-                  <PostCard
+                  <PostCardWithComments
                     key={post.id}
-                    {...post}
+                    post={post}
+                    communityId={community?.id || ''}
                     canEdit={post.authorId === user?.id}
                     canDelete={false}
                     onReaction={(type) => handleReaction(post.id, type)}

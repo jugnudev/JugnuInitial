@@ -117,9 +117,9 @@ function CommentItem({
       <div className="flex gap-3 mb-4">
         {/* Avatar */}
         <Avatar className="h-8 w-8 flex-shrink-0">
-          <AvatarImage src={comment.authorAvatar} alt={comment.authorName} />
+          <AvatarImage src={comment.authorAvatar} alt={comment.authorName || 'User'} />
           <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white text-xs">
-            {comment.authorName.substring(0, 2).toUpperCase()}
+            {(comment.authorName || 'U').substring(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
         
@@ -129,7 +129,7 @@ function CommentItem({
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-premium-text-primary">
-                {comment.authorName}
+                {comment.authorName || 'Unknown User'}
               </span>
               
               {comment.authorRole === 'owner' && (
