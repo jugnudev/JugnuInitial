@@ -2099,7 +2099,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X GET http://localhost:5000/api/communities/COMMUNITY_ID/posts?limit=20&offset=0 \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.get('/api/communities/:id/posts', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+  app.get('/api/communities/:id/posts', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const user = (req as any).user;
@@ -2149,7 +2149,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"title":"Post Title","content":"Post content","imageUrls":[]}'
    */
-  app.post('/api/communities/:id/posts', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/posts', checkCommunitiesFeatureFlag, requireSessionAuth, requireCommunityOwner, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
       const community = (req as any).community;
@@ -2249,7 +2249,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X GET http://localhost:5000/api/communities/COMMUNITY_ID/posts/POST_ID \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.get('/api/communities/:id/posts/:postId', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+  app.get('/api/communities/:id/posts/:postId', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const user = (req as any).user;
@@ -2301,14 +2301,14 @@ export function addCommunitiesRoutes(app: Express) {
   });
 
   /**
-   * PATCH /api/communities/:id/posts/:postId
+   * PUT /api/communities/:id/posts/:postId
    * Update post (owner only)
-   * curl -X PATCH http://localhost:5000/api/communities/COMMUNITY_ID/posts/POST_ID \
+   * curl -X PUT http://localhost:5000/api/communities/COMMUNITY_ID/posts/POST_ID \
    *   -H "Authorization: Bearer YOUR_TOKEN" \
    *   -H "Content-Type: application/json" \
    *   -d '{"title":"Updated Title","content":"Updated content"}'
    */
-  app.patch('/api/communities/:id/posts/:postId', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+  app.put('/api/communities/:id/posts/:postId', checkCommunitiesFeatureFlag, requireSessionAuth, requireCommunityOwner, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const community = (req as any).community;
@@ -2341,7 +2341,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X DELETE http://localhost:5000/api/communities/COMMUNITY_ID/posts/POST_ID \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.delete('/api/communities/:id/posts/:postId', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+  app.delete('/api/communities/:id/posts/:postId', checkCommunitiesFeatureFlag, requireSessionAuth, requireCommunityOwner, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const community = (req as any).community;
@@ -2371,7 +2371,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"scheduledAt":"2024-12-01T10:00:00Z"}'
    */
-  app.post('/api/communities/:id/posts/:postId/schedule', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/posts/:postId/schedule', checkCommunitiesFeatureFlag, requireSessionAuth, requireCommunityOwner, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const community = (req as any).community;
@@ -2410,7 +2410,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"pinned":true}'
    */
-  app.post('/api/communities/:id/posts/:postId/pin', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/posts/:postId/pin', checkCommunitiesFeatureFlag, requireSessionAuth, requireCommunityOwner, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const community = (req as any).community;
@@ -2511,7 +2511,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Authorization: Bearer YOUR_TOKEN" \
    *   -F "image=@path/to/image.jpg"
    */
-  app.post('/api/communities/:id/posts/:postId/images', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, upload.single('image'), async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/posts/:postId/images', checkCommunitiesFeatureFlag, requireSessionAuth, requireCommunityOwner, upload.single('image'), async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const community = (req as any).community;
@@ -2555,7 +2555,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X DELETE http://localhost:5000/api/communities/COMMUNITY_ID/posts/POST_ID/images/IMAGE_ID \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.delete('/api/communities/:id/posts/:postId/images/:imageId', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+  app.delete('/api/communities/:id/posts/:postId/images/:imageId', checkCommunitiesFeatureFlag, requireSessionAuth, requireCommunityOwner, async (req: Request, res: Response) => {
     try {
       const { id, postId, imageId } = req.params;
       const community = (req as any).community;
@@ -2585,7 +2585,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"imageIds":["id1","id2","id3"]}'
    */
-  app.patch('/api/communities/:id/posts/:postId/images/reorder', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+  app.patch('/api/communities/:id/posts/:postId/images/reorder', checkCommunitiesFeatureFlag, requireSessionAuth, requireCommunityOwner, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const community = (req as any).community;
@@ -2620,7 +2620,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X GET http://localhost:5000/api/communities/COMMUNITY_ID/posts/POST_ID/reactions \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.get('/api/communities/:id/posts/:postId/reactions', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+  app.get('/api/communities/:id/posts/:postId/reactions', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const user = (req as any).user;
@@ -2663,7 +2663,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"type":"heart"}'
    */
-  app.post('/api/communities/:id/posts/:postId/react', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/posts/:postId/react', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const user = (req as any).user;
@@ -2717,7 +2717,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X DELETE http://localhost:5000/api/communities/COMMUNITY_ID/posts/POST_ID/react/heart \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.delete('/api/communities/:id/posts/:postId/react/:type', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+  app.delete('/api/communities/:id/posts/:postId/react/:type', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
     try {
       const { id, postId, type } = req.params;
       const user = (req as any).user;
