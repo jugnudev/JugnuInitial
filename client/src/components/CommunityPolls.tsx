@@ -72,6 +72,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedPoll, setSelectedPoll] = useState<Poll | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'active' | 'closed'>('active');
   
   // Poll creation form state
   const [question, setQuestion] = useState('');
@@ -85,9 +86,17 @@ export default function CommunityPolls({ communityId, currentMember }: Community
   
   const { toast } = useToast();
   
-  // Load polls
+  // Load polls based on selected tab
   const { data: pollsData, isLoading } = useQuery<{ polls: Poll[] }>({
-    queryKey: ['/api/communities', communityId, 'polls'],
+    queryKey: ['/api/communities', communityId, 'polls', activeTab],
+    queryFn: () => apiRequest('GET', `/api/communities/${communityId}/polls?status=${activeTab}`),
+    enabled: !!currentMember,
+  });
+  
+  // Get counts for all polls to show in tabs
+  const { data: allPollsData } = useQuery<{ polls: Poll[] }>({
+    queryKey: ['/api/communities', communityId, 'polls', 'all'],
+    queryFn: () => apiRequest('GET', `/api/communities/${communityId}/polls?status=all`),
     enabled: !!currentMember,
   });
   
@@ -248,8 +257,8 @@ export default function CommunityPolls({ communityId, currentMember }: Community
   const hasVoted = (poll: Poll) => poll.userVotes && poll.userVotes.length > 0;
   const canViewResults = (poll: Poll) => poll.show_results_before_vote || hasVoted(poll) || poll.is_closed;
   
-  const activePollsCount = pollsData?.polls?.filter((p: Poll) => !p.is_closed).length || 0;
-  const closedPollsCount = pollsData?.polls?.filter((p: Poll) => p.is_closed).length || 0;
+  const activePollsCount = allPollsData?.polls?.filter((p: Poll) => !p.is_closed).length || 0;
+  const closedPollsCount = allPollsData?.polls?.filter((p: Poll) => p.is_closed).length || 0;
   
   if (!currentMember) {
     return (
@@ -283,12 +292,20 @@ export default function CommunityPolls({ communityId, currentMember }: Community
       </div>
       
       {/* Polls Tabs */}
-      <Tabs defaultValue="active" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="active" data-testid="active-polls-tab">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'closed')} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 bg-gray-900 dark:bg-gray-800">
+          <TabsTrigger 
+            value="active" 
+            data-testid="active-polls-tab"
+            className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-300"
+          >
             Active Polls ({activePollsCount})
           </TabsTrigger>
-          <TabsTrigger value="closed" data-testid="closed-polls-tab">
+          <TabsTrigger 
+            value="closed" 
+            data-testid="closed-polls-tab"
+            className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-300"
+          >
             Closed Polls ({closedPollsCount})
           </TabsTrigger>
         </TabsList>
@@ -298,13 +315,13 @@ export default function CommunityPolls({ communityId, currentMember }: Community
             <Card className="p-8 text-center">
               <p className="text-muted-foreground">Loading polls...</p>
             </Card>
-          ) : activePollsCount === 0 ? (
+          ) : !pollsData?.polls || pollsData.polls.length === 0 ? (
             <Card className="p-8 text-center">
               <Vote className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground">No active polls</p>
             </Card>
           ) : (
-            pollsData?.polls?.filter((p: Poll) => !p.is_closed).map((poll: Poll) => (
+            pollsData.polls.map((poll: Poll) => (
               <Card key={poll.id} data-testid={`poll-${poll.id}`}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -469,13 +486,17 @@ export default function CommunityPolls({ communityId, currentMember }: Community
         </TabsContent>
         
         <TabsContent value="closed" className="space-y-4">
-          {closedPollsCount === 0 ? (
+          {isLoading ? (
+            <Card className="p-8 text-center">
+              <p className="text-muted-foreground">Loading polls...</p>
+            </Card>
+          ) : !pollsData?.polls || pollsData.polls.length === 0 ? (
             <Card className="p-8 text-center">
               <XCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
               <p className="text-muted-foreground">No closed polls</p>
             </Card>
           ) : (
-            pollsData?.polls?.filter((p: Poll) => p.is_closed).map((poll: Poll) => (
+            pollsData.polls.map((poll: Poll) => (
               <Card key={poll.id} className="opacity-75">
                 <CardHeader>
                   <div className="flex justify-between items-start">
