@@ -393,6 +393,8 @@ export default function EnhancedCommunityDetailPage() {
     },
     onSuccess: () => {
       toast({ title: "Cover image updated successfully!" });
+      // Invalidate queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', communitySlug] });
       refetch(); // Refetch community data to get the new cover URL
     },
     onError: (error: any) => {
@@ -1497,12 +1499,26 @@ export default function EnhancedCommunityDetailPage() {
                       className="border-2 border-dashed border-premium-border rounded-lg p-8 text-center hover:border-accent transition-colors"
                       existingUrl={community?.coverUrl}
                       onRemove={async () => {
-                        // TODO: Add API endpoint to remove cover image if needed
-                        setCoverImageFile(null);
-                        toast({ 
-                          title: "Cover photo removed", 
-                          description: "You can upload a new one anytime." 
-                        });
+                        try {
+                          if (!community?.id) throw new Error('Community not available');
+                          
+                          // Update community to remove cover image with minimal payload
+                          await updateCommunityMutation.mutateAsync({
+                            coverUrl: null
+                          });
+                          
+                          setCoverImageFile(null);
+                          toast({ 
+                            title: "Cover photo removed", 
+                            description: "You can upload a new one anytime." 
+                          });
+                        } catch (error: any) {
+                          toast({ 
+                            title: "Failed to remove cover photo", 
+                            description: error.message,
+                            variant: "destructive" 
+                          });
+                        }
                       }}
                       data-testid="community-cover-uploader"
                     />
