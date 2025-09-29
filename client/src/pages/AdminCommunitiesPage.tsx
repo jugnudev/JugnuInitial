@@ -573,7 +573,7 @@ export default function AdminCommunitiesPage() {
                 </thead>
                 <tbody>
                   {filteredCommunities.map((community) => (
-                    <tr key={community.id} className="border-b border-white/5 hover:bg-white/5">
+                    <tr key={community.id} className="border-b border-border hover:bg-card">
                       <td className="p-4">
                         <div>
                           <div className="font-medium text-white">{community.name}</div>

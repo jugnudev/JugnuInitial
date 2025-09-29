@@ -530,6 +530,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="What would you like to ask?"
+                className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                 data-testid="poll-question-input"
               />
             </div>
@@ -542,6 +543,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add more context to your poll..."
                 rows={3}
+                className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                 data-testid="poll-description-input"
               />
             </div>
@@ -573,6 +575,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                       value={option}
                       onChange={(e) => handleOptionChange(index, e.target.value)}
                       placeholder={`Option ${index + 1}`}
+                      className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                       data-testid={`poll-option-input-${index}`}
                     />
                     {options.length > 2 && (
@@ -640,6 +643,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                 value={closesAt}
                 onChange={(e) => setClosesAt(e.target.value)}
                 min={new Date().toISOString().slice(0, 16)}
+                className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
               />
             </div>
           </div>

@@ -266,7 +266,7 @@ export default function CommunityFeature() {
           </p>
           
           {/* Guidelines */}
-          <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-left space-y-4">
+          <div className="bg-premium-surface border border-premium-border rounded-xl p-6 text-left space-y-4">
             <h2 className="font-semibold text-white">Guidelines for Featured Events</h2>
             <ul className="space-y-2 text-sm text-muted">
               <li>• Events must be South Asian cultural events in Vancouver</li>
@@ -303,6 +303,7 @@ export default function CommunityFeature() {
                     id="organizerName"
                     {...form.register("organizerName")}
                     placeholder="Your name or organization"
+                    className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                     data-testid="input-organizer-name"
                   />
                   {form.formState.errors.organizerName && (
@@ -317,6 +318,7 @@ export default function CommunityFeature() {
                     type="email"
                     {...form.register("email")}
                     placeholder="your@email.com"
+                    className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                     data-testid="input-email"
                   />
                   {form.formState.errors.email && (
@@ -339,6 +341,7 @@ export default function CommunityFeature() {
                   id="title"
                   {...form.register("title")}
                   placeholder="Enter event name"
+                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                   data-testid="input-title"
                 />
                 {form.formState.errors.title && (
@@ -353,6 +356,7 @@ export default function CommunityFeature() {
                   type="url"
                   {...form.register("eventUrl")}
                   placeholder="eventbrite.com/... or Instagram/website link"
+                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                   data-testid="input-event-url"
                 />
                 <p className="text-xs text-muted/80">Eventbrite, official website, or social media link</p>
@@ -368,6 +372,7 @@ export default function CommunityFeature() {
                   type="url"
                   {...form.register("ticketLink")}
                   placeholder="example.com/tickets (optional)"
+                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                   data-testid="input-ticket-link"
                 />
                 <p className="text-xs text-muted/80">Direct link to purchase tickets</p>
@@ -402,6 +407,7 @@ export default function CommunityFeature() {
                     id="startIso"
                     type="datetime-local"
                     {...form.register("startIso")}
+                    className="bg-card border-border text-card-foreground [&::-webkit-datetime-edit-text]:text-muted-foreground [&::-webkit-datetime-edit-fields-wrapper]:text-muted-foreground"
                     data-testid="input-start-date"
                   />
                   <p className="text-xs text-muted/80">Vancouver timezone - Select date, time, and AM/PM</p>
@@ -416,6 +422,7 @@ export default function CommunityFeature() {
                     id="endIso"
                     type="datetime-local"
                     {...form.register("endIso")}
+                    className="bg-card border-border text-card-foreground [&::-webkit-datetime-edit-text]:text-muted-foreground [&::-webkit-datetime-edit-fields-wrapper]:text-muted-foreground"
                     data-testid="input-end-date"
                   />
                   <p className="text-xs text-muted/80">Vancouver timezone - Select date, time, and AM/PM</p>
@@ -432,6 +439,7 @@ export default function CommunityFeature() {
                     id="address"
                     {...form.register("address")}
                     placeholder="Venue address"
+                    className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                     data-testid="input-address"
                   />
                   {form.formState.errors.address && (
@@ -445,6 +453,7 @@ export default function CommunityFeature() {
                     id="city"
                     {...form.register("city")}
                     placeholder="Enter city"
+                    className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                     data-testid="input-city"
                   />
                   {form.formState.errors.city && (
@@ -545,6 +554,7 @@ export default function CommunityFeature() {
                     {...form.register("imageUrl")}
                     placeholder="example.com/image.jpg (optional if uploading image)"
                     disabled={!!imageFile}
+                    className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                     data-testid="input-image-url"
                   />
                   <p className="text-xs text-muted/80">Direct link to your event poster (16:9 aspect ratio preferred)</p>
@@ -569,6 +579,7 @@ export default function CommunityFeature() {
                   {...form.register("message")}
                   placeholder="Describe your event, what makes it special, expected attendance, etc. (optional)"
                   rows={4}
+                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                   data-testid="textarea-message"
                 />
               </div>

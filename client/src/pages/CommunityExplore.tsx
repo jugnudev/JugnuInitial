@@ -203,7 +203,7 @@ export default function CommunityExplore() {
             {[...Array(6)].map((_, i) => (
               <div
                 key={i}
-                className="aspect-[16/9] bg-white/5 rounded-2xl animate-pulse"
+                className="aspect-[16/9] bg-card rounded-2xl animate-pulse"
               />
             ))}
           </div>
