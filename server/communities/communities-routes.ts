@@ -2742,7 +2742,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"type":"heart"}'
    */
-  app.post('/api/communities/:id/posts/:postId/react', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/posts/:postId/react', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const user = (req as any).user;

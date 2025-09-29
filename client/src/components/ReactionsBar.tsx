@@ -60,7 +60,7 @@ const REACTION_TYPES = [
   }
 ];
 
-// Animation variants
+// Premium animation variants
 const reactionAnimation = {
   initial: { scale: 0, opacity: 0 },
   animate: { 
@@ -68,43 +68,46 @@ const reactionAnimation = {
     opacity: 1,
     transition: {
       type: "spring",
-      stiffness: 500,
-      damping: 15
+      stiffness: 260,
+      damping: 20
     }
   },
   exit: { 
     scale: 0, 
     opacity: 0,
     transition: {
-      duration: 0.2
+      duration: 0.15,
+      ease: "easeInOut"
     }
   },
   hover: {
-    scale: 1.2,
+    scale: 1.1,
+    y: -2,
     transition: {
       type: "spring",
       stiffness: 400,
-      damping: 10
+      damping: 25
     }
   },
   tap: {
-    scale: 0.9,
+    scale: 0.95,
     transition: {
-      duration: 0.1
+      duration: 0.1,
+      ease: "easeOut"
     }
   }
 };
 
 const floatingAnimation = {
-  initial: { y: 0, opacity: 0 },
+  initial: { y: 0, opacity: 0, scale: 0.8 },
   animate: { 
-    y: -40,
+    y: -50,
     opacity: [0, 1, 1, 0],
-    scale: [0.5, 1.2, 1.2, 0.8],
+    scale: [0.8, 1.1, 1, 0.9],
     transition: {
-      duration: 1.5,
-      times: [0, 0.3, 0.7, 1],
-      ease: "easeOut"
+      duration: 1.8,
+      times: [0, 0.2, 0.5, 1],
+      ease: [0.16, 1, 0.3, 1]
     }
   }
 };
@@ -180,13 +183,18 @@ export function ReactionsBar({
               <span className="text-lg">{reaction.emoji}</span>
               <span className="text-xs font-medium">{getReactionCount(reaction.type)}</span>
               
-              {/* Pulse effect for user's reaction */}
+              {/* Subtle pulse effect for user's reaction */}
               {hasReacted(reaction.type) && (
                 <motion.div
-                  className={`absolute inset-0 rounded-full ${reaction.bgColor} opacity-50`}
-                  initial={{ scale: 1 }}
-                  animate={{ scale: 1.5, opacity: 0 }}
-                  transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+                  className={`absolute inset-0 rounded-full ${reaction.bgColor}`}
+                  initial={{ scale: 1, opacity: 0.3 }}
+                  animate={{ scale: 1.3, opacity: 0 }}
+                  transition={{ 
+                    duration: 1.5, 
+                    repeat: Infinity, 
+                    repeatDelay: 3,
+                    ease: "easeOut"
+                  }}
                 />
               )}
             </motion.button>
