@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Users, MessageSquare, Heart, Plus, Lock, Globe, Crown, Star, Sparkles, Check, Zap, Calendar, Award, X, CheckCircle, Clock, TrendingUp, Shield, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Users, MessageSquare, Heart, Plus, Lock, Globe, Crown, Star, Sparkles, Check, Zap, Calendar, Award, X, CheckCircle, Clock, TrendingUp, Shield, ChevronLeft, ChevronRight, Loader2, Camera } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ObjectUploader } from "@/components/ObjectUploader";
 
 interface Community {
   id: string;
@@ -118,6 +119,7 @@ export default function CommunitiesLandingPage() {
   const [communityForm, setCommunityForm] = useState({
     name: '',
     description: '',
+    coverUrl: '',
     isPrivate: false,
     membershipPolicy: 'approval_required',
     category: '',
@@ -262,6 +264,7 @@ export default function CommunitiesLandingPage() {
     setCommunityForm({
       name: '',
       description: '',
+      coverUrl: '',
       isPrivate: false,
       membershipPolicy: 'approval_required',
       category: '',
@@ -319,9 +322,36 @@ export default function CommunitiesLandingPage() {
     retry: false,
   });
 
+  // Cover image upload mutation
+  const uploadCoverImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('coverImage', file);
+      
+      const response = await fetch('/api/communities/upload/cover', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload cover image');
+      }
+      
+      const data = await response.json();
+      return data.url;
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to upload cover image", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
   // Create community mutation
   const createCommunityMutation = useMutation({
-    mutationFn: async (data: { name: string; description: string; isPrivate?: boolean; membershipPolicy?: string }) => {
+    mutationFn: async (data: { name: string; description: string; coverUrl?: string; isPrivate?: boolean; membershipPolicy?: string }) => {
       const response = await apiRequest('POST', '/api/communities', data);
       if (!response.ok) {
         throw new Error('Failed to create community');
@@ -993,6 +1023,30 @@ export default function CommunitiesLandingPage() {
                         <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <div>
+                    <Label className="text-text font-medium mb-2 block">Cover Photo (Optional)</Label>
+                    <p className="text-sm text-muted mb-4">Add a cover photo to make your community stand out. This will be displayed on your community card.</p>
+                    <ObjectUploader
+                      onUpload={async (file: File) => {
+                        const url = await uploadCoverImageMutation.mutateAsync(file);
+                        setCommunityForm(prev => ({ ...prev, coverUrl: url }));
+                        return url;
+                      }}
+                      accept="image/*"
+                      maxSizeMB={5}
+                      placeholder="Drop your cover image here or click to upload"
+                      className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-accent transition-colors"
+                      existingUrl={communityForm.coverUrl}
+                      onRemove={() => setCommunityForm(prev => ({ ...prev, coverUrl: '' }))}
+                    />
+                    {uploadCoverImageMutation.isPending && (
+                      <div className="flex items-center gap-2 mt-2 text-sm text-muted">
+                        <Camera className="h-4 w-4 animate-pulse" />
+                        Uploading cover image...
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
