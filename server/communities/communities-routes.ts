@@ -4,7 +4,7 @@ import multer from 'multer';
 import Stripe from 'stripe';
 import { communitiesStorage } from './communities-supabase';
 import { insertUserSchema } from '@shared/schema';
-import { uploadCommunityPostImage, uploadCommunityCoverImage, uploadUserProfileImage } from '../services/storageService';
+import { uploadCommunityPostImage, uploadCommunityCoverImage, uploadCommunityProfileImage, uploadUserProfileImage } from '../services/storageService';
 import { rateLimiter, rateLimitPresets, ipBlocker } from './rate-limiter';
 import { sanitizeText, sanitizeHTML, validateFileUpload, CSRFProtection, sanitizeMiddleware } from './input-sanitizer';
 import { inviteSystem } from './invite-system';
@@ -2538,6 +2538,38 @@ export function addCommunitiesRoutes(app: Express) {
     } catch (error: any) {
       console.error('Community cover image upload error:', error);
       res.status(500).json({ ok: false, error: error.message || 'Failed to upload cover image' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/upload-profile-image
+   * Upload profile image for community
+   * curl -X POST http://localhost:5000/api/communities/COMMUNITY_ID/upload-profile-image \
+   *   -H "Authorization: Bearer YOUR_TOKEN" \
+   *   -F "image=@path/to/profile.jpg"
+   */
+  app.post('/api/communities/:id/upload-profile-image', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const file = req.file;
+      const community = (req as any).community; // Already validated by requireCommunityOwner
+
+      if (!file) {
+        return res.status(400).json({ ok: false, error: 'No image file provided' });
+      }
+
+      const imageUrl = await uploadCommunityProfileImage(file, community.id);
+
+      // Update community with new profile image
+      await communitiesStorage.updateCommunity(community.id, { imageUrl });
+
+      res.json({
+        ok: true,
+        imageUrl
+      });
+    } catch (error: any) {
+      console.error('Community profile image upload error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to upload profile image' });
     }
   });
 

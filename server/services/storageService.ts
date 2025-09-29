@@ -289,6 +289,66 @@ export async function uploadCommunityCoverImage(
   return urlData.publicUrl;
 }
 
+// Upload community profile image
+export async function uploadCommunityProfileImage(
+  file: Express.Multer.File,
+  communityId: string
+): Promise<string> {
+  const supabase = getStorageClient();
+  const bucketName = 'community-profiles';
+  
+  // Validate file type
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(file.mimetype)) {
+    throw new Error(`Invalid file type: ${file.mimetype}. Only JPEG, PNG, and WebP images are allowed.`);
+  }
+  
+  // Validate file size (max 5MB)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxSize) {
+    throw new Error('File size must be less than 5MB');
+  }
+  
+  // Generate unique path
+  const timestamp = Date.now();
+  const safeFilename = slugify(file.originalname, { lower: true, strict: true });
+  const path = `communities/${communityId}/profile/${timestamp}-${safeFilename}`;
+  
+  // Create bucket if it doesn't exist
+  const { error: bucketError } = await supabase.storage.getBucket(bucketName);
+  if (bucketError && bucketError.message.includes('not found')) {
+    const { error: createError } = await supabase.storage.createBucket(bucketName, {
+      public: true,
+      fileSizeLimit: maxSize,
+      allowedMimeTypes: allowedTypes
+    });
+    if (createError) {
+      console.error('Failed to create community profiles bucket:', createError);
+      throw new Error(`Failed to create storage bucket: ${createError.message}`);
+    }
+  }
+  
+  // Upload to Supabase Storage
+  const { data, error } = await supabase.storage
+    .from(bucketName)
+    .upload(path, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false
+    });
+  
+  if (error) {
+    console.error('Community profile image upload error:', error);
+    throw new Error(`Failed to upload profile image: ${error.message}`);
+  }
+  
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from(bucketName)
+    .getPublicUrl(data.path);
+  
+  return urlData.publicUrl;
+}
+
 // Upload user profile image
 export async function uploadUserProfileImage(
   file: Express.Multer.File,

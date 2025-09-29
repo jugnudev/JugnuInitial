@@ -367,6 +367,45 @@ export default function EnhancedCommunityDetailPage() {
     },
   });
 
+  // Upload profile image mutation
+  const uploadProfileImageMutation = useMutation({
+    mutationFn: async ({ file, communityId }: { file: File; communityId: string }) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      // Use fetch directly for form data but with proper token from apiRequest context
+      const token = localStorage.getItem('community_auth_token');
+      const response = await fetch(`/api/communities/${communityId}/upload-profile-image`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload profile image');
+      }
+      
+      const data = await response.json();
+      return data.imageUrl;
+    },
+    onSuccess: () => {
+      toast({ title: "Profile picture updated successfully!" });
+      // Invalidate queries to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', communitySlug] });
+      refetch(); // Refetch community data to get the new profile image URL
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to upload profile picture", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
   // Upload cover image mutation
   const uploadCoverImageMutation = useMutation({
     mutationFn: async ({ file, communityId }: { file: File; communityId: string }) => {
@@ -1473,6 +1512,65 @@ export default function EnhancedCommunityDetailPage() {
                       }}
                       rows={4}
                     />
+                  </div>
+
+                  <div>
+                    <Label className="text-premium-text-primary font-medium mb-2 block">Profile Picture</Label>
+                    <p className="text-sm text-premium-text-muted mb-4">
+                      Upload a profile picture for your community. This will be displayed as your community's avatar.
+                    </p>
+                    <div className="flex items-start gap-6">
+                      <div className="flex-shrink-0">
+                        <Avatar className="w-24 h-24 border-2 border-premium-border shadow-sm">
+                          <AvatarImage src={community?.imageUrl} alt={community?.name} />
+                          <AvatarFallback className="text-lg font-bold bg-gradient-to-br from-copper-500 to-copper-900 text-white">
+                            {community?.name?.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="flex-1">
+                        <ObjectUploader
+                          onUpload={async (file: File) => {
+                            if (!community?.id) throw new Error('Community not available');
+                            
+                            const imageUrl = await uploadProfileImageMutation.mutateAsync({ 
+                              file, 
+                              communityId: community.id 
+                            });
+                            return imageUrl;
+                          }}
+                          accept="image/*"
+                          maxSizeMB={5}
+                          placeholder="Upload profile picture"
+                          className="max-w-md"
+                          existingUrl={community?.imageUrl}
+                          onRemove={async () => {
+                            try {
+                              if (!community?.id) throw new Error('Community not available');
+                              
+                              // Update community to remove profile image
+                              await updateCommunityMutation.mutateAsync({
+                                imageUrl: null
+                              });
+                              
+                              toast({ 
+                                title: "Profile picture removed", 
+                                description: "You can upload a new one anytime." 
+                              });
+                            } catch (error: any) {
+                              toast({ 
+                                title: "Failed to remove profile picture", 
+                                description: error.message,
+                                variant: "destructive" 
+                              });
+                            }
+                          }}
+                        />
+                        <p className="text-xs text-premium-text-muted mt-3">
+                          Upload a clear image of your community. JPG, PNG, or WebP up to 5MB.
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   <div>
