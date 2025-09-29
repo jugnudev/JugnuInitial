@@ -164,6 +164,21 @@ export function PostCard({
             shadow: 'hover:shadow-blue-500/20'
           }
         };
+      default:
+        // Default to announcement styling if postType is undefined or invalid
+        return {
+          badge: {
+            color: 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-yellow-400 border-yellow-500/30',
+            icon: Sparkles,
+            label: 'Announcement'
+          },
+          card: {
+            border: 'border-yellow-500/30 hover:border-yellow-500/50',
+            background: 'bg-gradient-to-br from-premium-surface via-amber-500/5 to-premium-surface-elevated',
+            accent: 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20',
+            shadow: 'hover:shadow-yellow-500/20'
+          }
+        };
     }
   };
   

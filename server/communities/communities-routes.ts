@@ -2154,7 +2154,7 @@ export function addCommunitiesRoutes(app: Express) {
       const { id } = req.params;
       const community = (req as any).community;
       const user = (req as any).user;
-      const { title, content, imageUrls = [], scheduledAt } = req.body;
+      const { title, content, imageUrls = [], scheduledAt, postType, isPinned, status } = req.body;
 
       if (!title || !content) {
         return res.status(400).json({ ok: false, error: 'Title and content are required' });
@@ -2166,7 +2166,9 @@ export function addCommunitiesRoutes(app: Express) {
         title,
         content,
         imageUrls,
-        status: scheduledAt ? 'scheduled' : 'published',
+        postType: postType || 'announcement',
+        isPinned: isPinned || false,
+        status: status || (scheduledAt ? 'scheduled' : 'published'),
         scheduledAt
       });
 
