@@ -960,7 +960,7 @@ export class CommunitiesSupabaseDB {
     return this.mapPostFromDb(post);
   }
 
-  async getPostsByCommunityId(communityId: string, limit: number = 20, offset: number = 0): Promise<{ posts: CommunityPost[], total: number }> {
+  async getPostsByCommunityId(communityId: string, limit: number = 20, offset: number = 0, userId?: string): Promise<{ posts: CommunityPost[], total: number }> {
     // Get total count
     const { count, error: countError } = await this.client
       .from('community_posts')
@@ -982,8 +982,64 @@ export class CommunitiesSupabaseDB {
 
     if (error) throw error;
     
+    if (!data || data.length === 0) {
+      return {
+        posts: [],
+        total: count || 0
+      };
+    }
+
+    // Get post IDs for reactions lookup
+    const postIds = data.map(post => post.id);
+    
+    // Get all reactions for these posts
+    const { data: reactionsData, error: reactionsError } = await this.client
+      .from('community_post_reactions')
+      .select('post_id, reaction_type, user_id')
+      .in('post_id', postIds);
+
+    if (reactionsError) throw reactionsError;
+
+    // Aggregate reactions by post and type
+    const reactionsByPost: Record<string, Record<string, { count: number; hasReacted: boolean }>> = {};
+    
+    if (reactionsData) {
+      reactionsData.forEach(reaction => {
+        if (!reactionsByPost[reaction.post_id]) {
+          reactionsByPost[reaction.post_id] = {};
+        }
+        if (!reactionsByPost[reaction.post_id][reaction.reaction_type]) {
+          reactionsByPost[reaction.post_id][reaction.reaction_type] = { count: 0, hasReacted: false };
+        }
+        reactionsByPost[reaction.post_id][reaction.reaction_type].count += 1;
+        
+        // Check if current user has reacted
+        if (userId && reaction.user_id === userId) {
+          reactionsByPost[reaction.post_id][reaction.reaction_type].hasReacted = true;
+        }
+      });
+    }
+
+    // Map posts and include reactions
+    const postsWithReactions = data.map(post => {
+      const mappedPost = this.mapPostFromDb(post);
+      const postReactions = reactionsByPost[post.id] || {};
+      
+      // Convert to array format expected by frontend
+      const reactions = Object.entries(postReactions).map(([type, data]) => ({
+        type,
+        count: data.count,
+        hasReacted: data.hasReacted
+      }));
+      
+      return {
+        ...mappedPost,
+        reactions
+      };
+    });
+    
     return {
-      posts: data ? data.map(this.mapPostFromDb) : [],
+      posts: postsWithReactions,
       total: count || 0
     };
   }
