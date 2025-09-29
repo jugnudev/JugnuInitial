@@ -3356,7 +3356,7 @@ export function addCommunitiesRoutes(app: Express) {
           if (organizer && organizer.user_id === user.id) {
             // User is the organizer but doesn't have owner role, fix it
             console.log('Poll creation - Auto-fixing owner membership for community organizer');
-            await communitiesStorage.updateCommunityMembership(communityId, user.id, {
+            await communitiesStorage.updateMembership(membership.id, {
               role: 'owner',
               status: 'approved',
               approvedAt: new Date().toISOString()
