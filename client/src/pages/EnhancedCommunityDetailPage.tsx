@@ -295,6 +295,7 @@ export default function EnhancedCommunityDetailPage() {
   const [memberFilter, setMemberFilter] = useState('all');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [communitySettings, setCommunitySettings] = useState({
     name: '',
     description: '',
@@ -360,6 +361,43 @@ export default function EnhancedCommunityDetailPage() {
     onError: (error: any) => {
       toast({ 
         title: "Failed to update community", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Upload cover image mutation
+  const uploadCoverImageMutation = useMutation({
+    mutationFn: async ({ file, communityId }: { file: File; communityId: string }) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      // Use fetch directly for form data but with proper token from apiRequest context
+      const token = localStorage.getItem('community_auth_token');
+      const response = await fetch(`/api/communities/${communityId}/upload-cover-image`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload cover image');
+      }
+      
+      const data = await response.json();
+      return data.coverUrl;
+    },
+    onSuccess: () => {
+      toast({ title: "Cover image updated successfully!" });
+      refetch(); // Refetch community data to get the new cover URL
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to upload cover image", 
         description: error.message,
         variant: "destructive" 
       });
@@ -1435,6 +1473,45 @@ export default function EnhancedCommunityDetailPage() {
                       }}
                       rows={4}
                     />
+                  </div>
+
+                  <div>
+                    <Label className="text-premium-text-primary font-medium mb-2 block">Cover Photo</Label>
+                    <p className="text-sm text-premium-text-muted mb-4">
+                      Upload a cover photo to make your community stand out. This will be displayed on your community header and card.
+                    </p>
+                    <ObjectUploader
+                      onUpload={async (file: File) => {
+                        if (!community?.id) throw new Error('Community not available');
+                        
+                        setCoverImageFile(file);
+                        const coverUrl = await uploadCoverImageMutation.mutateAsync({ 
+                          file, 
+                          communityId: community.id 
+                        });
+                        return coverUrl;
+                      }}
+                      accept="image/*"
+                      maxSizeMB={5}
+                      placeholder="Drop your cover image here or click to upload"
+                      className="border-2 border-dashed border-premium-border rounded-lg p-8 text-center hover:border-accent transition-colors"
+                      existingUrl={community?.coverUrl}
+                      onRemove={async () => {
+                        // TODO: Add API endpoint to remove cover image if needed
+                        setCoverImageFile(null);
+                        toast({ 
+                          title: "Cover photo removed", 
+                          description: "You can upload a new one anytime." 
+                        });
+                      }}
+                      data-testid="community-cover-uploader"
+                    />
+                    {uploadCoverImageMutation.isPending && (
+                      <div className="flex items-center gap-2 mt-2 text-sm text-premium-text-muted">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Uploading cover image...
+                      </div>
+                    )}
                   </div>
                   
                   <div>
