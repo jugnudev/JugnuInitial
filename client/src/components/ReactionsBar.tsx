@@ -16,24 +16,8 @@ interface ReactionsBarProps {
   className?: string;
 }
 
-// Define available reactions with icons and colors
+// Define available reactions with icons and colors (testing database constraint)
 const REACTION_TYPES = [
-  { 
-    type: 'love',
-    emoji: '❤️',
-    icon: Heart,
-    color: 'text-red-500',
-    bgColor: 'bg-red-500/10 hover:bg-red-500/20',
-    borderColor: 'border-red-500/30'
-  },
-  { 
-    type: 'like',
-    emoji: '👍',
-    icon: ThumbsUp,
-    color: 'text-blue-500',
-    bgColor: 'bg-blue-500/10 hover:bg-blue-500/20',
-    borderColor: 'border-blue-500/30'
-  },
   { 
     type: 'fire',
     emoji: '🔥',
@@ -41,22 +25,6 @@ const REACTION_TYPES = [
     color: 'text-orange-500',
     bgColor: 'bg-orange-500/10 hover:bg-orange-500/20',
     borderColor: 'border-orange-500/30'
-  },
-  { 
-    type: 'celebrate',
-    emoji: '🎉',
-    icon: PartyPopper,
-    color: 'text-purple-500',
-    bgColor: 'bg-purple-500/10 hover:bg-purple-500/20',
-    borderColor: 'border-purple-500/30'
-  },
-  { 
-    type: 'star',
-    emoji: '⭐',
-    icon: Star,
-    color: 'text-yellow-500',
-    bgColor: 'bg-yellow-500/10 hover:bg-yellow-500/20',
-    borderColor: 'border-yellow-500/30'
   }
 ];
 

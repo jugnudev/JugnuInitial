@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, boolean, numeric, uuid, integer, date, jsonb, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, numeric, uuid, integer, date, jsonb, index, check } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -791,8 +791,11 @@ export const communityPostReactions = pgTable("community_post_reactions", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   postId: uuid("post_id").notNull().references(() => communityPosts.id, { onDelete: 'cascade' }),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  reactionType: text("reaction_type").notNull(), // heart | thumbs_up | fire
-});
+  reactionType: text("reaction_type").notNull(), // love | like | fire | celebrate | star
+}, (table) => ({
+  reactionTypeCheck: check("community_post_reactions_reaction_type_check", 
+    sql`${table.reactionType} IN ('love', 'like', 'fire', 'celebrate', 'star')`)
+}));
 
 // Comments on posts
 export const communityComments = pgTable("community_comments", {

@@ -427,12 +427,53 @@ export default function EnhancedCommunityDetailPage() {
   const handleReaction = async (postId: string, type: string) => {
     if (!community?.id) return;
     
+    // Check if data is available
+    if (!communityData?.posts) {
+      toast({ 
+        title: "Please wait", 
+        description: "Posts are still loading...",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    // Find the post to check if user has already reacted
+    const post = communityData.posts.find(p => p.id === postId);
+    if (!post) {
+      toast({ 
+        title: "Post not found", 
+        description: "Unable to find the post to react to.",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    const existingReaction = post.reactions?.find(r => r.type === type);
+    const hasReacted = existingReaction?.hasReacted;
+    
     try {
-      await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type });
+      if (hasReacted) {
+        // Remove reaction
+        console.log('[REACTION DEBUG] Removing reaction - type:', type, 'postId:', postId);
+        console.log('[REACTION DEBUG] Auth token available:', !!localStorage.getItem('community_auth_token'));
+        
+        await apiRequest('DELETE', `/api/communities/${community.id}/posts/${postId}/react/${type}`, {});
+        toast({ 
+          title: "Reaction removed", 
+          description: "Your reaction has been removed from this post."
+        });
+      } else {
+        // Add reaction
+        await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type });
+        toast({ 
+          title: "Reaction added", 
+          description: "Your reaction has been added to this post."
+        });
+      }
       refetch();
     } catch (error) {
       toast({ 
-        title: "Failed to add reaction", 
+        title: hasReacted ? "Failed to remove reaction" : "Failed to add reaction", 
         variant: "destructive" 
       });
     }

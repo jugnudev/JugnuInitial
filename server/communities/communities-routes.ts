@@ -469,6 +469,14 @@ export function addCommunitiesRoutes(app: Express) {
           status: 'active',
           emailVerified: true
         });
+      } else {
+        // For existing users with 'signin' or 'login' verification, ensure they're active
+        if ((authCode.purpose === 'signin' || authCode.purpose === 'login') && user.status !== 'active') {
+          await communitiesStorage.updateUser(user.id, {
+            status: 'active',
+            emailVerified: true
+          });
+        }
       }
 
       // Create session
@@ -2661,7 +2669,8 @@ export function addCommunitiesRoutes(app: Express) {
       const user = (req as any).user;
       const { type } = req.body;
 
-      if (!['love', 'like', 'fire', 'celebrate', 'star'].includes(type)) {
+      // Validate reaction type (testing with minimal constraint)
+      if (!['fire'].includes(type)) {
         return res.status(400).json({ ok: false, error: 'Invalid reaction type' });
       }
 
@@ -2712,6 +2721,8 @@ export function addCommunitiesRoutes(app: Express) {
     try {
       const { id, postId, type } = req.params;
       const user = (req as any).user;
+      
+      console.log('[REACTION DEBUG] DELETE request - postId:', postId, 'type:', type, 'userId:', user?.id);
 
       const community = await communitiesStorage.getCommunityById(id);
       if (!community) {
