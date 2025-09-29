@@ -19,6 +19,14 @@ interface ReactionsBarProps {
 // Define available reactions with icons and colors (match actual database constraint)
 const REACTION_TYPES = [
   { 
+    type: 'heart',
+    emoji: '❤️',
+    icon: Heart,
+    color: 'text-red-500',
+    bgColor: 'bg-red-500/10 hover:bg-red-500/20',
+    borderColor: 'border-red-500/30'
+  },
+  { 
     type: 'fire',
     emoji: '🔥',
     icon: Flame,
@@ -122,16 +130,18 @@ export function ReactionsBar({
   };
   
   const handleReaction = (type: string, emoji: string) => {
-    // Add floating animation
-    const id = `${Date.now()}-${Math.random()}`;
-    setFloatingReactions(prev => [...prev, { id, emoji }]);
+    // Only add floating animation if not already reacted (i.e., adding new reaction)
+    if (!hasReacted(type)) {
+      const id = `${Date.now()}-${Math.random()}`;
+      setFloatingReactions(prev => [...prev, { id, emoji }]);
+      
+      // Remove floating reaction after animation
+      setTimeout(() => {
+        setFloatingReactions(prev => prev.filter(r => r.id !== id));
+      }, 1500);
+    }
     
-    // Remove floating reaction after animation
-    setTimeout(() => {
-      setFloatingReactions(prev => prev.filter(r => r.id !== id));
-    }, 1500);
-    
-    // Call the reaction handler
+    // Call the reaction handler - backend will toggle the reaction
     if (onReaction) {
       onReaction(type);
     }
@@ -201,11 +211,8 @@ export function ReactionsBar({
         <AnimatePresence>
           {showPicker && (
             <>
-              {/* Backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+              {/* Backdrop - instant appearance, no delay */}
+              <div
                 className="fixed inset-0 z-40"
                 onClick={() => setShowPicker(false)}
               />

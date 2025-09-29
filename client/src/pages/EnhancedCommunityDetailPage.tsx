@@ -543,54 +543,19 @@ export default function EnhancedCommunityDetailPage() {
   const handleReaction = async (postId: string, type: string) => {
     if (!community?.id) return;
     
-    // Check if data is available
-    if (!communityData?.posts) {
-      toast({ 
-        title: "Please wait", 
-        description: "Posts are still loading...",
-        variant: "destructive" 
-      });
-      return;
-    }
-    
-    // Find the post to check if user has already reacted
-    const post = communityData.posts.find(p => p.id === postId);
-    if (!post) {
-      toast({ 
-        title: "Post not found", 
-        description: "Unable to find the post to react to.",
-        variant: "destructive" 
-      });
-      return;
-    }
-    
-    // Find if user has reacted with the specific type
-    const existingReaction = post.reactions?.find(r => r.type === type);
-    const hasReactedWithThisType = existingReaction?.hasReacted;
-    
-    // Find if user has reacted with ANY type (for one-reaction-per-post rule)
-    const userCurrentReaction = post.reactions?.find(r => r.hasReacted);
-    
     try {
-      if (hasReactedWithThisType) {
-        // User clicked their own reaction - remove it
-        await apiRequest('DELETE', `/api/communities/${community.id}/posts/${postId}/react/${type}`, {});
-        toast({ 
-          title: "Reaction removed", 
-          description: "Your reaction has been removed from this post."
-        });
-      } else {
-        // User wants to add a reaction (backend handles replacing existing reaction automatically)
-        await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type });
-        toast({ 
-          title: "Reaction added", 
-          description: `You reacted with ${type === 'fire' ? '🔥' : type === 'like' ? '👍' : type === 'star' ? '⭐' : type === 'celebrate' ? '🎉' : type}!`
-        });
-      }
+      // Backend automatically toggles the reaction
+      // If user already reacted with this type, it removes it
+      // If user reacted with a different type, it replaces it
+      // If no reaction, it adds it
+      await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type });
+      
+      // Refetch to get updated reactions
       refetch();
-    } catch (error) {
+    } catch (error: any) {
       toast({ 
-        title: hasReactedWithThisType ? "Failed to remove reaction" : "Failed to add reaction", 
+        title: "Failed to update reaction", 
+        description: error.message || "Please try again",
         variant: "destructive" 
       });
     }
