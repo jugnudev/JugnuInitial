@@ -375,7 +375,7 @@ export function CommentsSection({
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
               placeholder="Write a comment..."
-              className="min-h-[80px] bg-premium-surface border-premium-border text-premium-text-primary placeholder:text-premium-text-muted resize-none"
+              className="min-h-[80px] resize-none"
               data-testid={`new-comment-${postId}`}
             />
             
@@ -424,7 +424,7 @@ export function CommentsSection({
                           value={replyContent}
                           onChange={(e) => setReplyContent(e.target.value)}
                           placeholder="Write a reply..."
-                          className="min-h-[60px] bg-premium-surface border-premium-border text-premium-text-primary placeholder:text-premium-text-muted"
+                          className="min-h-[60px]"
                           autoFocus
                           data-testid={`reply-input-${comment.id}`}
                         />

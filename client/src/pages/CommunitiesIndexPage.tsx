@@ -634,7 +634,6 @@ export default function CommunitiesIndexPage() {
                       value={communityForm.name}
                       onChange={(e) => setCommunityForm(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="e.g., Vancouver Food Lovers"
-                      className="bg-premium-surface border-premium-border"
                       data-testid="community-name-input"
                     />
                   </div>
@@ -647,7 +646,6 @@ export default function CommunitiesIndexPage() {
                       onChange={(e) => setCommunityForm(prev => ({ ...prev, description: e.target.value }))}
                       placeholder="Tell people what your community is about..."
                       rows={4}
-                      className="bg-premium-surface border-premium-border"
                       data-testid="community-description-input"
                     />
                   </div>
@@ -684,7 +682,6 @@ export default function CommunitiesIndexPage() {
                     >
                       <SelectTrigger 
                         id="policy"
-                        className="bg-premium-surface border-premium-border"
                         data-testid="membership-policy-select"
                       >
                         <SelectValue />

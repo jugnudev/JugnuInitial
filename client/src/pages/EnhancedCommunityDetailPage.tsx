@@ -1259,7 +1259,7 @@ export default function EnhancedCommunityDetailPage() {
                         });
                       }}
                     >
-                      <SelectTrigger className="bg-premium-surface border-premium-border">
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -1379,7 +1379,6 @@ export default function EnhancedCommunityDetailPage() {
                         // Update locally first for immediate feedback
                         // Then save to server
                       }}
-                      className="bg-premium-surface border-premium-border"
                     />
                   </div>
                   
@@ -1393,7 +1392,6 @@ export default function EnhancedCommunityDetailPage() {
                         // Then save to server
                       }}
                       rows={4}
-                      className="bg-premium-surface border-premium-border"
                     />
                   </div>
                   
@@ -1408,7 +1406,7 @@ export default function EnhancedCommunityDetailPage() {
                         });
                       }}
                     >
-                      <SelectTrigger className="bg-premium-surface border-premium-border">
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
