@@ -644,6 +644,18 @@ export class CommunitiesSupabaseDB {
 
   // ============ COMMUNITIES ============
   async createCommunity(data: InsertCommunity): Promise<Community> {
+    // First, get the organizer to find their user_id
+    const { data: organizer, error: organizerError } = await this.client
+      .from('organizers')
+      .select('user_id')
+      .eq('id', data.organizerId)
+      .single();
+
+    if (organizerError || !organizer) {
+      throw new Error('Organizer not found');
+    }
+
+    // Create the community
     const { data: community, error } = await this.client
       .from('communities')
       .insert({
@@ -659,6 +671,16 @@ export class CommunitiesSupabaseDB {
       .single();
 
     if (error) throw error;
+
+    // Automatically create owner membership for the organizer
+    await this.createMembership({
+      communityId: community.id,
+      userId: organizer.user_id,
+      status: 'approved',
+      role: 'owner',
+      approvedAt: new Date().toISOString()
+    });
+
     return this.mapCommunityFromDb(community);
   }
 
