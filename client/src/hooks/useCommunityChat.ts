@@ -96,7 +96,7 @@ export function useCommunityChat(communityId: string, token: string | null) {
             case 'user_joined':
               setOnlineUsers(prev => {
                 if (!prev.find(u => u.userId === data.payload.userId)) {
-                  return [...prev, data.payload];
+                  return [...prev, { ...data.payload, userRole: data.payload.userRole || 'member' }];
                 }
                 return prev;
               });

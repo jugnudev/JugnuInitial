@@ -68,34 +68,10 @@ export default function CommunityChat({
     sendTyping
   } = useCommunityChat(communityId, authToken);
 
-  // Load chat history
-  const { data: chatHistory, isLoading: historyLoading } = useQuery<{ messages: any[] }>({
-    queryKey: ['/api/communities', communityId, 'chat/messages'],
-    enabled: !!currentMember && isConnected,
-  });
-
-  // Load pinned messages
+  // Load pinned messages (via REST API)
   const { data: pinnedMessages } = useQuery<{ messages: any[] }>({
     queryKey: ['/api/communities', communityId, 'chat/pinned'],
     enabled: !!currentMember && isConnected,
-  });
-
-  // Send message mutation
-  const sendMessageMutation = useMutation({
-    mutationFn: async (data: { content: string, isAnnouncement?: boolean }) => {
-      return apiRequest('POST', `/api/communities/${communityId}/chat/messages`, data);
-    },
-    onSuccess: () => {
-      setMessageInput('');
-      startSlowmodeTimer();
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to send message",
-        description: error.message || "Please try again",
-        variant: "destructive"
-      });
-    }
   });
 
   // Delete message mutation
@@ -192,18 +168,21 @@ export default function CommunityChat({
   };
 
   // Handle send message
-  const handleSendMessage = async (isAnnouncement = false) => {
+  const handleSendMessage = (isAnnouncement = false) => {
     if (!messageInput.trim() || slowmodeTimer > 0 || !canSendMessage()) return;
     
-    // Send via WebSocket for real-time update
+    // Send via WebSocket - server handles persistence and broadcasting
     const sent = wsSendMessage(messageInput, isAnnouncement);
     
     if (sent) {
-      // Also send via API for persistence
-      await sendMessageMutation.mutate({ 
-        content: messageInput, 
-        isAnnouncement 
-      });
+      setMessageInput('');
+      startSlowmodeTimer();
+      
+      // Reset typing indicator
+      if (isTyping) {
+        setIsTyping(false);
+        sendTyping(false);
+      }
     }
   };
 
@@ -232,10 +211,8 @@ export default function CommunityChat({
     };
   }, []);
 
-  // Combine WebSocket messages with loaded history
-  const allMessages = [...(chatHistory?.messages || []), ...messages].filter(
-    (msg, index, self) => index === self.findIndex(m => m.id === msg.id)
-  );
+  // Use messages from WebSocket hook (includes history)
+  const allMessages = messages;
 
   const renderRoleBadge = (role: string) => {
     switch (role) {
@@ -289,8 +266,8 @@ export default function CommunityChat({
 
         {/* Messages */}
         <ScrollArea className="flex-1 p-4">
-          {historyLoading ? (
-            <div className="text-center text-muted-foreground">Loading messages...</div>
+          {!isConnected ? (
+            <div className="text-center text-muted-foreground">Connecting to chat...</div>
           ) : allMessages.length === 0 ? (
             <div className="text-center text-muted-foreground">No messages yet. Start the conversation!</div>
           ) : (
@@ -406,13 +383,13 @@ export default function CommunityChat({
                   onChange={handleInputChange}
                   onKeyDown={handleKeyPress}
                   placeholder={slowmodeTimer > 0 ? `Wait ${slowmodeTimer}s...` : "Type a message..."}
-                  disabled={slowmodeTimer > 0 || sendMessageMutation.isPending}
+                  disabled={slowmodeTimer > 0 || !isConnected}
                   className="flex-1"
                   data-testid="chat-message-input"
                 />
                 <Button
                   onClick={() => handleSendMessage()}
-                  disabled={!messageInput.trim() || slowmodeTimer > 0 || sendMessageMutation.isPending}
+                  disabled={!messageInput.trim() || slowmodeTimer > 0 || !isConnected}
                   size="icon"
                   data-testid="send-message-button"
                 >
@@ -421,7 +398,7 @@ export default function CommunityChat({
                 {currentMember.role === 'owner' && (
                   <Button
                     onClick={() => handleSendMessage(true)}
-                    disabled={!messageInput.trim() || slowmodeTimer > 0 || sendMessageMutation.isPending}
+                    disabled={!messageInput.trim() || slowmodeTimer > 0 || !isConnected}
                     variant="secondary"
                     size="icon"
                     title="Send as announcement"

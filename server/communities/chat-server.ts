@@ -61,7 +61,7 @@ export function startChatServer(httpServer: Server) {
   // Cleanup typing indicators periodically
   setInterval(() => {
     authenticatedClients.forEach((client) => {
-      if (client.isTyping && Date.now() - client.lastActivity.getTime() > 5000) {
+      if (client.isTyping && client.communityId && Date.now() - client.lastActivity.getTime() > 5000) {
         client.isTyping = false;
         broadcastTypingStatus(client.communityId, client.userId, client.userName, false);
       }
@@ -202,10 +202,12 @@ export function startChatServer(httpServer: Server) {
       userIdToClients.get(user.id)!.add(ws);
 
       // Add user to community room
-      if (!communityRooms.has(communityId)) {
-        communityRooms.set(communityId, new Set());
+      if (communityId) {
+        if (!communityRooms.has(communityId)) {
+          communityRooms.set(communityId, new Set());
+        }
+        communityRooms.get(communityId)!.add(user.id);
       }
-      communityRooms.get(communityId)!.add(user.id);
 
       // Send success response
       ws.send(JSON.stringify({
@@ -213,35 +215,38 @@ export function startChatServer(httpServer: Server) {
         payload: {
           userId: user.id,
           userName: client.userName,
-          userRole: membership.role,
-          communityName: community.name,
-          chatMode: community.chatMode,
-          slowmodeSeconds: community.chatSlowmodeSeconds,
+          userRole: membership?.role,
+          communityName: community?.name,
+          chatMode: community?.chatMode,
+          slowmodeSeconds: community?.chatSlowmodeSeconds,
         }
       }));
 
-      // Send online users list
-      const onlineUsers = await getOnlineUsers(communityId);
-      ws.send(JSON.stringify({
-        type: 'online_users',
-        payload: onlineUsers
-      }));
+      // Send online users list, broadcast user joined, and send chat history (only for chat connections)
+      if (communityId) {
+        const onlineUsers = await getOnlineUsers(communityId);
+        ws.send(JSON.stringify({
+          type: 'online_users',
+          payload: { users: onlineUsers }
+        }));
 
-      // Broadcast user joined
-      broadcastToRoom(communityId, {
-        type: 'user_joined',
-        payload: {
-          userId: user.id,
-          userName: client.userName
-        }
-      }, ws);
+        // Broadcast user joined
+        broadcastToRoom(communityId, {
+          type: 'user_joined',
+          payload: {
+            userId: user.id,
+            userName: client.userName,
+            userRole: client.userRole || 'member'
+          }
+        }, ws);
 
-      // Send recent chat history
-      const messages = await communitiesStorage.getChatHistory(communityId, 50, 0);
-      ws.send(JSON.stringify({
-        type: 'chat_history',
-        payload: messages
-      }));
+        // Send recent chat history
+        const messages = await communitiesStorage.getChatHistory(communityId, 50, 0);
+        ws.send(JSON.stringify({
+          type: 'message_history',
+          payload: { messages }
+        }));
+      }
 
     } catch (error) {
       console.error('[WS] Auth error:', error);
@@ -252,8 +257,8 @@ export function startChatServer(httpServer: Server) {
 
   async function handleMessage(ws: WebSocket, payload: MessagePayload) {
     const client = authenticatedClients.get(ws);
-    if (!client) {
-      ws.send(JSON.stringify({ type: 'error', payload: 'Not authenticated' }));
+    if (!client || !client.communityId) {
+      ws.send(JSON.stringify({ type: 'error', payload: 'Not authenticated or no community context' }));
       return;
     }
 
@@ -266,7 +271,7 @@ export function startChatServer(httpServer: Server) {
       }
 
       // Check chat permissions
-      const canSendMessage = checkChatPermission(community.chatMode, client.userRole);
+      const canSendMessage = checkChatPermission(community.chatMode, client.userRole || 'member');
       if (!canSendMessage) {
         ws.send(JSON.stringify({ type: 'error', payload: 'You do not have permission to send messages' }));
         return;
@@ -288,19 +293,20 @@ export function startChatServer(httpServer: Server) {
         }
       }
 
-      // Auto-moderation for banned words
-      if (community.autoModeration && community.bannedWords?.length > 0) {
-        const contentLower = payload.content.toLowerCase();
-        for (const word of community.bannedWords) {
-          if (contentLower.includes(word.toLowerCase())) {
-            ws.send(JSON.stringify({ 
-              type: 'error', 
-              payload: 'Your message contains inappropriate content' 
-            }));
-            return;
-          }
-        }
-      }
+      // Auto-moderation for banned words (if implemented)
+      // Note: autoModeration and bannedWords properties need to be added to Community schema
+      // if (community.autoModeration && community.bannedWords?.length > 0) {
+      //   const contentLower = payload.content.toLowerCase();
+      //   for (const word of community.bannedWords) {
+      //     if (contentLower.includes(word.toLowerCase())) {
+      //       ws.send(JSON.stringify({ 
+      //         type: 'error', 
+      //         payload: 'Your message contains inappropriate content' 
+      //       }));
+      //       return;
+      //     }
+      //   }
+      // }
 
       // Save message to database
       const savedMessage = await communitiesStorage.saveChatMessage(
@@ -312,12 +318,8 @@ export function startChatServer(httpServer: Server) {
 
       // Broadcast message to room
       broadcastToRoom(client.communityId, {
-        type: 'new_message',
-        payload: {
-          ...savedMessage,
-          userName: client.userName,
-          userRole: client.userRole
-        }
+        type: 'message',
+        payload: savedMessage
       });
 
       // Reset typing indicator
@@ -334,7 +336,7 @@ export function startChatServer(httpServer: Server) {
 
   function handleTyping(ws: WebSocket, isTyping: boolean) {
     const client = authenticatedClients.get(ws);
-    if (!client) return;
+    if (!client || !client.communityId) return;
 
     client.isTyping = isTyping;
     client.lastActivity = new Date();
@@ -361,27 +363,29 @@ export function startChatServer(httpServer: Server) {
         userIdToClients.delete(client.userId);
         
         // Remove from community room
-        const room = communityRooms.get(client.communityId);
-        if (room) {
-          room.delete(client.userId);
-          if (room.size === 0) {
-            communityRooms.delete(client.communityId);
+        if (client.communityId) {
+          const room = communityRooms.get(client.communityId);
+          if (room) {
+            room.delete(client.userId);
+            if (room.size === 0) {
+              communityRooms.delete(client.communityId);
+            }
           }
-        }
 
-        // Broadcast user left
-        broadcastToRoom(client.communityId, {
-          type: 'user_left',
-          payload: {
-            userId: client.userId,
-            userName: client.userName
-          }
-        });
+          // Broadcast user left
+          broadcastToRoom(client.communityId, {
+            type: 'user_left',
+            payload: {
+              userId: client.userId,
+              userName: client.userName
+            }
+          });
+        }
       }
     }
 
     // Clear typing indicator if needed
-    if (client.isTyping) {
+    if (client.isTyping && client.communityId) {
       broadcastTypingStatus(client.communityId, client.userId, client.userName, false);
     }
   }
@@ -410,7 +414,7 @@ export function startChatServer(httpServer: Server) {
     if (!room || room.size === 0) return [];
 
     const onlineUsers = [];
-    for (const userId of room) {
+    for (const userId of Array.from(room)) {
       const user = await communitiesStorage.getUserById(userId);
       if (user) {
         const membership = await communitiesStorage.getCommunityMembership(communityId, userId);
