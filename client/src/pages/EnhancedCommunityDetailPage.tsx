@@ -350,7 +350,8 @@ export default function EnhancedCommunityDetailPage() {
   // Update community mutation
   const updateCommunityMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest('PUT', `/api/communities/${communitySlug}`, data);
+      if (!community?.id) throw new Error('Community ID not available');
+      return apiRequest('PATCH', `/api/communities/${community.id}`, data);
     },
     onSuccess: () => {
       toast({ title: "Community settings updated!" });
