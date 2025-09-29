@@ -53,16 +53,16 @@
   --copper-900: hsl(24, 76%, 20%);
 
   /* Premium Ticketing Design Tokens */
-  --premium-surface: hsl(0, 0%, 8%);
-  --premium-surface-elevated: hsl(0, 0%, 12%);
-  --premium-surface-glass: hsla(0, 0%, 15%, 0.8);
-  --premium-border: hsl(0, 0%, 20%);
-  --premium-border-hover: hsl(28, 30%, 25%);
+  --premium-surface: hsl(240, 3.7%, 15.9%); /* zinc-900 equivalent */
+  --premium-surface-elevated: hsl(240, 4.9%, 9%); /* zinc-950 equivalent */
+  --premium-surface-glass: hsla(240, 3.7%, 15.9%, 0.95);
+  --premium-border: hsl(240, 3.7%, 15.9%); /* zinc-800 equivalent */
+  --premium-border-hover: hsl(28, 89%, 57%); /* copper accent on hover */
   --premium-gold: hsl(45, 85%, 65%);
   --premium-gold-muted: hsl(45, 60%, 45%);
-  --premium-text-primary: hsl(31, 15%, 95%);
-  --premium-text-secondary: hsl(26, 13%, 75%);
-  --premium-text-muted: hsl(26, 10%, 60%);
+  --premium-text-primary: hsl(0, 0%, 98%); /* zinc-50 equivalent */
+  --premium-text-secondary: hsl(240, 5%, 84%); /* zinc-300 equivalent */
+  --premium-text-muted: hsl(240, 3.8%, 46.1%); /* zinc-600 equivalent */
   
   /* Premium Shadows */
   --shadow-subtle: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
