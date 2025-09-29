@@ -237,8 +237,16 @@ export function CommunitiesProfilePage() {
       const formData = new FormData();
       formData.append('image', file);
       
+      // Get auth token from localStorage for authentication
+      const authToken = localStorage.getItem('community_auth_token');
+      const headers: HeadersInit = {};
+      if (authToken) {
+        headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      
       const response = await fetch('/api/auth/upload-profile-image', {
         method: 'POST',
+        headers,
         body: formData,
         credentials: 'include',
       });
