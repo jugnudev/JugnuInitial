@@ -89,14 +89,20 @@ export default function CommunityPolls({ communityId, currentMember }: Community
   // Load polls based on selected tab
   const { data: pollsData, isLoading } = useQuery<{ polls: Poll[] }>({
     queryKey: ['/api/communities', communityId, 'polls', activeTab],
-    queryFn: () => apiRequest('GET', `/api/communities/${communityId}/polls?status=${activeTab}`),
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/communities/${communityId}/polls?status=${activeTab}`);
+      return response.json();
+    },
     enabled: !!currentMember,
   });
   
   // Get counts for all polls to show in tabs
   const { data: allPollsData } = useQuery<{ polls: Poll[] }>({
     queryKey: ['/api/communities', communityId, 'polls', 'all'],
-    queryFn: () => apiRequest('GET', `/api/communities/${communityId}/polls?status=all`),
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/communities/${communityId}/polls?status=all`);
+      return response.json();
+    },
     enabled: !!currentMember,
   });
   
@@ -106,7 +112,11 @@ export default function CommunityPolls({ communityId, currentMember }: Community
       return apiRequest('POST', `/api/communities/${communityId}/polls`, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'polls'] });
+      // Invalidate all poll-related queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['/api/communities', communityId, 'polls'],
+        exact: false
+      });
       setIsCreateModalOpen(false);
       resetForm();
       toast({
