@@ -3139,6 +3139,85 @@ export function addCommunitiesRoutes(app: Express) {
   // ============ POLLS ENDPOINTS ============
   
   /**
+   * DEBUG: GET /api/communities/:id/debug-membership
+   * Debug endpoint to check user membership and role
+   */
+  app.get('/api/communities/:id/debug-membership', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId } = req.params;
+      const user = (req as any).user;
+
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      
+      res.json({ 
+        ok: true, 
+        debug: {
+          userId: user.id,
+          communityId,
+          membership,
+          canCreatePolls: membership && membership.status === 'approved' && (membership.role === 'owner' || membership.role === 'moderator')
+        }
+      });
+    } catch (error: any) {
+      console.error('Debug membership error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to debug membership' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/fix-owner-membership
+   * Fix missing owner membership for community organizer
+   */
+  app.post('/api/communities/:id/fix-owner-membership', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId } = req.params;
+      const user = (req as any).user;
+
+      // Get the community
+      const community = await communitiesStorage.getCommunityById(communityId);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      // Check if user is the organizer of this community
+      const organizer = await communitiesStorage.getOrganizerById(community.organizerId);
+      if (!organizer || organizer.userId !== user.id) {
+        return res.status(403).json({ ok: false, error: 'Only the community organizer can fix membership' });
+      }
+
+      // Check if owner membership already exists
+      const existingMembership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (existingMembership && existingMembership.role === 'owner') {
+        return res.json({ ok: true, message: 'Owner membership already exists', membership: existingMembership });
+      }
+
+      // Create or update the membership to owner
+      if (existingMembership) {
+        // Update existing membership to owner
+        const updatedMembership = await communitiesStorage.updateCommunityMembership(communityId, user.id, {
+          role: 'owner',
+          status: 'approved',
+          approvedAt: new Date().toISOString()
+        });
+        res.json({ ok: true, message: 'Membership updated to owner', membership: updatedMembership });
+      } else {
+        // Create new owner membership
+        const newMembership = await communitiesStorage.createMembership({
+          communityId,
+          userId: user.id,
+          status: 'approved',
+          role: 'owner',
+          approvedAt: new Date().toISOString()
+        });
+        res.json({ ok: true, message: 'Owner membership created', membership: newMembership });
+      }
+    } catch (error: any) {
+      console.error('Fix owner membership error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to fix owner membership' });
+    }
+  });
+
+  /**
    * POST /api/communities/:id/polls
    * Create a new poll
    */
@@ -3156,7 +3235,24 @@ export function addCommunitiesRoutes(app: Express) {
 
       // Only owners and moderators can create polls
       if (membership.role !== 'owner' && membership.role !== 'moderator') {
-        return res.status(403).json({ ok: false, error: 'Only owners and moderators can create polls' });
+        // Additional check: if user is the community organizer, auto-fix their membership
+        const community = await communitiesStorage.getCommunityById(communityId);
+        if (community) {
+          const organizer = await communitiesStorage.getOrganizerById(community.organizerId);
+          if (organizer && organizer.userId === user.id) {
+            // User is the organizer but doesn't have owner role, fix it
+            await communitiesStorage.updateCommunityMembership(communityId, user.id, {
+              role: 'owner',
+              status: 'approved',
+              approvedAt: new Date().toISOString()
+            });
+            console.log('Auto-fixed owner membership for community organizer');
+          } else {
+            return res.status(403).json({ ok: false, error: 'Only owners and moderators can create polls' });
+          }
+        } else {
+          return res.status(403).json({ ok: false, error: 'Only owners and moderators can create polls' });
+        }
       }
 
       // Validate poll data
