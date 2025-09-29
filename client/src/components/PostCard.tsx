@@ -119,31 +119,55 @@ export function PostCard({
   // Calculate total reactions
   const totalReactions = reactions.reduce((sum, r) => sum + r.count, 0);
   
-  // Get post type badge color
-  const getPostTypeBadge = () => {
+  // Get comprehensive post type styling
+  const getPostTypeStyle = () => {
     switch (postType) {
       case 'announcement':
         return {
-          color: 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-yellow-400 border-yellow-500/30',
-          icon: Sparkles,
-          label: 'Announcement'
+          badge: {
+            color: 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-yellow-400 border-yellow-500/30',
+            icon: Sparkles,
+            label: 'Announcement'
+          },
+          card: {
+            border: 'border-yellow-500/30 hover:border-yellow-500/50',
+            background: 'bg-gradient-to-br from-premium-surface via-amber-500/5 to-premium-surface-elevated',
+            accent: 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20',
+            shadow: 'hover:shadow-yellow-500/20'
+          }
         };
       case 'event':
         return {
-          color: 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 border-purple-500/30',
-          icon: Calendar,
-          label: 'Event'
+          badge: {
+            color: 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 border-purple-500/30',
+            icon: Calendar,
+            label: 'Event'
+          },
+          card: {
+            border: 'border-purple-500/30 hover:border-purple-500/50',
+            background: 'bg-gradient-to-br from-premium-surface via-purple-500/5 to-premium-surface-elevated',
+            accent: 'bg-gradient-to-r from-purple-500/20 to-pink-500/20',
+            shadow: 'hover:shadow-purple-500/20'
+          }
         };
       case 'update':
         return {
-          color: 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-400 border-blue-500/30',
-          icon: TrendingUp,
-          label: 'Update'
+          badge: {
+            color: 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 text-blue-400 border-blue-500/30',
+            icon: TrendingUp,
+            label: 'Update'
+          },
+          card: {
+            border: 'border-blue-500/30 hover:border-blue-500/50',
+            background: 'bg-gradient-to-br from-premium-surface via-blue-500/5 to-premium-surface-elevated',
+            accent: 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20',
+            shadow: 'hover:shadow-blue-500/20'
+          }
         };
     }
   };
   
-  const postTypeBadge = getPostTypeBadge();
+  const postTypeStyle = getPostTypeStyle();
   const isLongContent = content.length > 300;
   const displayContent = expanded || !isLongContent ? content : content.substring(0, 300) + '...';
   
@@ -169,13 +193,15 @@ export function PostCard({
         <Card 
           className={`
             relative overflow-hidden
-            bg-gradient-to-b from-premium-surface to-premium-surface-elevated 
-            border-premium-border hover:border-premium-border-hover
-            transition-all duration-300 hover:shadow-glow
+            ${postTypeStyle.card.background}
+            ${postTypeStyle.card.border}
+            transition-all duration-300 shadow-lg ${postTypeStyle.card.shadow}
             ${isPinned ? 'ring-2 ring-accent/20 ring-offset-2 ring-offset-bg' : ''}
           `}
           data-testid={`post-card-${id}`}
         >
+          {/* Post Type Accent Bar */}
+          <div className={`absolute top-0 left-0 right-0 h-1 ${postTypeStyle.card.accent}`} />
           {/* Pinned Badge */}
           {isPinned && (
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500" />
@@ -232,9 +258,9 @@ export function PostCard({
                   </Badge>
                 )}
                 
-                <Badge className={`${postTypeBadge.color} backdrop-blur-sm`}>
-                  <postTypeBadge.icon className="h-3 w-3 mr-1" />
-                  {postTypeBadge.label}
+                <Badge className={`${postTypeStyle.badge.color} backdrop-blur-sm`}>
+                  <postTypeStyle.badge.icon className="h-3 w-3 mr-1" />
+                  {postTypeStyle.badge.label}
                 </Badge>
                 
                 {(canEdit || canDelete) && (

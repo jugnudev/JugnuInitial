@@ -3348,12 +3348,12 @@ export function addCommunitiesRoutes(app: Express) {
           console.log('Poll creation - Organizer data:', {
             organizerId: community.organizerId,
             organizer: organizer ? {
-              userId: organizer.userId,
-              isCurrentUser: organizer.userId === user.id
+              userId: organizer.user_id, // Supabase returns snake_case
+              isCurrentUser: organizer.user_id === user.id
             } : null
           });
           
-          if (organizer && organizer.userId === user.id) {
+          if (organizer && organizer.user_id === user.id) {
             // User is the organizer but doesn't have owner role, fix it
             console.log('Poll creation - Auto-fixing owner membership for community organizer');
             await communitiesStorage.updateCommunityMembership(communityId, user.id, {
