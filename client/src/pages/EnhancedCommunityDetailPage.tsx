@@ -458,6 +458,37 @@ export default function EnhancedCommunityDetailPage() {
     }
   };
 
+  // Handle comment likes
+  const handleCommentLike = async (commentId: string) => {
+    if (!community?.id) return;
+    
+    try {
+      await apiRequest('POST', `/api/communities/${community.id}/comments/${commentId}/like`);
+      // Invalidate comments to refresh like counts and status
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', community.id] });
+      refetch();
+    } catch (error: any) {
+      if (error.message?.includes('already liked')) {
+        // Try to unlike
+        try {
+          await apiRequest('DELETE', `/api/communities/${community.id}/comments/${commentId}/like`);
+          queryClient.invalidateQueries({ queryKey: ['/api/communities', community.id] });
+          refetch();
+        } catch (unlikeError) {
+          toast({ 
+            title: "Failed to unlike comment", 
+            variant: "destructive" 
+          });
+        }
+      } else {
+        toast({ 
+          title: "Failed to like comment", 
+          variant: "destructive" 
+        });
+      }
+    }
+  };
+
   // Handle share
   const handleShare = async (post: Post) => {
     const shareUrl = `${window.location.origin}/communities/${communitySlug}#post-${post.id}`;
@@ -940,6 +971,7 @@ export default function EnhancedCommunityDetailPage() {
                         }}
                         onReaction={(type) => handleReaction(post.id, type)}
                         onComment={(content, parentId) => handleComment(post.id, content, parentId)}
+                        onCommentLike={(commentId) => handleCommentLike(commentId)}
                         onShare={() => handleShare(post)}
                       />
                     ))}
@@ -1447,6 +1479,7 @@ export default function EnhancedCommunityDetailPage() {
                     canDelete={false}
                     onReaction={(type) => handleReaction(post.id, type)}
                     onComment={(content, parentId) => handleComment(post.id, content, parentId)}
+                    onCommentLike={(commentId) => handleCommentLike(commentId)}
                     onShare={() => handleShare(post)}
                   />
                 ))}

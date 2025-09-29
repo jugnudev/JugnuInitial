@@ -60,6 +60,7 @@ interface PostCardProps {
   onDelete?: () => void;
   onReaction?: (type: string) => void;
   onComment?: (comment: string, parentId?: string) => void;
+  onCommentLike?: (commentId: string) => void;
   onShare?: () => void;
 }
 
@@ -108,6 +109,7 @@ export function PostCard({
   onDelete,
   onReaction,
   onComment,
+  onCommentLike,
   onShare
 }: PostCardProps) {
   const [expanded, setExpanded] = useState(false);
@@ -429,6 +431,7 @@ export function PostCard({
                     postId={id}
                     comments={comments}
                     onComment={onComment}
+                    onLike={onCommentLike}
                   />
                 </motion.div>
               )}
