@@ -549,7 +549,7 @@ export default function CommunitiesLandingPage() {
                 <Link href="/account/signup">
                   <MotionButton 
                     size="lg"
-                    className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-8 py-4 rounded-xl shadow-soft hover:shadow-glow transition-all duration-300" 
+                    className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-500 text-black hover:text-white font-bold px-8 py-4 rounded-xl shadow-soft hover:shadow-glow transition-all duration-300" 
                     data-testid="signup-button"
                     variants={buttonPress}
                     whileHover="whileHover"

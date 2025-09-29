@@ -630,7 +630,7 @@ export default function CommunityDetailPage() {
             <Link href="/account/signin">
               <MotionButton 
                 size="lg" 
-                className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-8 py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
+                className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-500 text-black hover:text-white font-bold px-8 py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
                 data-testid="signin-required-button"
                 variants={buttonPress}
                 whileHover="whileHover"
@@ -676,7 +676,7 @@ export default function CommunityDetailPage() {
             <Link href="/communities">
               <MotionButton 
                 size="lg" 
-                className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-8 py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
+                className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-500 text-black hover:text-white font-bold px-8 py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
                 data-testid="back-to-communities-button"
                 variants={buttonPress}
                 whileHover="whileHover"
@@ -880,7 +880,7 @@ export default function CommunityDetailPage() {
                   )}
                   {!membership && (
                     <MotionButton 
-                      className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
+                      className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-500 text-black hover:text-white font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden" 
                       data-testid="join-community-button"
                       variants={buttonPress}
                       whileHover="whileHover"
@@ -963,7 +963,7 @@ export default function CommunityDetailPage() {
                 <div className="flex justify-end">
                   <Button 
                     onClick={() => setShowCreateAnnouncement(true)}
-                    className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
+                    className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-500 text-black hover:text-white font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
                     data-testid="create-announcement-button"
                   >
                     <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
@@ -1141,7 +1141,7 @@ export default function CommunityDetailPage() {
                     </p>
                     <Button 
                       onClick={() => setShowCreateAnnouncement(true)}
-                      className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
+                      className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-500 text-black hover:text-white font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
                       data-testid="create-first-announcement-button"
                     >
                       <div className="absolute inset-0 bg-gradient-radial from-glow/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
@@ -1496,7 +1496,7 @@ export default function CommunityDetailPage() {
                           <Button 
                             onClick={handleSaveInfo}
                             disabled={updateCommunityMutation.isPending}
-                            className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300"
+                            className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-500 text-black hover:text-white font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300"
                             data-testid="save-community-info-button"
                           >
                             <CheckCircle className="h-5 w-5 mr-2" />
@@ -1514,7 +1514,7 @@ export default function CommunityDetailPage() {
                       ) : (
                         <Button 
                           onClick={handleEditInfo}
-                          className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300"
+                          className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-500 text-black hover:text-white font-bold px-6 py-3 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300"
                           data-testid="edit-community-info-button"
                         >
                           <Edit3 className="h-5 w-5 mr-2" />
@@ -1789,7 +1789,7 @@ export default function CommunityDetailPage() {
                 ) : (
                   <Button 
                     size="lg" 
-                    className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold px-8 py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
+                    className="relative bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-500 text-black hover:text-white font-bold px-8 py-4 rounded-xl shadow-glow hover:shadow-glow-strong transition-all duration-300 group overflow-hidden"
                     onClick={() => joinCommunityMutation.mutate()}
                     disabled={joinCommunityMutation.isPending}
                     data-testid="request-join-button"
@@ -1899,7 +1899,7 @@ export default function CommunityDetailPage() {
                 <Button
                   onClick={handleCreateAnnouncement}
                   disabled={createAnnouncementMutation.isPending}
-                  className="flex-1 bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold"
+                  className="flex-1 bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-500 text-black hover:text-white font-bold"
                 >
                   {createAnnouncementMutation.isPending ? 'Creating...' : 'Create'}
                 </Button>
@@ -1996,7 +1996,7 @@ export default function CommunityDetailPage() {
                 <Button
                   onClick={handleSaveEdit}
                   disabled={updateAnnouncementMutation.isPending}
-                  className="flex-1 bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold"
+                  className="flex-1 bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-500 text-black hover:text-white font-bold"
                   data-testid="update-button"
                 >
                   {updateAnnouncementMutation.isPending ? 'Updating...' : 'Update'}
