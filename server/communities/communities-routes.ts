@@ -2114,7 +2114,7 @@ export function addCommunitiesRoutes(app: Express) {
         }
       }
 
-      const { posts, total } = await communitiesStorage.getPostsByCommunityId(community.id, limit, offset);
+      const { posts, total } = await communitiesStorage.getPostsByCommunityId(community.id, limit, offset, user.id);
 
       // Track analytics
       await communitiesStorage.trackCommunityActivity(community.id, 'views');
