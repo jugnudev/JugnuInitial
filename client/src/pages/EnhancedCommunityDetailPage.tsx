@@ -1558,7 +1558,7 @@ export default function EnhancedCommunityDetailPage() {
           }
         }}
       >
-        <DialogContent className="max-w-2xl bg-premium-surface border-premium-border max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl bg-card border-premium-border max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-fraunces text-2xl">
               {editingPost ? 'Edit Post' : 'Create New Post'}
