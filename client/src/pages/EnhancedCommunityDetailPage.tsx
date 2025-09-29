@@ -489,32 +489,33 @@ export default function EnhancedCommunityDetailPage() {
       return;
     }
     
+    // Find if user has reacted with the specific type
     const existingReaction = post.reactions?.find(r => r.type === type);
-    const hasReacted = existingReaction?.hasReacted;
+    const hasReactedWithThisType = existingReaction?.hasReacted;
+    
+    // Find if user has reacted with ANY type (for one-reaction-per-post rule)
+    const userCurrentReaction = post.reactions?.find(r => r.hasReacted);
     
     try {
-      if (hasReacted) {
-        // Remove reaction
-        console.log('[REACTION DEBUG] Removing reaction - type:', type, 'postId:', postId);
-        console.log('[REACTION DEBUG] Auth token available:', !!localStorage.getItem('community_auth_token'));
-        
+      if (hasReactedWithThisType) {
+        // User clicked their own reaction - remove it
         await apiRequest('DELETE', `/api/communities/${community.id}/posts/${postId}/react/${type}`, {});
         toast({ 
           title: "Reaction removed", 
           description: "Your reaction has been removed from this post."
         });
       } else {
-        // Add reaction
+        // User wants to add a reaction (backend handles replacing existing reaction automatically)
         await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type });
         toast({ 
           title: "Reaction added", 
-          description: "Your reaction has been added to this post."
+          description: `You reacted with ${type === 'fire' ? '🔥' : type === 'like' ? '👍' : type === 'star' ? '⭐' : type === 'celebrate' ? '🎉' : type}!`
         });
       }
       refetch();
     } catch (error) {
       toast({ 
-        title: hasReacted ? "Failed to remove reaction" : "Failed to add reaction", 
+        title: hasReactedWithThisType ? "Failed to remove reaction" : "Failed to add reaction", 
         variant: "destructive" 
       });
     }

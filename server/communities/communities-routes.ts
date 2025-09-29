@@ -2118,7 +2118,12 @@ export function addCommunitiesRoutes(app: Express) {
       if (!isOwner) {
         const membership = await communitiesStorage.getMembershipByUserAndCommunity(user.id, community.id);
         if (!membership || membership.status !== 'approved') {
-          return res.status(403).json({ ok: false, error: 'Access denied - members only' });
+          // In development mode, allow access to public communities for testing
+          if (process.env.NODE_ENV === 'development' && !community.isPrivate) {
+            console.log(`[DEV MODE] Allowing access to public community ${community.id} for testing`);
+          } else {
+            return res.status(403).json({ ok: false, error: 'Access denied - members only' });
+          }
         }
       }
 
@@ -2671,8 +2676,9 @@ export function addCommunitiesRoutes(app: Express) {
       const user = (req as any).user;
       const { type } = req.body;
 
-      // Validate reaction type (testing with minimal constraint)
-      if (!['fire'].includes(type)) {
+      // Validate reaction type (match actual database constraint)
+      const validReactionTypes = ['fire', 'like', 'celebrate', 'star'];
+      if (!validReactionTypes.includes(type)) {
         return res.status(400).json({ ok: false, error: 'Invalid reaction type' });
       }
 
@@ -2688,7 +2694,12 @@ export function addCommunitiesRoutes(app: Express) {
       if (!isOwner) {
         const membership = await communitiesStorage.getMembershipByUserAndCommunity(user.id, community.id);
         if (!membership || membership.status !== 'approved') {
-          return res.status(403).json({ ok: false, error: 'Access denied - members only' });
+          // In development mode, allow access to public communities for testing
+          if (process.env.NODE_ENV === 'development' && !community.isPrivate) {
+            console.log(`[DEV MODE] Allowing reaction access to public community ${community.id} for testing`);
+          } else {
+            return res.status(403).json({ ok: false, error: 'Access denied - members only' });
+          }
         }
       }
 
@@ -2724,7 +2735,6 @@ export function addCommunitiesRoutes(app: Express) {
       const { id, postId, type } = req.params;
       const user = (req as any).user;
       
-      console.log('[REACTION DEBUG] DELETE request - postId:', postId, 'type:', type, 'userId:', user?.id);
 
       const community = await communitiesStorage.getCommunityById(id);
       if (!community) {
@@ -2738,7 +2748,12 @@ export function addCommunitiesRoutes(app: Express) {
       if (!isOwner) {
         const membership = await communitiesStorage.getMembershipByUserAndCommunity(user.id, community.id);
         if (!membership || membership.status !== 'approved') {
-          return res.status(403).json({ ok: false, error: 'Access denied - members only' });
+          // In development mode, allow access to public communities for testing
+          if (process.env.NODE_ENV === 'development' && !community.isPrivate) {
+            console.log(`[DEV MODE] Allowing reaction removal in public community ${community.id} for testing`);
+          } else {
+            return res.status(403).json({ ok: false, error: 'Access denied - members only' });
+          }
         }
       }
 

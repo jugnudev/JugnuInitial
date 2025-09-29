@@ -1085,13 +1085,13 @@ export class CommunitiesSupabaseDB {
   }
 
   // ============ COMMUNITY POST IMAGES ============
-  async addPostImage(postId: string, imageUrl: string, position: number): Promise<any> {
+  async addPostImage(postId: string, imageUrl: string, displayOrder: number): Promise<any> {
     const { data, error } = await this.client
       .from('community_post_images')
       .insert({
         post_id: postId,
-        image_url: imageUrl,
-        position
+        url: imageUrl,
+        display_order: displayOrder
       })
       .select()
       .single();
@@ -1105,7 +1105,7 @@ export class CommunitiesSupabaseDB {
       .from('community_post_images')
       .select('*')
       .eq('post_id', postId)
-      .order('position', { ascending: true });
+      .order('display_order', { ascending: true });
 
     if (error) throw error;
     return data || [];
@@ -1121,11 +1121,11 @@ export class CommunitiesSupabaseDB {
   }
 
   async reorderPostImages(postId: string, imageIds: string[]): Promise<void> {
-    // Update positions for each image
+    // Update display_order for each image
     const updates = imageIds.map((id, index) => 
       this.client
         .from('community_post_images')
-        .update({ position: index })
+        .update({ display_order: index })
         .eq('id', id)
         .eq('post_id', postId)
     );
@@ -1293,6 +1293,14 @@ export class CommunitiesSupabaseDB {
 
   // ============ COMMUNITY REACTIONS ============
   async addReaction(data: { postId: string; userId: string; type: string }): Promise<any> {
+    // First, remove any existing reaction by this user for this post (one reaction per post rule)
+    await this.client
+      .from('community_post_reactions')
+      .delete()
+      .eq('post_id', data.postId)
+      .eq('user_id', data.userId);
+
+    // Then add the new reaction
     const { data: reaction, error } = await this.client
       .from('community_post_reactions')
       .insert({
@@ -1304,23 +1312,25 @@ export class CommunitiesSupabaseDB {
       .single();
 
     if (error) {
-      // If unique constraint violation, reaction already exists
-      if (error.code === '23505') {
-        return null;
-      }
       throw error;
     }
     return reaction;
   }
 
-  async removeReaction(postId: string, userId: string, type: string): Promise<void> {
-    const { error } = await this.client
+  async removeReaction(postId: string, userId: string, type?: string): Promise<void> {
+    const query = this.client
       .from('community_post_reactions')
       .delete()
       .eq('post_id', postId)
-      .eq('user_id', userId)
-      .eq('reaction_type', type);
+      .eq('user_id', userId);
+    
+    // If type is specified, only remove that specific reaction type
+    // If not specified, remove any reaction by this user (for toggle functionality)
+    if (type) {
+      query.eq('reaction_type', type);
+    }
 
+    const { error } = await query;
     if (error) throw error;
   }
 
