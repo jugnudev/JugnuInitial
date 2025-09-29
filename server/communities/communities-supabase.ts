@@ -1101,7 +1101,20 @@ export class CommunitiesSupabaseDB {
       .order('created_at', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    
+    // Map the data to frontend format and build threaded structure
+    const comments = (data || []).map(this.mapCommentFromDb.bind(this));
+    
+    // Build threaded structure
+    const topLevelComments = comments.filter(c => !c.parentId);
+    const commentMap = new Map(comments.map(c => [c.id, c]));
+    
+    // Nest replies under their parent comments
+    topLevelComments.forEach(comment => {
+      comment.replies = comments.filter(c => c.parentId === comment.id);
+    });
+    
+    return topLevelComments;
   }
 
   async getCommentById(id: string): Promise<any | null> {
@@ -1337,6 +1350,25 @@ export class CommunitiesSupabaseDB {
       subscriptionStatus: data.subscription_status || 'trialing',
       subscriptionEndsAt: data.subscription_ends_at,
       lastActivityAt: data.last_activity_at
+    };
+  }
+
+  private mapCommentFromDb(data: any): any {
+    const author = data.users;
+    return {
+      id: data.id,
+      content: data.content,
+      authorId: data.author_id,
+      authorName: author ? `${author.first_name || ''} ${author.last_name || ''}`.trim() || author.email : 'Unknown User',
+      authorAvatar: author?.profile_image_url || null,
+      authorRole: 'member', // Will be determined by membership data if needed
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      parentId: data.parent_comment_id,
+      likes: 0, // Will be populated by likes count if implemented
+      hasLiked: false, // Will be determined by user's like status
+      isEdited: data.updated_at !== data.created_at,
+      replies: []
     };
   }
 
