@@ -2731,6 +2731,9 @@ export function addCommunitiesRoutes(app: Express) {
 
       await communitiesStorage.removeReaction(postId, user.id, type);
 
+      // Track analytics - track reaction removal activity
+      await communitiesStorage.trackCommunityActivity(community.id, 'reactions');
+
       res.json({
         ok: true,
         message: 'Reaction removed'
