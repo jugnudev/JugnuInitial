@@ -78,6 +78,15 @@ app.use((req, res, next) => {
   // doesn't interfere with the other routes
   if (app.get("env") === "development" && process.env.SKIP_VITE !== "true") {
     await setupVite(app, server);
+    
+    // Start WebSocket chat server after Vite setup
+    // The WebSocket server uses path='/chat' which won't conflict with Vite's HMR
+    try {
+      startChatServer(server);
+      log(`✅ WebSocket chat server started on /chat`);
+    } catch (error) {
+      console.error('❌ Failed to start WebSocket server:', error);
+    }
   } else {
     // Production: Add HTTPS redirect middleware
     app.use((req, res, next) => {
@@ -117,6 +126,14 @@ app.use((req, res, next) => {
       // Fallback to original serveStatic if our custom setup fails
       serveStatic(app);
     }
+    
+    // Start WebSocket chat server in production
+    try {
+      startChatServer(server);
+      log(`✅ WebSocket chat server started on /chat`);
+    } catch (error) {
+      console.error('❌ Failed to start WebSocket server:', error);
+    }
   }
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
@@ -130,13 +147,5 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
-    
-    // Start WebSocket chat server on /chat path (separate from Vite's HMR)
-    try {
-      startChatServer(server);
-      log(`✅ WebSocket chat server started on /chat`);
-    } catch (error) {
-      console.error('❌ Failed to start WebSocket server:', error);
-    }
   });
 })();

@@ -52,11 +52,24 @@ const userIdToClients = new Map<string, Set<WebSocket>>(); // userId -> Set of W
 
 export function startChatServer(httpServer: Server) {
   const wss = new WebSocketServer({ 
-    server: httpServer,
-    path: '/chat'
+    noServer: true
   });
 
   console.log(`🚀 WebSocket chat server started on main HTTP server port at /chat`);
+
+  // Manually handle upgrade requests only for /chat path
+  // This allows Vite's HMR WebSocket to work on other paths
+  httpServer.on('upgrade', (request, socket, head) => {
+    const url = new URL(request.url || '', `http://${request.headers.host}`);
+    
+    // Only handle /chat path
+    if (url.pathname === '/chat') {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    }
+    // For other paths (like Vite HMR), do nothing and let other handlers process them
+  });
 
   // Cleanup typing indicators periodically
   setInterval(() => {
