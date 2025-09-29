@@ -1001,6 +1001,19 @@ export class CommunitiesSupabaseDB {
 
     if (reactionsError) throw reactionsError;
 
+    // Get comment counts for these posts (only if there are posts)
+    let commentsData: any[] = [];
+    if (postIds.length > 0) {
+      const { data, error: commentsError } = await this.client
+        .from('community_comments')
+        .select('post_id')
+        .in('post_id', postIds)
+        .eq('is_hidden', false);
+
+      if (commentsError) throw commentsError;
+      commentsData = data || [];
+    }
+
     // Aggregate reactions by post and type
     const reactionsByPost: Record<string, Record<string, { count: number; hasReacted: boolean }>> = {};
     
@@ -1021,10 +1034,23 @@ export class CommunitiesSupabaseDB {
       });
     }
 
-    // Map posts and include reactions
+    // Aggregate comment counts by post
+    const commentCountsByPost: Record<string, number> = {};
+    
+    if (commentsData) {
+      commentsData.forEach(comment => {
+        if (!commentCountsByPost[comment.post_id]) {
+          commentCountsByPost[comment.post_id] = 0;
+        }
+        commentCountsByPost[comment.post_id] += 1;
+      });
+    }
+
+    // Map posts and include reactions and comments
     const postsWithReactions = data.map(post => {
       const mappedPost = this.mapPostFromDb(post);
       const postReactions = reactionsByPost[post.id] || {};
+      const commentCount = commentCountsByPost[post.id] || 0;
       
       // Convert to array format expected by frontend
       const reactions = Object.entries(postReactions).map(([type, data]) => ({
@@ -1033,9 +1059,13 @@ export class CommunitiesSupabaseDB {
         hasReacted: data.hasReacted
       }));
       
+      // Create a comments array with just the count for analytics (to maintain compatibility)
+      const comments = new Array(commentCount).fill(null);
+      
       return {
         ...mappedPost,
-        reactions
+        reactions,
+        comments
       };
     });
     
