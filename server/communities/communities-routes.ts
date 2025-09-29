@@ -2749,7 +2749,7 @@ export function addCommunitiesRoutes(app: Express) {
       const { type } = req.body;
 
       // Validate reaction type (match actual database constraint)
-      const validReactionTypes = ['fire', 'like', 'celebrate', 'star'];
+      const validReactionTypes = ['heart', 'fire', 'like', 'celebrate', 'star'];
       if (!validReactionTypes.includes(type)) {
         return res.status(400).json({ ok: false, error: 'Invalid reaction type' });
       }

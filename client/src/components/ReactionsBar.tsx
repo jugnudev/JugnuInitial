@@ -19,6 +19,16 @@ interface ReactionsBarProps {
 // Define available reactions with icons and colors (match actual database constraint)
 const REACTION_TYPES = [
   { 
+    type: 'heart',
+    emoji: '❤️',
+    icon: Heart,
+    color: 'text-red-500',
+    bgColor: 'bg-red-500/10 hover:bg-red-500/20',
+    bgColorActive: 'bg-blue-100 dark:bg-blue-900/30',
+    borderColor: 'border-red-500/30',
+    borderColorActive: 'border-blue-400 dark:border-blue-600'
+  },
+  { 
     type: 'fire',
     emoji: '🔥',
     icon: Flame,
@@ -119,7 +129,6 @@ export function ReactionsBar({
   className = ""
 }: ReactionsBarProps) {
   const [showPicker, setShowPicker] = useState(false);
-  const [floatingReactions, setFloatingReactions] = useState<{ id: string; emoji: string }[]>([]);
   
   // Get reaction counts
   const getReactionCount = (type: string) => {
@@ -132,18 +141,7 @@ export function ReactionsBar({
     return reaction?.hasReacted || false;
   };
   
-  const handleReaction = (type: string, emoji: string) => {
-    // Only add floating animation if not already reacted (i.e., adding new reaction)
-    if (!hasReacted(type)) {
-      const id = `${Date.now()}-${Math.random()}`;
-      setFloatingReactions(prev => [...prev, { id, emoji }]);
-      
-      // Remove floating reaction after animation
-      setTimeout(() => {
-        setFloatingReactions(prev => prev.filter(r => r.id !== id));
-      }, 1500);
-    }
-    
+  const handleReaction = (type: string) => {
     // Call the reaction handler - backend will toggle the reaction
     if (onReaction) {
       onReaction(type);
@@ -169,7 +167,7 @@ export function ReactionsBar({
               animate="animate"
               whileHover="hover"
               whileTap="tap"
-              onClick={() => handleReaction(reaction.type, reaction.emoji)}
+              onClick={() => handleReaction(reaction.type)}
               className={`
                 relative flex items-center gap-1 px-2.5 py-1.5 rounded-full
                 border transition-all duration-200
@@ -183,20 +181,6 @@ export function ReactionsBar({
               <span className="text-lg">{reaction.emoji}</span>
               <span className="text-xs font-medium">{getReactionCount(reaction.type)}</span>
               
-              {/* Subtle pulse effect for user's reaction */}
-              {hasReacted(reaction.type) && (
-                <motion.div
-                  className={`absolute inset-0 rounded-full ${reaction.bgColor}`}
-                  initial={{ scale: 1, opacity: 0.3 }}
-                  animate={{ scale: 1.3, opacity: 0 }}
-                  transition={{ 
-                    duration: 1.5, 
-                    repeat: Infinity, 
-                    repeatDelay: 3,
-                    ease: "easeOut"
-                  }}
-                />
-              )}
             </motion.button>
           ))}
         </div>
@@ -240,7 +224,7 @@ export function ReactionsBar({
                         key={reaction.type}
                         whileHover={{ scale: 1.3, rotate: 10 }}
                         whileTap={{ scale: 0.9 }}
-                        onClick={() => handleReaction(reaction.type, reaction.emoji)}
+                        onClick={() => handleReaction(reaction.type)}
                         className={`
                           relative p-2 rounded-lg transition-all duration-200
                           hover:${reaction.bgColor}
@@ -266,23 +250,6 @@ export function ReactionsBar({
           )}
         </AnimatePresence>
       </div>
-      
-      {/* Floating Reactions */}
-      <AnimatePresence>
-        {floatingReactions.map((reaction) => (
-          <motion.div
-            key={reaction.id}
-            variants={floatingAnimation}
-            initial="initial"
-            animate="animate"
-            exit="exit"
-            className="absolute left-0 bottom-0 text-3xl pointer-events-none z-50"
-            style={{ transform: 'translateZ(0)' }}
-          >
-            {reaction.emoji}
-          </motion.div>
-        ))}
-      </AnimatePresence>
     </div>
   );
 }
