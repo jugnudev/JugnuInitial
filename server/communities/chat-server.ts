@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { createClient } from '@supabase/supabase-js';
 import { communitiesStorage } from './communities-supabase';
 import { nanoid } from 'nanoid';
+import type { Server } from 'http';
 
 // Types for WebSocket messages
 interface WSMessage {
@@ -49,11 +50,13 @@ const communityRooms = new Map<string, Set<string>>(); // communityId -> Set of 
 const authenticatedClients = new Map<WebSocket, AuthenticatedClient>();
 const userIdToClients = new Map<string, Set<WebSocket>>(); // userId -> Set of WebSockets
 
-export function startChatServer() {
-  const port = parseInt(process.env.WS_PORT || '3001');
-  const wss = new WebSocketServer({ port });
+export function startChatServer(httpServer: Server) {
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/chat'
+  });
 
-  console.log(`🚀 WebSocket chat server started on port ${port}`);
+  console.log(`🚀 WebSocket chat server started on main HTTP server port at /chat`);
 
   // Cleanup typing indicators periodically
   setInterval(() => {

@@ -131,12 +131,12 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
     
-    // Start WebSocket server for real-time chat on port 3001
+    // Start WebSocket chat server with careful configuration
     try {
-      startChatServer();
-      log(`WebSocket chat server started on port 3001`);
+      startChatServer(server);
+      log(`✅ WebSocket chat server started successfully`);
     } catch (error) {
-      console.error('Failed to start WebSocket server:', error);
+      console.error('❌ Failed to start WebSocket server:', error);
     }
   });
 })();
