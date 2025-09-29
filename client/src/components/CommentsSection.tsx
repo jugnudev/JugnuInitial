@@ -38,6 +38,9 @@ interface Comment {
   replies?: Comment[];
   parentId?: string;
   isEdited?: boolean;
+  // New fields for flattened reply structure
+  parentAuthorName?: string;
+  parentAuthorId?: string;
 }
 
 interface CommentsSectionProps {
@@ -72,7 +75,6 @@ const commentAnimation = {
 
 function CommentItem({
   comment,
-  depth = 0,
   currentUserId,
   canModerate,
   onReply,
@@ -81,7 +83,6 @@ function CommentItem({
   onLike
 }: {
   comment: Comment;
-  depth?: number;
   currentUserId?: string;
   canModerate?: boolean;
   onReply?: (parentId: string) => void;
@@ -89,12 +90,10 @@ function CommentItem({
   onDelete?: (commentId: string) => void;
   onLike?: (commentId: string) => void;
 }) {
-  const [showReplies, setShowReplies] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
   
   const isAuthor = currentUserId === comment.authorId;
-  const hasReplies = comment.replies && comment.replies.length > 0;
   const canEdit = isAuthor;
   const canDelete = isAuthor || canModerate;
   
@@ -111,7 +110,7 @@ function CommentItem({
       initial="initial"
       animate="animate"
       exit="exit"
-      className={depth > 0 ? 'ml-12' : ''}
+      className=""
       data-testid={`comment-${comment.id}`}
     >
       <div className="flex gap-3 mb-4">
@@ -129,7 +128,15 @@ function CommentItem({
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-premium-text-primary">
-                {comment.authorName || 'Unknown User'}
+                {comment.parentAuthorName ? (
+                  <>
+                    {comment.authorName || 'Unknown User'} 
+                    <span className="text-premium-text-muted font-normal"> &gt; </span>
+                    {comment.parentAuthorName}
+                  </>
+                ) : (
+                  comment.authorName || 'Unknown User'
+                )}
               </span>
               
               {comment.authorRole === 'owner' && (
@@ -258,7 +265,7 @@ function CommentItem({
                 {comment.likes > 0 && comment.likes}
               </Button>
               
-              {depth < 2 && onReply && (
+              {onReply && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -271,56 +278,9 @@ function CommentItem({
                 </Button>
               )}
               
-              {hasReplies && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowReplies(!showReplies)}
-                  className="h-7 px-2 text-xs text-premium-text-muted hover:text-premium-text-primary"
-                  data-testid={`toggle-replies-${comment.id}`}
-                >
-                  {showReplies ? (
-                    <>
-                      <ChevronUp className="h-3 w-3 mr-1" />
-                      Hide {comment.replies!.length} {comment.replies!.length === 1 ? 'reply' : 'replies'}
-                    </>
-                  ) : (
-                    <>
-                      <ChevronDown className="h-3 w-3 mr-1" />
-                      Show {comment.replies!.length} {comment.replies!.length === 1 ? 'reply' : 'replies'}
-                    </>
-                  )}
-                </Button>
-              )}
             </div>
           )}
           
-          {/* Replies */}
-          <AnimatePresence>
-            {hasReplies && showReplies && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="mt-3"
-              >
-                {comment.replies!.map((reply) => (
-                  <CommentItem
-                    key={reply.id}
-                    comment={reply}
-                    depth={depth + 1}
-                    currentUserId={currentUserId}
-                    canModerate={canModerate}
-                    onReply={onReply}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    onLike={onLike}
-                  />
-                ))}
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
       </div>
     </motion.div>
@@ -356,8 +316,9 @@ export function CommentsSection({
     }
   };
   
-  // Filter top-level comments (no parentId)
-  const topLevelComments = comments.filter(c => !c.parentId);
+  // Backend now provides parent author metadata directly
+  // Comments are already sorted chronologically by the backend
+  const flattenedComments = comments;
   
   return (
     <div className="pt-4 border-t border-premium-border">
@@ -394,10 +355,10 @@ export function CommentsSection({
         </div>
       </div>
       
-      {/* Comments List */}
+      {/* Comments List - Flattened */}
       <div className="space-y-2">
         <AnimatePresence>
-          {topLevelComments.map((comment) => (
+          {flattenedComments.map((comment) => (
             <div key={comment.id}>
               <CommentItem
                 comment={comment}

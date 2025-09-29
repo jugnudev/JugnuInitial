@@ -1170,21 +1170,28 @@ export class CommunitiesSupabaseDB {
 
     if (error) throw error;
     
-    // Map the data to frontend format and build threaded structure
+    // Map the data to frontend format
     const comments = await Promise.all(
       (data || []).map(d => this.mapCommentFromDb(d, userId))
     );
     
-    // Build threaded structure
-    const topLevelComments = comments.filter(c => !c.parentId);
+    // Create a map of comments for parent lookup
     const commentMap = new Map(comments.map(c => [c.id, c]));
     
-    // Nest replies under their parent comments
-    topLevelComments.forEach(comment => {
-      comment.replies = comments.filter(c => c.parentId === comment.id);
+    // Enrich each comment with parent author metadata for flattened frontend structure
+    const enrichedComments = comments.map(comment => {
+      if (comment.parentId) {
+        const parentComment = commentMap.get(comment.parentId);
+        return {
+          ...comment,
+          parentAuthorName: parentComment?.authorName,
+          parentAuthorId: parentComment?.authorId
+        };
+      }
+      return comment;
     });
     
-    return topLevelComments;
+    return enrichedComments;
   }
 
   async getCommentById(id: string): Promise<any | null> {
