@@ -642,6 +642,18 @@ export class CommunitiesSupabaseDB {
     return data;
   }
 
+  async getOrganizerById(organizerId: string): Promise<Organizer | null> {
+    const { data, error } = await this.client
+      .from('organizers')
+      .select('*')
+      .eq('id', organizerId)
+      .eq('status', 'active')
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
   // ============ COMMUNITIES ============
   async createCommunity(data: InsertCommunity): Promise<Community> {
     // First, get the organizer to find their user_id
