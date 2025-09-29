@@ -2749,7 +2749,7 @@ export function addCommunitiesRoutes(app: Express) {
       const { type } = req.body;
 
       // Validate reaction type (match actual database constraint)
-      const validReactionTypes = ['heart', 'fire', 'like', 'celebrate', 'star'];
+      const validReactionTypes = ['fire', 'like', 'celebrate', 'star'];
       if (!validReactionTypes.includes(type)) {
         return res.status(400).json({ ok: false, error: 'Invalid reaction type' });
       }
@@ -2775,21 +2775,36 @@ export function addCommunitiesRoutes(app: Express) {
         }
       }
 
-      const reaction = await communitiesStorage.addReaction({
-        postId,
-        userId: user.id,
-        type
-      });
+      // Check if user already has this specific reaction type
+      const existingReaction = await communitiesStorage.getUserReactionForPost(postId, user.id);
+      
+      if (existingReaction && existingReaction.reaction_type === type) {
+        // User clicked the same reaction - toggle it off (remove)
+        await communitiesStorage.removeReaction(postId, user.id, type);
+        
+        res.json({
+          ok: true,
+          removed: true,
+          message: 'Reaction removed'
+        });
+      } else {
+        // User wants to add/change reaction
+        const reaction = await communitiesStorage.addReaction({
+          postId,
+          userId: user.id,
+          type
+        });
 
-      // Track analytics
-      await communitiesStorage.incrementPostAnalytics(postId, 'reactions');
-      await communitiesStorage.trackCommunityActivity(community.id, 'reactions');
+        // Track analytics
+        await communitiesStorage.incrementPostAnalytics(postId, 'reactions');
+        await communitiesStorage.trackCommunityActivity(community.id, 'reactions');
 
-      res.json({
-        ok: true,
-        reaction,
-        message: 'Reaction added'
-      });
+        res.json({
+          ok: true,
+          reaction,
+          message: 'Reaction added'
+        });
+      }
     } catch (error: any) {
       console.error('Add reaction error:', error);
       res.status(500).json({ ok: false, error: error.message || 'Failed to add reaction' });

@@ -19,20 +19,14 @@ interface ReactionsBarProps {
 // Define available reactions with icons and colors (match actual database constraint)
 const REACTION_TYPES = [
   { 
-    type: 'heart',
-    emoji: '❤️',
-    icon: Heart,
-    color: 'text-red-500',
-    bgColor: 'bg-red-500/10 hover:bg-red-500/20',
-    borderColor: 'border-red-500/30'
-  },
-  { 
     type: 'fire',
     emoji: '🔥',
     icon: Flame,
     color: 'text-orange-500',
     bgColor: 'bg-orange-500/10 hover:bg-orange-500/20',
-    borderColor: 'border-orange-500/30'
+    bgColorActive: 'bg-blue-100 dark:bg-blue-900/30',
+    borderColor: 'border-orange-500/30',
+    borderColorActive: 'border-blue-400 dark:border-blue-600'
   },
   { 
     type: 'like',
@@ -40,7 +34,9 @@ const REACTION_TYPES = [
     icon: ThumbsUp,
     color: 'text-blue-500',
     bgColor: 'bg-blue-500/10 hover:bg-blue-500/20',
-    borderColor: 'border-blue-500/30'
+    bgColorActive: 'bg-blue-100 dark:bg-blue-900/30',
+    borderColor: 'border-blue-500/30',
+    borderColorActive: 'border-blue-400 dark:border-blue-600'
   },
   { 
     type: 'celebrate',
@@ -48,7 +44,9 @@ const REACTION_TYPES = [
     icon: PartyPopper,
     color: 'text-purple-500',
     bgColor: 'bg-purple-500/10 hover:bg-purple-500/20',
-    borderColor: 'border-purple-500/30'
+    bgColorActive: 'bg-blue-100 dark:bg-blue-900/30',
+    borderColor: 'border-purple-500/30',
+    borderColorActive: 'border-blue-400 dark:border-blue-600'
   },
   { 
     type: 'star',
@@ -56,7 +54,9 @@ const REACTION_TYPES = [
     icon: Star,
     color: 'text-yellow-500',
     bgColor: 'bg-yellow-500/10 hover:bg-yellow-500/20',
-    borderColor: 'border-yellow-500/30'
+    bgColorActive: 'bg-blue-100 dark:bg-blue-900/30',
+    borderColor: 'border-yellow-500/30',
+    borderColorActive: 'border-blue-400 dark:border-blue-600'
   }
 ];
 
@@ -174,7 +174,7 @@ export function ReactionsBar({
                 relative flex items-center gap-1 px-2.5 py-1.5 rounded-full
                 border transition-all duration-200
                 ${hasReacted(reaction.type) 
-                  ? `${reaction.bgColor} ${reaction.borderColor} ${reaction.color}` 
+                  ? `${reaction.bgColorActive} ${reaction.borderColorActive} ${reaction.color}` 
                   : 'bg-premium-surface/50 border-premium-border hover:border-premium-border-hover text-premium-text-muted'
                 }
               `}
