@@ -1336,7 +1336,6 @@ export default function EnhancedCommunityDetailPage() {
                       value={community.chatMode || 'all_members'}
                       onValueChange={(value) => {
                         updateCommunityMutation.mutate({
-                          ...community,
                           chatMode: value as 'disabled' | 'owner_only' | 'moderators_only' | 'all_members'
                         });
                       }}
@@ -1374,7 +1373,6 @@ export default function EnhancedCommunityDetailPage() {
                         const value = parseInt(e.target.value) || 0;
                         if (value >= 0 && value <= 300) {
                           updateCommunityMutation.mutate({
-                            ...community,
                             chatSlowmodeSeconds: value
                           });
                         }
@@ -1400,7 +1398,6 @@ export default function EnhancedCommunityDetailPage() {
                       checked={community.autoModeration || false}
                       onCheckedChange={(checked) => {
                         updateCommunityMutation.mutate({
-                          ...community,
                           autoModeration: checked
                         });
                       }}
@@ -1536,7 +1533,6 @@ export default function EnhancedCommunityDetailPage() {
                       value={community.membershipPolicy}
                       onValueChange={(value) => {
                         updateCommunityMutation.mutate({
-                          ...community,
                           membershipPolicy: value as 'open' | 'approval_required' | 'closed'
                         });
                       }}
@@ -1564,7 +1560,6 @@ export default function EnhancedCommunityDetailPage() {
                       checked={community.isPrivate}
                       onCheckedChange={(checked) => {
                         updateCommunityMutation.mutate({
-                          ...community,
                           isPrivate: checked
                         });
                       }}
