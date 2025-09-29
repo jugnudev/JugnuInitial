@@ -1265,7 +1265,10 @@ export type UserSession = typeof userSessions.$inferSelect;
 export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
 
 // Community Type Exports
-export type Community = typeof communities.$inferSelect;
+export type Community = typeof communities.$inferSelect & {
+  memberCount?: number; // Alias for totalMembers for frontend compatibility
+  postCount?: number; // Alias for totalPosts for frontend compatibility
+};
 export type InsertCommunity = z.infer<typeof insertCommunitySchema>;
 export type CommunityMembership = typeof communityMemberships.$inferSelect;
 export type InsertCommunityMembership = z.infer<typeof insertCommunityMembershipSchema>;

@@ -1324,7 +1324,19 @@ export class CommunitiesSupabaseDB {
       isPrivate: data.is_private,
       membershipPolicy: data.membership_policy,
       status: data.status,
-      slug: data.slug || null
+      slug: data.slug || null,
+      totalMembers: data.total_members || 0,
+      totalPosts: data.total_posts || 0,
+      memberCount: data.total_members || 0, // Alias for frontend compatibility
+      postCount: data.total_posts || 0, // Alias for frontend compatibility
+      shortDescription: data.short_description,
+      welcomeText: data.welcome_text,
+      chatMode: data.chat_mode || 'owner_only',
+      chatSlowmodeSeconds: data.chat_slowmode_seconds || 0,
+      allowMemberPosts: data.allow_member_posts || false,
+      subscriptionStatus: data.subscription_status || 'trialing',
+      subscriptionEndsAt: data.subscription_ends_at,
+      lastActivityAt: data.last_activity_at
     };
   }
 
