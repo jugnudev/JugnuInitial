@@ -3318,18 +3318,44 @@ export function addCommunitiesRoutes(app: Express) {
 
       // Check membership and role
       const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      console.log('Poll creation - User membership check:', {
+        userId: user.id,
+        communityId,
+        membership: membership ? {
+          role: membership.role,
+          status: membership.status,
+          approvedAt: membership.approvedAt
+        } : null
+      });
+      
       if (!membership || membership.status !== 'approved') {
         return res.status(403).json({ ok: false, error: 'Not a member of this community' });
       }
 
       // Only owners and moderators can create polls
       if (membership.role !== 'owner' && membership.role !== 'moderator') {
+        console.log('Poll creation - User does not have owner/moderator role, checking if organizer...');
+        
         // Additional check: if user is the community organizer, auto-fix their membership
         const community = await communitiesStorage.getCommunityById(communityId);
+        console.log('Poll creation - Community data:', {
+          communityId,
+          organizerId: community ? community.organizerId : 'not found'
+        });
+        
         if (community) {
           const organizer = await communitiesStorage.getOrganizerById(community.organizerId);
+          console.log('Poll creation - Organizer data:', {
+            organizerId: community.organizerId,
+            organizer: organizer ? {
+              userId: organizer.userId,
+              isCurrentUser: organizer.userId === user.id
+            } : null
+          });
+          
           if (organizer && organizer.userId === user.id) {
             // User is the organizer but doesn't have owner role, fix it
+            console.log('Poll creation - Auto-fixing owner membership for community organizer');
             await communitiesStorage.updateCommunityMembership(communityId, user.id, {
               role: 'owner',
               status: 'approved',
@@ -3337,9 +3363,11 @@ export function addCommunitiesRoutes(app: Express) {
             });
             console.log('Auto-fixed owner membership for community organizer');
           } else {
+            console.log('Poll creation - User is not the organizer, denying access');
             return res.status(403).json({ ok: false, error: 'Only owners and moderators can create polls' });
           }
         } else {
+          console.log('Poll creation - Community not found, denying access');
           return res.status(403).json({ ok: false, error: 'Only owners and moderators can create polls' });
         }
       }

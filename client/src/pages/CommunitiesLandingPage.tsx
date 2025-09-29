@@ -116,6 +116,7 @@ export default function CommunitiesLandingPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   // Enhanced wizard state management
   const [wizardStep, setWizardStep] = useState(1);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [communityForm, setCommunityForm] = useState({
     name: '',
     description: '',
@@ -261,6 +262,13 @@ export default function CommunitiesLandingPage() {
 
   const resetWizard = () => {
     setWizardStep(1);
+    
+    // Clean up blob URL to prevent memory leaks
+    if (communityForm.coverUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(communityForm.coverUrl);
+    }
+    
+    setCoverImageFile(null);
     setCommunityForm({
       name: '',
       description: '',
@@ -322,23 +330,29 @@ export default function CommunitiesLandingPage() {
     retry: false,
   });
 
-  // Cover image upload mutation
+  // Upload cover image to existing community
   const uploadCoverImageMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async ({ file, communityId }: { file: File; communityId: string }) => {
       const formData = new FormData();
-      formData.append('coverImage', file);
+      formData.append('image', file);
       
-      const response = await fetch('/api/communities/upload/cover', {
+      // Use fetch directly for form data but with proper token from apiRequest context
+      const token = localStorage.getItem('community_auth_token');
+      const response = await fetch(`/api/communities/${communityId}/upload-cover-image`, {
         method: 'POST',
         body: formData,
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
       });
       
       if (!response.ok) {
-        throw new Error('Failed to upload cover image');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload cover image');
       }
       
       const data = await response.json();
-      return data.url;
+      return data.coverUrl;
     },
     onError: (error: any) => {
       toast({ 
@@ -349,19 +363,53 @@ export default function CommunitiesLandingPage() {
     },
   });
 
-  // Create community mutation
+  // Create community mutation (two-step process if cover image)
   const createCommunityMutation = useMutation({
-    mutationFn: async (data: { name: string; description: string; coverUrl?: string; isPrivate?: boolean; membershipPolicy?: string }) => {
-      const response = await apiRequest('POST', '/api/communities', data);
-      if (!response.ok) {
+    mutationFn: async (formData: typeof communityForm) => {
+      // Step 1: Create the community
+      const createResponse = await apiRequest('POST', '/api/communities', {
+        name: formData.name,
+        description: formData.description,
+        isPrivate: formData.isPrivate,
+        membershipPolicy: formData.membershipPolicy,
+      });
+      
+      if (!createResponse.ok) {
         throw new Error('Failed to create community');
       }
-      return response;
+
+      // Extract the actual community data from the response
+      const responseData = await createResponse.json();
+      const community = responseData.community;
+      
+      if (!community?.id) {
+        throw new Error('Failed to get community ID from response');
+      }
+      
+      // Step 2: Upload cover image if provided
+      if (formData.coverUrl && coverImageFile) {
+        try {
+          await uploadCoverImageMutation.mutateAsync({ 
+            file: coverImageFile, 
+            communityId: community.id 
+          });
+        } catch (error) {
+          // Community was created but cover upload failed - show warning but don't fail the whole process
+          toast({
+            title: "Community created successfully",
+            description: "However, cover image upload failed. You can add it later in settings.",
+            variant: "default"
+          });
+        }
+      }
+      
+      return responseData;
     },
     onSuccess: () => {
       toast({ title: "Community created successfully!" });
       setShowCreateDialog(false);
       resetWizard(); // Use proper wizard reset with all enhanced fields
+      setCoverImageFile(null); // Reset cover image file
       queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
       queryClient.invalidateQueries({ queryKey: ['/api/user/communities'] });
     },
@@ -1030,16 +1078,30 @@ export default function CommunitiesLandingPage() {
                     <p className="text-sm text-muted mb-4">Add a cover photo to make your community stand out. This will be displayed on your community card.</p>
                     <ObjectUploader
                       onUpload={async (file: File) => {
-                        const url = await uploadCoverImageMutation.mutateAsync(file);
-                        setCommunityForm(prev => ({ ...prev, coverUrl: url }));
-                        return url;
+                        // Clean up any existing preview URL to prevent memory leaks
+                        if (communityForm.coverUrl.startsWith('blob:')) {
+                          URL.revokeObjectURL(communityForm.coverUrl);
+                        }
+                        
+                        setCoverImageFile(file);
+                        // Create a preview URL for display
+                        const previewUrl = URL.createObjectURL(file);
+                        setCommunityForm(prev => ({ ...prev, coverUrl: previewUrl }));
+                        return previewUrl;
                       }}
                       accept="image/*"
                       maxSizeMB={5}
                       placeholder="Drop your cover image here or click to upload"
                       className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-accent transition-colors"
                       existingUrl={communityForm.coverUrl}
-                      onRemove={() => setCommunityForm(prev => ({ ...prev, coverUrl: '' }))}
+                      onRemove={() => {
+                        // Clean up blob URL to prevent memory leaks
+                        if (communityForm.coverUrl.startsWith('blob:')) {
+                          URL.revokeObjectURL(communityForm.coverUrl);
+                        }
+                        setCoverImageFile(null);
+                        setCommunityForm(prev => ({ ...prev, coverUrl: '' }));
+                      }}
                     />
                     {uploadCoverImageMutation.isPending && (
                       <div className="flex items-center gap-2 mt-2 text-sm text-muted">
