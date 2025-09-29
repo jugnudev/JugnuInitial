@@ -82,6 +82,7 @@ import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { AnnouncementImageUploader } from "@/components/community/AnnouncementImageUploader";
 import { PostCard } from "@/components/PostCard";
 import { JoinGate } from "@/components/JoinGate";
 import CommunityChat from "@/components/CommunityChat";
@@ -439,6 +440,41 @@ export default function EnhancedCommunityDetailPage() {
     onError: (error: any) => {
       toast({ 
         title: "Failed to upload cover image", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Upload post image mutation
+  const uploadPostImageMutation = useMutation({
+    mutationFn: async ({ file, communityId }: { file: File; communityId: string }) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const token = localStorage.getItem('community_auth_token');
+      const response = await fetch(`/api/communities/${communityId}/upload-post-image`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload post image');
+      }
+      
+      const data = await response.json();
+      return data.imageUrl;
+    },
+    onSuccess: (imageUrl) => {
+      setPostForm(prev => ({ ...prev, imageUrl }));
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to upload image", 
         description: error.message,
         variant: "destructive" 
       });
@@ -1817,44 +1853,24 @@ export default function EnhancedCommunityDetailPage() {
               />
             </div>
             
-            {/* Image URL */}
+            {/* Image Upload */}
             <div>
-              <Label htmlFor="image">Image URL (optional)</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="image"
-                  value={postForm.imageUrl}
-                  onChange={(e) => setPostForm(prev => ({ ...prev, imageUrl: e.target.value }))}
-                  placeholder="https://example.com/image.jpg"
-                  data-testid="post-image-input"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="flex-shrink-0"
-                >
-                  <ImageIcon className="h-4 w-4" />
-                </Button>
-              </div>
-              {postForm.imageUrl && (
-                <div className="mt-2 relative rounded-lg overflow-hidden">
-                  <img 
-                    src={postForm.imageUrl} 
-                    alt="Preview" 
-                    className="w-full h-32 object-cover"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPostForm(prev => ({ ...prev, imageUrl: '' }))}
-                    className="absolute top-2 right-2 bg-black/50 border-white/20 text-white hover:bg-black/70"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              )}
+              <Label htmlFor="image">Image (optional)</Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Upload a 16:9 ratio image for your announcement
+              </p>
+              <AnnouncementImageUploader
+                onUpload={async (file) => {
+                  if (!community?.id) throw new Error('Community ID not available');
+                  const imageUrl = await uploadPostImageMutation.mutateAsync({ 
+                    file, 
+                    communityId: community.id 
+                  });
+                  return imageUrl;
+                }}
+                existingUrl={postForm.imageUrl}
+                onRemove={() => setPostForm(prev => ({ ...prev, imageUrl: '' }))}
+              />
             </div>
             
             {/* Link */}
