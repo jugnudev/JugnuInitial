@@ -49,12 +49,6 @@ export function useCommunityChat(communityId: string, token: string | null) {
       return;
     }
 
-    // Don't connect in development mode where WebSocket server is disabled
-    if (import.meta.env.DEV) {
-      console.log('[WS] WebSocket disabled in development mode');
-      return;
-    }
-
     setIsConnecting(true);
 
     try {

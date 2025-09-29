@@ -131,17 +131,12 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
     
-    // Start WebSocket chat server only in production or when Vite is disabled
-    // to avoid conflicts with Vite's HMR WebSocket
-    if (app.get("env") !== "development" || process.env.SKIP_VITE === "true") {
-      try {
-        startChatServer(server);
-        log(`✅ WebSocket chat server started successfully`);
-      } catch (error) {
-        console.error('❌ Failed to start WebSocket server:', error);
-      }
-    } else {
-      log(`⚠️ WebSocket chat server disabled in development mode to avoid Vite HMR conflicts`);
+    // Start WebSocket chat server on /chat path (separate from Vite's HMR)
+    try {
+      startChatServer(server);
+      log(`✅ WebSocket chat server started on /chat`);
+    } catch (error) {
+      console.error('❌ Failed to start WebSocket server:', error);
     }
   });
 })();

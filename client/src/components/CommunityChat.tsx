@@ -83,7 +83,7 @@ export default function CommunityChat({
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { content: string, isAnnouncement?: boolean }) => {
-      return apiRequest(`/api/communities/${communityId}/chat/messages`, 'POST', data);
+      return apiRequest('POST', `/api/communities/${communityId}/chat/messages`, data);
     },
     onSuccess: () => {
       setMessageInput('');
@@ -101,7 +101,7 @@ export default function CommunityChat({
   // Delete message mutation
   const deleteMessageMutation = useMutation({
     mutationFn: async (messageId: string) => {
-      return apiRequest(`/api/communities/${communityId}/chat/messages/${messageId}`, 'DELETE');
+      return apiRequest('DELETE', `/api/communities/${communityId}/chat/messages/${messageId}`);
     },
     onError: (error: any) => {
       toast({
@@ -115,7 +115,7 @@ export default function CommunityChat({
   // Pin message mutation
   const pinMessageMutation = useMutation({
     mutationFn: async ({ messageId, isPinned }: { messageId: string, isPinned: boolean }) => {
-      return apiRequest(`/api/communities/${communityId}/chat/messages/${messageId}/pin`, 'POST', { isPinned });
+      return apiRequest('POST', `/api/communities/${communityId}/chat/messages/${messageId}/pin`, { isPinned });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'chat/pinned'] });
