@@ -806,6 +806,7 @@ export class CommunitiesSupabaseDB {
     if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.imageUrl !== undefined) updateData.image_url = data.imageUrl;
+    if (data.coverUrl !== undefined) updateData.cover_url = data.coverUrl;
     if (data.isPrivate !== undefined) updateData.is_private = data.isPrivate;
     if (data.membershipPolicy !== undefined) updateData.membership_policy = data.membershipPolicy;
     if (data.status !== undefined) updateData.status = data.status;
