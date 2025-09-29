@@ -539,20 +539,94 @@ export default function EnhancedCommunityDetailPage() {
     },
   });
 
-  // Handle post reactions
+  // Handle post reactions with optimistic updates
   const handleReaction = async (postId: string, type: string) => {
-    if (!community?.id) return;
+    if (!community?.id || !communityData) return;
+    
+    const userId = user?.id;
+    if (!userId) return;
+    
+    // Find the post
+    const post = communityData.posts?.find(p => p.id === postId);
+    if (!post) return;
+    
+    // Optimistically update the UI
+    const currentReaction = post.reactions?.find(r => r.type === type);
+    const hasReacted = currentReaction?.hasReacted || false;
+    
+    // Create optimistic data
+    const optimisticPosts = communityData.posts?.map(p => {
+      if (p.id !== postId) return p;
+      
+      // Clone reactions array
+      const reactions = [...(p.reactions || [])];
+      
+      if (hasReacted) {
+        // Remove reaction - decrease count
+        return {
+          ...p,
+          reactions: reactions.map(r => 
+            r.type === type 
+              ? { ...r, count: Math.max(0, r.count - 1), hasReacted: false }
+              : r
+          ).filter(r => r.count > 0)
+        };
+      } else {
+        // Add/change reaction
+        const reactionExists = reactions.some(r => r.type === type);
+        const userHasOtherReaction = reactions.find(r => r.hasReacted);
+        
+        if (userHasOtherReaction) {
+          // Replace existing reaction
+          return {
+            ...p,
+            reactions: reactions
+              .map(r => {
+                if (r.type === userHasOtherReaction.type) {
+                  return { ...r, count: Math.max(0, r.count - 1), hasReacted: false };
+                }
+                if (r.type === type) {
+                  return { ...r, count: r.count + 1, hasReacted: true };
+                }
+                return r;
+              })
+              .filter(r => r.count > 0)
+          };
+        } else if (reactionExists) {
+          // Increment existing
+          return {
+            ...p,
+            reactions: reactions.map(r => 
+              r.type === type 
+                ? { ...r, count: r.count + 1, hasReacted: true }
+                : r
+            )
+          };
+        } else {
+          // Add new reaction
+          return {
+            ...p,
+            reactions: [...reactions, { type, count: 1, hasReacted: true }]
+          };
+        }
+      }
+    });
+    
+    // Update cache optimistically
+    queryClient.setQueryData(
+      ['/api/communities', community.id],
+      { ...communityData, posts: optimisticPosts }
+    );
     
     try {
-      // Backend automatically toggles the reaction
-      // If user already reacted with this type, it removes it
-      // If user reacted with a different type, it replaces it
-      // If no reaction, it adds it
+      // Call backend
       await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type });
       
-      // Refetch to get updated reactions
+      // Refetch in background to sync
       refetch();
     } catch (error: any) {
+      // Revert on error
+      refetch();
       toast({ 
         title: "Failed to update reaction", 
         description: error.message || "Please try again",
