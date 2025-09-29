@@ -1539,7 +1539,7 @@ export default function EnhancedCommunityDetailPage() {
                   setPostForm(prev => ({ ...prev, postType: value }))
                 }
               >
-                <SelectTrigger className="bg-premium-surface border-premium-border">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1573,7 +1573,6 @@ export default function EnhancedCommunityDetailPage() {
                 value={postForm.title}
                 onChange={(e) => setPostForm(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="Give your post a title..."
-                className="bg-premium-surface border-premium-border"
                 data-testid="post-title-input"
               />
             </div>
@@ -1587,7 +1586,6 @@ export default function EnhancedCommunityDetailPage() {
                 onChange={(e) => setPostForm(prev => ({ ...prev, content: e.target.value }))}
                 placeholder="Write your post content... (Markdown supported)"
                 rows={6}
-                className="bg-premium-surface border-premium-border"
                 data-testid="post-content-input"
               />
             </div>
@@ -1601,7 +1599,6 @@ export default function EnhancedCommunityDetailPage() {
                   value={postForm.imageUrl}
                   onChange={(e) => setPostForm(prev => ({ ...prev, imageUrl: e.target.value }))}
                   placeholder="https://example.com/image.jpg"
-                  className="bg-premium-surface border-premium-border"
                   data-testid="post-image-input"
                 />
                 <Button
@@ -1640,7 +1637,6 @@ export default function EnhancedCommunityDetailPage() {
                 value={postForm.linkUrl}
                 onChange={(e) => setPostForm(prev => ({ ...prev, linkUrl: e.target.value }))}
                 placeholder="https://example.com"
-                className="bg-premium-surface border-premium-border"
                 data-testid="post-link-url-input"
               />
               {postForm.linkUrl && (
@@ -1649,14 +1645,12 @@ export default function EnhancedCommunityDetailPage() {
                     value={postForm.linkText}
                     onChange={(e) => setPostForm(prev => ({ ...prev, linkText: e.target.value }))}
                     placeholder="Link text (e.g., 'Read More')"
-                    className="bg-premium-surface border-premium-border"
                   />
                   <Textarea
                     value={postForm.linkDescription}
                     onChange={(e) => setPostForm(prev => ({ ...prev, linkDescription: e.target.value }))}
                     placeholder="Brief description of the link..."
                     rows={2}
-                    className="bg-premium-surface border-premium-border"
                   />
                 </>
               )}
@@ -1676,7 +1670,6 @@ export default function EnhancedCommunityDetailPage() {
                     }
                   }}
                   placeholder="Add a tag..."
-                  className="bg-premium-surface border-premium-border"
                 />
                 <Button
                   type="button"
