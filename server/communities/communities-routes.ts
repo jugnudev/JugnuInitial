@@ -2351,17 +2351,25 @@ export function addCommunitiesRoutes(app: Express) {
     try {
       const { id, postId } = req.params;
       const community = (req as any).community;
-      const { title, content } = req.body;
+      const { title, content, imageUrl, linkUrl, linkText, linkDescription, tags, postType, isPinned } = req.body;
 
       const post = await communitiesStorage.getPostById(postId);
       if (!post || post.communityId !== community.id) {
         return res.status(404).json({ ok: false, error: 'Post not found' });
       }
 
-      const updatedPost = await communitiesStorage.updatePost(postId, {
-        title: title || post.title,
-        content: content || post.content
-      });
+      const updateData: any = {};
+      if (title !== undefined) updateData.title = title;
+      if (content !== undefined) updateData.content = content;
+      if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+      if (linkUrl !== undefined) updateData.linkUrl = linkUrl;
+      if (linkText !== undefined) updateData.linkText = linkText;
+      if (linkDescription !== undefined) updateData.linkDescription = linkDescription;
+      if (tags !== undefined) updateData.tags = tags;
+      if (postType !== undefined) updateData.postType = postType;
+      if (isPinned !== undefined) updateData.isPinned = isPinned;
+
+      const updatedPost = await communitiesStorage.updatePost(postId, updateData);
 
       res.json({
         ok: true,
