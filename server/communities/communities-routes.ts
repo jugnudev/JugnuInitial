@@ -2661,7 +2661,7 @@ export function addCommunitiesRoutes(app: Express) {
       const user = (req as any).user;
       const { type } = req.body;
 
-      if (!['heart', 'thumbs_up', 'fire'].includes(type)) {
+      if (!['love', 'like', 'fire', 'celebrate', 'star'].includes(type)) {
         return res.status(400).json({ ok: false, error: 'Invalid reaction type' });
       }
 
@@ -2770,19 +2770,11 @@ export function addCommunitiesRoutes(app: Express) {
         }
       }
 
-      const comments = await communitiesStorage.getCommentsByPostId(postId);
-
-      // Build threaded structure
-      const threadedComments = comments.filter(c => !c.parent_id);
-      const commentMap = new Map(comments.map(c => [c.id, c]));
-      
-      threadedComments.forEach(comment => {
-        comment.replies = comments.filter(c => c.parent_id === comment.id);
-      });
+      const comments = await communitiesStorage.getCommentsByPostId(postId, user.id);
 
       res.json({
         ok: true,
-        comments: threadedComments
+        comments: comments
       });
     } catch (error: any) {
       console.error('Get comments error:', error);
@@ -2957,6 +2949,89 @@ export function addCommunitiesRoutes(app: Express) {
     } catch (error: any) {
       console.error('Hide comment error:', error);
       res.status(500).json({ ok: false, error: error.message || 'Failed to hide comment' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/comments/:commentId/like
+   * Like a comment (members only)
+   */
+  app.post('/api/communities/:id/comments/:commentId/like', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id, commentId } = req.params;
+      const user = (req as any).user;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      // Check membership
+      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      const isOwner = organizer && organizer.id === community.organizerId;
+      
+      if (!isOwner) {
+        const membership = await communitiesStorage.getMembershipByUserAndCommunity(user.id, community.id);
+        if (!membership || membership.status !== 'approved') {
+          return res.status(403).json({ ok: false, error: 'Access denied - members only' });
+        }
+      }
+
+      const like = await communitiesStorage.addCommentLike(commentId, user.id);
+      
+      if (!like) {
+        return res.status(409).json({ ok: false, error: 'Comment already liked' });
+      }
+
+      const likeCount = await communitiesStorage.getCommentLikeCount(commentId);
+
+      res.json({
+        ok: true,
+        message: 'Comment liked successfully',
+        likeCount
+      });
+    } catch (error: any) {
+      console.error('Like comment error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to like comment' });
+    }
+  });
+
+  /**
+   * DELETE /api/communities/:id/comments/:commentId/like
+   * Unlike a comment (members only)
+   */
+  app.delete('/api/communities/:id/comments/:commentId/like', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id, commentId } = req.params;
+      const user = (req as any).user;
+
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      // Check membership
+      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      const isOwner = organizer && organizer.id === community.organizerId;
+      
+      if (!isOwner) {
+        const membership = await communitiesStorage.getMembershipByUserAndCommunity(user.id, community.id);
+        if (!membership || membership.status !== 'approved') {
+          return res.status(403).json({ ok: false, error: 'Access denied - members only' });
+        }
+      }
+
+      await communitiesStorage.removeCommentLike(commentId, user.id);
+      const likeCount = await communitiesStorage.getCommentLikeCount(commentId);
+
+      res.json({
+        ok: true,
+        message: 'Comment unliked successfully',
+        likeCount
+      });
+    } catch (error: any) {
+      console.error('Unlike comment error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to unlike comment' });
     }
   });
 

@@ -1083,7 +1083,7 @@ export class CommunitiesSupabaseDB {
     return comment;
   }
 
-  async getCommentsByPostId(postId: string): Promise<any[]> {
+  async getCommentsByPostId(postId: string, userId?: string): Promise<any[]> {
     const { data, error } = await this.client
       .from('community_comments')
       .select(`
@@ -1103,7 +1103,9 @@ export class CommunitiesSupabaseDB {
     if (error) throw error;
     
     // Map the data to frontend format and build threaded structure
-    const comments = (data || []).map(this.mapCommentFromDb.bind(this));
+    const comments = await Promise.all(
+      (data || []).map(d => this.mapCommentFromDb(d, userId))
+    );
     
     // Build threaded structure
     const topLevelComments = comments.filter(c => !c.parentId);
@@ -1159,6 +1161,59 @@ export class CommunitiesSupabaseDB {
       .eq('id', id);
 
     if (error) throw error;
+  }
+
+  // ============ COMMENT REACTIONS ============
+  async addCommentLike(commentId: string, userId: string): Promise<any> {
+    const { data: like, error } = await this.client
+      .from('community_comment_likes')
+      .insert({
+        comment_id: commentId,
+        user_id: userId
+      })
+      .select()
+      .single();
+
+    if (error) {
+      // If unique constraint violation, like already exists
+      if (error.code === '23505') {
+        return null;
+      }
+      throw error;
+    }
+    return like;
+  }
+
+  async removeCommentLike(commentId: string, userId: string): Promise<void> {
+    const { error } = await this.client
+      .from('community_comment_likes')
+      .delete()
+      .eq('comment_id', commentId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+  }
+
+  async getCommentLikeCount(commentId: string): Promise<number> {
+    const { count, error } = await this.client
+      .from('community_comment_likes')
+      .select('*', { count: 'exact', head: true })
+      .eq('comment_id', commentId);
+
+    if (error) throw error;
+    return count || 0;
+  }
+
+  async getUserCommentLike(commentId: string, userId: string): Promise<any | null> {
+    const { data, error } = await this.client
+      .from('community_comment_likes')
+      .select('*')
+      .eq('comment_id', commentId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
   }
 
   // ============ COMMUNITY REACTIONS ============
@@ -1353,8 +1408,13 @@ export class CommunitiesSupabaseDB {
     };
   }
 
-  private mapCommentFromDb(data: any): any {
+  private async mapCommentFromDb(data: any, userId?: string): Promise<any> {
     const author = data.users;
+    
+    // Get like count and user's like status
+    const likeCount = await this.getCommentLikeCount(data.id);
+    const hasLiked = userId ? !!(await this.getUserCommentLike(data.id, userId)) : false;
+    
     return {
       id: data.id,
       content: data.content,
@@ -1365,8 +1425,8 @@ export class CommunitiesSupabaseDB {
       createdAt: data.created_at,
       updatedAt: data.updated_at,
       parentId: data.parent_comment_id,
-      likes: 0, // Will be populated by likes count if implemented
-      hasLiked: false, // Will be determined by user's like status
+      likes: likeCount,
+      hasLiked: hasLiked,
       isEdited: data.updated_at !== data.created_at,
       replies: []
     };
