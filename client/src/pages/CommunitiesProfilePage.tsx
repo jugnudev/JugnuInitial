@@ -12,7 +12,8 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Mail, ArrowLeft, User, Settings, LogOut, Building2, CheckCircle, Clock, XCircle, MapPin, Globe, Instagram, Twitter, Linkedin } from 'lucide-react';
+import { Loader2, Mail, ArrowLeft, User, Settings, LogOut, Building2, CheckCircle, Clock, XCircle, MapPin, Globe, Instagram, Twitter, Linkedin, Camera } from 'lucide-react';
+import { ObjectUploader } from '@/components/ObjectUploader';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -225,6 +226,76 @@ export function CommunitiesProfilePage() {
       toast({
         title: 'Error',
         description: error.message || 'Something went wrong.',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Profile picture upload mutation
+  const uploadProfileImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch('/api/auth/upload-profile-image', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload profile image');
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      if (data.ok) {
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+        toast({
+          title: 'Profile picture updated',
+          description: 'Your profile picture has been updated successfully.',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: data.error || 'Failed to upload profile picture.',
+          variant: 'destructive',
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to upload profile picture.',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  // Remove profile picture mutation
+  const removeProfileImageMutation = useMutation({
+    mutationFn: () => apiRequest('PATCH', '/api/auth/me', { profileImageUrl: null }),
+    onSuccess: (data) => {
+      if (data.ok) {
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+        toast({
+          title: 'Profile picture removed',
+          description: 'Your profile picture has been removed successfully.',
+        });
+      } else {
+        toast({
+          title: 'Error',
+          description: data.error || 'Failed to remove profile picture.',
+          variant: 'destructive',
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to remove profile picture.',
         variant: 'destructive',
       });
     }
@@ -571,6 +642,35 @@ export function CommunitiesProfilePage() {
                           <User className="w-3 h-3 text-blue-600" />
                         </div>
                         <h3 className="text-lg font-semibold text-foreground">Basic Information</h3>
+                      </div>
+                      
+                      {/* Profile Picture Upload Section */}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium text-foreground">Profile Picture</Label>
+                        <div className="flex items-start gap-6">
+                          <div className="flex-shrink-0">
+                            <Avatar className="w-24 h-24 border-2 border-border shadow-sm">
+                              <AvatarImage src={user.profileImageUrl || undefined} />
+                              <AvatarFallback className="text-lg font-bold bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
+                                {getUserInitials()}
+                              </AvatarFallback>
+                            </Avatar>
+                          </div>
+                          <div className="flex-1 space-y-3">
+                            <ObjectUploader
+                              onUpload={uploadProfileImageMutation.mutateAsync}
+                              existingUrl={user.profileImageUrl || undefined}
+                              onRemove={() => removeProfileImageMutation.mutate()}
+                              accept="image/*"
+                              maxSizeMB={5}
+                              placeholder="Upload profile picture"
+                              className="max-w-md"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Upload a clear photo of yourself. JPG, PNG, or WebP up to 5MB.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

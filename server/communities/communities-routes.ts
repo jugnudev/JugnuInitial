@@ -4,7 +4,7 @@ import multer from 'multer';
 import Stripe from 'stripe';
 import { communitiesStorage } from './communities-supabase';
 import { insertUserSchema } from '@shared/schema';
-import { uploadCommunityPostImage, uploadCommunityCoverImage } from '../services/storageService';
+import { uploadCommunityPostImage, uploadCommunityCoverImage, uploadUserProfileImage } from '../services/storageService';
 import { rateLimiter, rateLimitPresets, ipBlocker } from './rate-limiter';
 import { sanitizeText, sanitizeHTML, validateFileUpload, CSRFProtection, sanitizeMiddleware } from './input-sanitizer';
 import { inviteSystem } from './invite-system';
@@ -230,6 +230,7 @@ const verifyCodeSchema = z.object({
 const updateProfileSchema = z.object({
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
+  profileImageUrl: z.string().url().optional().nullable(),
   bio: z.string().max(500).optional(),
   location: z.string().max(100).optional(),
   website: z.string().url().optional().or(z.literal('')),
@@ -704,6 +705,37 @@ export function addCommunitiesRoutes(app: Express) {
     } catch (error: any) {
       console.error('Update profile error:', error);
       res.status(500).json({ ok: false, error: error.message || 'Failed to update profile' });
+    }
+  });
+
+  /**
+   * POST /api/auth/upload-profile-image
+   * Upload profile image for user
+   * curl -X POST http://localhost:5000/api/auth/upload-profile-image \
+   *   -H "Authorization: Bearer YOUR_TOKEN" \
+   *   -F "image=@path/to/profile.jpg"
+   */
+  app.post('/api/auth/upload-profile-image', requireAuth, upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+      const file = req.file;
+
+      if (!file) {
+        return res.status(400).json({ ok: false, error: 'No image file provided' });
+      }
+
+      const profileImageUrl = await uploadUserProfileImage(file, user.id);
+
+      // Update user with new profile image
+      await communitiesStorage.updateUser(user.id, { profileImageUrl });
+
+      res.json({
+        ok: true,
+        profileImageUrl
+      });
+    } catch (error: any) {
+      console.error('User profile image upload error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to upload profile image' });
     }
   });
 
