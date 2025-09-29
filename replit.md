@@ -1,205 +1,110 @@
 # Replit.md
 
 ## Overview
-Jugnu is a comprehensive cultural events and communities platform, primarily focused on South Asian and global music experiences in Vancouver. The platform features a robust Communities system with advanced performance optimizations, security features, and growth mechanisms. It supports exclusive member spaces, event discovery, ticketing integrations, and sponsorship opportunities. Phase 9 optimizations include comprehensive caching, rate limiting, invite systems, and analytics tracking.
+Jugnu is a cultural events and communities platform focused on South Asian and global music experiences in Vancouver. It offers exclusive member spaces, event discovery, ticketing integrations, and sponsorship opportunities. The platform prioritizes performance, security, and growth, featuring comprehensive caching, rate limiting, invite systems, and analytics.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend Architecture
-- **Framework**: React 18 with TypeScript, using Vite for building.
-- **Routing**: Wouter for client-side routing.
-- **State Management**: TanStack Query for server state; React hooks for local state.
-- **Styling**: Tailwind CSS with custom variables and shadcn/ui components.
-- **Typography**: Google Fonts (Fraunces for headings, Inter for body).
-- **Component Structure**: Organized into pages, components, and UI components for clear separation.
+### Frontend
+- **Framework**: React 18 with TypeScript, Vite.
+- **Routing**: Wouter.
+- **State Management**: TanStack Query (server state), React hooks (local state).
+- **Styling**: Tailwind CSS, shadcn/ui components, custom variables.
+- **Typography**: Google Fonts (Fraunces, Inter).
+- **Structure**: Pages, components, UI components.
 
-### Backend Architecture
+### Backend
 - **Framework**: Express.js with TypeScript.
-- **Database ORM**: Drizzle ORM for PostgreSQL with Neon Database; Supabase for Communities.
-- **Session Management**: Connect-pg-simple for PostgreSQL session storage; 24-hour timeout.
-- **API Structure**: RESTful endpoints (`/api` prefix) with comprehensive error handling.
+- **Database ORM**: Drizzle ORM for PostgreSQL (Neon Database), Supabase for Communities.
+- **Session Management**: Connect-pg-simple for PostgreSQL, 24-hour timeout.
+- **API**: RESTful (`/api` prefix), comprehensive error handling.
 - **Security**: Rate limiting (5 req/s authenticated, 1 req/s unauthenticated), input sanitization, CSRF protection, IP blocking.
-- **Performance**: In-memory caching with TTL, query optimization, background cleanup jobs.
-- **Analytics**: Event tracking, engagement metrics, conversion funnels, feature usage monitoring.
+- **Performance**: In-memory caching with TTL, query optimization, background cleanup.
+- **Analytics**: Event tracking, engagement, conversion funnels, feature usage.
 
 ### Data Management
-- **Static Data**: Events and gallery images served from local JSON files.
-- **Event Logic**: UI conditionally renders based on purchasable events.
-- **Community Events System**: Automated import from Google Calendar ICS feeds with full bidirectional sync. Parses structured descriptions for event details.
-- **Waitlist Mode**: Single TBA event routes to a dedicated `/waitlist` page.
-- **Data Cleanup**: Automated jobs for cleaning old notifications (>30 days), expired sessions, abandoned drafts (>7 days), and archiving inactive communities (>90 days).
-- **Caching Strategy**: In-memory cache with configurable TTL (60s short, 300s medium, 900s long) for frequently accessed data.
+- **Static Data**: Events and gallery images from local JSON.
+- **Event Logic**: UI renders based on purchasable events.
+- **Community Events**: Automated import and bidirectional sync from Google Calendar ICS feeds.
+- **Waitlist Mode**: Dedicated `/waitlist` page for TBA events.
+- **Data Cleanup**: Automated jobs for old notifications, expired sessions, abandoned drafts, inactive communities.
+- **Caching**: In-memory cache with configurable TTL (60s, 300s, 900s).
 
-### Responsive Design & Mobile Experience
-- **Mobile-First**: Tailwind CSS breakpoints for mobile-optimized layouts.
-- **Smart Navigation**: Conditional display of navigation items based on content.
-- **Single CTA Flow**: Streamlined call-to-action in hero and mobile bars.
-- **Mobile CTA Bar**: Fixed bottom action bar with safe-area support.
+### Responsive Design & Mobile
+- **Approach**: Mobile-first with Tailwind CSS breakpoints.
+- **Navigation**: Conditional display.
+- **CTAs**: Streamlined single CTA in hero and mobile bars, fixed bottom action bar.
 
 ### Performance & SEO
-- **Build Optimization**: Vite for fast development and optimized production builds.
-- **Code Splitting**: Dynamic imports for route-based code splitting.
-- **SEO**: Meta tags, Open Graph, Twitter Cards, and JSON-LD structured data via SEOMetaTags component.
-- **Images**: Lazy loading with intersection observer, progressive loading, error handling.
-- **Accessibility**: ARIA labels, keyboard navigation, screen reader support, comprehensive data-testid attributes.
-- **Frontend Optimizations**: Infinite scroll for feeds, React.memo for expensive components, loading skeletons, lazy image loading.
-- **Error Handling**: Global error boundary with retry logic, user-friendly messages, error tracking.
+- **Build**: Vite for fast development and optimized production.
+- **Code Splitting**: Dynamic imports.
+- **SEO**: Meta tags, Open Graph, Twitter Cards, JSON-LD via SEOMetaTags component.
+- **Images**: Lazy loading, progressive loading, error handling.
+- **Accessibility**: ARIA labels, keyboard navigation, screen reader support, `data-testid`.
+- **Frontend Optimizations**: Infinite scroll, `React.memo`, loading skeletons.
+- **Error Handling**: Global error boundary, retry logic, user-friendly messages.
 
 ### Admin & Sponsorship Systems
-- **Admin API**: Key-based system for managing campaigns, portal tokens, and onboarding.
-- **Refresh Events**: All admin pages now include "Refresh Events" button to manually trigger calendar sync, properly removing deleted events from source.
-- **Portal Token System**: UUID-based secure tokens with legacy hex token support for backward compatibility. Tokens are created in Supabase with 90-day expiration and validated via `/api/spotlight/portal/:tokenId` endpoint.
-- **Admin Authentication**: `x-admin-key` header authentication with audit logging.
-- **Lead Management**: Full CRUD operations for sponsor leads including delete functionality with confirmation dialog.
-- **Onboarding Flow**: Multi-part form submission at `/api/onboard/:token` creates campaigns, uploads creatives, and generates portal tokens automatically.
-- **4-Creative Upload System**: Full Feature campaigns require 4 separate creative uploads (events banner desktop/mobile + homepage feature desktop/mobile). Frontend validates dimensions and formats for each placement.
-- **Health Monitoring**: `/api/health` endpoint with database connectivity checks, table status, and response time metrics.
-- **Promote v2 Sales Page**: Premium sales page for sponsorship packages with detailed pricing, add-ons, and application forms.
-- **Sponsor Portal System**: Token-based analytics portal (`/sponsor/:tokenId`) with real-time metrics (impressions, clicks, CTR), charts, and CSV export.
-- **CSV Export**: `/api/spotlight/portal/:tokenId/export.csv` endpoint for downloading campaign metrics.
-- **Advanced Analytics Backend**: `sponsor_metrics_daily` table with day (Pacific timezone), raw_views, billable_impressions, clicks, unique_users columns.
-- **Frequency Capping**: Infrastructure for viewable impression tracking with IntersectionObserver and session-based frequency capping (defaults to unlimited for better visibility).
-- **Sponsor Onboarding**: One-click email feature for new sponsors with portal details.
-- **Self-test System**: Comprehensive `/api/admin/selftest` endpoint for validating system health and functionality.
-- **Mobile-First Admin Console**: Responsive redesign for `/admin/promote` for various screen sizes.
-- **Timezone Hardening**: All metrics writes use Pacific timezone ((now() at time zone 'America/Vancouver')::date) for consistency.
-- **Enhanced Logging**: Metrics test endpoint provides before→after count logging for verification.
-- **Schema Robustness**: All operations use 'day' column only, with safe schema cleanup approach.
-- **Security Hardening**: Test scripts sanitized to use environment variables; no hardcoded secrets in repository.
-- **Frequency Cap Support**: Full CRUD support for frequency capping with proper 0-value handling (0 = unlimited).
+- **Admin API**: Key-based system for campaigns, portal tokens, onboarding.
+- **Refresh Events**: Manual trigger for calendar sync, including deletion of removed events.
+- **Portal Token System**: UUID-based secure tokens (90-day expiration) with legacy hex support.
+- **Admin Authentication**: `x-admin-key` header with audit logging.
+- **Lead Management**: Full CRUD for sponsor leads.
+- **Onboarding Flow**: Multi-part form for campaign creation, creative upload, and token generation.
+- **Creative Upload**: Supports 4 creatives (desktop/mobile banners) with validation.
+- **Health Monitoring**: `/api/health` endpoint with DB checks.
+- **Promote v2 Sales Page**: Premium sponsorship sales page.
+- **Sponsor Portal**: Token-based analytics (`/sponsor/:tokenId`) with real-time metrics, charts, CSV export.
+- **Analytics Backend**: `sponsor_metrics_daily` table (Pacific timezone).
+- **Frequency Capping**: Viewable impression tracking with IntersectionObserver and session-based capping.
+- **Self-test**: `/api/admin/selftest` endpoint for system validation.
+- **Mobile-First Admin Console**: Responsive redesign for `/admin/promote`.
+- **Timezone Hardening**: All metrics use Pacific timezone.
+- **Security**: Environment variables for sensitive data.
 
-## Communities Platform Features (Phase 9)
+### Communities Platform (Phase 9)
+- **Growth Features**: Invite links, member referrals, community discovery (featured, trending, search), social sharing.
+- **Security Enhancements**: Configurable rate limiting, input sanitization, session security (24-hour timeout, secure tokens), CSRF protection.
+- **Performance**: In-memory database caching, query optimization, frontend optimizations (lazy loading, infinite scroll), background jobs for cleanup.
+- **Analytics & Monitoring**: Event tracking, error monitoring, performance metrics, admin reports.
+- **Real-Time Chat**: WebSocket server (`/chat`) for instant messaging, bearer token authentication, Supabase persistence, online presence, typing indicators, role-based permissions, slowmode, announcements, message management (pin, delete), standardized protocol, error handling, dev mode compatibility.
 
-### Growth Features
-- **Invite Links System**: Unique invite codes with expiration dates, usage limits, and tracking
-- **Member Referrals**: Referral statistics, leaderboards, conversion tracking
-- **Community Discovery**: Featured communities, trending sections, category filters, advanced search
-- **Social Sharing**: Share buttons for Twitter, Facebook, LinkedIn, WhatsApp with tracking
-
-### Security Enhancements
-- **Rate Limiting**: Configurable per-endpoint limits with IP blocking for suspicious activity
-- **Input Sanitization**: XSS prevention, file upload validation, SQL injection protection
-- **Session Security**: 24-hour timeout, secure token handling, request signing for sensitive ops
-- **CSRF Protection**: Token-based protection for forms and state-changing operations
-
-### Performance Features
-- **Database Caching**: In-memory cache with TTL for reducing database load
-- **Query Optimization**: Selective field queries, proper pagination, database indexes
-- **Frontend Performance**: Lazy loading, infinite scroll, loading skeletons, image optimization
-- **Background Jobs**: Automated cleanup of old data, session management, archive inactive communities
-
-### Analytics & Monitoring
-- **Event Tracking**: Page views, user engagement, conversion funnels, feature usage
-- **Error Monitoring**: Global error boundary, error logging, retry logic for failed operations
-- **Performance Metrics**: Timing tracking, load time monitoring, engagement metrics
-- **Admin Reports**: Weekly analytics reports, referral stats, community growth tracking
+### Feature Flags
+- **Ticketing System**: Controlled by `ENABLE_TICKETING` (server) and `VITE_ENABLE_TICKETING` (client). Disabling hides routes, APIs, UI, and ensures SEO isolation via `robots.txt` and `sitemap.xml`.
+- **Communities System**: Controlled by `ENABLE_COMMUNITIES` (server) and `VITE_ENABLE_COMMUNITIES` (client). Disabling hides routes, APIs, UI, and ensures SEO isolation.
 
 ## External Dependencies
 
-### Core Dependencies
-- **@neondatabase/serverless**: Serverless PostgreSQL database connection.
-- **drizzle-orm**: Type-safe ORM for database operations.
-- **@tanstack/react-query**: Server state management and caching.
-- **wouter**: Lightweight React router.
-- **express**: Node.js web framework for backend API.
+### Core
+- **@neondatabase/serverless**: Serverless PostgreSQL.
+- **drizzle-orm**: Type-safe ORM.
+- **@tanstack/react-query**: Server state management.
+- **wouter**: React router.
+- **express**: Node.js web framework.
 
 ### UI and Styling
 - **@radix-ui/react-***: Accessible UI primitives.
-- **tailwindcss**: Utility-first CSS framework.
-- **class-variance-authority**: Type-safe variant API for component styling.
+- **tailwindcss**: Utility-first CSS.
+- **class-variance-authority**: Component styling.
 - **clsx**: Conditional className utility.
 
 ### Form and Validation
-- **react-hook-form**: Performant forms.
-- **@hookform/resolvers**: Validation resolvers for react-hook-form.
-- **zod**: TypeScript-first schema validation.
-- **drizzle-zod**: Zod schema generation from Drizzle schemas.
+- **react-hook-form**: Forms.
+- **@hookform/resolvers**: Validation resolvers.
+- **zod**: TypeScript schema validation.
+- **drizzle-zod**: Zod schema generation.
 
 ### Development Tools
-- **vite**: Fast build tool and development server.
+- **vite**: Build tool and dev server.
 - **typescript**: Static type checking.
-- **tsx**: TypeScript execution environment.
-- **esbuild**: Fast JavaScript bundler for production.
+- **tsx**: TypeScript execution.
+- **esbuild**: JavaScript bundler.
 
 ### Active Integrations
-- **Supabase**: Database backend with RLS for `community_events` and sponsor management tables.
+- **Supabase**: Database backend (RLS for `community_events`, sponsor management, ticketing, communities).
 - **Google Calendar**: ICS feed parsing for community events.
-- **Calendar Export**: Google Calendar and ICS file generation for event adds.
-- **Creative Asset Storage**: Supabase Storage for sponsor creative uploads with automatic URL generation.
-- **Stripe**: Payment processing for ticketing system with Connect support for multi-vendor marketplace.
-
-### Ticketing System (Phase 0 - In Development)
-- **Feature Flag**: ENABLE_TICKETING environment variable controls visibility.
-- **Database Schema**: Complete `tickets_*` table structure with full isolation from existing features.
-- **Storage Layer**: Supabase-based storage for all ticketing entities (organizers, events, tiers, orders, tickets).
-- **Routes**: API endpoints at `/api/tickets/*` for event management, checkout, and validation.
-- **Frontend Pages**: Event list at `/tickets` and organizer dashboard at `/tickets/organizer/dashboard`.
-- **Stripe Integration**: Checkout sessions, webhook handling, and Connect onboarding for organizers.
-- **Architecture**: Multi-vendor marketplace design enabling event organizers to sell tickets with platform fees.
-
-#### Pausing/Unpausing Ticketing
-The ticketing system can be completely disabled without deleting code using feature flags:
-
-**To Disable Ticketing:**
-1. Set environment variables:
-   - `ENABLE_TICKETING=false` (server-side)
-   - `VITE_ENABLE_TICKETING=false` (client-side)
-2. Rebuild and restart the application
-3. Run admin self-test to verify: `GET /api/admin/selftest` (requires admin key)
-
-**When Disabled:**
-- All `/tickets*` page routes return 404 with noindex meta tags
-- All `/api/tickets*` API routes return `{ok:false, disabled:true}`  
-- Client-side ticketing UI is completely hidden
-- robots.txt disallows `/tickets*` routes
-- sitemap.xml excludes all ticketing URLs
-- Admin self-test shows "TicketingDisabled: PASS" status
-
-**To Re-enable Ticketing:**
-1. Set environment variables:
-   - `ENABLE_TICKETING=true` (server-side)  
-   - `VITE_ENABLE_TICKETING=true` (client-side)
-2. Rebuild and restart the application
-3. Ticketing functionality will be fully restored
-
-This approach maintains all ticketing code intact while providing complete SEO isolation when disabled.
-
-### Communities System (Production-Ready)
-- **Feature Flag**: ENABLE_COMMUNITIES environment variable controls visibility.
-- **Database Schema**: Complete `community_*` table structure with Supabase integration for user accounts, organizer applications, and admin approval workflows.
-- **Authentication**: Email-based passwordless authentication with 6-digit verification codes and 24-hour session expiration.
-- **User Accounts**: Sign-up/sign-in flows, profile management, organizer application system with comprehensive form validation.
-- **Admin Interface**: Complete admin approval interface at `/admin/organizers` for reviewing and managing organizer applications.
-- **Storage Layer**: Supabase-based storage with RLS policies for secure multi-user access and admin controls.
-- **Routes**: User account endpoints (`/api/account/signin`, `/api/account/signup`, `/api/account/me`, `/api/account/apply-organizer`) and admin endpoints (`/api/account/admin/organizers/pending`, `/api/account/admin/organizers/:id/approve`, `/api/account/admin/organizers/:id/reject`).
-- **Frontend Pages**: Account management (`/account/signin`, `/account/signup`, `/account/profile`, `/account/apply-organizer`) and admin interface (`/admin/organizers`).
-
-#### Pausing/Unpausing Communities
-The Communities system can be completely disabled without deleting code using feature flags:
-
-**To Disable Communities:**
-1. Set environment variables:
-   - `ENABLE_COMMUNITIES=false` (server-side)
-   - `VITE_ENABLE_COMMUNITIES=false` (client-side)
-2. Rebuild and restart the application
-3. Run admin self-test to verify: `GET /api/admin/selftest` (requires admin key)
-
-**When Disabled:**
-- All `/account*` and `/community*` page routes return 404 with noindex meta tags
-- All `/api/account*` API routes return `{ok:false, disabled:true}`  
-- Client-side Communities UI is completely hidden
-- robots.txt disallows `/account*` and `/community*` routes
-- sitemap.xml excludes all Communities URLs
-- Admin self-test shows "CommunitiesDisabled: PASS" status
-
-**To Enable Communities:**
-1. Set environment variables:
-   - `ENABLE_COMMUNITIES=true` (server-side)  
-   - `VITE_ENABLE_COMMUNITIES=true` (client-side)
-2. Rebuild and restart the application
-3. Communities functionality will be fully activated with user accounts, organizer applications, and admin approval workflows
-
-This approach maintains all Communities code intact while providing complete SEO isolation when disabled.
+- **Calendar Export**: Google Calendar and ICS file generation.
+- **Stripe**: Payment processing for ticketing, Connect for multi-vendor.
