@@ -71,6 +71,12 @@ Preferred communication style: Simple, everyday language.
 - **Performance**: In-memory database caching, query optimization, frontend optimizations (lazy loading, infinite scroll), background jobs for cleanup.
 - **Analytics & Monitoring**: Event tracking, error monitoring, performance metrics, admin reports.
 - **Real-Time Chat**: WebSocket server (`/chat`) for instant messaging, bearer token authentication, Supabase persistence, online presence, typing indicators, role-based permissions, slowmode, announcements, message management (pin, delete), standardized protocol, error handling, dev mode compatibility.
+- **Moderator & Permissions System**: 
+  - Role management: Community owners can promote/demote members to/from moderator role via Members tab
+  - Granular permissions: 8 configurable permissions (moderator: post, events, polls, manage members; member: post, comment, events, polls)
+  - API endpoint: PATCH `/api/communities/:id/members/:userId/role` with strict validation (owner protection, member↔moderator transitions only)
+  - UI: Role badges, promote/demote buttons with confirmation, real-time notifications via WebSocket
+  - Note: Permissions flags defined in schema but enforcement across content routes pending implementation
 
 ### Feature Flags
 - **Ticketing System**: Controlled by `ENABLE_TICKETING` (server) and `VITE_ENABLE_TICKETING` (client). Disabling hides routes, APIs, UI, and ensures SEO isolation via `robots.txt` and `sitemap.xml`.

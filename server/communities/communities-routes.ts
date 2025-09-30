@@ -2126,6 +2126,103 @@ export function addCommunitiesRoutes(app: Express) {
   });
 
   /**
+   * PATCH /api/communities/:id/members/:userId/role
+   * Update member role (promote/demote moderators) - owner only
+   * curl -X PATCH http://localhost:5000/api/communities/COMMUNITY_ID/members/USER_ID/role \
+   *   -H "Authorization: Bearer YOUR_TOKEN" \
+   *   -H "Content-Type: application/json" \
+   *   -d '{"role":"moderator"}'
+   */
+  app.patch('/api/communities/:id/members/:userId/role', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+    try {
+      const { id, userId } = req.params;
+      const community = (req as any).community;
+      const { role } = req.body;
+
+      // Validate role - only member and moderator roles can be set via this endpoint
+      if (!role || !['member', 'moderator'].includes(role)) {
+        return res.status(400).json({ ok: false, error: 'Invalid role. Must be "member" or "moderator"' });
+      }
+
+      // Get target member's membership
+      const membership = await communitiesStorage.getMembershipByUserAndCommunity(userId, community.id);
+      if (!membership) {
+        return res.status(404).json({ ok: false, error: 'Member not found' });
+      }
+
+      if (membership.status !== 'approved') {
+        return res.status(400).json({ ok: false, error: 'Only approved members can have their role updated' });
+      }
+
+      // CRITICAL: Prevent modifying owner roles - owners cannot be demoted
+      if (membership.role === 'owner') {
+        return res.status(403).json({ ok: false, error: 'Cannot modify owner role' });
+      }
+
+      // Prevent owner from changing their own role
+      const requestUser = (req as any).user;
+      if (userId === requestUser.id) {
+        return res.status(400).json({ ok: false, error: 'Cannot change your own role' });
+      }
+
+      // Only allow member <-> moderator transitions
+      if ((membership.role !== 'member' && membership.role !== 'moderator') ||
+          (role !== 'member' && role !== 'moderator')) {
+        return res.status(400).json({ ok: false, error: 'Can only change between member and moderator roles' });
+      }
+
+      // Update role
+      const updatedMembership = await communitiesStorage.updateMembership(membership.id, {
+        role
+      });
+
+      // Send notification to affected user
+      try {
+        const targetUser = await communitiesStorage.getUserById(userId);
+        if (targetUser) {
+          const notification = await communitiesStorage.createNotification({
+            recipientId: userId,
+            communityId: community.id,
+            type: 'role_updated',
+            title: role === 'moderator' ? 'Promoted to Moderator!' : 'Role Updated',
+            body: role === 'moderator' 
+              ? `You have been promoted to moderator in ${community.name}`
+              : `Your role has been updated to ${role} in ${community.name}`,
+            actionUrl: `/communities/${community.slug || community.id}`,
+            metadata: {
+              communityName: community.name,
+              communitySlug: community.slug || community.id,
+              newRole: role
+            }
+          });
+
+          // Send real-time notification via WebSocket
+          const { sendNotificationToUser } = require('./chat-server');
+          sendNotificationToUser(userId, {
+            id: notification.id,
+            type: notification.type,
+            title: notification.title,
+            body: notification.body,
+            actionUrl: notification.actionUrl
+          });
+        }
+      } catch (notifError) {
+        console.error('Failed to send role update notification:', notifError);
+        // Don't fail the request if notification fails
+      }
+
+      res.json({
+        ok: true,
+        membership: updatedMembership,
+        message: `Member ${role === 'moderator' ? 'promoted to moderator' : 'changed to regular member'} successfully`
+      });
+    } catch (error: any) {
+      console.error('Update member role error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to update member role' });
+    }
+  });
+
+  /**
    * GET /api/communities/:id/posts
    * List posts (members only, with pagination)
    * curl -X GET http://localhost:5000/api/communities/COMMUNITY_ID/posts?limit=20&offset=0 \

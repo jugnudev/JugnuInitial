@@ -42,6 +42,7 @@ import {
   Trash2,
   UserCheck,
   UserX,
+  User,
   Plus,
   Send,
   Heart,
@@ -362,6 +363,28 @@ export default function EnhancedCommunityDetailPage() {
     onError: (error: any) => {
       toast({ 
         title: "Failed to update community", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Update member role mutation
+  const updateMemberRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: 'member' | 'moderator' }) => {
+      if (!community?.id) throw new Error('Community ID not available');
+      return apiRequest('PATCH', `/api/communities/${community.id}/members/${userId}/role`, { role });
+    },
+    onSuccess: (_, variables) => {
+      toast({ 
+        title: variables.role === 'moderator' ? 'Member promoted to moderator' : 'Moderator changed to regular member',
+        description: 'Member role has been updated successfully'
+      });
+      refetch();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to update member role", 
         description: error.message,
         variant: "destructive" 
       });
@@ -1193,59 +1216,115 @@ export default function EnhancedCommunityDetailPage() {
                   <CardTitle>Community Members</CardTitle>
                   <CardDescription>
                     {members.filter(m => m.status === 'approved').length} active members
+                    {isOwner && (
+                      <span className="ml-2">
+                        • {members.filter(m => m.role === 'moderator' && m.status === 'approved').length} moderators
+                      </span>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ScrollArea className="h-96">
                     <div className="space-y-3">
-                      {members.map((member) => (
-                        <div
-                          key={member.id}
-                          className="flex items-center justify-between p-3 rounded-lg hover:bg-premium-surface transition-colors"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white">
-                                {(member.firstName?.[0] || member.email?.[0] || 'U').toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium text-premium-text-primary">
-                                {member.firstName && member.lastName
-                                  ? `${member.firstName} ${member.lastName}`
-                                  : member.email}
-                              </p>
-                              <p className="text-sm text-premium-text-muted">
-                                {member.role === 'owner' && 'Owner'}
-                                {member.role === 'moderator' && 'Moderator'}
-                                {member.role === 'member' && 'Member'}
-                                {member.status === 'pending' && ' • Pending'}
-                              </p>
+                      {members.map((member) => {
+                        const isCurrentUser = member.userId === user?.id;
+                        const canManageRole = isOwner && !isCurrentUser && member.role !== 'owner' && member.status === 'approved';
+                        
+                        return (
+                          <div
+                            key={member.id}
+                            className="flex items-center justify-between p-3 rounded-lg hover:bg-premium-surface transition-colors"
+                            data-testid={`member-item-${member.id}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white">
+                                  {(member.firstName?.[0] || member.email?.[0] || 'U').toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <p className="font-medium text-premium-text-primary">
+                                  {member.firstName && member.lastName
+                                    ? `${member.firstName} ${member.lastName}`
+                                    : member.email}
+                                  {isCurrentUser && <span className="text-xs text-premium-text-muted ml-1">(You)</span>}
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm text-premium-text-muted">
+                                    {member.role === 'owner' && <span className="text-accent font-medium">Owner</span>}
+                                    {member.role === 'moderator' && <span className="text-blue-500 font-medium">Moderator</span>}
+                                    {member.role === 'member' && 'Member'}
+                                    {member.status === 'pending' && ' • Pending'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex gap-2">
+                              {member.status === 'pending' && isOwner && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-green-500 border-green-500/30 hover:bg-green-500/10"
+                                    data-testid={`approve-member-${member.id}`}
+                                  >
+                                    <UserCheck className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-red-500 border-red-500/30 hover:bg-red-500/10"
+                                    data-testid={`decline-member-${member.id}`}
+                                  >
+                                    <UserX className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                              
+                              {canManageRole && (
+                                <>
+                                  {member.role === 'member' && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-blue-500 border-blue-500/30 hover:bg-blue-500/10"
+                                      onClick={() => {
+                                        if (confirm(`Promote ${member.firstName || member.email} to moderator?`)) {
+                                          updateMemberRoleMutation.mutate({ userId: member.userId, role: 'moderator' });
+                                        }
+                                      }}
+                                      disabled={updateMemberRoleMutation.isPending}
+                                      data-testid={`promote-member-${member.id}`}
+                                    >
+                                      <Shield className="h-4 w-4 mr-1" />
+                                      Promote to Moderator
+                                    </Button>
+                                  )}
+                                  
+                                  {member.role === 'moderator' && (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-orange-500 border-orange-500/30 hover:bg-orange-500/10"
+                                      onClick={() => {
+                                        if (confirm(`Demote ${member.firstName || member.email} to regular member?`)) {
+                                          updateMemberRoleMutation.mutate({ userId: member.userId, role: 'member' });
+                                        }
+                                      }}
+                                      disabled={updateMemberRoleMutation.isPending}
+                                      data-testid={`demote-member-${member.id}`}
+                                    >
+                                      <User className="h-4 w-4 mr-1" />
+                                      Demote to Member
+                                    </Button>
+                                  )}
+                                </>
+                              )}
                             </div>
                           </div>
-                          
-                          {member.status === 'pending' && (
-                            <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-green-500 border-green-500/30 hover:bg-green-500/10"
-                                data-testid={`approve-member-${member.id}`}
-                              >
-                                <UserCheck className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-red-500 border-red-500/30 hover:bg-red-500/10"
-                                data-testid={`decline-member-${member.id}`}
-                              >
-                                <UserX className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </ScrollArea>
                 </CardContent>

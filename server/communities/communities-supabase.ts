@@ -1462,16 +1462,17 @@ export class CommunitiesSupabaseDB {
       const today = new Date().toISOString().split('T')[0];
       
       // Map field names to actual database columns
-      const fieldMapping = {
-        'views': 'pageviews',
+      // Note: 'views' is not tracked in community_analytics table
+      const fieldMapping: Record<string, string | null> = {
+        'views': null, // Not supported in current schema
         'posts': 'total_posts', 
-        'members': 'total_members',
+        'members': 'new_members',
         'reactions': 'total_reactions'
       };
       
       const dbField = fieldMapping[field];
       if (!dbField) {
-        console.error(`Unknown analytics field: ${field}`);
+        // Silently skip unsupported fields
         return;
       }
       
