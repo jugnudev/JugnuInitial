@@ -70,54 +70,19 @@ const REACTION_TYPES = [
   }
 ];
 
-// Premium animation variants
+// Simple animation variants (no floating)
 const reactionAnimation = {
-  initial: { scale: 0, opacity: 0 },
+  initial: { opacity: 0 },
   animate: { 
-    scale: 1, 
     opacity: 1,
     transition: {
-      type: "spring",
-      stiffness: 260,
-      damping: 20
+      duration: 0.2
     }
   },
   exit: { 
-    scale: 0, 
     opacity: 0,
     transition: {
-      duration: 0.15,
-      ease: "easeInOut"
-    }
-  },
-  hover: {
-    scale: 1.1,
-    y: -2,
-    transition: {
-      type: "spring",
-      stiffness: 400,
-      damping: 25
-    }
-  },
-  tap: {
-    scale: 0.95,
-    transition: {
-      duration: 0.1,
-      ease: "easeOut"
-    }
-  }
-};
-
-const floatingAnimation = {
-  initial: { y: 0, opacity: 0, scale: 0.8 },
-  animate: { 
-    y: -50,
-    opacity: [0, 1, 1, 0],
-    scale: [0.8, 1.1, 1, 0.9],
-    transition: {
-      duration: 1.8,
-      times: [0, 0.2, 0.5, 1],
-      ease: [0.16, 1, 0.3, 1]
+      duration: 0.15
     }
   }
 };
@@ -160,28 +125,24 @@ export function ReactionsBar({
       {activeReactions.length > 0 && (
         <div className="flex items-center gap-1">
           {activeReactions.map((reaction, idx) => (
-            <motion.button
+            <button
               key={reaction.type}
-              variants={reactionAnimation}
-              initial="initial"
-              animate="animate"
-              whileHover="hover"
-              whileTap="tap"
               onClick={() => handleReaction(reaction.type)}
               className={`
                 relative flex items-center gap-1 px-2.5 py-1.5 rounded-full
-                border transition-all duration-200
+                border transition-all duration-150
                 ${hasReacted(reaction.type) 
                   ? `${reaction.bgColorActive} ${reaction.borderColorActive} ${reaction.color}` 
                   : 'bg-premium-surface/50 border-premium-border hover:border-premium-border-hover text-premium-text-muted'
                 }
+                hover:scale-105 active:scale-95
               `}
               data-testid={`reaction-${reaction.type}-${postId}`}
             >
               <span className="text-lg">{reaction.emoji}</span>
               <span className="text-xs font-medium">{getReactionCount(reaction.type)}</span>
               
-            </motion.button>
+            </button>
           ))}
         </div>
       )}
@@ -220,28 +181,19 @@ export function ReactionsBar({
                 <div className="bg-premium-surface-elevated border border-premium-border rounded-xl p-2 shadow-glow backdrop-blur-md">
                   <div className="flex items-center gap-1">
                     {REACTION_TYPES.map((reaction) => (
-                      <motion.button
+                      <button
                         key={reaction.type}
-                        whileHover={{ scale: 1.3, rotate: 10 }}
-                        whileTap={{ scale: 0.9 }}
                         onClick={() => handleReaction(reaction.type)}
                         className={`
-                          relative p-2 rounded-lg transition-all duration-200
-                          hover:${reaction.bgColor}
+                          relative p-2 rounded-lg transition-all duration-150
+                          hover:${reaction.bgColor} hover:scale-110 active:scale-95
+                          group
                         `}
                         data-testid={`reaction-picker-${reaction.type}-${postId}`}
+                        title={reaction.type}
                       >
                         <span className="text-2xl">{reaction.emoji}</span>
-                        
-                        {/* Tooltip */}
-                        <motion.div
-                          initial={{ opacity: 0, y: 5 }}
-                          whileHover={{ opacity: 1, y: 0 }}
-                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-black/80 text-white text-xs rounded-md whitespace-nowrap pointer-events-none"
-                        >
-                          {reaction.type}
-                        </motion.div>
-                      </motion.button>
+                      </button>
                     ))}
                   </div>
                 </div>

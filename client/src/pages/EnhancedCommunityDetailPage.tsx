@@ -562,123 +562,38 @@ export default function EnhancedCommunityDetailPage() {
     },
   });
 
-  // Track pending reactions to prevent race conditions - one per post
+  // Track pending reactions per post to prevent race conditions
   const pendingReactions = useRef<Set<string>>(new Set());
   
-  // Handle post reactions with optimistic updates
+  // Handle post reactions with simplified optimistic updates
   const handleReaction = async (postId: string, type: string) => {
     if (!community?.id || !communityData || !communitySlug) return;
     
     const userId = user?.id;
     if (!userId) return;
     
-    // Prevent ANY reaction calls on the same post (not just same type)
-    // This ensures reactions are processed sequentially per post
+    // Prevent concurrent reactions on the same post
     if (pendingReactions.current.has(postId)) {
       return;
     }
     
-    // Mark this post as having a pending reaction
     pendingReactions.current.add(postId);
     
-    // Find the post
-    const post = communityData.posts?.find(p => p.id === postId);
-    if (!post) {
-      pendingReactions.current.delete(postId);
-      return;
-    }
-    
-    // Optimistically update the UI
-    const currentReaction = post.reactions?.find(r => r.type === type);
-    const hasReacted = currentReaction?.hasReacted || false;
-    
-    // Create optimistic data
-    const optimisticPosts = communityData.posts?.map(p => {
-      if (p.id !== postId) return p;
-      
-      // Clone reactions array
-      const reactions = [...(p.reactions || [])];
-      
-      if (hasReacted) {
-        // Remove reaction - decrease count
-        return {
-          ...p,
-          reactions: reactions.map(r => 
-            r.type === type 
-              ? { ...r, count: Math.max(0, r.count - 1), hasReacted: false }
-              : r
-          ).filter(r => r.count > 0)
-        };
-      } else {
-        // Add/change reaction
-        const reactionExists = reactions.some(r => r.type === type);
-        const userHasOtherReaction = reactions.find(r => r.hasReacted);
-        
-        if (userHasOtherReaction) {
-          // User is switching reactions - remove old, add new
-          let updatedReactions = reactions.map(r => {
-            if (r.type === userHasOtherReaction.type) {
-              return { ...r, count: Math.max(0, r.count - 1), hasReacted: false };
-            }
-            if (r.type === type) {
-              return { ...r, count: r.count + 1, hasReacted: true };
-            }
-            return r;
-          });
-          
-          // If new reaction type doesn't exist yet, add it
-          if (!reactionExists) {
-            updatedReactions.push({ type, count: 1, hasReacted: true });
-          }
-          
-          return {
-            ...p,
-            reactions: updatedReactions.filter(r => r.count > 0)
-          };
-        } else if (reactionExists) {
-          // Increment existing
-          return {
-            ...p,
-            reactions: reactions.map(r => 
-              r.type === type 
-                ? { ...r, count: r.count + 1, hasReacted: true }
-                : r
-            )
-          };
-        } else {
-          // Add new reaction
-          return {
-            ...p,
-            reactions: [...reactions, { type, count: 1, hasReacted: true }]
-          };
-        }
-      }
-    });
-    
-    // Update cache optimistically using the CORRECT query key
-    queryClient.setQueryData(
-      ['/api/communities', communitySlug],
-      { ...communityData, posts: optimisticPosts }
-    );
-    
     try {
-      // Call backend
+      // Call backend - let it handle the logic
       await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type });
       
-      // Wait a brief moment for server to process, then refetch once
-      setTimeout(() => {
-        refetch();
-        pendingReactions.current.delete(postId);
-      }, 100);
+      // Refetch to get accurate state from server
+      await refetch();
     } catch (error: any) {
-      // Revert on error
-      pendingReactions.current.delete(postId);
-      refetch();
       toast({ 
         title: "Failed to update reaction", 
         description: error.message || "Please try again",
         variant: "destructive" 
       });
+    } finally {
+      // Always cleanup pending state
+      pendingReactions.current.delete(postId);
     }
   };
 
