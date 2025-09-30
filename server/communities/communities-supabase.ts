@@ -1340,20 +1340,18 @@ export class CommunitiesSupabaseDB {
 
   // ============ COMMUNITY REACTIONS ============
   async addReaction(data: { postId: string; userId: string; type: string }): Promise<any> {
-    // First, remove any existing reaction by this user for this post (one reaction per post rule)
-    await this.client
-      .from('community_post_reactions')
-      .delete()
-      .eq('post_id', data.postId)
-      .eq('user_id', data.userId);
-
-    // Then add the new reaction
+    // Use upsert to atomically handle add/change reaction
+    // This prevents race conditions by relying on the unique constraint (post_id, user_id)
+    // and using Supabase's onConflict to update the reaction type if one already exists
     const { data: reaction, error } = await this.client
       .from('community_post_reactions')
-      .insert({
+      .upsert({
         post_id: data.postId,
         user_id: data.userId,
         reaction_type: data.type
+      }, {
+        onConflict: 'post_id,user_id',
+        ignoreDuplicates: false // Update existing row instead of ignoring
       })
       .select()
       .single();

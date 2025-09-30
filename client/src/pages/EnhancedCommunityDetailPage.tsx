@@ -562,7 +562,7 @@ export default function EnhancedCommunityDetailPage() {
     },
   });
 
-  // Track pending reactions to prevent race conditions
+  // Track pending reactions to prevent race conditions - one per post
   const pendingReactions = useRef<Set<string>>(new Set());
   
   // Handle post reactions with optimistic updates
@@ -572,19 +572,19 @@ export default function EnhancedCommunityDetailPage() {
     const userId = user?.id;
     if (!userId) return;
     
-    // Prevent duplicate calls for the same post+type combination
-    const reactionKey = `${postId}-${type}`;
-    if (pendingReactions.current.has(reactionKey)) {
+    // Prevent ANY reaction calls on the same post (not just same type)
+    // This ensures reactions are processed sequentially per post
+    if (pendingReactions.current.has(postId)) {
       return;
     }
     
-    // Mark this reaction as pending
-    pendingReactions.current.add(reactionKey);
+    // Mark this post as having a pending reaction
+    pendingReactions.current.add(postId);
     
     // Find the post
     const post = communityData.posts?.find(p => p.id === postId);
     if (!post) {
-      pendingReactions.current.delete(reactionKey);
+      pendingReactions.current.delete(postId);
       return;
     }
     
@@ -668,11 +668,11 @@ export default function EnhancedCommunityDetailPage() {
       // Wait a brief moment for server to process, then refetch once
       setTimeout(() => {
         refetch();
-        pendingReactions.current.delete(reactionKey);
+        pendingReactions.current.delete(postId);
       }, 100);
     } catch (error: any) {
       // Revert on error
-      pendingReactions.current.delete(reactionKey);
+      pendingReactions.current.delete(postId);
       refetch();
       toast({ 
         title: "Failed to update reaction", 
