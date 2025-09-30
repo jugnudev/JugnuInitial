@@ -193,7 +193,7 @@ export function BundleSelector({
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-green-500" />
-                <span>14-day free trial</span>
+                <span>7-day free trial</span>
               </li>
             </ul>
           </CardContent>
@@ -261,7 +261,7 @@ export function BundleSelector({
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-green-500" />
-                <span>14-day free trial</span>
+                <span>7-day free trial</span>
               </li>
             </ul>
           </CardContent>
@@ -279,7 +279,7 @@ export function BundleSelector({
       </div>
 
       <div className="text-center text-sm text-muted-foreground">
-        <p>All plans include a 14-day free trial. Cancel anytime.</p>
+        <p>All plans include a 7-day free trial. Cancel anytime.</p>
         <p>Prices are in Canadian dollars and billed monthly.</p>
       </div>
     </div>

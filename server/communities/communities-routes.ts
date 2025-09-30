@@ -57,18 +57,18 @@ async function initializeStripeProducts() {
     
     let monthlyPrice = prices.data.find(p => 
       p.recurring?.interval === 'month' && 
-      p.unit_amount === 1999 && 
+      p.unit_amount === 2000 && 
       p.currency === 'cad'
     );
     
     if (!monthlyPrice) {
       monthlyPrice = await stripe.prices.create({
         product: product.id,
-        unit_amount: 1999, // $19.99 CAD
+        unit_amount: 2000, // $20 CAD
         currency: 'cad',
         recurring: {
           interval: 'month',
-          trial_period_days: 14
+          trial_period_days: 7
         },
         metadata: {
           plan_type: 'monthly'
@@ -81,18 +81,18 @@ async function initializeStripeProducts() {
     // Find or create yearly price
     let yearlyPrice = prices.data.find(p => 
       p.recurring?.interval === 'year' && 
-      p.unit_amount === 19900 && 
+      p.unit_amount === 20000 && 
       p.currency === 'cad'
     );
     
     if (!yearlyPrice) {
       yearlyPrice = await stripe.prices.create({
         product: product.id,
-        unit_amount: 19900, // $199 CAD
+        unit_amount: 20000, // $200 CAD
         currency: 'cad',
         recurring: {
           interval: 'year',
-          trial_period_days: 14
+          trial_period_days: 7
         },
         metadata: {
           plan_type: 'yearly',
@@ -3916,7 +3916,7 @@ export function addCommunitiesRoutes(app: Express) {
           plan: priceId
         },
         subscription_data: {
-          trial_period_days: 14,
+          trial_period_days: 7,
           metadata: {
             communityId: id,
             organizerId: user.id
@@ -4015,7 +4015,7 @@ export function addCommunitiesRoutes(app: Express) {
       if (!subscription) {
         // Create trial subscription for new communities
         const trialEndDate = new Date();
-        trialEndDate.setDate(trialEndDate.getDate() + 14); // 14-day trial
+        trialEndDate.setDate(trialEndDate.getDate() + 7); // 7-day trial
 
         const newSubscription = await communitiesStorage.createSubscription({
           communityId: id,
@@ -4031,7 +4031,7 @@ export function addCommunitiesRoutes(app: Express) {
           ok: true,
           subscription: {
             ...newSubscription,
-            trialDaysRemaining: 14,
+            trialDaysRemaining: 7,
             canManage: isOwner
           }
         });
@@ -4214,7 +4214,7 @@ export function addCommunitiesRoutes(app: Express) {
                 plan: plan || 'monthly',
                 status: 'trialing', // Will be updated by subscription.updated event
                 trialStart: new Date(),
-                trialEnd: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) // 14 days
+                trialEnd: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
               });
             } else {
               // Update existing subscription

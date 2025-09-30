@@ -22,32 +22,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import {
-  CreditCard,
   Calendar,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
   XCircle,
   Clock,
-  ChevronRight,
-  Download,
-  Sparkles,
-  AlertCircle,
   Loader2,
   Zap,
-  Info,
   Crown,
+  Users,
+  MessageSquare,
+  BarChart3,
+  Share2,
+  Shield,
+  Sparkles,
+  Check,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -94,78 +87,38 @@ interface Payment {
   failureReason?: string;
 }
 
-const statusConfig = {
-  trialing: {
-    label: 'Free Trial',
-    color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-    icon: <Clock className="w-4 h-4" />,
+const communityFeatures = [
+  {
+    icon: <Users className="w-5 h-5" />,
+    title: "Member Management",
+    description: "Add and manage community members with role-based permissions"
   },
-  active: {
-    label: 'Active',
-    color: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-    icon: <CheckCircle className="w-4 h-4" />,
+  {
+    icon: <MessageSquare className="w-5 h-5" />,
+    title: "Real-time Chat",
+    description: "Engage members with instant messaging and group conversations"
   },
-  past_due: {
-    label: 'Past Due',
-    color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-    icon: <AlertTriangle className="w-4 h-4" />,
+  {
+    icon: <Calendar className="w-5 h-5" />,
+    title: "Event Planning",
+    description: "Create and manage community events with calendar sync"
   },
-  canceled: {
-    label: 'Canceled',
-    color: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
-    icon: <XCircle className="w-4 h-4" />,
+  {
+    icon: <BarChart3 className="w-5 h-5" />,
+    title: "Analytics Dashboard",
+    description: "Track engagement, growth, and member activity"
   },
-  paused: {
-    label: 'Paused',
-    color: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
-    icon: <AlertCircle className="w-4 h-4" />,
+  {
+    icon: <Share2 className="w-5 h-5" />,
+    title: "Social Sharing",
+    description: "Grow your community with invite links and social integration"
   },
-  expired: {
-    label: 'Expired',
-    color: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300',
-    icon: <XCircle className="w-4 h-4" />,
+  {
+    icon: <Shield className="w-5 h-5" />,
+    title: "Privacy Controls",
+    description: "Secure your community with customizable privacy settings"
   },
-};
-
-const planConfig = {
-  free: {
-    label: 'Free Trial',
-    price: 0,
-    period: 'trial',
-    features: [
-      'Up to 100 members',
-      'Basic analytics',
-      'Community chat',
-      'Event calendar',
-    ],
-  },
-  monthly: {
-    label: 'Monthly',
-    price: 20,
-    period: 'month',
-    features: [
-      'Unlimited members',
-      'Advanced analytics',
-      'Priority support',
-      'Custom branding',
-      'API access',
-      'Export data',
-    ],
-  },
-  yearly: {
-    label: 'Yearly',
-    price: 200,
-    period: 'year',
-    savings: 40,
-    features: [
-      'Everything in Monthly',
-      'Save $40/year',
-      'Annual reporting',
-      'Dedicated support',
-      'Early access to features',
-    ],
-  },
-};
+];
 
 export default function CommunityBilling({
   communityId,
@@ -173,16 +126,13 @@ export default function CommunityBilling({
   isOwner,
 }: BillingProps) {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [showManagePortal, setShowManagePortal] = useState(false);
   const { toast } = useToast();
 
-  // Get subscription status
   const { data: subscription, isLoading, error } = useQuery<{ subscription: Subscription }>({
     queryKey: ['/api/communities', communityId, 'billing/status'],
     enabled: !!communityId,
   });
 
-  // Create checkout session mutation
   const createCheckoutMutation = useMutation({
     mutationFn: async (priceId: 'monthly' | 'yearly') => {
       return apiRequest('POST', `/api/communities/${communityId}/billing/create-checkout`, {
@@ -190,7 +140,6 @@ export default function CommunityBilling({
       }) as Promise<{ checkoutUrl?: string }>;
     },
     onSuccess: (data: any) => {
-      // Redirect to Stripe checkout
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       }
@@ -204,13 +153,11 @@ export default function CommunityBilling({
     },
   });
 
-  // Create customer portal session mutation
   const createPortalMutation = useMutation({
     mutationFn: async () => {
       return apiRequest('POST', `/api/communities/${communityId}/billing/manage`) as Promise<{ portalUrl?: string }>;
     },
     onSuccess: (data: any) => {
-      // Redirect to Stripe customer portal
       if (data.portalUrl) {
         window.location.href = data.portalUrl;
       }
@@ -224,7 +171,6 @@ export default function CommunityBilling({
     },
   });
 
-  // Cancel subscription mutation
   const cancelSubscriptionMutation = useMutation({
     mutationFn: async () => {
       return apiRequest('POST', `/api/communities/${communityId}/billing/cancel`);
@@ -246,39 +192,32 @@ export default function CommunityBilling({
     },
   });
 
-  // Resume subscription mutation
-  const resumeSubscriptionMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest(`/api/communities/${communityId}/billing/resume`, 'POST');
-    },
-    onSuccess: () => {
-      toast({
-        title: "Subscription resumed",
-        description: "Your subscription has been reactivated",
-      });
-      queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'billing/status'] });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Failed to resume subscription",
-        description: error.message || "Please try again later",
-        variant: "destructive",
-      });
-    },
-  });
+  if (!isOwner) {
+    return (
+      <Alert data-testid="alert-not-owner">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          Only community owners can manage billing settings.
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <Skeleton className="h-48 w-full" />
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-32 w-full" />
+        <div className="grid md:grid-cols-2 gap-6">
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-64 w-full" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Alert variant="destructive">
+      <Alert variant="destructive" data-testid="alert-error">
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
           Failed to load billing information. Please try again later.
@@ -288,271 +227,329 @@ export default function CommunityBilling({
   }
 
   const sub = subscription?.subscription;
-  if (!sub) return null;
-
-  const status = statusConfig[sub.status] || statusConfig.expired;
-  const plan = planConfig[sub.plan] || planConfig.free;
-  const isTrialing = sub.status === 'trialing';
-  const isCanceled = sub.status === 'canceled';
-  const canUpgrade = isTrialing || sub.plan === 'free';
-  const hasActiveSubscription = sub.status === 'active' && sub.stripeSubscriptionId;
+  const isTrialing = sub?.status === 'trialing';
+  const isActive = sub?.status === 'active';
+  const isPastDue = sub?.status === 'past_due';
+  const isCanceled = sub?.status === 'canceled';
+  const trialDays = sub?.trialDaysRemaining || 0;
+  const trialProgress = trialDays > 0 ? ((7 - trialDays) / 7) * 100 : 100;
 
   return (
-    <div className="space-y-6">
-      {/* Trial Banner */}
-      {isTrialing && sub.trialDaysRemaining !== undefined && (
-        <Alert className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950">
-          <Info className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="flex items-center justify-between">
-            <div>
-              <strong className="text-blue-900 dark:text-blue-100">
-                Free trial: {sub.trialDaysRemaining} days remaining
-              </strong>
-              <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
+    <div className="space-y-8">
+      {isTrialing && trialDays > 0 && (
+        <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white" data-testid="banner-trial">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10 blur-2xl"></div>
+          <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-32 w-32 rounded-full bg-white/10 blur-2xl"></div>
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5" />
+                <h3 className="text-lg font-semibold">Free Trial: {trialDays} days remaining</h3>
+              </div>
+              <p className="text-sm text-white/90">
                 Upgrade now to continue using all features after your trial ends
               </p>
+              <div className="mt-3">
+                <Progress value={trialProgress} className="h-2 bg-white/20" data-testid="progress-trial" />
+              </div>
             </div>
-            {sub.trialDaysRemaining <= 3 && (
-              <Badge variant="destructive" className="ml-4">
-                Expires Soon
-              </Badge>
-            )}
+          </div>
+        </div>
+      )}
+
+      {isPastDue && (
+        <Alert variant="destructive" data-testid="alert-past-due">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Your payment is past due. Please update your payment method to continue using all features.
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Current Subscription Card */}
-      <Card className="border-2">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Crown className="w-5 h-5 text-yellow-500" />
-              Subscription Status
-            </CardTitle>
-            <Badge className={status.color}>
-              <span className="flex items-center gap-1">
-                {status.icon}
-                {status.label}
-              </span>
-            </Badge>
-          </div>
-          <CardDescription>
-            Manage your community subscription and billing
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Current Plan */}
-          <div className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-lg">
-            <div>
-              <p className="text-sm text-muted-foreground">Current Plan</p>
-              <p className="text-2xl font-bold">{plan.label}</p>
-              {!isTrialing && (
-                <p className="text-lg font-semibold text-green-600 dark:text-green-400">
-                  ${plan.price} CAD/{plan.period}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight mb-2">Community Features</h2>
+          <p className="text-muted-foreground">
+            Unlock powerful tools to grow and engage your community
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {communityFeatures.map((feature, index) => (
+            <div
+              key={index}
+              className="group relative overflow-hidden rounded-lg border bg-card p-5 hover:shadow-lg transition-all duration-300"
+              data-testid={`feature-${index}`}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative z-10 space-y-3">
+                <div className="inline-flex p-2 rounded-lg bg-primary/10 text-primary">
+                  {feature.icon}
+                </div>
+                <h3 className="font-semibold">{feature.title}</h3>
+                <p className="text-sm text-muted-foreground">{feature.description}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight mb-2">Choose Your Plan</h2>
+          <p className="text-muted-foreground">
+            Select a plan that works for your community
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card className="relative overflow-hidden" data-testid="card-monthly">
+            <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-amber-500/20 to-transparent rounded-bl-full"></div>
+            <CardHeader className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-5 h-5 text-amber-600" />
+                <CardTitle>Monthly</CardTitle>
+              </div>
+              <CardDescription>Perfect for getting started</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold">$20</span>
+                  <span className="text-muted-foreground">CAD/month</span>
+                </div>
+                <p className="text-sm text-muted-foreground">7-day free trial included</p>
+              </div>
+              <ul className="space-y-3">
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span>All community features</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span>Real-time chat</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span>Event management</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span>Analytics dashboard</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span>Priority support</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={() => createCheckoutMutation.mutate('monthly')}
+                disabled={createCheckoutMutation.isPending || (isActive && sub?.plan === 'monthly')}
+                data-testid="button-upgrade-monthly"
+              >
+                {createCheckoutMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : isActive && sub?.plan === 'monthly' ? (
+                  'Current Plan'
+                ) : (
+                  <>
+                    <Zap className="mr-2 h-4 w-4" />
+                    Upgrade to Monthly
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+
+          <Card className="relative overflow-hidden border-2 border-purple-600" data-testid="card-yearly">
+            <div className="absolute -top-1 -right-1">
+              <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 py-1 rounded-bl-lg rounded-tr-lg">
+                Save $40
+              </Badge>
+            </div>
+            <div className="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-purple-600/20 to-transparent rounded-bl-full"></div>
+            <CardHeader className="relative z-10">
+              <div className="flex items-center gap-2 mb-2">
+                <Crown className="w-5 h-5 text-purple-600" />
+                <CardTitle>Yearly</CardTitle>
+              </div>
+              <CardDescription>Best value for committed communities</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-4xl font-bold">$200</span>
+                  <span className="text-muted-foreground">CAD/year</span>
+                </div>
+                <p className="text-sm text-green-600 font-medium">Save $40 compared to monthly</p>
+                <p className="text-sm text-muted-foreground">7-day free trial included</p>
+              </div>
+              <ul className="space-y-3">
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span>All community features</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span>Real-time chat</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span>Event management</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span>Analytics dashboard</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span>Priority support</span>
+                </li>
+                <li className="flex items-center gap-2 text-sm">
+                  <Check className="w-4 h-4 text-green-600" />
+                  <span className="font-medium">2 months free</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                size="lg"
+                onClick={() => createCheckoutMutation.mutate('yearly')}
+                disabled={createCheckoutMutation.isPending || (isActive && sub?.plan === 'yearly')}
+                data-testid="button-upgrade-yearly"
+              >
+                {createCheckoutMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : isActive && sub?.plan === 'yearly' ? (
+                  'Current Plan'
+                ) : (
+                  <>
+                    <Crown className="mr-2 h-4 w-4" />
+                    Upgrade to Yearly
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+
+      {(isActive || isCanceled) && (
+        <Card data-testid="card-subscription-status">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Subscription Status</CardTitle>
+                <CardDescription>Manage your community subscription</CardDescription>
+              </div>
+              <Badge 
+                className={
+                  isActive 
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                }
+                data-testid="badge-status"
+              >
+                {isActive && <CheckCircle className="w-3 h-3 mr-1" />}
+                {isCanceled && <XCircle className="w-3 h-3 mr-1" />}
+                {isActive ? 'Active' : 'Canceled'}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Current Plan</p>
+                <p className="font-medium capitalize" data-testid="text-plan">{sub?.plan}</p>
+              </div>
+              {sub?.currentPeriodEnd && (
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    {isCanceled ? 'Ends On' : 'Next Billing Date'}
+                  </p>
+                  <p className="font-medium" data-testid="text-period-end">
+                    {format(new Date(sub.currentPeriodEnd), 'MMM d, yyyy')}
+                  </p>
+                </div>
+              )}
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Amount</p>
+                <p className="font-medium" data-testid="text-amount">
+                  ${sub?.plan === 'yearly' ? '200' : '20'} CAD/{sub?.plan === 'yearly' ? 'year' : 'month'}
                 </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => createPortalMutation.mutate()}
+                disabled={createPortalMutation.isPending}
+                data-testid="button-manage"
+              >
+                {createPortalMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp className="mr-2 h-4 w-4" />
+                    Manage Billing
+                  </>
+                )}
+              </Button>
+
+              {isActive && !isCanceled && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCancelDialog(true)}
+                  data-testid="button-cancel"
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Cancel Subscription
+                </Button>
               )}
             </div>
-            {hasActiveSubscription && (
-              <div className="text-right">
-                <p className="text-sm text-muted-foreground">Next billing date</p>
-                <p className="font-medium">
-                  {sub.currentPeriodEnd
-                    ? format(new Date(sub.currentPeriodEnd), 'MMM d, yyyy')
-                    : 'N/A'}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Trial Progress */}
-          {isTrialing && sub.trialEnd && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Trial Progress</span>
-                <span>{14 - (sub.trialDaysRemaining || 0)} of 14 days</span>
-              </div>
-              <Progress 
-                value={((14 - (sub.trialDaysRemaining || 0)) / 14) * 100} 
-                className="h-2"
-              />
-            </div>
-          )}
-
-          {/* Cancellation Notice */}
-          {sub.cancelAt && (
-            <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-950">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertDescription>
-                Your subscription will be canceled on{' '}
-                <strong>{format(new Date(sub.cancelAt), 'MMM d, yyyy')}</strong>
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-        {sub.canManage && (
-          <CardFooter className="flex flex-wrap gap-2">
-            {canUpgrade ? (
-              <>
-                <Button
-                  onClick={() => createCheckoutMutation.mutate('monthly')}
-                  disabled={createCheckoutMutation.isPending}
-                  className="flex-1"
-                  data-testid="button-upgrade-monthly"
-                >
-                  {createCheckoutMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Zap className="w-4 h-4 mr-2" />
-                  )}
-                  Upgrade to Monthly ($20/mo)
-                </Button>
-                <Button
-                  onClick={() => createCheckoutMutation.mutate('yearly')}
-                  disabled={createCheckoutMutation.isPending}
-                  variant="default"
-                  className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-                  data-testid="button-upgrade-yearly"
-                >
-                  {createCheckoutMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-4 h-4 mr-2" />
-                  )}
-                  Upgrade to Yearly ($200/yr - Save $40)
-                </Button>
-              </>
-            ) : hasActiveSubscription ? (
-              <>
-                <Button
-                  onClick={() => createPortalMutation.mutate()}
-                  disabled={createPortalMutation.isPending}
-                  variant="outline"
-                  data-testid="button-manage-billing"
-                >
-                  {createPortalMutation.isPending ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <CreditCard className="w-4 h-4 mr-2" />
-                  )}
-                  Manage Billing
-                </Button>
-                {sub.cancelAt ? (
-                  <Button
-                    onClick={() => resumeSubscriptionMutation.mutate()}
-                    disabled={resumeSubscriptionMutation.isPending}
-                    variant="default"
-                    data-testid="button-resume-subscription"
-                  >
-                    {resumeSubscriptionMutation.isPending ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                    )}
-                    Resume Subscription
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => setShowCancelDialog(true)}
-                    variant="destructive"
-                    data-testid="button-cancel-subscription"
-                  >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Cancel Subscription
-                  </Button>
-                )}
-              </>
-            ) : null}
-          </CardFooter>
-        )}
-      </Card>
-
-      {/* Payment History */}
-      {sub.payments && sub.payments.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment History</CardTitle>
-            <CardDescription>
-              View your recent payments and download receipts
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sub.payments.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell>
-                      {format(new Date(payment.createdAt), 'MMM d, yyyy')}
-                    </TableCell>
-                    <TableCell className="max-w-xs truncate">
-                      {payment.description || 'Community Membership'}
-                    </TableCell>
-                    <TableCell>
-                      ${(payment.amountPaid / 100).toFixed(2)} {payment.currency}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={payment.status === 'succeeded' ? 'default' : 'destructive'}
-                      >
-                        {payment.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {payment.receiptUrl && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          asChild
-                          data-testid={`button-receipt-${payment.id}`}
-                        >
-                          <a
-                            href={payment.receiptUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <Download className="w-4 h-4 mr-1" />
-                            Receipt
-                          </a>
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
           </CardContent>
         </Card>
       )}
 
-      {/* Cancel Subscription Dialog */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent data-testid="dialog-cancel">
           <AlertDialogHeader>
-            <AlertDialogTitle>Cancel Subscription?</AlertDialogTitle>
+            <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
             <AlertDialogDescription>
-              Your subscription will remain active until the end of the current billing period.
-              You can resume your subscription at any time before it expires.
+              Are you sure you want to cancel your subscription? You'll continue to have access
+              until the end of your current billing period.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep Subscription</AlertDialogCancel>
+            <AlertDialogCancel data-testid="button-cancel-no">No, Keep It</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => cancelSubscriptionMutation.mutate()}
               disabled={cancelSubscriptionMutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              data-testid="button-cancel-yes"
             >
               {cancelSubscriptionMutation.isPending ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : null}
-              Cancel Subscription
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Canceling...
+                </>
+              ) : (
+                'Yes, Cancel'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

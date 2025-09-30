@@ -91,7 +91,7 @@ Preferred communication style: Simple, everyday language.
   - API Routes: `/api/billing/*` for checkout, subscription management, bundle operations
   - Webhook Handler: `/api/webhooks/stripe` for processing Stripe events (payment success/failure, subscription updates)
   - Components: `BundleSelector` for plan selection, `BundleAssignment` for bundle management, updated `CommunityBilling`
-  - Features: 14-day free trial, automatic proration, conflict resolution for existing subscriptions
+  - Features: 7-day free trial, automatic proration, conflict resolution for existing subscriptions
 
 ### Feature Flags
 - **Ticketing System**: Controlled by `ENABLE_TICKETING` (server) and `VITE_ENABLE_TICKETING` (client). Disabling hides routes, APIs, UI, and ensures SEO isolation via `robots.txt` and `sitemap.xml`.

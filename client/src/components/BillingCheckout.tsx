@@ -169,7 +169,7 @@ export default function BillingCheckout({
         {!isUpgrade && (
           <Badge variant="secondary" className="mt-2">
             <Gift className="w-3 h-3 mr-1" />
-            14-day free trial included
+            7-day free trial included
           </Badge>
         )}
       </div>
@@ -302,7 +302,7 @@ export default function BillingCheckout({
             </div>
             {!isUpgrade && (
               <p className="text-sm text-muted-foreground">
-                Your card will be charged after the 14-day free trial ends
+                Your card will be charged after the 7-day free trial ends
               </p>
             )}
           </CardContent>
