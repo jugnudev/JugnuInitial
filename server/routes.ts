@@ -43,6 +43,7 @@ import { insertCommunityEventSchema, updateCommunityEventSchema, visitorAnalytic
 import { addTicketsRoutes } from "./tickets/tickets-routes";
 import { addCommunitiesRoutes } from "./communities/communities-routes";
 import billingRoutes from "./communities/billing-routes";
+import webhookRoutes from "./communities/webhook-routes";
 import { importFromGoogle, importFromYelp, reverifyAllPlaces } from "./lib/places-sync.js";
 import { matchAndEnrichPlaces, inactivateUnmatchedPlaces, getPlaceMatchingStats } from "./lib/place-matcher.js";
 import { sendDailyAnalyticsEmail } from "./services/emailService";
@@ -4279,6 +4280,10 @@ Disallow: /account/*`;
   
   // Add billing routes for communities
   app.use('/api/billing', billingRoutes);
+  
+  // Add webhook routes (requires raw body for Stripe signature verification)
+  // Note: This needs to be added before bodyParser middleware
+  app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
 
   // Add ticketing routes if enabled
   if (process.env.ENABLE_TICKETING === 'true') {
