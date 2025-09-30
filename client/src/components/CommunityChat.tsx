@@ -254,10 +254,27 @@ export default function CommunityChat({
               <Pin className="w-4 h-4 text-amber-600 dark:text-amber-400" />
               <span className="text-sm font-medium text-amber-900 dark:text-amber-100">Pinned Messages</span>
             </div>
-            <div className="mt-2 space-y-1">
+            <div className="mt-2 space-y-2">
               {pinnedMessages.messages.slice(0, 2).map((msg: any) => (
-                <div key={`pinned-${msg.id}`} className="text-sm text-amber-700 dark:text-amber-300 truncate">
-                  {msg.content}
+                <div key={`pinned-${msg.id}`} className="flex items-start justify-between gap-2 group">
+                  <p className="text-sm text-amber-700 dark:text-amber-300 flex-1 line-clamp-2">
+                    {msg.content}
+                  </p>
+                  {currentMember.role === 'owner' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs opacity-60 hover:opacity-100 shrink-0"
+                      onClick={() => pinMessageMutation.mutate({
+                        messageId: msg.id,
+                        isPinned: false
+                      })}
+                      data-testid={`unpin-banner-message-${msg.id}`}
+                    >
+                      <Pin className="w-3 h-3 mr-1" />
+                      Unpin
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
