@@ -696,6 +696,19 @@ export const communities = pgTable("communities", {
   chatMode: text("chat_mode").notNull().default("owner_only"), // owner_only | open_to_members
   chatSlowmodeSeconds: integer("chat_slowmode_seconds").notNull().default(0),
   allowMemberPosts: boolean("allow_member_posts").notNull().default(false),
+  
+  // Permissions for moderators
+  moderatorCanPost: boolean("moderator_can_post").notNull().default(true),
+  moderatorCanCreateEvents: boolean("moderator_can_create_events").notNull().default(true),
+  moderatorCanCreatePolls: boolean("moderator_can_create_polls").notNull().default(true),
+  moderatorCanManageMembers: boolean("moderator_can_manage_members").notNull().default(false),
+  
+  // Permissions for regular members
+  memberCanPost: boolean("member_can_post").notNull().default(false),
+  memberCanComment: boolean("member_can_comment").notNull().default(true),
+  memberCanCreateEvents: boolean("member_can_create_events").notNull().default(false),
+  memberCanCreatePolls: boolean("member_can_create_polls").notNull().default(false),
+  
   subscriptionStatus: text("subscription_status").notNull().default("trialing"), // trialing | active | past_due | canceled
   subscriptionEndsAt: timestamp("subscription_ends_at", { withTimezone: true }),
   totalMembers: integer("total_members").notNull().default(0),

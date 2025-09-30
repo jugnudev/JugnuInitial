@@ -810,6 +810,18 @@ export class CommunitiesSupabaseDB {
     if (data.isPrivate !== undefined) updateData.is_private = data.isPrivate;
     if (data.membershipPolicy !== undefined) updateData.membership_policy = data.membershipPolicy;
     if (data.status !== undefined) updateData.status = data.status;
+    
+    // Moderator permissions
+    if (data.moderatorCanPost !== undefined) updateData.moderator_can_post = data.moderatorCanPost;
+    if (data.moderatorCanCreateEvents !== undefined) updateData.moderator_can_create_events = data.moderatorCanCreateEvents;
+    if (data.moderatorCanCreatePolls !== undefined) updateData.moderator_can_create_polls = data.moderatorCanCreatePolls;
+    if (data.moderatorCanManageMembers !== undefined) updateData.moderator_can_manage_members = data.moderatorCanManageMembers;
+    
+    // Member permissions
+    if (data.memberCanPost !== undefined) updateData.member_can_post = data.memberCanPost;
+    if (data.memberCanComment !== undefined) updateData.member_can_comment = data.memberCanComment;
+    if (data.memberCanCreateEvents !== undefined) updateData.member_can_create_events = data.memberCanCreateEvents;
+    if (data.memberCanCreatePolls !== undefined) updateData.member_can_create_polls = data.memberCanCreatePolls;
 
     const { data: community, error } = await this.client
       .from('communities')
@@ -1518,6 +1530,19 @@ export class CommunitiesSupabaseDB {
       chatMode: data.chat_mode || 'owner_only',
       chatSlowmodeSeconds: data.chat_slowmode_seconds || 0,
       allowMemberPosts: data.allow_member_posts || false,
+      
+      // Moderator permissions
+      moderatorCanPost: data.moderator_can_post ?? true,
+      moderatorCanCreateEvents: data.moderator_can_create_events ?? true,
+      moderatorCanCreatePolls: data.moderator_can_create_polls ?? true,
+      moderatorCanManageMembers: data.moderator_can_manage_members ?? false,
+      
+      // Member permissions
+      memberCanPost: data.member_can_post ?? false,
+      memberCanComment: data.member_can_comment ?? true,
+      memberCanCreateEvents: data.member_can_create_events ?? false,
+      memberCanCreatePolls: data.member_can_create_polls ?? false,
+      
       subscriptionStatus: data.subscription_status || 'trialing',
       subscriptionEndsAt: data.subscription_ends_at,
       lastActivityAt: data.last_activity_at
