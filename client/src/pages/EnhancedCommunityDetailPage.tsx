@@ -1597,8 +1597,13 @@ export default function EnhancedCommunityDetailPage() {
                           });
                         }
                       }}
+                      onKeyDown={(e) => {
+                        // Allow typing without immediate mutation
+                        e.stopPropagation();
+                      }}
                       placeholder="0 (no slowmode)"
-                      className="bg-premium-surface border-premium-border"
+                      className="bg-premium-surface border-premium-border text-premium-text-primary dark:text-white"
+                      data-testid="input-slowmode"
                     />
                     <p className="text-sm text-premium-text-muted mt-1">
                       Set a cooldown period between messages (0-300 seconds)
