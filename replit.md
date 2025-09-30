@@ -77,6 +77,12 @@ Preferred communication style: Simple, everyday language.
   - API endpoint: PATCH `/api/communities/:id/members/:userId/role` with strict validation (owner protection, member↔moderator transitions only)
   - UI: Role badges, promote/demote buttons with confirmation, real-time notifications via WebSocket
   - Note: Permissions flags defined in schema but enforcement across content routes pending implementation
+- **Post Reactions System**:
+  - One reaction per user per post with atomic upsert operations
+  - Frontend: Optimistic updates using correct query key `['/api/communities', communitySlug]`, serialized reactions per post via pendingReactions Set
+  - Backend: Atomic upsert operation leveraging unique constraint on (post_id, user_id) prevents race conditions
+  - Database: `community_post_reactions` table with unique constraint ensures data integrity across multiple devices/tabs
+  - UX: Smooth reaction switching, no glitches during rapid clicking, instant UI feedback
 
 ### Feature Flags
 - **Ticketing System**: Controlled by `ENABLE_TICKETING` (server) and `VITE_ENABLE_TICKETING` (client). Disabling hides routes, APIs, UI, and ensures SEO isolation via `robots.txt` and `sitemap.xml`.
