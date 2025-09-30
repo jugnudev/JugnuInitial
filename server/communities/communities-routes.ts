@@ -1606,6 +1606,7 @@ export function addCommunitiesRoutes(app: Express) {
       // Return different data based on access level
       if (isOwner) {
         // Owner gets full access
+        const members = await communitiesStorage.getMembershipsByCommunityId(community.id);
         const { posts } = await communitiesStorage.getPostsByCommunityId(community.id);
         const analytics = await communitiesStorage.getCommunityAnalytics(community.id);
         
@@ -1613,18 +1614,21 @@ export function addCommunitiesRoutes(app: Express) {
           ok: true,
           community,
           membership: { role: 'owner', status: 'approved' },
+          members,
           posts,
           analytics,
           canManage: true
         });
       } else if (isApprovedMember) {
-        // Approved members can see posts
+        // Approved members can see posts and members
+        const members = await communitiesStorage.getMembershipsByCommunityId(community.id);
         const { posts } = await communitiesStorage.getPostsByCommunityId(community.id);
         
         res.json({
           ok: true,
           community,
           membership,
+          members,
           posts,
           canManage: false
         });
