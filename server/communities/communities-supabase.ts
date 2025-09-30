@@ -1620,7 +1620,10 @@ export class CommunitiesSupabaseDB {
         is_pinned: false,
         is_deleted: false
       })
-      .select()
+      .select(`
+        *,
+        author:author_id (id, first_name, last_name, profile_image_url)
+      `)
       .single();
 
     if (error) throw error;
