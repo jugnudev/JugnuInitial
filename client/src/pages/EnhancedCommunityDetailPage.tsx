@@ -1253,6 +1253,10 @@ export default function EnhancedCommunityDetailPage() {
                       {members.map((member) => {
                         const isCurrentUser = member.userId === user?.id;
                         const canManageRole = isOwner && !isCurrentUser && member.role !== 'owner' && member.status === 'approved';
+                        const memberName = member.user?.firstName && member.user?.lastName
+                          ? `${member.user.firstName} ${member.user.lastName}`
+                          : member.user?.email || 'Unknown User';
+                        const memberInitial = (member.user?.firstName?.[0] || member.user?.email?.[0] || 'U').toUpperCase();
                         
                         return (
                           <div
@@ -1262,15 +1266,14 @@ export default function EnhancedCommunityDetailPage() {
                           >
                             <div className="flex items-center gap-3">
                               <Avatar>
+                                <AvatarImage src={member.user?.profileImageUrl} />
                                 <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white">
-                                  {(member.firstName?.[0] || member.email?.[0] || 'U').toUpperCase()}
+                                  {memberInitial}
                                 </AvatarFallback>
                               </Avatar>
                               <div>
                                 <p className="font-medium text-premium-text-primary">
-                                  {member.firstName && member.lastName
-                                    ? `${member.firstName} ${member.lastName}`
-                                    : member.email}
+                                  {memberName}
                                   {isCurrentUser && <span className="text-xs text-premium-text-muted ml-1">(You)</span>}
                                 </p>
                                 <div className="flex items-center gap-2">
@@ -1314,7 +1317,7 @@ export default function EnhancedCommunityDetailPage() {
                                       variant="outline"
                                       className="text-blue-500 border-blue-500/30 hover:bg-blue-500/10"
                                       onClick={() => {
-                                        if (confirm(`Promote ${member.firstName || member.email} to moderator?`)) {
+                                        if (confirm(`Promote ${memberName} to moderator?`)) {
                                           updateMemberRoleMutation.mutate({ userId: member.userId, role: 'moderator' });
                                         }
                                       }}
@@ -1332,7 +1335,7 @@ export default function EnhancedCommunityDetailPage() {
                                       variant="outline"
                                       className="text-orange-500 border-orange-500/30 hover:bg-orange-500/10"
                                       onClick={() => {
-                                        if (confirm(`Demote ${member.firstName || member.email} to regular member?`)) {
+                                        if (confirm(`Demote ${memberName} to regular member?`)) {
                                           updateMemberRoleMutation.mutate({ userId: member.userId, role: 'member' });
                                         }
                                       }}
