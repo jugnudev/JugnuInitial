@@ -153,8 +153,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
         analytics: true,
         emailBlasts: false,
         prioritySupport: false
-      },
-      isActive: true
+      }
     });
 
     console.log(`Created/updated individual subscription for community ${communityId}`);
@@ -272,8 +271,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
         existingSubscription.id,
         'canceled',
         {
-          canceledAt: new Date().toISOString(),
-          isActive: false
+          canceledAt: new Date().toISOString()
         }
       );
     }
@@ -291,8 +289,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       for (const sub of subscriptions) {
         if (sub.bundleId === existingBundle.id) {
           await communitiesStorage.updateSubscriptionStatus(sub.id, 'canceled', {
-            canceledAt: new Date().toISOString(),
-            isActive: false
+            canceledAt: new Date().toISOString()
           });
         }
       }

@@ -2110,8 +2110,7 @@ export class CommunitiesSupabaseDB {
         member_limit: data.memberLimit || 100,
         price_per_month: data.pricePerMonth,
         features: data.features || {},
-        metadata: data.metadata || {},
-        is_active: data.isActive !== undefined ? data.isActive : true
+        metadata: data.metadata || {}
       })
       .select()
       .single();
@@ -2318,8 +2317,7 @@ export class CommunitiesSupabaseDB {
       memberLimit: data.member_limit,
       pricePerMonth: data.price_per_month,
       features: data.features,
-      metadata: data.metadata,
-      isActive: data.is_active
+      metadata: data.metadata
     };
   }
 
