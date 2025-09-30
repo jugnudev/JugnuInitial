@@ -172,9 +172,6 @@ router.post('/create-checkout', requireAuth, async (req: Request, res: Response)
         trial_period_days: 14,
         metadata
       },
-      automatic_tax: {
-        enabled: true
-      },
       customer_update: {
         address: 'auto'
       }

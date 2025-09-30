@@ -3921,12 +3921,6 @@ export function addCommunitiesRoutes(app: Express) {
             communityId: id,
             organizerId: user.id
           }
-        },
-        automatic_tax: {
-          enabled: true
-        },
-        tax_id_collection: {
-          enabled: true
         }
       });
 
