@@ -811,6 +811,10 @@ export class CommunitiesSupabaseDB {
     if (data.membershipPolicy !== undefined) updateData.membership_policy = data.membershipPolicy;
     if (data.status !== undefined) updateData.status = data.status;
     
+    // Chat settings
+    if (data.chatMode !== undefined) updateData.chat_mode = data.chatMode;
+    if (data.chatSlowmodeSeconds !== undefined) updateData.chat_slowmode_seconds = data.chatSlowmodeSeconds;
+    
     // Moderator permissions
     if (data.moderatorCanPost !== undefined) updateData.moderator_can_post = data.moderatorCanPost;
     if (data.moderatorCanCreateEvents !== undefined) updateData.moderator_can_create_events = data.moderatorCanCreateEvents;

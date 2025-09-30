@@ -693,7 +693,7 @@ export const communities = pgTable("communities", {
   coverUrl: text("cover_url"),
   isPrivate: boolean("is_private").notNull().default(false),
   membershipPolicy: text("membership_policy").notNull().default("approval_required"), // approval_required | open | invite_only
-  chatMode: text("chat_mode").notNull().default("owner_only"), // owner_only | open_to_members
+  chatMode: text("chat_mode").notNull().default("owner_only"), // disabled | owner_only | open_to_members
   chatSlowmodeSeconds: integer("chat_slowmode_seconds").notNull().default(0),
   allowMemberPosts: boolean("allow_member_posts").notNull().default(false),
   
