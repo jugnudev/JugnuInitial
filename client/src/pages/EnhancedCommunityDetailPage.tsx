@@ -303,7 +303,7 @@ export default function EnhancedCommunityDetailPage() {
     description: '',
     welcomeText: '',
     membershipPolicy: 'approval_required' as 'open' | 'approval_required' | 'closed',
-    chatMode: 'owner_only' as 'owner_only' | 'open_to_members',
+    chatMode: 'owner_only' as 'disabled' | 'owner_only' | 'moderators_only' | 'all_members',
     isPrivate: false
   });
 

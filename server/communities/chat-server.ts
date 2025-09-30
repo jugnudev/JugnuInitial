@@ -192,6 +192,13 @@ export function startChatServer(httpServer: Server) {
           ws.close();
           return;
         }
+
+        // Check if chat is disabled
+        if (community.chatMode === 'disabled') {
+          ws.send(JSON.stringify({ type: 'error', payload: 'Chat is disabled for this community' }));
+          ws.close();
+          return;
+        }
       }
 
       // Store authenticated client
