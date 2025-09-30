@@ -973,8 +973,7 @@ export const communitySubscriptions = pgTable("community_subscriptions", {
   memberLimit: integer("member_limit").notNull().default(100),
   pricePerMonth: integer("price_per_month"), // in cents (2000 = $20)
   features: jsonb("features").default(sql`'{}'::jsonb`), // Feature flags/limits
-  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Additional Stripe metadata
-  isActive: boolean("is_active").notNull().default(true),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`) // Additional Stripe metadata
 });
 
 // Community billing payments (supports both subscription and bundle payments)
