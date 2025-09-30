@@ -83,6 +83,15 @@ Preferred communication style: Simple, everyday language.
   - Backend: Atomic upsert operation leveraging unique constraint on (post_id, user_id) prevents race conditions
   - Database: `community_post_reactions` table with unique constraint ensures data integrity across multiple devices/tabs
   - UX: Smooth reaction switching, no glitches during rapid clicking, instant UI feedback
+- **Hybrid Billing System** (Phase 10):
+  - Dual pricing model: Individual subscriptions ($20 CAD/month per community) and Bundle subscriptions ($75 CAD/month for 5 communities)
+  - Database: `community_subscriptions`, `organizer_subscription_bundles`, `community_payments`, `community_billing_events` tables
+  - Stripe Integration: Checkout sessions, subscription management, webhook handling
+  - Bundle Management: Automatic capacity tracking, assignment/removal of communities to/from bundles
+  - API Routes: `/api/billing/*` for checkout, subscription management, bundle operations
+  - Webhook Handler: `/api/webhooks/stripe` for processing Stripe events (payment success/failure, subscription updates)
+  - Components: `BundleSelector` for plan selection, `BundleAssignment` for bundle management, updated `CommunityBilling`
+  - Features: 14-day free trial, automatic proration, conflict resolution for existing subscriptions
 
 ### Feature Flags
 - **Ticketing System**: Controlled by `ENABLE_TICKETING` (server) and `VITE_ENABLE_TICKETING` (client). Disabling hides routes, APIs, UI, and ensures SEO isolation via `robots.txt` and `sitemap.xml`.
