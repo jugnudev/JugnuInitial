@@ -1861,7 +1861,7 @@ export default function EnhancedCommunityDetailPage() {
               <CommunityBilling
                 communityId={community.id}
                 communitySlug={community.slug}
-                isOwner={true}
+                isOwner={isOwner}
               />
             </TabsContent>
           </Tabs>

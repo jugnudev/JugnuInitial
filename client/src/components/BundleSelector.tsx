@@ -7,6 +7,7 @@ import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { loadStripe } from '@stripe/stripe-js';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface BundleSelectorProps {
   communityId?: string;
@@ -26,11 +27,12 @@ export function BundleSelector({
   onSubscriptionCreated 
 }: BundleSelectorProps) {
   const [selectedPlan, setSelectedPlan] = useState<'individual' | 'bundle' | null>(null);
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const createCheckoutMutation = useMutation({
-    mutationFn: async (params: { type: 'individual' | 'bundle'; communityId?: string; organizerId?: string }) => {
+    mutationFn: async (params: { type: 'individual' | 'bundle'; period: 'monthly' | 'yearly'; communityId?: string; organizerId?: string }) => {
       return apiRequest('/api/billing/create-checkout', 'POST', params);
     },
     onSuccess: async (data) => {
@@ -74,9 +76,9 @@ export function BundleSelector({
     setSelectedPlan(type);
 
     if (type === 'individual' && communityId) {
-      createCheckoutMutation.mutate({ type: 'individual', communityId });
+      createCheckoutMutation.mutate({ type: 'individual', period: billingPeriod, communityId });
     } else if (type === 'bundle' && organizerId) {
-      createCheckoutMutation.mutate({ type: 'bundle', organizerId });
+      createCheckoutMutation.mutate({ type: 'bundle', period: billingPeriod, organizerId });
     } else {
       toast({
         title: 'Error',
@@ -86,6 +88,12 @@ export function BundleSelector({
       setIsLoading(false);
     }
   };
+
+  // Calculate pricing based on billing period
+  const individualPrice = billingPeriod === 'monthly' ? 20 : 200;
+  const bundlePrice = billingPeriod === 'monthly' ? 75 : 750;
+  const individualSavings = billingPeriod === 'yearly' ? 40 : 0;
+  const bundleSavings = billingPeriod === 'yearly' ? 150 : 0;
 
   // If already has a subscription or bundle, show current plan
   if (existingSubscription || existingBundle) {

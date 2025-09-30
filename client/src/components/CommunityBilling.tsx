@@ -141,7 +141,7 @@ const planConfig = {
   },
   monthly: {
     label: 'Monthly',
-    price: 19.99,
+    price: 20,
     period: 'month',
     features: [
       'Unlimited members',
@@ -154,7 +154,7 @@ const planConfig = {
   },
   yearly: {
     label: 'Yearly',
-    price: 199,
+    price: 200,
     period: 'year',
     savings: 40,
     features: [
@@ -187,9 +187,9 @@ export default function CommunityBilling({
     mutationFn: async (priceId: 'monthly' | 'yearly') => {
       return apiRequest(`/api/communities/${communityId}/billing/create-checkout`, 'POST', {
         priceId,
-      });
+      }) as Promise<{ checkoutUrl?: string }>;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       // Redirect to Stripe checkout
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
@@ -207,9 +207,9 @@ export default function CommunityBilling({
   // Create customer portal session mutation
   const createPortalMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/communities/${communityId}/billing/manage`, 'POST');
+      return apiRequest(`/api/communities/${communityId}/billing/manage`, 'POST') as Promise<{ portalUrl?: string }>;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       // Redirect to Stripe customer portal
       if (data.portalUrl) {
         window.location.href = data.portalUrl;
@@ -404,7 +404,7 @@ export default function CommunityBilling({
                   ) : (
                     <Zap className="w-4 h-4 mr-2" />
                   )}
-                  Upgrade to Monthly
+                  Upgrade to Monthly ($20/mo)
                 </Button>
                 <Button
                   onClick={() => createCheckoutMutation.mutate('yearly')}
@@ -418,7 +418,7 @@ export default function CommunityBilling({
                   ) : (
                     <Sparkles className="w-4 h-4 mr-2" />
                   )}
-                  Upgrade to Yearly (Save $40)
+                  Upgrade to Yearly ($200/yr - Save $40)
                 </Button>
               </>
             ) : hasActiveSubscription ? (
