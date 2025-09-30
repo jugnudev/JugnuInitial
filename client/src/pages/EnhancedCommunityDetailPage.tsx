@@ -1753,50 +1753,89 @@ export default function EnhancedCommunityDetailPage() {
             </TabsContent>
           </Tabs>
         ) : (
-          // Member view - Posts only
-          <motion.div 
-            className="space-y-6"
-            variants={contentAnimation}
-          >
-            {sortedPosts.length === 0 ? (
-              <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
-                <CardContent className="py-16 text-center">
-                  <MessageSquare className="h-12 w-12 text-premium-text-muted mx-auto mb-4 opacity-50" />
-                  <h3 className="font-fraunces text-xl font-semibold text-premium-text-primary mb-2">
-                    No posts yet
-                  </h3>
-                  <p className="text-premium-text-secondary">
-                    Check back later for updates from this community.
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <>
-                {sortedPosts.map((post) => (
-                  <PostCardWithComments
-                    key={post.id}
-                    post={post}
-                    communityId={community?.id || ''}
-                    canEdit={post.authorId === user?.id}
-                    canDelete={false}
-                    onReaction={(type) => handleReaction(post.id, type)}
-                    onComment={(content, parentId) => handleComment(post.id, content, parentId)}
-                    onCommentLike={(commentId) => handleCommentLike(commentId)}
-                    onShare={() => handleShare(post)}
-                  />
-                ))}
-                
-                {/* Infinite scroll observer target */}
-                <div ref={observerTarget} className="h-10" />
-                
-                {isLoadingMore && (
-                  <div className="flex justify-center py-4">
-                    <Loader2 className="h-6 w-6 text-accent animate-spin" />
-                  </div>
+          // Member view - Posts and Chat with Tabs
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full max-w-md grid-cols-2 bg-premium-surface border border-premium-border">
+              <TabsTrigger 
+                value="announcements"
+                data-testid="member-posts-tab"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Posts
+              </TabsTrigger>
+              <TabsTrigger 
+                value="chat"
+                data-testid="member-chat-tab"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Chat
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Posts Tab */}
+            <TabsContent value="announcements" className="space-y-6">
+              <motion.div 
+                className="space-y-6"
+                variants={contentAnimation}
+              >
+                {sortedPosts.length === 0 ? (
+                  <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                    <CardContent className="py-16 text-center">
+                      <MessageSquare className="h-12 w-12 text-premium-text-muted mx-auto mb-4 opacity-50" />
+                      <h3 className="font-fraunces text-xl font-semibold text-premium-text-primary mb-2">
+                        No posts yet
+                      </h3>
+                      <p className="text-premium-text-secondary">
+                        Check back later for updates from this community.
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <>
+                    {sortedPosts.map((post) => (
+                      <PostCardWithComments
+                        key={post.id}
+                        post={post}
+                        communityId={community?.id || ''}
+                        canEdit={post.authorId === user?.id}
+                        canDelete={false}
+                        onReaction={(type) => handleReaction(post.id, type)}
+                        onComment={(content, parentId) => handleComment(post.id, content, parentId)}
+                        onCommentLike={(commentId) => handleCommentLike(commentId)}
+                        onShare={() => handleShare(post)}
+                      />
+                    ))}
+                    
+                    {/* Infinite scroll observer target */}
+                    <div ref={observerTarget} className="h-10" />
+                    
+                    {isLoadingMore && (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="h-6 w-6 text-accent animate-spin" />
+                      </div>
+                    )}
+                  </>
                 )}
-              </>
-            )}
-          </motion.div>
+              </motion.div>
+            </TabsContent>
+
+            {/* Chat Tab */}
+            <TabsContent value="chat" className="space-y-6">
+              <CommunityChat 
+                communityId={community.id}
+                currentUser={user}
+                currentMember={currentMember && currentMember.status === 'approved' ? {
+                  role: currentMember.role,
+                  userId: user?.id || ''
+                } : undefined}
+                communitySettings={{
+                  chatMode: community.chatMode || 'all_members',
+                  chatSlowmodeSeconds: community.chatSlowmodeSeconds || 0
+                }}
+                authToken={localStorage.getItem('community_auth_token')}
+              />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
       
