@@ -3870,7 +3870,9 @@ export function addCommunitiesRoutes(app: Express) {
         return res.status(404).json({ ok: false, error: 'Community not found' });
       }
 
-      if (community.organizerId !== user.id) {
+      // Check ownership through organizer
+      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      if (!organizer || community.organizerId !== organizer.id) {
         return res.status(403).json({ ok: false, error: 'Only community owners can manage billing' });
       }
 
@@ -3954,7 +3956,9 @@ export function addCommunitiesRoutes(app: Express) {
         return res.status(404).json({ ok: false, error: 'Community not found' });
       }
 
-      if (community.organizerId !== user.id) {
+      // Check ownership through organizer
+      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      if (!organizer || community.organizerId !== organizer.id) {
         return res.status(403).json({ ok: false, error: 'Only community owners can manage billing' });
       }
 
@@ -3996,8 +4000,9 @@ export function addCommunitiesRoutes(app: Express) {
       }
 
       // Check if user is the owner or member
+      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      const isOwner = organizer && organizer.id === community.organizerId;
       const membership = await communitiesStorage.getMembershipByUserAndCommunity(user.id, id);
-      const isOwner = community.organizerId === user.id;
       
       if (!membership && !isOwner) {
         return res.status(403).json({ ok: false, error: 'Access denied' });
@@ -4076,7 +4081,9 @@ export function addCommunitiesRoutes(app: Express) {
         return res.status(404).json({ ok: false, error: 'Community not found' });
       }
 
-      if (community.organizerId !== user.id) {
+      // Check ownership through organizer
+      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      if (!organizer || community.organizerId !== organizer.id) {
         return res.status(403).json({ ok: false, error: 'Only community owners can manage billing' });
       }
 
@@ -4118,7 +4125,9 @@ export function addCommunitiesRoutes(app: Express) {
         return res.status(404).json({ ok: false, error: 'Community not found' });
       }
 
-      if (community.organizerId !== user.id) {
+      // Check ownership through organizer
+      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      if (!organizer || community.organizerId !== organizer.id) {
         return res.status(403).json({ ok: false, error: 'Only community owners can manage billing' });
       }
 

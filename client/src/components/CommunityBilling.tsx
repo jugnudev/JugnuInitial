@@ -185,7 +185,7 @@ export default function CommunityBilling({
   // Create checkout session mutation
   const createCheckoutMutation = useMutation({
     mutationFn: async (priceId: 'monthly' | 'yearly') => {
-      return apiRequest(`/api/communities/${communityId}/billing/create-checkout`, 'POST', {
+      return apiRequest('POST', `/api/communities/${communityId}/billing/create-checkout`, {
         priceId,
       }) as Promise<{ checkoutUrl?: string }>;
     },
@@ -207,7 +207,7 @@ export default function CommunityBilling({
   // Create customer portal session mutation
   const createPortalMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/communities/${communityId}/billing/manage`, 'POST') as Promise<{ portalUrl?: string }>;
+      return apiRequest('POST', `/api/communities/${communityId}/billing/manage`) as Promise<{ portalUrl?: string }>;
     },
     onSuccess: (data: any) => {
       // Redirect to Stripe customer portal
@@ -227,7 +227,7 @@ export default function CommunityBilling({
   // Cancel subscription mutation
   const cancelSubscriptionMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/communities/${communityId}/billing/cancel`, 'POST');
+      return apiRequest('POST', `/api/communities/${communityId}/billing/cancel`);
     },
     onSuccess: () => {
       toast({
@@ -389,7 +389,7 @@ export default function CommunityBilling({
             </Alert>
           )}
         </CardContent>
-        {isOwner && sub.canManage && (
+        {sub.canManage && (
           <CardFooter className="flex flex-wrap gap-2">
             {canUpgrade ? (
               <>
