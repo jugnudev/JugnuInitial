@@ -1486,21 +1486,23 @@ export default function EnhancedCommunityDetailPage() {
             </TabsContent>
             
             {/* Chat Tab */}
-            <TabsContent value="chat" className="space-y-6">
-              <CommunityChat 
-                communityId={community.id}
-                currentUser={user}
-                currentMember={currentMember && currentMember.status === 'approved' ? {
-                  role: currentMember.role,
-                  userId: user?.id || ''
-                } : undefined}
-                communitySettings={{
-                  chatMode: community.chatMode || 'all_members',
-                  chatSlowmodeSeconds: community.chatSlowmodeSeconds || 0
-                }}
-                authToken={localStorage.getItem('community_auth_token')}
-              />
-            </TabsContent>
+            {activeTab === 'chat' && (
+              <TabsContent value="chat" className="space-y-6">
+                <CommunityChat 
+                  communityId={community.id}
+                  currentUser={user}
+                  currentMember={currentMember && currentMember.status === 'approved' ? {
+                    role: currentMember.role,
+                    userId: user?.id || ''
+                  } : undefined}
+                  communitySettings={{
+                    chatMode: community.chatMode || 'all_members',
+                    chatSlowmodeSeconds: community.chatSlowmodeSeconds || 0
+                  }}
+                  authToken={localStorage.getItem('community_auth_token')}
+                />
+              </TabsContent>
+            )}
             
             {/* Polls Tab */}
             <TabsContent value="polls" className="space-y-6">
@@ -1899,21 +1901,23 @@ export default function EnhancedCommunityDetailPage() {
             </TabsContent>
 
             {/* Chat Tab */}
-            <TabsContent value="chat" className="space-y-6">
-              <CommunityChat 
-                communityId={community.id}
-                currentUser={user}
-                currentMember={currentMember && currentMember.status === 'approved' ? {
-                  role: currentMember.role,
-                  userId: user?.id || ''
-                } : undefined}
-                communitySettings={{
-                  chatMode: community.chatMode || 'all_members',
-                  chatSlowmodeSeconds: community.chatSlowmodeSeconds || 0
-                }}
-                authToken={localStorage.getItem('community_auth_token')}
-              />
-            </TabsContent>
+            {activeTab === 'chat' && (
+              <TabsContent value="chat" className="space-y-6">
+                <CommunityChat 
+                  communityId={community.id}
+                  currentUser={user}
+                  currentMember={currentMember && currentMember.status === 'approved' ? {
+                    role: currentMember.role,
+                    userId: user?.id || ''
+                  } : undefined}
+                  communitySettings={{
+                    chatMode: community.chatMode || 'all_members',
+                    chatSlowmodeSeconds: community.chatSlowmodeSeconds || 0
+                  }}
+                  authToken={localStorage.getItem('community_auth_token')}
+                />
+              </TabsContent>
+            )}
           </Tabs>
         )}
       </div>

@@ -275,25 +275,32 @@ export default function CommunityChat({
               {allMessages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex gap-3 ${message.is_announcement ? 'p-3 rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20' : ''}`}
+                  className={`flex gap-3 ${message.is_announcement ? 'p-4 rounded-lg border-2 border-accent/30 bg-gradient-to-br from-accent/5 via-purple-500/5 to-pink-500/5 dark:from-accent/10 dark:via-purple-500/10 dark:to-pink-500/10 shadow-lg' : ''}`}
                   data-testid={`message-${message.id}`}
                 >
-                  <Avatar className="w-8 h-8">
-                    <AvatarImage src={message.author.profile_image_url} />
-                    <AvatarFallback>
-                      {message.author.first_name[0]}{message.author.last_name[0]}
-                    </AvatarFallback>
-                  </Avatar>
+                  {message.is_announcement && (
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-accent/20 border border-accent/30">
+                      <Megaphone className="w-4 h-4 text-accent" />
+                    </div>
+                  )}
+                  {!message.is_announcement && (
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={message.author.profile_image_url} />
+                      <AvatarFallback>
+                        {message.author.first_name[0]}{message.author.last_name[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">
+                      <span className={`font-medium text-sm ${message.is_announcement ? 'text-accent' : ''}`}>
                         {message.author.first_name} {message.author.last_name}
                       </span>
                       {renderRoleBadge(
                         onlineUsers.find(u => u.userId === message.author_id)?.userRole || 'member'
                       )}
                       {message.is_announcement && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge className="text-xs bg-accent/20 text-accent border-accent/30">
                           <Megaphone className="w-3 h-3 mr-1" />
                           Announcement
                         </Badge>
@@ -399,7 +406,7 @@ export default function CommunityChat({
                   <Button
                     onClick={() => handleSendMessage(true)}
                     disabled={!messageInput.trim() || slowmodeTimer > 0 || !isConnected}
-                    variant="secondary"
+                    className="bg-accent/20 hover:bg-accent/30 text-accent border border-accent/30"
                     size="icon"
                     title="Send as announcement"
                     data-testid="send-announcement-button"
