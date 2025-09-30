@@ -562,16 +562,31 @@ export default function EnhancedCommunityDetailPage() {
     },
   });
 
+  // Track pending reactions to prevent race conditions
+  const pendingReactions = useRef<Set<string>>(new Set());
+  
   // Handle post reactions with optimistic updates
   const handleReaction = async (postId: string, type: string) => {
-    if (!community?.id || !communityData) return;
+    if (!community?.id || !communityData || !communitySlug) return;
     
     const userId = user?.id;
     if (!userId) return;
     
+    // Prevent duplicate calls for the same post+type combination
+    const reactionKey = `${postId}-${type}`;
+    if (pendingReactions.current.has(reactionKey)) {
+      return;
+    }
+    
+    // Mark this reaction as pending
+    pendingReactions.current.add(reactionKey);
+    
     // Find the post
     const post = communityData.posts?.find(p => p.id === postId);
-    if (!post) return;
+    if (!post) {
+      pendingReactions.current.delete(reactionKey);
+      return;
+    }
     
     // Optimistically update the UI
     const currentReaction = post.reactions?.find(r => r.type === type);
@@ -600,20 +615,25 @@ export default function EnhancedCommunityDetailPage() {
         const userHasOtherReaction = reactions.find(r => r.hasReacted);
         
         if (userHasOtherReaction) {
-          // Replace existing reaction
+          // User is switching reactions - remove old, add new
+          let updatedReactions = reactions.map(r => {
+            if (r.type === userHasOtherReaction.type) {
+              return { ...r, count: Math.max(0, r.count - 1), hasReacted: false };
+            }
+            if (r.type === type) {
+              return { ...r, count: r.count + 1, hasReacted: true };
+            }
+            return r;
+          });
+          
+          // If new reaction type doesn't exist yet, add it
+          if (!reactionExists) {
+            updatedReactions.push({ type, count: 1, hasReacted: true });
+          }
+          
           return {
             ...p,
-            reactions: reactions
-              .map(r => {
-                if (r.type === userHasOtherReaction.type) {
-                  return { ...r, count: Math.max(0, r.count - 1), hasReacted: false };
-                }
-                if (r.type === type) {
-                  return { ...r, count: r.count + 1, hasReacted: true };
-                }
-                return r;
-              })
-              .filter(r => r.count > 0)
+            reactions: updatedReactions.filter(r => r.count > 0)
           };
         } else if (reactionExists) {
           // Increment existing
@@ -635,9 +655,9 @@ export default function EnhancedCommunityDetailPage() {
       }
     });
     
-    // Update cache optimistically
+    // Update cache optimistically using the CORRECT query key
     queryClient.setQueryData(
-      ['/api/communities', community.id],
+      ['/api/communities', communitySlug],
       { ...communityData, posts: optimisticPosts }
     );
     
@@ -645,10 +665,14 @@ export default function EnhancedCommunityDetailPage() {
       // Call backend
       await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type });
       
-      // Refetch in background to sync
-      refetch();
+      // Wait a brief moment for server to process, then refetch once
+      setTimeout(() => {
+        refetch();
+        pendingReactions.current.delete(reactionKey);
+      }, 100);
     } catch (error: any) {
       // Revert on error
+      pendingReactions.current.delete(reactionKey);
       refetch();
       toast({ 
         title: "Failed to update reaction", 
