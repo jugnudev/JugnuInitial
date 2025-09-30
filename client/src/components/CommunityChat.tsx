@@ -249,14 +249,14 @@ export default function CommunityChat({
       <div className="flex-1 flex flex-col">
         {/* Pinned Messages Banner */}
         {pinnedMessages && pinnedMessages.messages?.length > 0 && (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-2 border-b">
+          <div className="bg-amber-50/50 dark:bg-amber-900/10 border-b border-amber-200 dark:border-amber-800/30 p-3">
             <div className="flex items-center gap-2">
-              <Pin className="w-4 h-4 text-yellow-600" />
-              <span className="text-sm font-medium">Pinned Messages</span>
+              <Pin className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              <span className="text-sm font-medium text-amber-900 dark:text-amber-100">Pinned Messages</span>
             </div>
-            <div className="mt-1 space-y-1">
+            <div className="mt-2 space-y-1">
               {pinnedMessages.messages.slice(0, 2).map((msg: any) => (
-                <div key={msg.id} className="text-sm text-muted-foreground truncate">
+                <div key={`pinned-${msg.id}`} className="text-sm text-amber-700 dark:text-amber-300 truncate">
                   {msg.content}
                 </div>
               ))}
@@ -312,7 +312,7 @@ export default function CommunityChat({
                     )}
                     {/* Message Actions */}
                     {!message.is_deleted && (
-                      <div className="flex items-center gap-2 mt-2 opacity-0 hover:opacity-100 transition-opacity">
+                      <div className={`flex items-center gap-2 mt-2 transition-opacity ${message.is_pinned ? 'opacity-100' : 'opacity-0 hover:opacity-100'}`}>
                         {currentMember.role === 'owner' && (
                           <Button
                             variant="ghost"

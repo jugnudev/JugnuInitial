@@ -82,7 +82,13 @@ export function useCommunityChat(communityId: string, token: string | null) {
               break;
               
             case 'message':
-              setMessages(prev => [...prev, data.payload]);
+              setMessages(prev => {
+                // Only add if message doesn't already exist
+                if (!prev.find(m => m.id === data.payload.id)) {
+                  return [...prev, data.payload];
+                }
+                return prev;
+              });
               break;
               
             case 'message_history':
