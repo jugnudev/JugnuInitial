@@ -927,17 +927,42 @@ export const communityAnalytics = pgTable("community_analytics", {
   memberActivity: jsonb("member_activity").default(sql`'{}'::jsonb`), // Activity breakdown
 });
 
-// Community subscriptions
+// Organizer subscription bundles (for multi-community pricing)
+export const organizerSubscriptionBundles = pgTable("organizer_subscription_bundles", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  organizerId: uuid("organizer_id").notNull().references(() => organizers.id, { onDelete: 'cascade' }),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id").unique(),
+  stripePriceId: text("stripe_price_id"),
+  bundleType: text("bundle_type").notNull().default("starter_5"), // starter_5 (5 communities)
+  status: text("status").notNull().default("trialing"), // trialing | active | past_due | canceled | paused
+  currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  cancelAt: timestamp("cancel_at", { withTimezone: true }),
+  canceledAt: timestamp("canceled_at", { withTimezone: true }),
+  trialStart: timestamp("trial_start", { withTimezone: true }),
+  trialEnd: timestamp("trial_end", { withTimezone: true }),
+  communitiesIncluded: integer("communities_included").notNull().default(5),
+  communitiesUsed: integer("communities_used").notNull().default(0),
+  pricePerMonth: integer("price_per_month").notNull(), // in cents
+  nextPaymentAt: timestamp("next_payment_at", { withTimezone: true }),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+});
+
+// Community subscriptions (now supports both individual and bundle subscriptions)
 export const communitySubscriptions = pgTable("community_subscriptions", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
-  communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
-  organizerId: varchar("organizer_id").notNull().references(() => users.id),
+  communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }).unique(),
+  organizerId: uuid("organizer_id").notNull().references(() => organizers.id),
+  bundleId: uuid("bundle_id").references(() => organizerSubscriptionBundles.id, { onDelete: 'set null' }), // If part of a bundle
   stripeCustomerId: text("stripe_customer_id"),
-  stripeSubscriptionId: text("stripe_subscription_id"),
-  stripePriceId: text("stripe_price_id"), // Current price ID (monthly or yearly)
-  plan: text("plan").notNull().default("free"), // free | monthly | yearly
+  stripeSubscriptionId: text("stripe_subscription_id"), // Only for individual subscriptions
+  stripePriceId: text("stripe_price_id"), // Current price ID (monthly)
+  plan: text("plan").notNull().default("free"), // free | monthly | bundle
   status: text("status").notNull().default("trialing"), // trialing | active | past_due | canceled | paused | expired
   currentPeriodStart: timestamp("current_period_start", { withTimezone: true }),
   currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
@@ -946,15 +971,18 @@ export const communitySubscriptions = pgTable("community_subscriptions", {
   trialStart: timestamp("trial_start", { withTimezone: true }),
   trialEnd: timestamp("trial_end", { withTimezone: true }),
   memberLimit: integer("member_limit").notNull().default(100),
+  pricePerMonth: integer("price_per_month"), // in cents (2000 = $20)
   features: jsonb("features").default(sql`'{}'::jsonb`), // Feature flags/limits
   metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Additional Stripe metadata
+  isActive: boolean("is_active").notNull().default(true),
 });
 
-// Community billing payments
+// Community billing payments (supports both subscription and bundle payments)
 export const communityPayments = pgTable("community_payments", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
-  subscriptionId: uuid("subscription_id").notNull().references(() => communitySubscriptions.id),
+  subscriptionId: uuid("subscription_id").references(() => communitySubscriptions.id), // For individual subscriptions
+  bundleId: uuid("bundle_id").references(() => organizerSubscriptionBundles.id), // For bundle subscriptions
   communityId: uuid("community_id").notNull().references(() => communities.id),
   stripeInvoiceId: text("stripe_invoice_id").unique(),
   stripePaymentIntentId: text("stripe_payment_intent_id"),
@@ -1225,6 +1253,12 @@ export const insertCommunityAnalyticsSchema = createInsertSchema(communityAnalyt
   createdAt: true,
 });
 
+export const insertOrganizerSubscriptionBundleSchema = createInsertSchema(organizerSubscriptionBundles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertCommunitySubscriptionSchema = createInsertSchema(communitySubscriptions).omit({
   id: true,
   createdAt: true,
@@ -1271,6 +1305,10 @@ export const insertCommunityInviteLinkSchema = createInsertSchema(communityInvit
   id: true,
   createdAt: true,
 });
+
+// Billing Type Exports
+export type OrganizerSubscriptionBundle = typeof organizerSubscriptionBundles.$inferSelect;
+export type InsertOrganizerSubscriptionBundle = z.infer<typeof insertOrganizerSubscriptionBundleSchema>;
 
 // Authentication & Organizer Type Exports
 export type AuthCode = typeof authCodes.$inferSelect;

@@ -25,7 +25,15 @@ import type {
   CommunityPayment,
   InsertCommunityPayment,
   CommunityBillingEvent,
-  InsertCommunityBillingEvent
+  InsertCommunityBillingEvent,
+  OrganizerSubscriptionBundle,
+  InsertOrganizerSubscriptionBundle,
+  CommunityNotification,
+  InsertCommunityNotification,
+  CommunityNotificationPreferences,
+  InsertCommunityNotificationPreferences,
+  CommunityEmailQueue,
+  InsertCommunityEmailQueue
 } from '@shared/schema';
 
 // Create Supabase client with service role for admin operations
@@ -1994,12 +2002,100 @@ export class CommunitiesSupabaseDB {
 
   // ============ BILLING AND SUBSCRIPTION METHODS ============
   
+  // Bundle Methods
+  async createBundle(data: InsertOrganizerSubscriptionBundle): Promise<OrganizerSubscriptionBundle> {
+    const { data: bundle, error } = await this.client
+      .from('organizer_subscription_bundles')
+      .insert({
+        organizer_id: data.organizerId,
+        stripe_customer_id: data.stripeCustomerId,
+        stripe_subscription_id: data.stripeSubscriptionId,
+        stripe_price_id: data.stripePriceId,
+        bundle_type: data.bundleType || 'starter_5',
+        status: data.status || 'trialing',
+        current_period_start: data.currentPeriodStart,
+        current_period_end: data.currentPeriodEnd,
+        cancel_at: data.cancelAt,
+        canceled_at: data.canceledAt,
+        trial_start: data.trialStart,
+        trial_end: data.trialEnd,
+        communities_included: data.communitiesIncluded || 5,
+        communities_used: data.communitiesUsed || 0,
+        price_per_month: data.pricePerMonth,
+        next_payment_at: data.nextPaymentAt,
+        metadata: data.metadata || {}
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapBundleFromDb(bundle);
+  }
+
+  async getBundleByOrganizer(organizerId: string): Promise<OrganizerSubscriptionBundle | null> {
+    const { data, error } = await this.client
+      .from('organizer_subscription_bundles')
+      .select()
+      .eq('organizer_id', organizerId)
+      .eq('status', 'active')
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? this.mapBundleFromDb(data) : null;
+  }
+
+  async updateBundleUsage(bundleId: string, increment: number): Promise<void> {
+    const { error } = await this.client.rpc('increment_bundle_usage', {
+      bundle_id: bundleId,
+      increment_value: increment
+    });
+
+    if (error) throw error;
+  }
+
+  async assignCommunityToBundle(communityId: string, bundleId: string): Promise<void> {
+    const { error } = await this.client
+      .from('community_subscriptions')
+      .update({
+        bundle_id: bundleId,
+        plan: 'bundle',
+        status: 'active',
+        updated_at: new Date().toISOString()
+      })
+      .eq('community_id', communityId);
+
+    if (error) throw error;
+    
+    // Increment bundle usage
+    await this.updateBundleUsage(bundleId, 1);
+  }
+
+  async removeCommunityFromBundle(communityId: string, bundleId: string): Promise<void> {
+    const { error } = await this.client
+      .from('community_subscriptions')
+      .update({
+        bundle_id: null,
+        plan: 'free',
+        status: 'trialing',
+        updated_at: new Date().toISOString()
+      })
+      .eq('community_id', communityId)
+      .eq('bundle_id', bundleId);
+
+    if (error) throw error;
+    
+    // Decrement bundle usage
+    await this.updateBundleUsage(bundleId, -1);
+  }
+
+  // Individual Subscription Methods
   async createSubscription(data: InsertCommunitySubscription): Promise<CommunitySubscription> {
     const { data: subscription, error } = await this.client
       .from('community_subscriptions')
       .insert({
         community_id: data.communityId,
         organizer_id: data.organizerId,
+        bundle_id: data.bundleId,
         stripe_customer_id: data.stripeCustomerId,
         stripe_subscription_id: data.stripeSubscriptionId,
         stripe_price_id: data.stripePriceId,
@@ -2012,8 +2108,10 @@ export class CommunitiesSupabaseDB {
         trial_start: data.trialStart,
         trial_end: data.trialEnd,
         member_limit: data.memberLimit || 100,
+        price_per_month: data.pricePerMonth,
         features: data.features || {},
-        metadata: data.metadata || {}
+        metadata: data.metadata || {},
+        is_active: data.isActive !== undefined ? data.isActive : true
       })
       .select()
       .single();
@@ -2173,6 +2271,31 @@ export class CommunitiesSupabaseDB {
   }
 
   // Helper methods to map database records to TypeScript types
+  private mapBundleFromDb(data: any): OrganizerSubscriptionBundle {
+    return {
+      id: data.id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      organizerId: data.organizer_id,
+      stripeCustomerId: data.stripe_customer_id,
+      stripeSubscriptionId: data.stripe_subscription_id,
+      stripePriceId: data.stripe_price_id,
+      bundleType: data.bundle_type,
+      status: data.status,
+      currentPeriodStart: data.current_period_start,
+      currentPeriodEnd: data.current_period_end,
+      cancelAt: data.cancel_at,
+      canceledAt: data.canceled_at,
+      trialStart: data.trial_start,
+      trialEnd: data.trial_end,
+      communitiesIncluded: data.communities_included,
+      communitiesUsed: data.communities_used,
+      pricePerMonth: data.price_per_month,
+      nextPaymentAt: data.next_payment_at,
+      metadata: data.metadata
+    };
+  }
+  
   private mapSubscriptionFromDb(data: any): CommunitySubscription {
     return {
       id: data.id,
@@ -2180,6 +2303,7 @@ export class CommunitiesSupabaseDB {
       updatedAt: data.updated_at,
       communityId: data.community_id,
       organizerId: data.organizer_id,
+      bundleId: data.bundle_id,
       stripeCustomerId: data.stripe_customer_id,
       stripeSubscriptionId: data.stripe_subscription_id,
       stripePriceId: data.stripe_price_id,
@@ -2192,8 +2316,10 @@ export class CommunitiesSupabaseDB {
       trialStart: data.trial_start,
       trialEnd: data.trial_end,
       memberLimit: data.member_limit,
+      pricePerMonth: data.price_per_month,
       features: data.features,
-      metadata: data.metadata
+      metadata: data.metadata,
+      isActive: data.is_active
     };
   }
 
@@ -2202,6 +2328,7 @@ export class CommunitiesSupabaseDB {
       id: data.id,
       createdAt: data.created_at,
       subscriptionId: data.subscription_id,
+      bundleId: data.bundle_id,
       communityId: data.community_id,
       stripeInvoiceId: data.stripe_invoice_id,
       stripePaymentIntentId: data.stripe_payment_intent_id,
