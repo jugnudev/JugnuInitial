@@ -1,10 +1,41 @@
 import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { CommunitiesSupabaseDB } from './communities-supabase';
-import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 const communitiesStorage = new CommunitiesSupabaseDB();
+
+// Auth middleware
+const requireAuth = async (req: Request, res: Response, next: any) => {
+  const authHeader = req.headers.authorization;
+  const sessionToken = authHeader?.replace('Bearer ', '');
+  
+  if (!sessionToken) {
+    return res.status(401).json({ ok: false, error: 'No authorization token provided' });
+  }
+  
+  try {
+    const session = await communitiesStorage.getSessionByToken(sessionToken);
+    
+    if (!session || !session.userId) {
+      return res.status(401).json({ ok: false, error: 'Invalid or expired session' });
+    }
+    
+    const user = await communitiesStorage.getUserById(session.userId);
+    
+    if (!user) {
+      return res.status(401).json({ ok: false, error: 'User not found' });
+    }
+    
+    (req as any).user = user;
+    (req as any).sessionToken = sessionToken;
+    
+    next();
+  } catch (error: any) {
+    console.error('Auth middleware error:', error);
+    return res.status(500).json({ ok: false, error: 'Authentication failed' });
+  }
+};
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {

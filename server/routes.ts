@@ -4281,9 +4281,8 @@ Disallow: /account/*`;
   // Add billing routes for communities
   app.use('/api/billing', billingRoutes);
   
-  // Add webhook routes (requires raw body for Stripe signature verification)
-  // Note: This needs to be added before bodyParser middleware
-  app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhookRoutes);
+  // Add webhook routes
+  app.use('/api/webhooks', webhookRoutes);
 
   // Add ticketing routes if enabled
   if (process.env.ENABLE_TICKETING === 'true') {
