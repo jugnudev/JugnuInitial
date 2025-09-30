@@ -403,6 +403,26 @@ router.post('/assign-to-bundle', requireAuth, async (req: Request, res: Response
       return res.status(400).json({ ok: false, error: 'Bundle is at capacity' });
     }
 
+    // Check if community already has an active individual subscription
+    const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
+    if (existingSubscription && existingSubscription.plan === 'monthly' && 
+        ['active', 'trialing'].includes(existingSubscription.status)) {
+      // Cancel the individual Stripe subscription
+      if (existingSubscription.stripeSubscriptionId) {
+        try {
+          await stripe.subscriptions.update(existingSubscription.stripeSubscriptionId, {
+            cancel_at_period_end: true,
+            metadata: {
+              cancelReason: 'migrating_to_bundle'
+            }
+          });
+        } catch (error: any) {
+          console.error('Failed to cancel individual subscription:', error);
+          // Continue anyway - we'll handle this in webhooks
+        }
+      }
+    }
+
     // Assign community to bundle
     await communitiesStorage.assignCommunityToBundle(communityId, bundleId);
 
