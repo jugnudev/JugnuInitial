@@ -142,9 +142,17 @@ export default function CommunityBilling({
     onSuccess: (data: any) => {
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
+      } else {
+        console.error('No checkoutUrl in response:', data);
+        toast({
+          title: "Failed to redirect to checkout",
+          description: "No checkout URL was returned. Please try again.",
+          variant: "destructive",
+        });
       }
     },
     onError: (error: any) => {
+      console.error('Checkout mutation error:', error);
       toast({
         title: "Failed to create checkout session",
         description: error.message || "Please try again later",
