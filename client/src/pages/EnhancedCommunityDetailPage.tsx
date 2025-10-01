@@ -562,99 +562,142 @@ export default function EnhancedCommunityDetailPage() {
     },
   });
 
-  // Track pending reactions per post to prevent race conditions
-  const pendingReactions = useRef<Set<string>>(new Set());
+  // Track debounce timers and initial states per post for reactions
+  const reactionTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const reactionInitialStates = useRef<Map<string, { type: string | null }>>(new Map());
   
-  // Handle post reactions with optimistic updates
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      reactionTimers.current.forEach(timer => clearTimeout(timer));
+      reactionTimers.current.clear();
+    };
+  }, []);
+  
+  // Handle post reactions with optimistic updates and debouncing
   const handleReaction = async (postId: string, type: string) => {
     if (!community?.id || !communityData || !communitySlug) return;
     
     const userId = user?.id;
     if (!userId) return;
     
-    // Prevent concurrent reactions on the same post
-    if (pendingReactions.current.has(postId)) {
-      return;
+    // Snapshot initial state if this is the first click in a debounce window
+    if (!reactionTimers.current.has(postId)) {
+      const currentData = queryClient.getQueryData(['/api/communities', communitySlug]) as any;
+      const post = currentData?.posts?.find((p: any) => p.id === postId);
+      const currentReaction = post?.reactions?.find((r: any) => r.hasReacted);
+      reactionInitialStates.current.set(postId, { 
+        type: currentReaction?.type || null 
+      });
     }
     
-    pendingReactions.current.add(postId);
-    
-    try {
-      // Optimistic update - immediately update the UI
-      queryClient.setQueryData(['/api/communities', communitySlug], (oldData: any) => {
-        if (!oldData) return oldData;
-        
-        return {
-          ...oldData,
-          posts: oldData.posts.map((post: any) => {
-            if (post.id !== postId) return post;
-            
-            const reactions = post.reactions || [];
-            const existingReaction = reactions.find((r: any) => r.type === type);
-            const userHadOtherReaction = reactions.find((r: any) => r.type !== type && r.hasReacted);
-            
-            if (existingReaction?.hasReacted) {
-              // User is removing their reaction
-              return {
-                ...post,
-                reactions: reactions.map((r: any) =>
-                  r.type === type
-                    ? { ...r, count: Math.max(0, r.count - 1), hasReacted: false }
-                    : r
-                ).filter((r: any) => r.count > 0) // Remove reactions with 0 count
-              };
-            } else {
-              // User is adding a reaction
-              // First, remove any previous reaction from this user
-              let updatedReactions = reactions.map((r: any) => {
-                if (r.hasReacted && r.type !== type) {
-                  // Remove user's previous reaction
-                  return { ...r, count: Math.max(0, r.count - 1), hasReacted: false };
-                }
-                return r;
-              }).filter((r: any) => r.count > 0); // Remove reactions with 0 count
-              
-              // Check if the clicked reaction type exists in the updated array
-              const reactionExistsInUpdated = updatedReactions.find((r: any) => r.type === type);
-              
-              if (reactionExistsInUpdated) {
-                // Reaction type exists in updated array, increment count and set hasReacted
-                updatedReactions = updatedReactions.map((r: any) =>
-                  r.type === type
-                    ? { ...r, count: r.count + 1, hasReacted: true }
-                    : r
-                );
-              } else {
-                // New reaction type - add it
-                updatedReactions = [...updatedReactions, { type, count: 1, hasReacted: true }];
+    // Immediately update the UI optimistically
+    queryClient.setQueryData(['/api/communities', communitySlug], (oldData: any) => {
+      if (!oldData) return oldData;
+      
+      return {
+        ...oldData,
+        posts: oldData.posts.map((post: any) => {
+          if (post.id !== postId) return post;
+          
+          const reactions = post.reactions || [];
+          const existingReaction = reactions.find((r: any) => r.type === type);
+          
+          if (existingReaction?.hasReacted) {
+            // User is removing their reaction
+            return {
+              ...post,
+              reactions: reactions.map((r: any) =>
+                r.type === type
+                  ? { ...r, count: Math.max(0, r.count - 1), hasReacted: false }
+                  : r
+              ).filter((r: any) => r.count > 0) // Remove reactions with 0 count
+            };
+          } else {
+            // User is adding a reaction
+            // First, remove any previous reaction from this user
+            let updatedReactions = reactions.map((r: any) => {
+              if (r.hasReacted && r.type !== type) {
+                // Remove user's previous reaction
+                return { ...r, count: Math.max(0, r.count - 1), hasReacted: false };
               }
-              
-              return {
-                ...post,
-                reactions: updatedReactions
-              };
+              return r;
+            }).filter((r: any) => r.count > 0); // Remove reactions with 0 count
+            
+            // Check if the clicked reaction type exists in the updated array
+            const reactionExistsInUpdated = updatedReactions.find((r: any) => r.type === type);
+            
+            if (reactionExistsInUpdated) {
+              // Reaction type exists in updated array, increment count and set hasReacted
+              updatedReactions = updatedReactions.map((r: any) =>
+                r.type === type
+                  ? { ...r, count: r.count + 1, hasReacted: true }
+                  : r
+              );
+            } else {
+              // New reaction type - add it
+              updatedReactions = [...updatedReactions, { type, count: 1, hasReacted: true }];
             }
-          })
-        };
-      });
-      
-      // Call backend - let it handle the logic
-      await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type });
-      
-      // Refetch to ensure consistency with server
-      await refetch();
-    } catch (error: any) {
-      // Revert optimistic update on error
-      await refetch();
-      toast({ 
-        title: "Failed to update reaction", 
-        description: error.message || "Please try again",
-        variant: "destructive" 
-      });
-    } finally {
-      // Always cleanup pending state
-      pendingReactions.current.delete(postId);
+            
+            return {
+              ...post,
+              reactions: updatedReactions
+            };
+          }
+        })
+      };
+    });
+    
+    // Cancel previous debounce timer for this post if exists
+    const existingTimer = reactionTimers.current.get(postId);
+    if (existingTimer) {
+      clearTimeout(existingTimer);
     }
+    
+    // Debounce the API call to avoid excessive requests during rapid clicking
+    const timer = setTimeout(async () => {
+      try {
+        // Get initial and final states to determine net change
+        const initialState = reactionInitialStates.current.get(postId);
+        const currentData = queryClient.getQueryData(['/api/communities', communitySlug]) as any;
+        const post = currentData?.posts?.find((p: any) => p.id === postId);
+        const finalReaction = post?.reactions?.find((r: any) => r.hasReacted);
+        const finalType = finalReaction?.type || null;
+        
+        // Determine what API calls to make based on state change
+        if (initialState?.type === finalType) {
+          // No net change - do nothing
+        } else if (initialState?.type && finalType && initialState.type !== finalType) {
+          // Switched from one reaction to another - just toggle the new one
+          // The server will automatically remove the old one
+          await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type: finalType });
+        } else if (!initialState?.type && finalType) {
+          // Added a reaction
+          await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type: finalType });
+        } else if (initialState?.type && !finalType) {
+          // Removed a reaction
+          await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type: initialState.type });
+        }
+        
+        // Refetch to ensure consistency with server
+        await refetch();
+      } catch (error: any) {
+        // Revert optimistic update on error
+        await refetch();
+        toast({ 
+          title: "Failed to update reaction", 
+          description: error.message || "Please try again",
+          variant: "destructive" 
+        });
+      } finally {
+        // Cleanup references
+        reactionTimers.current.delete(postId);
+        reactionInitialStates.current.delete(postId);
+      }
+    }, 300); // 300ms debounce
+    
+    // Store the timer
+    reactionTimers.current.set(postId, timer);
   };
 
   // Handle post comments
