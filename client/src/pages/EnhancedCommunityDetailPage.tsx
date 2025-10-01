@@ -591,6 +591,7 @@ export default function EnhancedCommunityDetailPage() {
             
             const reactions = post.reactions || [];
             const existingReaction = reactions.find((r: any) => r.type === type);
+            const userHadOtherReaction = reactions.find((r: any) => r.type !== type && r.hasReacted);
             
             if (existingReaction?.hasReacted) {
               // User is removing their reaction
@@ -603,24 +604,33 @@ export default function EnhancedCommunityDetailPage() {
                 ).filter((r: any) => r.count > 0) // Remove reactions with 0 count
               };
             } else {
-              // User is adding their reaction
+              // User is adding a reaction
+              // First, remove any previous reaction from this user
+              let updatedReactions = reactions.map((r: any) => {
+                if (r.hasReacted && r.type !== type) {
+                  // Remove user's previous reaction
+                  return { ...r, count: Math.max(0, r.count - 1), hasReacted: false };
+                }
+                return r;
+              }).filter((r: any) => r.count > 0); // Remove reactions with 0 count
+              
+              // Now add the new reaction
               if (existingReaction) {
-                // Reaction exists, just increment count and set hasReacted
-                return {
-                  ...post,
-                  reactions: reactions.map((r: any) =>
-                    r.type === type
-                      ? { ...r, count: r.count + 1, hasReacted: true }
-                      : r
-                  )
-                };
+                // Reaction type exists, increment count and set hasReacted
+                updatedReactions = updatedReactions.map((r: any) =>
+                  r.type === type
+                    ? { ...r, count: r.count + 1, hasReacted: true }
+                    : r
+                );
               } else {
                 // New reaction type
-                return {
-                  ...post,
-                  reactions: [...reactions, { type, count: 1, hasReacted: true }]
-                };
+                updatedReactions = [...updatedReactions, { type, count: 1, hasReacted: true }];
               }
+              
+              return {
+                ...post,
+                reactions: updatedReactions
+              };
             }
           })
         };
