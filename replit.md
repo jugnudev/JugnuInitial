@@ -79,10 +79,17 @@ Preferred communication style: Simple, everyday language.
   - Note: Permissions flags defined in schema but enforcement across content routes pending implementation
 - **Post Reactions System**:
   - One reaction per user per post with atomic upsert operations
-  - Frontend: Optimistic updates using correct query key `['/api/communities', communitySlug]`, serialized reactions per post via pendingReactions Set
-  - Backend: Atomic upsert operation leveraging unique constraint on (post_id, user_id) prevents race conditions
+  - Frontend: Full optimistic updates with `queryClient.setQueryData()` for instant UI feedback (< 100ms)
+    - Toggle on: Clears previous reaction, adds new reaction with hasReacted: true
+    - Toggle off: Decrements count, sets hasReacted: false, removes if count = 0
+    - Switch: Removes old reaction first, then adds new one to prevent double-highlighting
+    - Uses pendingReactions Set to prevent concurrent clicks on same post
+  - Backend: 
+    - Atomic upsert operation leveraging unique constraint on (post_id, user_id) prevents race conditions
+    - API passes userId to getPostsByCommunityId() to enable hasReacted flag
   - Database: `community_post_reactions` table with unique constraint ensures data integrity across multiple devices/tabs
-  - UX: Smooth reaction switching, no glitches during rapid clicking, instant UI feedback
+  - Styling: Active reactions show light blue background (bg-blue-100 dark:bg-blue-900/30) and blue border
+  - UX: Instant reaction updates, smooth switching, no lag, only one reaction highlighted per user at a time
 - **Hybrid Billing System** (Phase 10):
   - Dual pricing model: Individual subscriptions ($20 CAD/month per community) and Bundle subscriptions ($75 CAD/month for 5 communities)
   - Database: `community_subscriptions`, `organizer_subscription_bundles`, `community_payments`, `community_billing_events` tables
