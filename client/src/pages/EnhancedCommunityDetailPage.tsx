@@ -565,7 +565,7 @@ export default function EnhancedCommunityDetailPage() {
   // Track pending reactions per post to prevent race conditions
   const pendingReactions = useRef<Set<string>>(new Set());
   
-  // Handle post reactions with simplified optimistic updates
+  // Handle post reactions with optimistic updates
   const handleReaction = async (postId: string, type: string) => {
     if (!community?.id || !communityData || !communitySlug) return;
     
@@ -580,12 +580,60 @@ export default function EnhancedCommunityDetailPage() {
     pendingReactions.current.add(postId);
     
     try {
+      // Optimistic update - immediately update the UI
+      queryClient.setQueryData(['/api/communities', communitySlug], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        return {
+          ...oldData,
+          posts: oldData.posts.map((post: any) => {
+            if (post.id !== postId) return post;
+            
+            const reactions = post.reactions || [];
+            const existingReaction = reactions.find((r: any) => r.type === type);
+            
+            if (existingReaction?.hasReacted) {
+              // User is removing their reaction
+              return {
+                ...post,
+                reactions: reactions.map((r: any) =>
+                  r.type === type
+                    ? { ...r, count: Math.max(0, r.count - 1), hasReacted: false }
+                    : r
+                ).filter((r: any) => r.count > 0) // Remove reactions with 0 count
+              };
+            } else {
+              // User is adding their reaction
+              if (existingReaction) {
+                // Reaction exists, just increment count and set hasReacted
+                return {
+                  ...post,
+                  reactions: reactions.map((r: any) =>
+                    r.type === type
+                      ? { ...r, count: r.count + 1, hasReacted: true }
+                      : r
+                  )
+                };
+              } else {
+                // New reaction type
+                return {
+                  ...post,
+                  reactions: [...reactions, { type, count: 1, hasReacted: true }]
+                };
+              }
+            }
+          })
+        };
+      });
+      
       // Call backend - let it handle the logic
       await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type });
       
-      // Refetch to get accurate state from server
+      // Refetch to ensure consistency with server
       await refetch();
     } catch (error: any) {
+      // Revert optimistic update on error
+      await refetch();
       toast({ 
         title: "Failed to update reaction", 
         description: error.message || "Please try again",
