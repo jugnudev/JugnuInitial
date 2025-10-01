@@ -83,13 +83,18 @@ Preferred communication style: Simple, everyday language.
     - Toggle on: Clears previous reaction, adds new reaction with hasReacted: true
     - Toggle off: Decrements count, sets hasReacted: false, removes if count = 0
     - Switch: Removes old reaction first, then adds new one to prevent double-highlighting
-    - Uses pendingReactions Set to prevent concurrent clicks on same post
+    - Debouncing: 300ms debounce on API calls with state comparison
+      - Snapshots initial state at first click in debounce window
+      - Compares initial vs final state after 300ms
+      - Only sends API call if net change occurred (prevents desync during rapid toggling)
+      - Handles rapid clicking without lag or blocked interactions
   - Backend: 
     - Atomic upsert operation leveraging unique constraint on (post_id, user_id) prevents race conditions
     - API passes userId to getPostsByCommunityId() to enable hasReacted flag
+    - POST /react endpoint uses upsert to atomically add/switch reactions
   - Database: `community_post_reactions` table with unique constraint ensures data integrity across multiple devices/tabs
   - Styling: Active reactions show light blue background (bg-blue-100 dark:bg-blue-900/30) and blue border
-  - UX: Instant reaction updates, smooth switching, no lag, only one reaction highlighted per user at a time
+  - UX: Instant reaction updates, smooth switching, no lag even with rapid clicking, only one reaction highlighted per user at a time
 - **Hybrid Billing System** (Phase 10):
   - Dual pricing model: Individual subscriptions ($20 CAD/month per community) and Bundle subscriptions ($75 CAD/month for 5 communities)
   - Database: `community_subscriptions`, `organizer_subscription_bundles`, `community_payments`, `community_billing_events` tables
