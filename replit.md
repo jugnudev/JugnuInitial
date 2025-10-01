@@ -95,6 +95,13 @@ Preferred communication style: Simple, everyday language.
   - Database: `community_post_reactions` table with unique constraint ensures data integrity across multiple devices/tabs
   - Styling: Active reactions show light blue background (bg-blue-100 dark:bg-blue-900/30) and blue border
   - UX: Instant reaction updates, smooth switching, no lag even with rapid clicking, only one reaction highlighted per user at a time
+- **Media Upload for Posts**:
+  - Supports both images (JPG/PNG/WebP, max 10MB) and MP4 videos (max 50MB)
+  - No aspect ratio restrictions - flexible sizing with object-contain for both images and videos
+  - Video preview uses native HTML5 video player with controls
+  - Image preview shows full image with responsive sizing
+  - Drag-and-drop and click-to-upload functionality
+  - Note: Video detection in preview uses URL string matching (includes '.mp4'), may be brittle for CDN/signed URLs
 - **Hybrid Billing System** (Phase 10):
   - Dual pricing model: Individual subscriptions ($20 CAD/month per community) and Bundle subscriptions ($75 CAD/month for 5 communities)
   - Database: `community_subscriptions`, `organizer_subscription_bundles`, `community_payments`, `community_billing_events` tables

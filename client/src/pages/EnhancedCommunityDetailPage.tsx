@@ -2064,11 +2064,11 @@ export default function EnhancedCommunityDetailPage() {
               />
             </div>
             
-            {/* Image Upload */}
+            {/* Media Upload */}
             <div>
-              <Label htmlFor="image">Image (optional)</Label>
+              <Label htmlFor="image">Image or Video (optional)</Label>
               <p className="text-xs text-muted-foreground mb-3">
-                Upload a 16:9 ratio image for your announcement
+                Upload an image or video for your announcement
               </p>
               <AnnouncementImageUploader
                 onUpload={async (file) => {
