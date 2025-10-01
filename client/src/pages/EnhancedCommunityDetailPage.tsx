@@ -679,8 +679,8 @@ export default function EnhancedCommunityDetailPage() {
           await apiRequest('POST', `/api/communities/${community.id}/posts/${postId}/react`, { type: initialState.type });
         }
         
-        // Refetch to ensure consistency with server
-        await refetch();
+        // Don't refetch immediately - trust the optimistic update
+        // This prevents UI from reverting to stale data during rapid clicking
       } catch (error: any) {
         // Revert optimistic update on error
         await refetch();
