@@ -3723,7 +3723,7 @@ export function addCommunitiesRoutes(app: Express) {
 
   /**
    * GET /api/communities/:id/analytics
-   * Get community analytics data
+   * Get comprehensive community analytics data
    * curl -X GET http://localhost:5000/api/communities/COMMUNITY_ID/analytics \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
@@ -3745,104 +3745,329 @@ export function addCommunitiesRoutes(app: Express) {
         return res.status(403).json({ ok: false, error: 'Access denied - community members only' });
       }
 
-      // Get community posts for engagement calculation
-      const posts = await communitiesStorage.getPostsByCommunityId(id);
+      // Get community posts with all engagement data
+      const postsResult = await communitiesStorage.getPostsByCommunityId(id, user.id);
+      const posts = postsResult.posts || [];
       const members = await communitiesStorage.getMembershipsByCommunityId(id);
 
-      // Calculate engagement rate based on real visitor analytics data
-      let engagementRate = 0;
-
-      // Get real visitor analytics data for community-specific pages
-      let totalViews = 0;
-      let recentGrowth = 0;
+      // Get all reactions and comments for detailed analytics
+      const { db } = await import('../db');
+      const { communityPostReactions, communityComments } = await import('@shared/schema');
+      const { inArray } = await import('drizzle-orm');
       
-      try {
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        
-        const analytics = await communitiesStorage.getVisitorAnalytics(thirtyDaysAgo);
-        
-        if (analytics.length > 0) {
-          // Filter and sum pageviews for community-specific pages
-          const communityPath = `/communities/${id}`;
-          let communityViews = 0;
-          
-          for (const day of analytics) {
-            // Check topPages array for community-specific pages
-            if (day.topPages && Array.isArray(day.topPages)) {
-              const communityPageViews = day.topPages
-                .filter((page: any) => page.path && page.path.includes(communityPath))
-                .reduce((sum: number, page: any) => sum + (page.views || 0), 0);
-              communityViews += communityPageViews;
-            }
-          }
-          
-          totalViews = communityViews;
-          
-          // Calculate engagement rate using ONLY community-specific analytics data
-          // Engagement rate based only on community pageviews and activity
-          if (communityViews > 0) {
-            // Use community-specific view data to calculate engagement
-            // Higher engagement = more views relative to member count + recent activity
-            const viewsPerMember = communityViews / Math.max(members.length, 1);
-            const recentPostActivity = posts.filter(p => {
-              const postDate = new Date(p.createdAt);
-              const oneWeekAgo = new Date();
-              oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-              return postDate >= oneWeekAgo;
-            }).length;
-            
-            // Engagement formula: views per member (60%) + recent post activity (40%)
-            const normalizedViews = Math.min(viewsPerMember / 5, 1); // 5+ views per member = 100% score
-            const normalizedActivity = Math.min(recentPostActivity / 3, 1); // 3+ recent posts = 100% score
-            
-            engagementRate = Math.round((normalizedViews * 60 + normalizedActivity * 40));
-          }
-          
-          // Calculate growth rate (comparing first half vs second half of period)
-          const midPoint = Math.floor(analytics.length / 2);
-          const firstHalf = analytics.slice(0, midPoint);
-          const secondHalf = analytics.slice(midPoint);
-          
-          let firstHalfViews = 0;
-          let secondHalfViews = 0;
-          
-          // Sum community views for each half
-          for (const day of firstHalf) {
-            if (day.topPages && Array.isArray(day.topPages)) {
-              firstHalfViews += day.topPages
-                .filter((page: any) => page.path && page.path.includes(communityPath))
-                .reduce((sum: number, page: any) => sum + (page.views || 0), 0);
-            }
-          }
-          
-          for (const day of secondHalf) {
-            if (day.topPages && Array.isArray(day.topPages)) {
-              secondHalfViews += day.topPages
-                .filter((page: any) => page.path && page.path.includes(communityPath))
-                .reduce((sum: number, page: any) => sum + (page.views || 0), 0);
-            }
-          }
-          
-          if (firstHalfViews > 0) {
-            recentGrowth = Math.round(((secondHalfViews - firstHalfViews) / firstHalfViews) * 100);
+      const postIds = posts.map(p => p.id);
+      
+      // Get all reactions with timestamps
+      const allReactions = postIds.length > 0 
+        ? await db.select().from(communityPostReactions)
+            .where(inArray(communityPostReactions.postId, postIds))
+        : [];
+      
+      // Get all comments with timestamps  
+      const allComments = postIds.length > 0
+        ? await db.select().from(communityComments)
+            .where(inArray(communityComments.postId, postIds))
+        : [];
+
+      // ============ PERFORMANCE OPTIMIZATION ============
+      // Build maps for O(1) lookups instead of O(P*E) filtering
+      const postEngagementMap: { [postId: string]: { 
+        reactions: number; 
+        comments: number; 
+        firstEngagementAt: number | null;
+      }} = {};
+      
+      posts.forEach(post => {
+        postEngagementMap[post.id] = { reactions: 0, comments: 0, firstEngagementAt: null };
+      });
+      
+      allReactions.forEach(r => {
+        if (postEngagementMap[r.postId]) {
+          postEngagementMap[r.postId].reactions++;
+          const engagementTime = new Date(r.createdAt).getTime();
+          if (!postEngagementMap[r.postId].firstEngagementAt || engagementTime < postEngagementMap[r.postId].firstEngagementAt!) {
+            postEngagementMap[r.postId].firstEngagementAt = engagementTime;
           }
         }
-      } catch (error) {
-        console.error('Failed to fetch real visitor analytics:', error);
-        // Return zero values for real data when analytics fail
-        totalViews = 0;
-        recentGrowth = 0;
+      });
+      
+      allComments.forEach(c => {
+        if (postEngagementMap[c.postId]) {
+          postEngagementMap[c.postId].comments++;
+          const engagementTime = new Date(c.createdAt).getTime();
+          if (!postEngagementMap[c.postId].firstEngagementAt || engagementTime < postEngagementMap[c.postId].firstEngagementAt!) {
+            postEngagementMap[c.postId].firstEngagementAt = engagementTime;
+          }
+        }
+      });
+
+      // ============ BEST TIME TO POST ============
+      // Calculate engagement by day of week and hour based on WHEN PEOPLE ENGAGE (not when posts are created)
+      const dayOfWeekEngagement: { [key: number]: number } = {};
+      const hourOfDayEngagement: { [key: number]: number } = {};
+      
+      // Bucket engagement by timestamp of reactions/comments
+      allReactions.forEach(r => {
+        const engagementDate = new Date(r.createdAt);
+        const dayOfWeek = engagementDate.getDay();
+        const hour = engagementDate.getHours();
+        dayOfWeekEngagement[dayOfWeek] = (dayOfWeekEngagement[dayOfWeek] || 0) + 1;
+        hourOfDayEngagement[hour] = (hourOfDayEngagement[hour] || 0) + 1;
+      });
+      
+      allComments.forEach(c => {
+        const engagementDate = new Date(c.createdAt);
+        const dayOfWeek = engagementDate.getDay();
+        const hour = engagementDate.getHours();
+        dayOfWeekEngagement[dayOfWeek] = (dayOfWeekEngagement[dayOfWeek] || 0) + 1;
+        hourOfDayEngagement[hour] = (hourOfDayEngagement[hour] || 0) + 1;
+      });
+      
+      // Find top 3 days with highest engagement
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const sortedDays = Object.entries(dayOfWeekEngagement)
+        .map(([day, eng]) => ({ day: parseInt(day), engagement: eng }))
+        .sort((a, b) => b.engagement - a.engagement)
+        .slice(0, 3);
+      
+      const maxDayEngagement = Math.max(...Object.values(dayOfWeekEngagement), 1);
+      const bestDays = sortedDays.map(d => ({
+        day: dayNames[d.day],
+        percentage: Math.round((d.engagement / maxDayEngagement) * 100)
+      }));
+      
+      // Find peak hours (top 3)
+      const sortedHours = Object.entries(hourOfDayEngagement)
+        .map(([hour, eng]) => ({ hour: parseInt(hour), engagement: eng }))
+        .sort((a, b) => b.engagement - a.engagement)
+        .slice(0, 3);
+      
+      const peakHours = sortedHours.map(h => {
+        const startHour = h.hour % 12 || 12;
+        const endHour = (h.hour + 2) % 12 || 12;
+        const period = h.hour >= 12 ? 'PM' : 'AM';
+        return `${startHour}:00 ${period} - ${endHour}:00 ${period}`;
+      });
+
+      // ============ AVERAGE ENGAGEMENT PER POST ============
+      const totalEngagement = allReactions.length + allComments.length;
+      const avgEngagementPerPost = posts.length > 0 ? totalEngagement / posts.length : 0;
+
+      // ============ MOST ACTIVE MEMBERS ============
+      // Count reactions and comments by user
+      const userActivity: { [userId: string]: { reactions: number; comments: number; name?: string } } = {};
+      
+      allReactions.forEach(r => {
+        if (!userActivity[r.userId]) {
+          userActivity[r.userId] = { reactions: 0, comments: 0 };
+        }
+        userActivity[r.userId].reactions++;
+      });
+      
+      allComments.forEach(c => {
+        if (!userActivity[c.authorId]) {
+          userActivity[c.authorId] = { reactions: 0, comments: 0 };
+        }
+        userActivity[c.authorId].comments++;
+      });
+      
+      // Get user names
+      const userIds = Object.keys(userActivity);
+      const { users } = await import('@shared/schema');
+      const userDetails = userIds.length > 0
+        ? await db.select().from(users).where(inArray(users.id, userIds))
+        : [];
+      
+      userDetails.forEach(u => {
+        if (userActivity[u.id]) {
+          userActivity[u.id].name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email;
+        }
+      });
+      
+      const mostActiveMembers = Object.entries(userActivity)
+        .map(([userId, activity]) => ({
+          userId,
+          name: activity.name || 'Unknown',
+          totalActivity: activity.reactions + activity.comments,
+          reactions: activity.reactions,
+          comments: activity.comments
+        }))
+        .sort((a, b) => b.totalActivity - a.totalActivity)
+        .slice(0, 10);
+
+      // ============ ENGAGEMENT TREND ============
+      // Calculate weekly engagement for the last 8 weeks
+      const weeklyEngagement: { week: string; engagement: number }[] = [];
+      const now = new Date();
+      
+      for (let i = 7; i >= 0; i--) {
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - (i * 7));
+        weekStart.setHours(0, 0, 0, 0);
+        
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 7);
+        
+        const weekReactions = allReactions.filter(r => {
+          const date = new Date(r.createdAt);
+          return date >= weekStart && date < weekEnd;
+        }).length;
+        
+        const weekComments = allComments.filter(c => {
+          const date = new Date(c.createdAt);
+          return date >= weekStart && date < weekEnd;
+        }).length;
+        
+        weeklyEngagement.push({
+          week: `${weekStart.getMonth() + 1}/${weekStart.getDate()}`,
+          engagement: weekReactions + weekComments
+        });
       }
+      
+      // Calculate trend (is engagement growing or declining?)
+      const firstWeeksAvg = weeklyEngagement.slice(0, 4).reduce((sum, w) => sum + w.engagement, 0) / 4;
+      const lastWeeksAvg = weeklyEngagement.slice(4).reduce((sum, w) => sum + w.engagement, 0) / 4;
+      const trendPercentage = firstWeeksAvg > 0 
+        ? Math.round(((lastWeeksAvg - firstWeeksAvg) / firstWeeksAvg) * 100)
+        : 0;
+
+      // ============ TOP PERFORMING POST TYPES ============
+      const postTypePerformance: { [type: string]: { count: number; avgEngagement: number } } = {
+        'text_only': { count: 0, avgEngagement: 0 },
+        'with_image': { count: 0, avgEngagement: 0 },
+        'with_link': { count: 0, avgEngagement: 0 }
+      };
+      
+      posts.forEach(post => {
+        const postData = postEngagementMap[post.id];
+        const engagement = postData.reactions + postData.comments;
+        
+        if (post.imageUrl) {
+          postTypePerformance.with_image.count++;
+          postTypePerformance.with_image.avgEngagement += engagement;
+        } else if (post.linkUrl) {
+          postTypePerformance.with_link.count++;
+          postTypePerformance.with_link.avgEngagement += engagement;
+        } else {
+          postTypePerformance.text_only.count++;
+          postTypePerformance.text_only.avgEngagement += engagement;
+        }
+      });
+      
+      // Calculate averages
+      Object.keys(postTypePerformance).forEach(type => {
+        const data = postTypePerformance[type];
+        if (data.count > 0) {
+          data.avgEngagement = Math.round((data.avgEngagement / data.count) * 10) / 10;
+        }
+      });
+      
+      const topPostTypes = Object.entries(postTypePerformance)
+        .map(([type, data]) => ({
+          type: type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          avgEngagement: data.avgEngagement,
+          count: data.count
+        }))
+        .sort((a, b) => b.avgEngagement - a.avgEngagement);
+
+      // ============ RESPONSE TIME ============
+      // Calculate average time from post creation to first engagement using the map
+      let totalResponseTime = 0;
+      let responseCounts = 0;
+      
+      posts.forEach(post => {
+        const postData = postEngagementMap[post.id];
+        
+        if (postData.firstEngagementAt) {
+          const postTime = new Date(post.createdAt).getTime();
+          
+          if (postData.firstEngagementAt > postTime) {
+            const responseTimeMinutes = (postData.firstEngagementAt - postTime) / (1000 * 60);
+            totalResponseTime += responseTimeMinutes;
+            responseCounts++;
+          }
+        }
+      });
+      
+      // Return average response time in minutes (raw number)
+      const avgResponseTimeMinutes = responseCounts > 0 
+        ? totalResponseTime / responseCounts
+        : 0;
+
+      // ============ MEMBER RETENTION RATE ============
+      // Calculate what % of members who joined 30+ days ago are still active
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const oldMembers = members.filter(m => m.joinedAt && new Date(m.joinedAt) < thirtyDaysAgo);
+      const activeOldMembers = oldMembers.filter(m => {
+        // Member is active if they have reactions or comments in last 30 days
+        const hasRecentReactions = allReactions.some(r => 
+          r.userId === m.userId && new Date(r.createdAt) >= thirtyDaysAgo
+        );
+        const hasRecentComments = allComments.some(c => 
+          c.authorId === m.userId && new Date(c.createdAt) >= thirtyDaysAgo
+        );
+        return hasRecentReactions || hasRecentComments;
+      });
+      
+      // Return as decimal (0-1) for client-side formatting flexibility
+      const retentionRate = oldMembers.length > 0
+        ? activeOldMembers.length / oldMembers.length
+        : 0;
+
+      // ============ FIXED ENGAGEMENT RATE WITH REAL VIEW COUNTS ============
+      let totalViews = posts.reduce((sum, p) => sum + (p.viewCount || 0), 0);
+      // Return as decimal (0-1) for client-side formatting flexibility
+      const engagementRate = totalViews > 0
+        ? totalEngagement / totalViews
+        : 0;
+
+      // ============ MEMBER GROWTH ============
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
+      const newMembersThisMonth = members.filter(m => m.joinedAt && new Date(m.joinedAt) >= oneMonthAgo).length;
+      // Return as decimal (0-1) for client-side formatting flexibility
+      const memberGrowthRate = members.length > 0
+        ? newMembersThisMonth / members.length
+        : 0;
 
       res.json({
         ok: true,
         analytics: {
+          // Basic stats
           totalMembers: members.length,
           totalPosts: posts.length,
-          engagementRate: `${engagementRate}%`,
-          totalViews: totalViews.toLocaleString(),
-          recentGrowth: `+${recentGrowth}%`,
+          totalReactions: allReactions.length,
+          totalComments: allComments.length,
+          totalViews,
+          engagementRate, // Raw decimal (0-1), format as % on client
+          memberGrowthRate, // Raw decimal (0-1), format as % on client
+          
+          // Best time to post
+          bestTimeToPost: {
+            days: bestDays,
+            hours: peakHours
+          },
+          
+          // Engagement metrics
+          avgEngagementPerPost, // Raw number, not string
+          mostActiveMembers,
+          engagementTrend: {
+            weeklyData: weeklyEngagement,
+            trendPercentage,
+            direction: trendPercentage > 0 ? 'growing' : trendPercentage < 0 ? 'declining' : 'stable'
+          },
+          
+          // Post performance
+          topPostTypes,
+          
+          // Timing metrics
+          avgResponseTimeMinutes, // Raw minutes, format on client
+          
+          // Retention
+          retentionRate, // Raw decimal (0-1), format as % on client
+          
           lastUpdated: new Date().toISOString()
         }
       });

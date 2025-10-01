@@ -332,6 +332,50 @@ export default function EnhancedCommunityDetailPage() {
   const isDeclined = membership?.status === 'declined';
   const isOwner = membership?.role === 'owner' || canManage;
 
+  // Get analytics data (only if member/owner and analytics tab is active)
+  const { data: analyticsData } = useQuery<{
+    ok: boolean;
+    analytics: {
+      totalMembers: number;
+      totalPosts: number;
+      totalReactions: number;
+      totalComments: number;
+      totalViews: number;
+      engagementRate: number; // Raw decimal (0-1)
+      memberGrowthRate: number; // Raw decimal (0-1)
+      bestTimeToPost: {
+        days: { day: string; percentage: number }[];
+        hours: string[];
+      };
+      avgEngagementPerPost: number; // Raw number
+      mostActiveMembers: {
+        userId: string;
+        name: string;
+        totalActivity: number;
+        reactions: number;
+        comments: number;
+      }[];
+      engagementTrend: {
+        weeklyData: { week: string; engagement: number }[];
+        trendPercentage: number;
+        direction: 'growing' | 'declining' | 'stable';
+      };
+      topPostTypes: {
+        type: string;
+        avgEngagement: number;
+        count: number;
+      }[];
+      avgResponseTimeMinutes: number; // Raw minutes
+      retentionRate: number; // Raw decimal (0-1)
+      lastUpdated: string;
+    };
+  }>({
+    queryKey: ['/api/communities', community?.id, 'analytics'],
+    enabled: !!community?.id && (isMember || isOwner) && activeTab === 'analytics',
+    retry: false,
+  });
+  const analytics = analyticsData?.analytics;
+
   // Join/Leave community mutation
   const joinCommunityMutation = useMutation({
     mutationFn: async () => {
@@ -1378,6 +1422,12 @@ export default function EnhancedCommunityDetailPage() {
             
             {/* Analytics Tab */}
             <TabsContent value="analytics" className="space-y-6">
+              {!analytics ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="h-8 w-8 animate-spin text-accent" />
+                </div>
+              ) : (
+                <>
               <div className="grid md:grid-cols-4 gap-6">
                 <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
                   <CardHeader>
@@ -1385,61 +1435,56 @@ export default function EnhancedCommunityDetailPage() {
                   </CardHeader>
                   <CardContent>
                     <p className="text-3xl font-bold text-accent">
-                      {community.memberCount || 0}
+                      {analytics.totalMembers}
                     </p>
                     <p className="text-sm text-premium-text-muted mt-2">
                       <TrendingUp className="h-3 w-3 inline mr-1" />
-                      +12% this month
+                      {(analytics.memberGrowthRate * 100).toFixed(0)}% this month
                     </p>
                   </CardContent>
                 </Card>
                 
                 <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
                   <CardHeader>
-                    <CardTitle className="text-lg">Posts (30 days)</CardTitle>
+                    <CardTitle className="text-lg">Total Engagement</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-3xl font-bold text-accent">
-                      {posts.filter(p => {
-                        const postDate = new Date(p.createdAt);
-                        const thirtyDaysAgo = new Date();
-                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                        return postDate > thirtyDaysAgo;
-                      }).length}
-                    </p>
-                    <p className="text-sm text-premium-text-muted mt-2">
-                      <MessageSquare className="h-3 w-3 inline mr-1" />
-                      {posts.filter(p => p.isPinned).length} pinned
-                    </p>
-                  </CardContent>
-                </Card>
-                
-                <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Total Reactions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-3xl font-bold text-accent">
-                      {posts.reduce((acc, p) => acc + (p.reactions?.reduce((sum, r) => sum + r.count, 0) || 0), 0)}
+                      {analytics.totalReactions + analytics.totalComments}
                     </p>
                     <p className="text-sm text-premium-text-muted mt-2">
                       <Heart className="h-3 w-3 inline mr-1" />
-                      Across all posts
+                      {analytics.avgEngagementPerPost.toFixed(1)} avg per post
                     </p>
                   </CardContent>
                 </Card>
                 
                 <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
                   <CardHeader>
-                    <CardTitle className="text-lg">Comments</CardTitle>
+                    <CardTitle className="text-lg">Engagement Rate</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="text-3xl font-bold text-accent">
-                      {posts.reduce((acc, p) => acc + (p.comments?.length || 0), 0)}
+                      {(analytics.engagementRate * 100).toFixed(1)}%
+                    </p>
+                    <p className="text-sm text-premium-text-muted mt-2">
+                      <TrendingUp className="h-3 w-3 inline mr-1" />
+                      {analytics.engagementTrend.direction === 'growing' ? 'Growing' : analytics.engagementTrend.direction === 'declining' ? 'Declining' : 'Stable'}
+                    </p>
+                  </CardContent>
+                </Card>
+                
+                <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                  <CardHeader>
+                    <CardTitle className="text-lg">Retention Rate</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-3xl font-bold text-accent">
+                      {(analytics.retentionRate * 100).toFixed(0)}%
                     </p>
                     <p className="text-sm text-premium-text-muted mt-2">
                       <MessageCircle className="h-3 w-3 inline mr-1" />
-                      Community engagement
+                      Active members (30d)
                     </p>
                   </CardContent>
                 </Card>
@@ -1449,7 +1494,7 @@ export default function EnhancedCommunityDetailPage() {
               <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
                 <CardHeader>
                   <CardTitle>Post Performance</CardTitle>
-                  <CardDescription>Click-through rates and engagement metrics</CardDescription>
+                  <CardDescription>Top performing posts by engagement</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -1465,13 +1510,15 @@ export default function EnhancedCommunityDetailPage() {
                     <TableBody>
                       {posts.slice(0, 5).map((post) => {
                         const reactions = post.reactions?.reduce((sum, r) => sum + r.count, 0) || 0;
-                        const views = post.viewCount || 1;
-                        const engagementRate = ((reactions + (post.comments?.length || 0)) / views * 100).toFixed(1);
+                        const views = post.viewCount || 0;
+                        const engagementRate = views > 0 
+                          ? ((reactions + (post.comments?.length || 0)) / views * 100).toFixed(1)
+                          : '0.0';
                         
                         return (
                           <TableRow key={post.id}>
                             <TableCell className="font-medium">{post.title}</TableCell>
-                            <TableCell>{views}</TableCell>
+                            <TableCell>{views > 0 ? views : '-'}</TableCell>
                             <TableCell>{reactions}</TableCell>
                             <TableCell>{post.comments?.length || 0}</TableCell>
                             <TableCell>{engagementRate}%</TableCell>
@@ -1487,47 +1534,48 @@ export default function EnhancedCommunityDetailPage() {
               <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
                 <CardHeader>
                   <CardTitle>Best Time to Post</CardTitle>
-                  <CardDescription>Based on community engagement patterns</CardDescription>
+                  <CardDescription>Based on actual community engagement patterns</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="grid md:grid-cols-2 gap-6">
                     <div>
                       <p className="font-semibold mb-2">Highest Engagement Days</p>
                       <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm">Tuesday</span>
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-24 bg-gradient-to-r from-copper-500 to-accent rounded" />
-                            <span className="text-sm text-premium-text-muted">92%</span>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm">Thursday</span>
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-20 bg-gradient-to-r from-copper-500 to-accent rounded" />
-                            <span className="text-sm text-premium-text-muted">85%</span>
-                          </div>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm">Friday</span>
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-16 bg-gradient-to-r from-copper-500 to-accent rounded" />
-                            <span className="text-sm text-premium-text-muted">71%</span>
-                          </div>
-                        </div>
+                        {analytics.bestTimeToPost.days.length === 0 ? (
+                          <p className="text-sm text-premium-text-muted">Not enough data yet</p>
+                        ) : (
+                          analytics.bestTimeToPost.days.map((day, idx) => (
+                            <div key={day.day} className="flex justify-between items-center">
+                              <span className="text-sm">{day.day}</span>
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="h-2 bg-gradient-to-r from-copper-500 to-accent rounded" 
+                                  style={{ width: `${Math.max(day.percentage * 0.8, 40)}px` }}
+                                />
+                                <span className="text-sm text-premium-text-muted">{day.percentage}%</span>
+                              </div>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </div>
                     <div>
                       <p className="font-semibold mb-2">Peak Hours</p>
                       <div className="space-y-2">
-                        <Badge variant="outline" className="mr-2">10:00 AM - 12:00 PM</Badge>
-                        <Badge variant="outline" className="mr-2">2:00 PM - 4:00 PM</Badge>
-                        <Badge variant="outline">7:00 PM - 9:00 PM</Badge>
+                        {analytics.bestTimeToPost.hours.length === 0 ? (
+                          <p className="text-sm text-premium-text-muted">Not enough data yet</p>
+                        ) : (
+                          analytics.bestTimeToPost.hours.map((hour, idx) => (
+                            <Badge key={idx} variant="outline" className="mr-2">{hour}</Badge>
+                          ))
+                        )}
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
+                </>
+              )}
             </TabsContent>
             
             {/* Chat Tab */}
