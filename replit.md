@@ -69,7 +69,18 @@ Preferred communication style: Simple, everyday language.
 - **Growth Features**: Invite links, member referrals, community discovery (featured, trending, search), social sharing.
 - **Security Enhancements**: Configurable rate limiting, input sanitization, session security (24-hour timeout, secure tokens), CSRF protection.
 - **Performance**: In-memory database caching, query optimization, frontend optimizations (lazy loading, infinite scroll), background jobs for cleanup.
-- **Analytics & Monitoring**: Event tracking, error monitoring, performance metrics, admin reports.
+- **Analytics & Monitoring**: 
+  - **Comprehensive Analytics Dashboard** (Phase 11): Real-time community insights with production-ready implementation
+    - Backend: `/api/communities/:id/analytics` endpoint calculates metrics from actual engagement data
+    - Best Time to Post: Analyzes engagement timestamps (not post creation times) to identify peak days/hours
+    - Engagement Metrics: Total engagement, average per post, engagement rate (interactions/views), 8-week trend analysis
+    - Member Metrics: Total members, growth rate, most active members (top 10 by reactions + comments), 30-day retention rate
+    - Post Performance: Top performing post types (text/image/link), average response time (first engagement)
+    - Performance: O(P+E) complexity using postEngagementMap instead of O(P*E) filtering
+    - Data Model: Returns raw numbers (decimals for rates, numbers for counts, minutes for time) for flexible client-side formatting
+    - Frontend: Analytics tab with loading states, formatted metrics, dynamic "Best Time to Post" visualization
+    - Query Optimization: Uses Drizzle's inArray() for portable, efficient queries across reactions/comments/users
+  - Event tracking, error monitoring, performance metrics, admin reports
 - **Real-Time Chat**: WebSocket server (`/chat`) for instant messaging, bearer token authentication, Supabase persistence, online presence, typing indicators, role-based permissions, slowmode, announcements, message management (pin, delete), standardized protocol, error handling, dev mode compatibility.
 - **Moderator & Permissions System**: 
   - Role management: Community owners can promote/demote members to/from moderator role via Members tab
