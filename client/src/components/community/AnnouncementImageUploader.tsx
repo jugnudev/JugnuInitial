@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import { Upload, X, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Upload, X, Image as ImageIcon, Loader2, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -23,55 +23,27 @@ export function AnnouncementImageUploader({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const validateImageAspectRatio = useCallback(
-    (file: File): Promise<boolean> => {
-      return new Promise((resolve, reject) => {
-        const img = new Image();
-        const objectUrl = URL.createObjectURL(file);
-        
-        img.onload = () => {
-          URL.revokeObjectURL(objectUrl);
-          const aspectRatio = img.width / img.height;
-          const targetRatio = 16 / 9;
-          const tolerance = 0.1; // 10% tolerance
-          
-          if (Math.abs(aspectRatio - targetRatio) > tolerance) {
-            reject(new Error(`Image must have a 16:9 aspect ratio. Current ratio: ${aspectRatio.toFixed(2)}:1`));
-          } else {
-            resolve(true);
-          }
-        };
-        
-        img.onerror = () => {
-          URL.revokeObjectURL(objectUrl);
-          reject(new Error("Failed to load image"));
-        };
-        
-        img.src = objectUrl;
-      });
-    },
-    []
-  );
-
   const validateFile = useCallback(
     async (file: File) => {
-      // Check file type
-      if (!file.type.startsWith("image/")) {
-        throw new Error("Only image files are allowed");
+      // Check file type - allow images and videos
+      const isImage = file.type.startsWith("image/");
+      const isVideo = file.type === "video/mp4";
+      
+      if (!isImage && !isVideo) {
+        throw new Error("Only image files (JPG, PNG, WebP) and MP4 videos are allowed");
       }
 
-      // Check file size (max 5MB)
-      const maxBytes = 5 * 1024 * 1024;
+      // Check file size - 10MB for images, 50MB for videos
+      const maxBytes = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+      const maxSizeMB = isVideo ? 50 : 10;
+      
       if (file.size > maxBytes) {
-        throw new Error("File size must be less than 5MB");
+        throw new Error(`File size must be less than ${maxSizeMB}MB`);
       }
-
-      // Check aspect ratio
-      await validateImageAspectRatio(file);
 
       return true;
     },
-    [validateImageAspectRatio]
+    []
   );
 
   const handleFileUpload = useCallback(
@@ -83,9 +55,10 @@ export function AnnouncementImageUploader({
         await validateFile(file);
         await onUpload(file);
         
+        const isVideo = file.type.startsWith("video/");
         toast({
-          title: "Image uploaded!",
-          description: "Your announcement image has been uploaded successfully."
+          title: `${isVideo ? "Video" : "Image"} uploaded!`,
+          description: `Your announcement ${isVideo ? "video" : "image"} has been uploaded successfully.`
         });
       } catch (err) {
         console.error("Upload error:", err);
@@ -142,22 +115,35 @@ export function AnnouncementImageUploader({
   );
 
   if (existingUrl && !uploading && !error) {
+    const isVideo = existingUrl.includes('.mp4') || existingUrl.includes('video');
+    
     return (
       <div className={cn("relative group", className)}>
-        <div className="relative w-full" style={{ paddingTop: '56.25%' }}>
-          <img
-            src={existingUrl}
-            alt="Announcement image"
-            className="absolute top-0 left-0 w-full h-full object-cover rounded-lg"
-            data-testid="img-announcement-preview"
-          />
+        <div className="relative w-full rounded-lg overflow-hidden bg-black">
+          {isVideo ? (
+            <video
+              src={existingUrl}
+              controls
+              className="w-full max-h-[500px] object-contain"
+              data-testid="video-announcement-preview"
+            >
+              Your browser does not support the video tag.
+            </video>
+          ) : (
+            <img
+              src={existingUrl}
+              alt="Announcement media"
+              className="w-full max-h-[500px] object-contain"
+              data-testid="img-announcement-preview"
+            />
+          )}
         </div>
         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
           <div className="flex gap-2">
             <Button
               size="sm"
               onClick={handleClick}
-              data-testid="button-replace-announcement-image"
+              data-testid="button-replace-announcement-media"
             >
               <Upload className="w-4 h-4 mr-2" />
               Replace
@@ -167,7 +153,7 @@ export function AnnouncementImageUploader({
                 size="sm"
                 variant="destructive"
                 onClick={onRemove}
-                data-testid="button-remove-announcement-image"
+                data-testid="button-remove-announcement-media"
               >
                 <X className="w-4 h-4 mr-2" />
                 Remove
@@ -178,7 +164,7 @@ export function AnnouncementImageUploader({
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/jpeg,image/png,image/webp,video/mp4"
           onChange={handleFileChange}
           className="hidden"
         />
@@ -194,28 +180,30 @@ export function AnnouncementImageUploader({
         onDragLeave={handleDragLeave}
         onClick={handleClick}
         className={cn(
-          "relative w-full border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors",
+          "relative w-full border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors min-h-[200px]",
           "hover:border-accent hover:bg-accent/10",
           isDragOver && "border-accent bg-accent/20",
           uploading && "pointer-events-none opacity-70",
           error && "border-red-500 bg-red-500/10"
         )}
-        style={{ paddingTop: '56.25%' }} // 16:9 aspect ratio
-        data-testid="dropzone-announcement-image"
+        data-testid="dropzone-announcement-media"
       >
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4">
+        <div className="flex flex-col items-center justify-center gap-3 p-8">
           {uploading ? (
             <Loader2 className="w-10 h-10 text-muted-foreground animate-spin" />
           ) : (
-            <ImageIcon className="w-10 h-10 text-muted-foreground" />
+            <div className="flex gap-2">
+              <ImageIcon className="w-10 h-10 text-muted-foreground" />
+              <Video className="w-10 h-10 text-muted-foreground" />
+            </div>
           )}
           
           <div>
             <p className="text-sm font-medium mb-1">
-              {uploading ? "Uploading..." : "Drop image here or click to upload"}
+              {uploading ? "Uploading..." : "Drop image or video here, or click to upload"}
             </p>
             <p className="text-xs text-muted-foreground">
-              {uploading ? "Please wait..." : "16:9 ratio • Max 5MB • JPG, PNG, WebP"}
+              {uploading ? "Please wait..." : "Images: Max 10MB • Videos: Max 50MB • JPG, PNG, WebP, MP4"}
             </p>
           </div>
         </div>
@@ -230,7 +218,7 @@ export function AnnouncementImageUploader({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,video/mp4"
         onChange={handleFileChange}
         className="hidden"
       />
