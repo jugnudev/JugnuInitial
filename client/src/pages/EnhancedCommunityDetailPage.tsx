@@ -614,16 +614,18 @@ export default function EnhancedCommunityDetailPage() {
                 return r;
               }).filter((r: any) => r.count > 0); // Remove reactions with 0 count
               
-              // Now add the new reaction
-              if (existingReaction) {
-                // Reaction type exists, increment count and set hasReacted
+              // Check if the clicked reaction type exists in the updated array
+              const reactionExistsInUpdated = updatedReactions.find((r: any) => r.type === type);
+              
+              if (reactionExistsInUpdated) {
+                // Reaction type exists in updated array, increment count and set hasReacted
                 updatedReactions = updatedReactions.map((r: any) =>
                   r.type === type
                     ? { ...r, count: r.count + 1, hasReacted: true }
                     : r
                 );
               } else {
-                // New reaction type
+                // New reaction type - add it
                 updatedReactions = [...updatedReactions, { type, count: 1, hasReacted: true }];
               }
               

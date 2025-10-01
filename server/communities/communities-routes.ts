@@ -1607,7 +1607,7 @@ export function addCommunitiesRoutes(app: Express) {
       if (isOwner) {
         // Owner gets full access
         const members = await communitiesStorage.getMembershipsByCommunityId(community.id);
-        const { posts } = await communitiesStorage.getPostsByCommunityId(community.id);
+        const { posts } = await communitiesStorage.getPostsByCommunityId(community.id, 50, 0, user.id);
         const analytics = await communitiesStorage.getCommunityAnalytics(community.id);
         
         res.json({
@@ -1622,7 +1622,7 @@ export function addCommunitiesRoutes(app: Express) {
       } else if (isApprovedMember) {
         // Approved members can see posts and members
         const members = await communitiesStorage.getMembershipsByCommunityId(community.id);
-        const { posts } = await communitiesStorage.getPostsByCommunityId(community.id);
+        const { posts } = await communitiesStorage.getPostsByCommunityId(community.id, 50, 0, user.id);
         
         res.json({
           ok: true,
