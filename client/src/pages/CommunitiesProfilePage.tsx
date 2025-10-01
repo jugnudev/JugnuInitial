@@ -1191,11 +1191,13 @@ export function CommunitiesProfilePage() {
                           </div>
                           
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-border">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
-                              <span className="text-sm font-medium text-foreground">Type:</span>
-                              <span className="text-sm text-muted-foreground capitalize">{organizerApplication.businessType}</span>
-                            </div>
+                            {organizerApplication.businessType && (
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
+                                <span className="text-sm font-medium text-foreground">Type:</span>
+                                <span className="text-sm text-muted-foreground capitalize">{organizerApplication.businessType.replace(/_/g, ' ')}</span>
+                              </div>
+                            )}
                             <div className="flex items-center gap-2">
                               <div className="w-2 h-2 bg-muted-foreground rounded-full"></div>
                               <span className="text-sm font-medium text-foreground">Applied:</span>
