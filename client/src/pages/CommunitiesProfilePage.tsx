@@ -57,6 +57,62 @@ const confirmEmailChangeSchema = z.object({
 type RequestEmailChangeFormData = z.infer<typeof requestEmailChangeSchema>;
 type ConfirmEmailChangeFormData = z.infer<typeof confirmEmailChangeSchema>;
 
+// Type definitions for organizer data from Supabase API (snake_case)
+// Matches the actual database schema exactly (see shared/schema.ts lines 651-665)
+interface OrganizerApiResponse {
+  id: string;
+  user_id: string;
+  application_id?: string | null;  // optional reference
+  business_name: string;            // notNull
+  business_website?: string | null; // nullable
+  business_description?: string | null; // nullable
+  business_type: string;            // notNull
+  status: string;                   // notNull with default
+  verified: boolean;                // notNull with default
+  created_at: string;               // notNull with default
+  updated_at: string;               // notNull with default
+  approved_by?: string | null;      // nullable reference
+  approved_at: string;              // notNull with default
+}
+
+// Typed organizer object for component use (camelCase)
+// Reflects actual Supabase schema with proper null handling
+interface Organizer {
+  id: string;
+  userId: string;
+  applicationId: string | null;
+  businessName: string;
+  businessWebsite: string | null;
+  businessDescription: string | null;
+  businessType: string;
+  status: string;
+  verified: boolean;
+  createdAt: string;
+  updatedAt: string;
+  approvedBy: string | null;
+  approvedAt: string;  // Always present (notNull with default)
+}
+
+// Helper function to convert snake_case API response to camelCase
+// Coerces undefined to null for consistent null handling
+function mapOrganizerFromApi(raw: OrganizerApiResponse): Organizer {
+  return {
+    id: raw.id,
+    userId: raw.user_id,
+    applicationId: raw.application_id ?? null,
+    businessName: raw.business_name,
+    businessWebsite: raw.business_website ?? null,
+    businessDescription: raw.business_description ?? null,
+    businessType: raw.business_type,
+    status: raw.status,
+    verified: raw.verified,
+    createdAt: raw.created_at,
+    updatedAt: raw.updated_at,
+    approvedBy: raw.approved_by ?? null,
+    approvedAt: raw.approved_at
+  };
+}
+
 export function CommunitiesProfilePage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -467,7 +523,10 @@ export function CommunitiesProfilePage() {
   }
 
   const organizerApplication = (profileData as any)?.organizerApplication;
-  const organizer = (profileData as any)?.organizer;
+  const rawOrganizer = (profileData as any)?.organizer as OrganizerApiResponse | null;
+  
+  // Convert snake_case organizer data from Supabase to camelCase for consistent usage
+  const organizer: Organizer | null = rawOrganizer ? mapOrganizerFromApi(rawOrganizer) : null;
 
   const getUserInitials = () => {
     const first = user.firstName?.[0] || '';
@@ -1079,11 +1138,13 @@ export function CommunitiesProfilePage() {
                           </div>
                           
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-border">
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-accent rounded-full"></div>
-                              <span className="text-sm font-medium text-foreground">Type:</span>
-                              <span className="text-sm text-muted-foreground capitalize">{organizer.businessType}</span>
-                            </div>
+                            {organizer.businessType && (
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-accent rounded-full"></div>
+                                <span className="text-sm font-medium text-foreground">Type:</span>
+                                <span className="text-sm text-muted-foreground capitalize">{organizer.businessType.replace(/_/g, ' ')}</span>
+                              </div>
+                            )}
                             
                             {organizer.businessWebsite && (
                               <div className="flex items-center gap-3">
@@ -1144,11 +1205,13 @@ export function CommunitiesProfilePage() {
                           </div>
                           
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4 border-t border-slate-700/50">
-                            <div className="flex items-center gap-3">
-                              <div className="w-3 h-3 bg-gradient-to-r from-slate-400 to-slate-500 rounded-full shadow-lg"></div>
-                              <span className="text-base font-semibold text-slate-200">Type:</span>
-                              <span className="text-base text-slate-300 capitalize">{organizer.businessType}</span>
-                            </div>
+                            {organizer.businessType && (
+                              <div className="flex items-center gap-3">
+                                <div className="w-3 h-3 bg-gradient-to-r from-slate-400 to-slate-500 rounded-full shadow-lg"></div>
+                                <span className="text-base font-semibold text-slate-200">Type:</span>
+                                <span className="text-base text-slate-300 capitalize">{organizer.businessType.replace(/_/g, ' ')}</span>
+                              </div>
+                            )}
                             
                             <div className="flex items-center gap-3">
                               <div className="w-3 h-3 bg-gradient-to-r from-orange-400 to-red-500 rounded-full shadow-lg"></div>
