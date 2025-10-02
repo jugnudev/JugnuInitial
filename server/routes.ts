@@ -1432,7 +1432,7 @@ Disallow: /account/*`;
   app.get("/api/community", async (req, res) => {
     try {
       const supabase = getSupabaseAdmin();
-      const { category, range, month, year } = req.query;
+      const { category, month, year } = req.query;
       
       // Handle month/year filtering for Events page
       let startDate, endDate;
@@ -1442,13 +1442,9 @@ Disallow: /account/*`;
         startDate = new Date(yearNum, monthNum - 1, 1); // month is 0-indexed
         endDate = new Date(yearNum, monthNum, 0, 23, 59, 59); // last day of month
       } else {
-        // Default to 6 months ahead
-        const now = new Date();
-        let daysAhead = 180; // Default to 6 months
-        if (range === 'week') daysAhead = 7;
-        else if (range === 'month') daysAhead = 30;
-        startDate = now;
-        endDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+        // Show all future events without limit
+        startDate = new Date();
+        endDate = null; // No upper limit
       }
       
       let query = supabase
@@ -1456,8 +1452,12 @@ Disallow: /account/*`;
         .select('*')
         .in('status', ['upcoming', 'soldout'])
         .gte('start_at', startDate.toISOString())
-        .lte('start_at', endDate.toISOString())
         .order('start_at', { ascending: true });
+      
+      // Only apply end date filter if month/year was specified
+      if (endDate) {
+        query = query.lte('start_at', endDate.toISOString());
+      }
       
       // Apply category filter if specified
       if (category && category !== 'All') {
@@ -1506,20 +1506,19 @@ Disallow: /account/*`;
         }
       }
       
-      // Compute date range in Vancouver timezone
-      const timezone = process.env.CITY_TZ || 'America/Vancouver';
-      const nowTz = new Date(new Date().toLocaleString('en-US', { timeZone: timezone }));
-      
-      // Default to 180 days (6 months), allow ?range=week for 7 days, ?range=month for 30 days
-      let daysAhead = 180; // Default to 6 months
-      if (range === 'week') daysAhead = 7;
-      else if (range === 'month') daysAhead = 30;
-      // 'all' or no range = show 6 months
-      const endDateTz = new Date(nowTz.getTime() + daysAhead * 24 * 60 * 60 * 1000);
-      
-      // Convert back to UTC for database filtering
+      // Get current time for filtering past events
       const now = new Date();
-      const endDate = new Date(endDateTz.getTime() + (new Date().getTimezoneOffset() * 60 * 1000));
+      
+      // Apply date range based on range parameter
+      // - range='week': Show 7 days ahead (for homepage "This Week")
+      // - range='month': Show 30 days ahead
+      // - range='all' or no range: Show all future events (for events page)
+      let endDate = null; // null = no upper limit
+      if (range === 'week') {
+        endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      } else if (range === 'month') {
+        endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      }
 
       // v2.7: Use manual deduplication if canonical_key is available, fallback to regular query
       let query;
@@ -1544,9 +1543,14 @@ Disallow: /account/*`;
             canonical_key, is_all_day
           `)
           .in('status', ['upcoming', 'soldout'])
-          .gte('start_at', now.toISOString())
-          .lte('start_at', endDate.toISOString())
-          .order('start_at', { ascending: true });
+          .gte('start_at', now.toISOString());
+        
+        // Apply end date filter only if range is specified (week/month)
+        if (endDate) {
+          query = query.lte('start_at', endDate.toISOString());
+        }
+        
+        query = query.order('start_at', { ascending: true });
       } else {
         // Fallback to regular query
         query = supabase
@@ -1558,9 +1562,14 @@ Disallow: /account/*`;
             image_url, price_from, tags, status, featured, source_hash, is_all_day
           `)
           .in('status', ['upcoming', 'soldout'])
-          .gte('start_at', now.toISOString())
-          .lte('start_at', endDate.toISOString())
-          .order('start_at', { ascending: true });
+          .gte('start_at', now.toISOString());
+        
+        // Apply end date filter only if range is specified (week/month)
+        if (endDate) {
+          query = query.lte('start_at', endDate.toISOString());
+        }
+        
+        query = query.order('start_at', { ascending: true });
       }
 
       // Filter by category if provided (gracefully handle missing column)
