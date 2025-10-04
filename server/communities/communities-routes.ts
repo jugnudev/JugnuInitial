@@ -567,7 +567,6 @@ export function addCommunitiesRoutes(app: Express) {
     
     try {
       const user = (req as any).user;
-      console.log('[Auth Me] User ID:', user.id, 'Profile Image URL:', user.profileImageUrl);
       
       // Check if user is an organizer
       let organizerApplication = null;
@@ -731,15 +730,9 @@ export function addCommunitiesRoutes(app: Express) {
       }
 
       const profileImageUrl = await uploadUserProfileImage(file, user.id);
-      console.log('[Profile Upload] User:', user.id, 'New URL:', profileImageUrl);
 
       // Update user with new profile image
       await communitiesStorage.updateUser(user.id, { profileImageUrl });
-      console.log('[Profile Upload] Database updated successfully');
-
-      // Verify the update
-      const updatedUser = await communitiesStorage.getUserById(user.id);
-      console.log('[Profile Upload] Verified URL in DB:', updatedUser?.profileImageUrl);
 
       res.json({
         ok: true,

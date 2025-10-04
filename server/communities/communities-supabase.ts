@@ -105,6 +105,7 @@ export class CommunitiesSupabaseDB {
         // Map snake_case database fields to camelCase JavaScript properties
         firstName: data.first_name,
         lastName: data.last_name,
+        profileImageUrl: data.profile_image_url,
         phoneNumber: data.phone_number,
         dateOfBirth: data.date_of_birth,
         preferredLanguage: data.preferred_language,
@@ -120,6 +121,7 @@ export class CommunitiesSupabaseDB {
         // Remove the snake_case fields to avoid confusion
         first_name: undefined,
         last_name: undefined,
+        profile_image_url: undefined,
         phone_number: undefined,
         date_of_birth: undefined,
         preferred_language: undefined,
@@ -158,6 +160,7 @@ export class CommunitiesSupabaseDB {
         // Map snake_case database fields to camelCase JavaScript properties
         firstName: data.first_name,
         lastName: data.last_name,
+        profileImageUrl: data.profile_image_url,
         phoneNumber: data.phone_number,
         dateOfBirth: data.date_of_birth,
         preferredLanguage: data.preferred_language,
@@ -173,6 +176,7 @@ export class CommunitiesSupabaseDB {
         // Remove the snake_case fields to avoid confusion
         first_name: undefined,
         last_name: undefined,
+        profile_image_url: undefined,
         phone_number: undefined,
         date_of_birth: undefined,
         preferred_language: undefined,
