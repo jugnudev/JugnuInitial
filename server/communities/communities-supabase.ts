@@ -978,6 +978,12 @@ export class CommunitiesSupabaseDB {
         author_id: data.authorId,
         title: data.title,
         content: data.content,
+        image_url: data.imageUrl,
+        link_url: data.linkUrl,
+        link_text: data.linkText,
+        link_description: data.linkDescription,
+        tags: data.tags,
+        metadata: data.metadata,
         post_type: data.postType || 'announcement',
         is_pinned: data.isPinned || false,
         post_as_business: data.postAsBusiness !== undefined ? data.postAsBusiness : true,
@@ -1152,6 +1158,12 @@ export class CommunitiesSupabaseDB {
     
     if (data.title !== undefined) updateData.title = data.title;
     if (data.content !== undefined) updateData.content = data.content;
+    if (data.imageUrl !== undefined) updateData.image_url = data.imageUrl;
+    if (data.linkUrl !== undefined) updateData.link_url = data.linkUrl;
+    if (data.linkText !== undefined) updateData.link_text = data.linkText;
+    if (data.linkDescription !== undefined) updateData.link_description = data.linkDescription;
+    if (data.tags !== undefined) updateData.tags = data.tags;
+    if (data.metadata !== undefined) updateData.metadata = data.metadata;
     if (data.postType !== undefined) updateData.post_type = data.postType;
     if (data.isPinned !== undefined) updateData.is_pinned = data.isPinned;
     if (data.postAsBusiness !== undefined) updateData.post_as_business = data.postAsBusiness;
