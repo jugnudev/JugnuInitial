@@ -409,7 +409,8 @@ export default function CommunityDetailPage() {
     content: '',
     imageUrl: '',
     postType: 'announcement' as 'announcement' | 'update' | 'event',
-    isPinned: false
+    isPinned: false,
+    postAsBusiness: true
   });
   
   // Edit announcement state
@@ -419,7 +420,8 @@ export default function CommunityDetailPage() {
     content: '',
     imageUrl: '',
     postType: 'announcement' as 'announcement' | 'update' | 'event',
-    isPinned: false
+    isPinned: false,
+    postAsBusiness: true
   });
   
   // Settings editing state
@@ -459,7 +461,8 @@ export default function CommunityDetailPage() {
       content: post.content,
       imageUrl: post.imageUrl || '',
       postType: post.postType,
-      isPinned: post.isPinned
+      isPinned: post.isPinned,
+      postAsBusiness: post.postAsBusiness ?? true
     });
   };
   
@@ -1873,15 +1876,30 @@ export default function CommunityDetailPage() {
                   )}
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="pinned"
-                    className="rounded border-border"
-                    checked={announcementForm.isPinned}
-                    onChange={(e) => setAnnouncementForm(prev => ({ ...prev, isPinned: e.target.checked }))}
-                  />
-                  <label htmlFor="pinned" className="text-sm text-text">Pin this announcement</label>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="post-as-business"
+                      className="rounded border-border"
+                      checked={announcementForm.postAsBusiness}
+                      onChange={(e) => setAnnouncementForm(prev => ({ ...prev, postAsBusiness: e.target.checked }))}
+                      data-testid="checkbox-post-as-business"
+                    />
+                    <label htmlFor="post-as-business" className="text-sm text-text">
+                      Post as {community?.name || 'Business'}
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="pinned"
+                      className="rounded border-border"
+                      checked={announcementForm.isPinned}
+                      onChange={(e) => setAnnouncementForm(prev => ({ ...prev, isPinned: e.target.checked }))}
+                    />
+                    <label htmlFor="pinned" className="text-sm text-text">Pin this announcement</label>
+                  </div>
                 </div>
               </div>
               
@@ -1890,7 +1908,7 @@ export default function CommunityDetailPage() {
                   variant="outline"
                   onClick={() => {
                     setShowCreateAnnouncement(false);
-                    setAnnouncementForm({ title: '', content: '', imageUrl: '', postType: 'announcement', isPinned: false });
+                    setAnnouncementForm({ title: '', content: '', imageUrl: '', postType: 'announcement', isPinned: false, postAsBusiness: true });
                   }}
                   className="flex-1"
                 >
@@ -1973,15 +1991,30 @@ export default function CommunityDetailPage() {
                   )}
                 </div>
                 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="edit-pinned"
-                    className="rounded border-border"
-                    checked={editPostForm.isPinned}
-                    onChange={(e) => setEditPostForm(prev => ({ ...prev, isPinned: e.target.checked }))}
-                  />
-                  <label htmlFor="edit-pinned" className="text-sm text-text">Pin this announcement</label>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="edit-post-as-business"
+                      className="rounded border-border"
+                      checked={editPostForm.postAsBusiness}
+                      onChange={(e) => setEditPostForm(prev => ({ ...prev, postAsBusiness: e.target.checked }))}
+                      data-testid="checkbox-edit-post-as-business"
+                    />
+                    <label htmlFor="edit-post-as-business" className="text-sm text-text">
+                      Post as {community?.name || 'Business'}
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="edit-pinned"
+                      className="rounded border-border"
+                      checked={editPostForm.isPinned}
+                      onChange={(e) => setEditPostForm(prev => ({ ...prev, isPinned: e.target.checked }))}
+                    />
+                    <label htmlFor="edit-pinned" className="text-sm text-text">Pin this announcement</label>
+                  </div>
                 </div>
               </div>
               
