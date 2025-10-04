@@ -317,7 +317,11 @@ export function CommunitiesProfilePage() {
     },
     onSuccess: (data) => {
       if (data.ok) {
+        // Force refetch by removing cached data first
+        queryClient.removeQueries({ queryKey: ['/api/auth/me'] });
         queryClient.invalidateQueries({ queryKey: ['/api/auth/me'] });
+        // Force immediate refetch
+        queryClient.refetchQueries({ queryKey: ['/api/auth/me'] });
         toast({
           title: 'Profile picture updated',
           description: 'Your profile picture has been updated successfully.',
