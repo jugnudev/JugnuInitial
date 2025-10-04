@@ -990,7 +990,7 @@ export class CommunitiesSupabaseDB {
     return this.mapPostFromDb(post);
   }
 
-  async getPostsByCommunityId(communityId: string, limit: number = 20, offset: number = 0, userId?: string): Promise<{ posts: CommunityPost[], total: number }> {
+  async getPostsByCommunityId(communityId: string, limit: number = 20, offset: number = 0, userId?: string): Promise<{ posts: any[], total: number }> {
     // Get total count
     const { count, error: countError } = await this.client
       .from('community_posts')
@@ -1024,12 +1024,18 @@ export class CommunitiesSupabaseDB {
     const authorIds = [...new Set(data.map(post => post.author_id))];
     
     // Get all authors for these posts
+    console.log('[Posts] Fetching authors for IDs:', authorIds);
     const { data: authorsData, error: authorsError } = await this.client
       .from('users')
       .select('id, first_name, last_name, profile_image_url')
       .in('id', authorIds);
     
-    if (authorsError) throw authorsError;
+    if (authorsError) {
+      console.error('[Posts] Error fetching authors:', authorsError);
+      throw authorsError;
+    }
+    
+    console.log('[Posts] Fetched authors:', authorsData);
     
     // Create author lookup map
     const authorsById: Record<string, any> = {};
@@ -1043,6 +1049,8 @@ export class CommunitiesSupabaseDB {
         };
       });
     }
+    
+    console.log('[Posts] Author lookup map:', Object.keys(authorsById));
     
     // Get all reactions for these posts
     const { data: reactionsData, error: reactionsError } = await this.client

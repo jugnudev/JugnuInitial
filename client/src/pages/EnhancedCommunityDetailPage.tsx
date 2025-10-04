@@ -139,8 +139,15 @@ interface Post {
   metadata?: any;
   postType: 'announcement' | 'update' | 'event';
   isPinned: boolean;
+  postAsBusiness?: boolean;
   createdAt: string;
   authorId: string;
+  author?: {
+    id: string;
+    firstName?: string;
+    lastName?: string;
+    profileImageUrl?: string;
+  };
   authorName?: string;
   authorAvatar?: string;
   authorRole?: 'owner' | 'moderator' | 'member';
@@ -200,10 +207,12 @@ interface CommunityDetailResponse {
 function PostCardWithComments({
   post,
   communityId,
+  communityName,
   ...otherProps
 }: {
   post: Post;
   communityId: string;
+  communityName?: string;
   [key: string]: any;
 }) {
   const { data: commentsData } = useQuery({
@@ -214,9 +223,25 @@ function PostCardWithComments({
   
   const comments = commentsData?.comments || [];
   
+  // Transform author data based on postAsBusiness flag
+  let authorName = post.authorName || 'Community Member';
+  let authorAvatar = post.authorAvatar;
+  
+  if (post.postAsBusiness !== false && communityName) {
+    // Post as business (default behavior)
+    authorName = communityName;
+    authorAvatar = undefined; // Will show building icon
+  } else if (post.author) {
+    // Post as user
+    authorName = `${post.author.firstName || ''} ${post.author.lastName || ''}`.trim() || 'Unknown User';
+    authorAvatar = post.author.profileImageUrl;
+  }
+  
   return (
     <PostCard
       {...post}
+      authorName={authorName}
+      authorAvatar={authorAvatar}
       comments={comments}
       {...otherProps}
     />
@@ -1267,6 +1292,7 @@ export default function EnhancedCommunityDetailPage() {
                         key={post.id}
                         post={post}
                         communityId={community?.id || ''}
+                        communityName={community?.name}
                         canEdit={isOwner || post.authorId === user?.id}
                         canDelete={isOwner}
                         onEdit={() => handleEditPost(post)}
@@ -1976,6 +2002,7 @@ export default function EnhancedCommunityDetailPage() {
                         key={post.id}
                         post={post}
                         communityId={community?.id || ''}
+                        communityName={community?.name}
                         canEdit={post.authorId === user?.id}
                         canDelete={false}
                         onReaction={(type) => handleReaction(post.id, type)}
