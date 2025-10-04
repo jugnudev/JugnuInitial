@@ -2297,7 +2297,7 @@ export function addCommunitiesRoutes(app: Express) {
       const { id } = req.params;
       const community = (req as any).community;
       const user = (req as any).user;
-      const { title, content, imageUrls = [], scheduledAt, postType, isPinned, status } = req.body;
+      const { title, content, imageUrl, imageUrls = [], linkUrl, linkText, linkDescription, tags, metadata, scheduledAt, postType, isPinned, postAsBusiness, status } = req.body;
 
       if (!title || !content) {
         return res.status(400).json({ ok: false, error: 'Title and content are required' });
@@ -2308,9 +2308,16 @@ export function addCommunitiesRoutes(app: Express) {
         authorId: user.id,
         title,
         content,
+        imageUrl,
         imageUrls,
+        linkUrl,
+        linkText,
+        linkDescription,
+        tags,
+        metadata,
         postType: postType || 'announcement',
         isPinned: isPinned || false,
+        postAsBusiness: postAsBusiness !== undefined ? postAsBusiness : true,
         status: status || (scheduledAt ? 'scheduled' : 'published'),
         scheduledAt
       });
@@ -2457,7 +2464,7 @@ export function addCommunitiesRoutes(app: Express) {
     try {
       const { id, postId } = req.params;
       const community = (req as any).community;
-      const { title, content, imageUrl, linkUrl, linkText, linkDescription, tags, postType, isPinned } = req.body;
+      const { title, content, imageUrl, linkUrl, linkText, linkDescription, tags, metadata, postType, isPinned, postAsBusiness } = req.body;
 
       const post = await communitiesStorage.getPostById(postId);
       if (!post || post.communityId !== community.id) {
@@ -2472,8 +2479,10 @@ export function addCommunitiesRoutes(app: Express) {
       if (linkText !== undefined) updateData.linkText = linkText;
       if (linkDescription !== undefined) updateData.linkDescription = linkDescription;
       if (tags !== undefined) updateData.tags = tags;
+      if (metadata !== undefined) updateData.metadata = metadata;
       if (postType !== undefined) updateData.postType = postType;
       if (isPinned !== undefined) updateData.isPinned = isPinned;
+      if (postAsBusiness !== undefined) updateData.postAsBusiness = postAsBusiness;
 
       const updatedPost = await communitiesStorage.updatePost(postId, updateData);
 
