@@ -190,7 +190,7 @@ export default function Navigation() {
                       data-testid="nav-user-menu"
                     >
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={user?.profilePicture} />
+                        <AvatarImage src={user?.profileImageUrl} />
                         <AvatarFallback className="bg-orange-500 text-white text-sm">
                           {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
                         </AvatarFallback>

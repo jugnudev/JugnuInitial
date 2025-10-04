@@ -12,8 +12,8 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Mail, ArrowLeft, User, Settings, LogOut, Building2, CheckCircle, Clock, XCircle, MapPin, Globe, Instagram, Twitter, Linkedin, Camera } from 'lucide-react';
-import { ObjectUploader } from '@/components/ObjectUploader';
+import { Loader2, Mail, ArrowLeft, User, Settings, LogOut, Building2, CheckCircle, Clock, XCircle, MapPin, Globe, Instagram, Twitter, Linkedin, Camera, Upload, Trash2 } from 'lucide-react';
+import { ImageCropDialog } from '@/components/ImageCropDialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -121,6 +121,7 @@ export function CommunitiesProfilePage() {
   const [emailChangeStep, setEmailChangeStep] = useState<'request' | 'confirm'>('request');
   const [pendingEmail, setPendingEmail] = useState('');
   const [activeTab, setActiveTab] = useState('profile');
+  const [showCropDialog, setShowCropDialog] = useState(false);
 
   // Handle hash-based navigation for direct tab access
   useEffect(() => {
@@ -289,9 +290,9 @@ export function CommunitiesProfilePage() {
 
   // Profile picture upload mutation
   const uploadProfileImageMutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async (blob: Blob) => {
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('image', blob, 'profile-picture.jpg');
       
       // Get auth token from localStorage for authentication
       const authToken = localStorage.getItem('community_auth_token');
@@ -724,17 +725,53 @@ export function CommunitiesProfilePage() {
                             </Avatar>
                           </div>
                           <div className="flex-1 space-y-3">
-                            <ObjectUploader
-                              onUpload={uploadProfileImageMutation.mutateAsync}
-                              existingUrl={user.profileImageUrl || undefined}
-                              onRemove={() => removeProfileImageMutation.mutate()}
-                              accept="image/*"
-                              maxSizeMB={5}
-                              placeholder="Upload profile picture"
-                              className="max-w-md"
-                            />
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowCropDialog(true)}
+                                disabled={uploadProfileImageMutation.isPending}
+                                data-testid="button-upload-profile-picture"
+                              >
+                                {uploadProfileImageMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Uploading...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Upload className="w-4 h-4 mr-2" />
+                                    Upload Photo
+                                  </>
+                                )}
+                              </Button>
+                              {user.profileImageUrl && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => removeProfileImageMutation.mutate()}
+                                  disabled={removeProfileImageMutation.isPending}
+                                  data-testid="button-remove-profile-picture"
+                                >
+                                  {removeProfileImageMutation.isPending ? (
+                                    <>
+                                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                      Removing...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Trash2 className="w-4 h-4 mr-2" />
+                                      Remove
+                                    </>
+                                  )}
+                                </Button>
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground">
                               Upload a clear photo of yourself. JPG, PNG, or WebP up to 5MB.
+                              You'll be able to adjust the crop area and position.
                             </p>
                           </div>
                         </div>
@@ -1545,6 +1582,17 @@ export function CommunitiesProfilePage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Image Crop Dialog */}
+      <ImageCropDialog
+        open={showCropDialog}
+        onOpenChange={setShowCropDialog}
+        onCropComplete={(blob) => {
+          uploadProfileImageMutation.mutate(blob);
+        }}
+        circularCrop={true}
+        title="Adjust Profile Picture"
+      />
     </div>
   );
 }

@@ -1516,12 +1516,8 @@ Disallow: /account/*`;
       let endDate = null; // null = no upper limit
       if (range === 'week') {
         endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-        console.log('[Weekly API] range=week, filtering to:', endDate.toISOString());
       } else if (range === 'month') {
         endDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-        console.log('[Weekly API] range=month, filtering to:', endDate.toISOString());
-      } else {
-        console.log('[Weekly API] range=' + range + ', no date limit');
       }
 
       // v2.7: Use manual deduplication if canonical_key is available, fallback to regular query
