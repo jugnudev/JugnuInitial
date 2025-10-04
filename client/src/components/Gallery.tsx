@@ -4,7 +4,7 @@ import Lightbox from "./Lightbox";
 
 export default function Gallery() {
   const { data: galleryImages = [], isLoading } = useGallery();
-  const [selectedImage, setSelectedImage] = useState<{ src: string; alt: string } | null>(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
 
   if (galleryImages.length === 0 && !isLoading) {
     // Hide gallery section if no images, but keep anchor for navigation
@@ -56,7 +56,7 @@ export default function Gallery() {
                 alt={image.alt}
                 className="w-full rounded-2xl shadow-lg hover:shadow-xl hover:shadow-primary/20 transition-all duration-300 cursor-pointer"
                 loading="lazy"
-                onClick={() => setSelectedImage(image)}
+                onClick={() => setSelectedImageIndex(index)}
                 data-testid={`gallery-image-${index}`}
               />
             </div>
@@ -65,10 +65,11 @@ export default function Gallery() {
       </div>
 
       {/* Lightbox */}
-      {selectedImage && (
+      {selectedImageIndex !== null && (
         <Lightbox
-          image={selectedImage}
-          onClose={() => setSelectedImage(null)}
+          images={galleryImages}
+          currentIndex={selectedImageIndex}
+          onClose={() => setSelectedImageIndex(null)}
         />
       )}
     </section>

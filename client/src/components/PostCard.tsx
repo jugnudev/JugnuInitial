@@ -504,10 +504,14 @@ export function PostCard({
         </Card>
       </motion.div>
       
-      {/* Image Lightbox */}
+      {/* Image/Video Lightbox */}
       {imageUrl && showLightbox && (
         <Lightbox
-          images={[{ src: imageUrl, alt: title }]}
+          images={[{ 
+            src: imageUrl, 
+            alt: title,
+            type: imageUrl.includes('.mp4') || imageUrl.includes('.webm') ? 'video' : 'image'
+          }]}
           currentIndex={0}
           onClose={() => setShowLightbox(false)}
         />
