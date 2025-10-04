@@ -227,14 +227,18 @@ function PostCardWithComments({
   let authorName = post.authorName || 'Community Member';
   let authorAvatar = post.authorAvatar;
   
+  console.log('[PostCardWithComments] Post:', post.id, 'postAsBusiness:', post.postAsBusiness, 'author:', post.author);
+  
   if (post.postAsBusiness !== false && communityName) {
     // Post as business (default behavior)
     authorName = communityName;
     authorAvatar = undefined; // Will show building icon
+    console.log('[PostCardWithComments] Showing as business:', communityName);
   } else if (post.author) {
     // Post as user
     authorName = `${post.author.firstName || ''} ${post.author.lastName || ''}`.trim() || 'Unknown User';
     authorAvatar = post.author.profileImageUrl;
+    console.log('[PostCardWithComments] Showing as user:', authorName, authorAvatar);
   }
   
   return (

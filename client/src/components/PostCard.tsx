@@ -17,7 +17,8 @@ import {
   ChevronUp,
   Sparkles,
   TrendingUp,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Building2
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ReactionsBar } from "./ReactionsBar";
@@ -227,9 +228,15 @@ export function PostCard({
               {/* Author Info */}
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10 ring-2 ring-premium-border">
-                  <AvatarImage src={authorAvatar} alt={authorName} />
+                  {authorAvatar ? (
+                    <AvatarImage src={authorAvatar} alt={authorName} />
+                  ) : null}
                   <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white">
-                    {authorName.substring(0, 2).toUpperCase()}
+                    {authorAvatar ? (
+                      authorName.substring(0, 2).toUpperCase()
+                    ) : (
+                      <Building2 className="h-5 w-5" />
+                    )}
                   </AvatarFallback>
                 </Avatar>
                 
