@@ -177,16 +177,17 @@ export async function uploadCommunityPostImage(
   const supabase = getStorageClient();
   const bucketName = 'community-posts';
   
-  // Validate file type
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  // Validate file type - support both images and videos
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'video/mp4', 'video/webm'];
   if (!allowedTypes.includes(file.mimetype)) {
-    throw new Error(`Invalid file type: ${file.mimetype}. Only JPEG, PNG, WebP, and GIF images are allowed.`);
+    throw new Error(`Invalid file type: ${file.mimetype}. Only JPEG, PNG, WebP, GIF images and MP4, WebM videos are allowed.`);
   }
   
-  // Validate file size (max 5MB)
-  const maxSize = 5 * 1024 * 1024; // 5MB
+  // Validate file size (max 50MB for videos, 5MB for images)
+  const isVideo = file.mimetype.startsWith('video/');
+  const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024; // 50MB for videos, 5MB for images
   if (file.size > maxSize) {
-    throw new Error('File size must be less than 5MB');
+    throw new Error(`File size must be less than ${isVideo ? '50MB' : '5MB'}`);
   }
   
   // Generate unique path
