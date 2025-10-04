@@ -780,6 +780,7 @@ export const communityPosts = pgTable("community_posts", {
   postType: text("post_type").notNull().default("announcement"), // announcement | update | event
   isPinned: boolean("is_pinned").notNull().default(false),
   status: text("status").notNull().default("published"), // published | draft | archived
+  postAsBusiness: boolean("post_as_business").notNull().default(false), // Show community name/avatar instead of user
 });
 
 // Post image galleries (1-6 images per post)
