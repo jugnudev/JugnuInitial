@@ -2297,7 +2297,7 @@ export function addCommunitiesRoutes(app: Express) {
       const { id } = req.params;
       const community = (req as any).community;
       const user = (req as any).user;
-      const { title, content, imageUrl, imageUrls = [], linkUrl, linkText, linkDescription, tags, metadata, scheduledAt, postType, isPinned, postAsBusiness, status } = req.body;
+      const { title, content, imageUrl, linkUrl, linkText, linkDescription, tags, metadata, scheduledFor, postType, isPinned, postAsBusiness, status } = req.body;
 
       if (!title || !content) {
         return res.status(400).json({ ok: false, error: 'Title and content are required' });
@@ -2309,7 +2309,6 @@ export function addCommunitiesRoutes(app: Express) {
         title,
         content,
         imageUrl,
-        imageUrls,
         linkUrl,
         linkText,
         linkDescription,
@@ -2318,15 +2317,15 @@ export function addCommunitiesRoutes(app: Express) {
         postType: postType || 'announcement',
         isPinned: isPinned || false,
         postAsBusiness: postAsBusiness !== undefined ? postAsBusiness : true,
-        status: status || (scheduledAt ? 'scheduled' : 'published'),
-        scheduledAt
+        status: status || (scheduledFor ? 'scheduled' : 'published'),
+        scheduledFor
       });
 
       // Track analytics
       await communitiesStorage.trackCommunityActivity(community.id, 'posts');
 
       // Send notifications to community members if post is published immediately
-      if (!scheduledAt) {
+      if (!scheduledFor) {
         try {
           // Get all approved community members
           const members = await communitiesStorage.getMembershipsByCommunityId(community.id);
@@ -2387,7 +2386,7 @@ export function addCommunitiesRoutes(app: Express) {
       res.json({
         ok: true,
         post,
-        message: scheduledAt ? 'Post scheduled successfully' : 'Post created successfully'
+        message: scheduledFor ? 'Post scheduled successfully' : 'Post created successfully'
       });
     } catch (error: any) {
       console.error('Create post error:', error);
@@ -2537,9 +2536,9 @@ export function addCommunitiesRoutes(app: Express) {
     try {
       const { id, postId } = req.params;
       const community = (req as any).community;
-      const { scheduledAt } = req.body;
+      const { scheduledFor } = req.body;
 
-      if (!scheduledAt || new Date(scheduledAt) <= new Date()) {
+      if (!scheduledFor || new Date(scheduledFor) <= new Date()) {
         return res.status(400).json({ ok: false, error: 'Invalid schedule date - must be in the future' });
       }
 
@@ -2550,7 +2549,7 @@ export function addCommunitiesRoutes(app: Express) {
 
       const updatedPost = await communitiesStorage.updatePost(postId, {
         status: 'scheduled',
-        scheduledAt
+        scheduledFor
       });
 
       res.json({
