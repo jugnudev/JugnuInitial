@@ -355,26 +355,42 @@ export function PostCard({
               )}
             </div>
             
-            {/* Image */}
+            {/* Image or Video */}
             {imageUrl && (
               <motion.div 
-                className="relative rounded-lg overflow-hidden cursor-pointer group"
-                onClick={() => setShowLightbox(true)}
-                whileHover={{ scale: 1.01 }}
+                className="relative rounded-lg overflow-hidden group"
+                whileHover={{ scale: imageUrl.includes('.mp4') ? 1 : 1.01 }}
                 transition={{ duration: 0.2 }}
-                data-testid={`post-image-${id}`}
+                data-testid={`post-media-${id}`}
               >
-                <img 
-                  src={imageUrl} 
-                  alt={title}
-                  className="w-full h-auto max-h-96 object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="bg-black/60 backdrop-blur-sm rounded-full p-3">
-                      <Eye className="h-6 w-6 text-white" />
-                    </div>
-                  </div>
+                <div className="relative w-full aspect-video bg-premium-surface-elevated">
+                  {imageUrl.includes('.mp4') ? (
+                    <video 
+                      src={imageUrl}
+                      controls
+                      className="w-full h-full object-contain"
+                      preload="metadata"
+                    />
+                  ) : (
+                    <>
+                      <img 
+                        src={imageUrl} 
+                        alt={title}
+                        className="w-full h-full object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105"
+                        onClick={() => setShowLightbox(true)}
+                      />
+                      <div 
+                        className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center cursor-pointer"
+                        onClick={() => setShowLightbox(true)}
+                      >
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                          <div className="bg-black/60 backdrop-blur-sm rounded-full p-3">
+                            <Eye className="h-6 w-6 text-white" />
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </motion.div>
             )}
