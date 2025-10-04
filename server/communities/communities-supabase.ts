@@ -980,6 +980,7 @@ export class CommunitiesSupabaseDB {
         content: data.content,
         post_type: data.postType || 'announcement',
         is_pinned: data.isPinned || false,
+        post_as_business: data.postAsBusiness !== undefined ? data.postAsBusiness : true,
         status: data.status || 'published'
       })
       .select()
@@ -1018,8 +1019,30 @@ export class CommunitiesSupabaseDB {
       };
     }
 
-    // Get post IDs for reactions lookup
+    // Get post IDs and author IDs for lookups
     const postIds = data.map(post => post.id);
+    const authorIds = [...new Set(data.map(post => post.author_id))];
+    
+    // Get all authors for these posts
+    const { data: authorsData, error: authorsError } = await this.client
+      .from('users')
+      .select('id, first_name, last_name, profile_image_url')
+      .in('id', authorIds);
+    
+    if (authorsError) throw authorsError;
+    
+    // Create author lookup map
+    const authorsById: Record<string, any> = {};
+    if (authorsData) {
+      authorsData.forEach(author => {
+        authorsById[author.id] = {
+          id: author.id,
+          firstName: author.first_name,
+          lastName: author.last_name,
+          profileImageUrl: author.profile_image_url
+        };
+      });
+    }
     
     // Get all reactions for these posts
     const { data: reactionsData, error: reactionsError } = await this.client
@@ -1074,11 +1097,12 @@ export class CommunitiesSupabaseDB {
       });
     }
 
-    // Map posts and include reactions and comments
+    // Map posts and include reactions, comments, and author info
     const postsWithReactions = data.map(post => {
       const mappedPost = this.mapPostFromDb(post);
       const postReactions = reactionsByPost[post.id] || {};
       const commentCount = commentCountsByPost[post.id] || 0;
+      const author = authorsById[post.author_id];
       
       // Convert to array format expected by frontend
       const reactions = Object.entries(postReactions).map(([type, data]) => ({
@@ -1092,6 +1116,7 @@ export class CommunitiesSupabaseDB {
       
       return {
         ...mappedPost,
+        author: author || null,
         reactions,
         comments
       };
@@ -1121,6 +1146,7 @@ export class CommunitiesSupabaseDB {
     if (data.content !== undefined) updateData.content = data.content;
     if (data.postType !== undefined) updateData.post_type = data.postType;
     if (data.isPinned !== undefined) updateData.is_pinned = data.isPinned;
+    if (data.postAsBusiness !== undefined) updateData.post_as_business = data.postAsBusiness;
     if (data.status !== undefined) updateData.status = data.status;
 
     const { data: post, error } = await this.client
@@ -1639,6 +1665,7 @@ export class CommunitiesSupabaseDB {
       metadata: data.metadata,
       postType: data.post_type,
       isPinned: data.is_pinned,
+      postAsBusiness: data.post_as_business !== undefined ? data.post_as_business : true,
       status: data.status
     };
   }

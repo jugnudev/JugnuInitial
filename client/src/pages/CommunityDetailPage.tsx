@@ -989,11 +989,26 @@ export default function CommunityDetailPage() {
                         }`}
                       >
                         <div className="flex gap-3">
-                          {/* Community Avatar */}
+                          {/* Author Avatar - Show business or user based on postAsBusiness flag */}
                           <div className="flex-shrink-0">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-copper-500/20 to-accent/20 border border-copper-500/30 flex items-center justify-center">
-                              <Building2 className="h-5 w-5 text-copper-500" />
-                            </div>
+                            {post.postAsBusiness ? (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-copper-500/20 to-accent/20 border border-copper-500/30 flex items-center justify-center">
+                                <Building2 className="h-5 w-5 text-copper-500" />
+                              </div>
+                            ) : post.author?.profileImageUrl ? (
+                              <img 
+                                src={post.author.profileImageUrl} 
+                                alt={`${post.author.firstName || ''} ${post.author.lastName || ''}`}
+                                className="w-10 h-10 rounded-full object-cover border border-border"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 border border-border flex items-center justify-center">
+                                <span className="text-sm font-bold text-text">
+                                  {post.author?.firstName?.[0]?.toUpperCase() || 'U'}
+                                  {post.author?.lastName?.[0]?.toUpperCase() || ''}
+                                </span>
+                              </div>
+                            )}
                           </div>
 
                           {/* Post Content */}
@@ -1002,7 +1017,7 @@ export default function CommunityDetailPage() {
                             <div className="flex items-start justify-between mb-2">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <h4 className="font-semibold text-text text-sm">
-                                  {community?.name}
+                                  {post.postAsBusiness ? community?.name : (post.author ? `${post.author.firstName} ${post.author.lastName}` : 'Unknown User')}
                                 </h4>
                                 {post.isPinned && (
                                   <div className="flex items-center gap-1 px-2 py-1 bg-accent/20 text-accent rounded-full text-xs font-medium">
