@@ -307,6 +307,7 @@ export default function EnhancedCommunityDetailPage() {
     tags: [] as string[],
     postType: 'announcement' as 'announcement' | 'update' | 'event',
     isPinned: false,
+    postAsBusiness: true,
     status: 'published' as 'draft' | 'scheduled' | 'published',
     scheduledFor: undefined as Date | undefined,
     expiresAt: undefined as Date | undefined,
@@ -599,7 +600,8 @@ export default function EnhancedCommunityDetailPage() {
         linkDescription: '',
         tags: [],
         postType: 'announcement',
-        isPinned: false
+        isPinned: false,
+        postAsBusiness: true
       });
       refetch();
     },
@@ -853,7 +855,8 @@ export default function EnhancedCommunityDetailPage() {
       linkDescription: post.linkDescription || '',
       tags: post.tags || [],
       postType: post.postType,
-      isPinned: post.isPinned
+      isPinned: post.isPinned,
+      postAsBusiness: post.postAsBusiness !== false // Default to true if undefined
     });
     setShowCreatePost(true);
   };
@@ -2063,7 +2066,8 @@ export default function EnhancedCommunityDetailPage() {
               linkDescription: '',
               tags: [],
               postType: 'announcement',
-              isPinned: false
+              isPinned: false,
+              postAsBusiness: true
             });
           }
         }}
@@ -2250,6 +2254,24 @@ export default function EnhancedCommunityDetailPage() {
                 />
               </div>
             )}
+            
+            {/* Post as Business */}
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="post-as-business">Post as Business</Label>
+                <p className="text-sm text-premium-text-muted">
+                  Show community name instead of your personal name
+                </p>
+              </div>
+              <Switch
+                id="post-as-business"
+                checked={postForm.postAsBusiness}
+                onCheckedChange={(checked) => 
+                  setPostForm(prev => ({ ...prev, postAsBusiness: checked }))
+                }
+                data-testid="toggle-post-as-business"
+              />
+            </div>
           </div>
           
           <DialogFooter>
