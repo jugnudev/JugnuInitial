@@ -113,6 +113,16 @@ Preferred communication style: Simple, everyday language.
   - Image preview shows full image with responsive sizing
   - Drag-and-drop and click-to-upload functionality
   - Note: Video detection in preview uses URL string matching (includes '.mp4'), may be brittle for CDN/signed URLs
+- **Post as Business Feature**:
+  - Toggle to post announcements as community/business or as individual user
+  - Database: `post_as_business` boolean field in `community_posts` table (defaults to true)
+  - Backend: `getPostsByCommunityId()` fetches author information (firstName, lastName, profileImageUrl) from users table and attaches to posts
+  - Frontend: `PostCardWithComments` component transforms author data based on `postAsBusiness` flag
+  - Display Logic:
+    - When `postAsBusiness = true` (default): Shows community name with building icon
+    - When `postAsBusiness = false`: Shows user's full name and profile picture
+  - UI: Toggle switch in both create and edit post forms
+  - Use Case: Allows community owners/moderators to post official announcements as the business while still being able to post personal updates as themselves
 - **Hybrid Billing System** (Phase 10):
   - Dual pricing model: Individual subscriptions ($20 CAD/month per community) and Bundle subscriptions ($75 CAD/month for 5 communities)
   - Database: `community_subscriptions`, `organizer_subscription_bundles`, `community_payments`, `community_billing_events` tables
