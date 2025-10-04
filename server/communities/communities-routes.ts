@@ -560,6 +560,11 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
   app.get('/api/auth/me', requireAuth, async (req: Request, res: Response) => {
+    // Prevent caching of user data to ensure fresh profile pictures
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    
     try {
       const user = (req as any).user;
       console.log('[Auth Me] User ID:', user.id, 'Profile Image URL:', user.profileImageUrl);
