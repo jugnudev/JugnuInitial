@@ -580,12 +580,12 @@ export function CommunitiesProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container max-w-6xl mx-auto py-4 sm:py-8 px-3 sm:px-4">
+      <div className="container max-w-6xl mx-auto py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
         {/* Premium Header - Mobile Optimized */}
         <div className="relative mb-6 sm:mb-12">
           {/* Background Card */}
           <Card className="border-0 shadow-lg bg-gradient-to-r from-card to-card/80 backdrop-blur-sm">
-            <CardContent className="p-4 sm:p-6 lg:p-8">
+            <CardContent className="p-5 sm:p-6 lg:p-8">
               <div className="flex flex-col gap-4 sm:gap-6">
                 {/* Profile Section */}
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
@@ -650,8 +650,8 @@ export function CommunitiesProfilePage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-8">
-          <div className="border-b border-border/50 -mx-3 sm:mx-0 px-3 sm:px-0">
-            <TabsList className="grid w-full max-w-full sm:max-w-md sm:mx-auto grid-cols-3 bg-muted/30 p-1 h-11 sm:h-12 rounded-none sm:rounded-md">
+          <div className="border-b border-border/50">
+            <TabsList className="grid w-full max-w-full sm:max-w-md sm:mx-auto grid-cols-3 bg-muted/30 p-1 h-11 sm:h-12 rounded-md">
               <TabsTrigger 
                 value="profile" 
                 className="text-xs sm:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 sm:px-4"
@@ -1157,7 +1157,7 @@ export function CommunitiesProfilePage() {
                   Manage your business account application
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6">
+              <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
                 {organizer?.status === 'active' ? (
                   <div className="space-y-3 sm:space-y-6">
                     {/* Clean Verification Status */}
