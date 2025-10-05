@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Eye, Download, Search, Filter, Users, ExternalLink, Send, RotateCw, X, CheckCircle, Copy, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -78,6 +79,12 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
   const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  
+  // Custom dialog states
+  const [approveLeadDialog, setApproveLeadDialog] = useState<{ open: boolean; lead: Lead | null }>({ open: false, lead: null });
+  const [rejectLeadDialog, setRejectLeadDialog] = useState<{ open: boolean; lead: Lead | null }>({ open: false, lead: null });
+  const [resendOnboardingDialog, setResendOnboardingDialog] = useState<{ open: boolean; leadId: string | null }>({ open: false, leadId: null });
+  const [revokeOnboardingDialog, setRevokeOnboardingDialog] = useState<{ open: boolean; leadId: string | null }>({ open: false, leadId: null });
   
   // Fetch leads with filters
   const { data: leads = [], isLoading } = useQuery({
@@ -703,11 +710,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                   <Button
                     variant="default"
                     className="bg-green-600 hover:bg-green-700"
-                    onClick={() => {
-                      if (confirm('Approve this lead and send onboarding email?')) {
-                        approveMutation.mutate(selectedLead.id);
-                      }
-                    }}
+                    onClick={() => setApproveLeadDialog({ open: true, lead: selectedLead })}
                     disabled={approveMutation.isPending}
                     data-testid="button-approve"
                   >
@@ -717,15 +720,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                   
                   <Button
                     variant="destructive"
-                    onClick={() => {
-                      if (confirm('Reject this lead?')) {
-                        updateStatusMutation.mutate({
-                          leadId: selectedLead.id,
-                          status: 'rejected',
-                          adminNotes: 'Lead rejected'
-                        });
-                      }
-                    }}
+                    onClick={() => setRejectLeadDialog({ open: true, lead: selectedLead })}
                     disabled={updateStatusMutation.isPending}
                     data-testid="button-reject"
                   >
@@ -765,11 +760,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        if (confirm('Resend onboarding email with new token?')) {
-                          resendOnboardingMutation.mutate(selectedLead.id);
-                        }
-                      }}
+                      onClick={() => setResendOnboardingDialog({ open: true, leadId: selectedLead.id })}
                       disabled={resendOnboardingMutation.isPending}
                       data-testid="button-resend-onboarding"
                     >
@@ -780,11 +771,7 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
                     <Button
                       variant="outline"
                       className="text-red-500 hover:text-red-400"
-                      onClick={() => {
-                        if (confirm('Revoke onboarding token? The link will stop working.')) {
-                          revokeOnboardingMutation.mutate(selectedLead.id);
-                        }
-                      }}
+                      onClick={() => setRevokeOnboardingDialog({ open: true, leadId: selectedLead.id })}
                       disabled={revokeOnboardingMutation.isPending}
                       data-testid="button-revoke-onboarding"
                     >
@@ -926,6 +913,134 @@ export default function AdminLeadsList({ adminKey }: AdminLeadsListProps) {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Approve Lead Confirmation Dialog */}
+      <AlertDialog open={approveLeadDialog.open} onOpenChange={(open) => setApproveLeadDialog({ open, lead: null })}>
+        <AlertDialogContent className="bg-gray-900 border-gray-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Approve Lead & Send Onboarding</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              {approveLeadDialog.lead && (
+                <>
+                  Are you sure you want to approve "{approveLeadDialog.lead.business_name}" and send an onboarding email to {approveLeadDialog.lead.email}?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-gray-700 text-white hover:bg-gray-800">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (approveLeadDialog.lead) {
+                  approveMutation.mutate(approveLeadDialog.lead.id);
+                }
+                setApproveLeadDialog({ open: false, lead: null });
+              }}
+              className="bg-green-600 hover:bg-green-700 text-white"
+              data-testid="confirm-approve-lead"
+            >
+              Approve & Send
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reject Lead Confirmation Dialog */}
+      <AlertDialog open={rejectLeadDialog.open} onOpenChange={(open) => setRejectLeadDialog({ open, lead: null })}>
+        <AlertDialogContent className="bg-gray-900 border-gray-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Reject Lead</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              {rejectLeadDialog.lead && (
+                <>
+                  Are you sure you want to reject "{rejectLeadDialog.lead.business_name}"? This action can be reversed later if needed.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-gray-700 text-white hover:bg-gray-800">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (rejectLeadDialog.lead) {
+                  updateStatusMutation.mutate({
+                    leadId: rejectLeadDialog.lead.id,
+                    status: 'rejected',
+                    adminNotes: 'Lead rejected'
+                  });
+                }
+                setRejectLeadDialog({ open: false, lead: null });
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white"
+              data-testid="confirm-reject-lead"
+            >
+              Reject
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Resend Onboarding Confirmation Dialog */}
+      <AlertDialog open={resendOnboardingDialog.open} onOpenChange={(open) => setResendOnboardingDialog({ open, leadId: null })}>
+        <AlertDialogContent className="bg-gray-900 border-gray-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Resend Onboarding Email</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              This will generate a new onboarding token and send a fresh email. The previous onboarding link will be invalidated. Are you sure?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-gray-700 text-white hover:bg-gray-800">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (resendOnboardingDialog.leadId) {
+                  resendOnboardingMutation.mutate(resendOnboardingDialog.leadId);
+                }
+                setResendOnboardingDialog({ open: false, leadId: null });
+              }}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              data-testid="confirm-resend-onboarding"
+            >
+              Resend Email
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Revoke Onboarding Token Confirmation Dialog */}
+      <AlertDialog open={revokeOnboardingDialog.open} onOpenChange={(open) => setRevokeOnboardingDialog({ open, leadId: null })}>
+        <AlertDialogContent className="bg-gray-900 border-gray-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Revoke Onboarding Token</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              This will immediately invalidate the onboarding link. The lead will not be able to complete onboarding with this token. Are you sure you want to proceed?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-gray-700 text-white hover:bg-gray-800">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (revokeOnboardingDialog.leadId) {
+                  revokeOnboardingMutation.mutate(revokeOnboardingDialog.leadId);
+                }
+                setRevokeOnboardingDialog({ open: false, leadId: null });
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white"
+              data-testid="confirm-revoke-onboarding"
+            >
+              Revoke Token
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
