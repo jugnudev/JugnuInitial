@@ -50,7 +50,10 @@ export default function Lightbox({ images, currentIndex, onClose }: LightboxProp
   };
 
   const currentMedia = images[activeIndex];
-  const isVideo = currentMedia?.type === 'video' || currentMedia?.src?.endsWith('.mp4') || currentMedia?.src?.endsWith('.webm');
+  const isVideo = currentMedia?.type === 'video' || 
+    currentMedia?.src?.includes('.mp4') || 
+    currentMedia?.src?.includes('.webm') || 
+    currentMedia?.src?.includes('video');
 
   return (
     <div 

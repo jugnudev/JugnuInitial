@@ -359,18 +359,21 @@ export function PostCard({
             {imageUrl && (
               <motion.div 
                 className="relative rounded-lg overflow-hidden group"
-                whileHover={{ scale: imageUrl.includes('.mp4') ? 1 : 1.01 }}
+                whileHover={{ scale: (imageUrl.includes('.mp4') || imageUrl.includes('.webm') || imageUrl.includes('video')) ? 1 : 1.01 }}
                 transition={{ duration: 0.2 }}
                 data-testid={`post-media-${id}`}
               >
                 <div className="relative w-full aspect-video bg-premium-surface-elevated">
-                  {imageUrl.includes('.mp4') ? (
+                  {(imageUrl.includes('.mp4') || imageUrl.includes('.webm') || imageUrl.includes('video')) ? (
                     <video 
                       src={imageUrl}
                       controls
                       className="w-full h-full object-contain"
                       preload="metadata"
-                    />
+                      data-testid={`post-video-${id}`}
+                    >
+                      Your browser does not support the video tag.
+                    </video>
                   ) : (
                     <>
                       <img 
@@ -378,6 +381,7 @@ export function PostCard({
                         alt={title}
                         className="w-full h-full object-cover cursor-pointer transition-transform duration-300 group-hover:scale-105"
                         onClick={() => setShowLightbox(true)}
+                        data-testid={`post-image-${id}`}
                       />
                       <div 
                         className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center cursor-pointer"
