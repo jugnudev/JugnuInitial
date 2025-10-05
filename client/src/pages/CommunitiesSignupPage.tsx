@@ -166,18 +166,18 @@ export function CommunitiesSignupPage() {
 
   if (step === 'signup') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-3 sm:p-4">
         <div className="max-w-md w-full">
           <Card>
-            <CardHeader className="space-y-1 text-center">
-              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
+            <CardHeader className="space-y-2 sm:space-y-3 text-center p-4 sm:p-6">
+              <CardTitle className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent">
                 Create Your Jugnu Account
               </CardTitle>
-              <CardDescription className="text-muted-foreground text-[14px]">Connect with Metro Vancouver's vibrant South Asian cultural scene</CardDescription>
+              <CardDescription className="text-muted-foreground text-xs sm:text-sm px-2 sm:px-0">Connect with Metro Vancouver's vibrant South Asian cultural scene</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-4 sm:p-6">
               <form onSubmit={signupForm.handleSubmit(onSignupSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="firstName">First name</Label>
                     <Input
@@ -228,7 +228,7 @@ export function CommunitiesSignupPage() {
 
                 <Button 
                   type="submit" 
-                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3 text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                  className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-5 sm:py-6 text-base sm:text-lg transition-all duration-200 shadow-lg hover:shadow-xl"
                   disabled={signupMutation.isPending}
                   data-testid="button-signup"
                 >
@@ -266,16 +266,16 @@ export function CommunitiesSignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-3 sm:p-4">
       <div className="max-w-md w-full">
         <Card>
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl">Verify your email</CardTitle>
-            <CardDescription>
-              We sent a 6-digit code to <strong>{signupData?.email}</strong>
+          <CardHeader className="space-y-2 sm:space-y-3 text-center p-4 sm:p-6">
+            <CardTitle className="text-xl sm:text-2xl font-bold">Verify your email</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
+              We sent a 6-digit code to <strong className="break-all">{signupData?.email}</strong>
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-4 sm:p-6">
             <form onSubmit={verifyForm.handleSubmit(onVerifySubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="code">Verification code</Label>
@@ -286,7 +286,7 @@ export function CommunitiesSignupPage() {
                   maxLength={6}
                   data-testid="input-code"
                   {...verifyForm.register('code')}
-                  className="text-center text-2xl tracking-widest font-mono"
+                  className="text-center text-xl sm:text-2xl tracking-widest font-mono py-6 sm:py-7"
                 />
                 {verifyForm.formState.errors.code && (
                   <p className="text-sm text-destructive">

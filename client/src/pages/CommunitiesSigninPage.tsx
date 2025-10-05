@@ -160,16 +160,16 @@ export function CommunitiesSigninPage() {
 
   if (step === 'email') {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-3 sm:p-4">
         <div className="max-w-md w-full">
           <Card>
-            <CardHeader className="space-y-1 text-center">
-              <CardTitle className="text-2xl">Sign In</CardTitle>
-              <CardDescription>
-                Enter your email address to receive a login code
+            <CardHeader className="space-y-2 sm:space-y-3 text-center p-4 sm:p-6">
+              <CardTitle className="text-xl sm:text-2xl font-bold">Sign In</CardTitle>
+              <CardDescription className="text-sm sm:text-base">
+                Enter your email to receive a login code
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-4 sm:p-6">
               <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email address</Label>
@@ -227,16 +227,16 @@ export function CommunitiesSigninPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-3 sm:p-4">
       <div className="max-w-md w-full">
         <Card>
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl">Enter verification code</CardTitle>
-            <CardDescription>
-              We sent a 6-digit code to <strong>{email}</strong>
+          <CardHeader className="space-y-2 sm:space-y-3 text-center p-4 sm:p-6">
+            <CardTitle className="text-xl sm:text-2xl font-bold">Enter verification code</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
+              We sent a 6-digit code to <strong className="break-all">{email}</strong>
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-4 sm:p-6">
             <form onSubmit={verifyForm.handleSubmit(onVerifySubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="code">Verification code</Label>
@@ -247,7 +247,7 @@ export function CommunitiesSigninPage() {
                   maxLength={6}
                   data-testid="input-code"
                   {...verifyForm.register('code')}
-                  className="text-center text-2xl tracking-widest font-mono"
+                  className="text-center text-xl sm:text-2xl tracking-widest font-mono py-6 sm:py-7"
                 />
                 {verifyForm.formState.errors.code && (
                   <p className="text-sm text-destructive">
