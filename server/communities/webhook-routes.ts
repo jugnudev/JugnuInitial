@@ -114,92 +114,48 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     return;
   }
 
-  const { type, communityId, organizerId, bundleType } = metadata;
+  const { communityId } = metadata;
 
-  if (type === 'individual') {
-    // Create or update individual subscription
-    if (!communityId) {
-      console.error('No communityId in checkout session metadata');
-      return;
-    }
-
-    const subscriptionId = session.subscription as string;
-    const customerId = session.customer as string;
-
-    // Get the Stripe subscription details
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-
-    // Create/update subscription in database
-    await communitiesStorage.createOrUpdateSubscription({
-      communityId,
-      organizerId: metadata.organizerId || '',
-      stripeCustomerId: customerId,
-      stripeSubscriptionId: subscriptionId,
-      stripePriceId: subscription.items.data[0].price.id,
-      plan: 'monthly',
-      status: subscription.status as any,
-      currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
-      trialStart: subscription.trial_start 
-        ? new Date(subscription.trial_start * 1000).toISOString() 
-        : undefined,
-      trialEnd: subscription.trial_end 
-        ? new Date(subscription.trial_end * 1000).toISOString() 
-        : undefined,
-      memberLimit: 500,
-      pricePerMonth: 2000, // $20 CAD
-      features: {
-        customDomain: false,
-        analytics: true,
-        emailBlasts: false,
-        prioritySupport: false
-      }
-    });
-
-    console.log(`Created/updated individual subscription for community ${communityId}`);
-
-  } else if (type === 'bundle') {
-    // Create bundle subscription
-    if (!organizerId) {
-      console.error('No organizerId in checkout session metadata');
-      return;
-    }
-
-    const subscriptionId = session.subscription as string;
-    const customerId = session.customer as string;
-
-    // Get the Stripe subscription details
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-
-    // Create bundle in database
-    await communitiesStorage.createBundle({
-      organizerId,
-      bundleType: bundleType || 'starter_5',
-      stripeCustomerId: customerId,
-      stripeSubscriptionId: subscriptionId,
-      stripePriceId: subscription.items.data[0].price.id,
-      status: subscription.status as any,
-      communitiesIncluded: 5,
-      communitiesUsed: 0,
-      currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-      currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
-      trialStart: subscription.trial_start 
-        ? new Date(subscription.trial_start * 1000).toISOString() 
-        : undefined,
-      trialEnd: subscription.trial_end 
-        ? new Date(subscription.trial_end * 1000).toISOString() 
-        : undefined,
-      pricePerMonth: 7500, // $75 CAD for 5 communities
-      features: {
-        customDomain: true,
-        analytics: true,
-        emailBlasts: true,
-        prioritySupport: true
-      }
-    });
-
-    console.log(`Created bundle subscription for organizer ${organizerId}`);
+  // Create or update individual subscription
+  if (!communityId) {
+    console.error('No communityId in checkout session metadata');
+    return;
   }
+
+  const subscriptionId = session.subscription as string;
+  const customerId = session.customer as string;
+
+  // Get the Stripe subscription details
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+  // Create/update subscription in database
+  await communitiesStorage.createOrUpdateSubscription({
+    communityId,
+    organizerId: metadata.organizerId || '',
+    stripeCustomerId: customerId,
+    stripeSubscriptionId: subscriptionId,
+    stripePriceId: subscription.items.data[0].price.id,
+    plan: 'monthly',
+    status: subscription.status as any,
+    currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
+    currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
+    trialStart: subscription.trial_start 
+      ? new Date(subscription.trial_start * 1000).toISOString() 
+      : undefined,
+    trialEnd: subscription.trial_end 
+      ? new Date(subscription.trial_end * 1000).toISOString() 
+      : undefined,
+    memberLimit: 500,
+    pricePerMonth: 2000, // $20 CAD
+    features: {
+      customDomain: false,
+      analytics: true,
+      emailBlasts: false,
+      prioritySupport: false
+    }
+  });
+
+  console.log(`Created/updated individual subscription for community ${communityId}`);
 }
 
 /**
@@ -213,39 +169,31 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     return;
   }
 
-  const { communityId, organizerId, type } = metadata;
+  const { communityId } = metadata;
 
-  if (type === 'individual' && communityId) {
-    // Update individual subscription
-    const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
-    
-    if (existingSubscription) {
-      await communitiesStorage.updateSubscriptionStatus(
-        existingSubscription.id,
-        subscription.status as any,
-        {
-          currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
-          cancelAt: subscription.cancel_at 
-            ? new Date(subscription.cancel_at * 1000).toISOString() 
-            : null,
-          canceledAt: subscription.canceled_at 
-            ? new Date(subscription.canceled_at * 1000).toISOString() 
-            : null,
-        }
-      );
-    }
-  } else if (type === 'bundle' && organizerId) {
-    // Update bundle subscription
-    const existingBundle = await communitiesStorage.getBundleByOrganizer(organizerId);
-    
-    if (existingBundle) {
-      await communitiesStorage.updateBundle(existingBundle.id, {
-        status: subscription.status as any,
+  if (!communityId) {
+    console.error('No communityId in subscription metadata');
+    return;
+  }
+
+  // Update individual subscription
+  const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
+  
+  if (existingSubscription) {
+    await communitiesStorage.updateSubscriptionStatus(
+      existingSubscription.id,
+      subscription.status as any,
+      {
         currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
         currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
-      });
-    }
+        cancelAt: subscription.cancel_at 
+          ? new Date(subscription.cancel_at * 1000).toISOString() 
+          : null,
+        canceledAt: subscription.canceled_at 
+          ? new Date(subscription.canceled_at * 1000).toISOString() 
+          : null,
+      }
+    );
   }
 }
 
@@ -260,40 +208,24 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     return;
   }
 
-  const { communityId, organizerId, type } = metadata;
+  const { communityId } = metadata;
 
-  if (type === 'individual' && communityId) {
-    // Cancel individual subscription
-    const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
-    
-    if (existingSubscription) {
-      await communitiesStorage.updateSubscriptionStatus(
-        existingSubscription.id,
-        'canceled',
-        {
-          canceledAt: new Date().toISOString()
-        }
-      );
-    }
-  } else if (type === 'bundle' && organizerId) {
-    // Cancel bundle subscription
-    const existingBundle = await communitiesStorage.getBundleByOrganizer(organizerId);
-    
-    if (existingBundle) {
-      await communitiesStorage.updateBundle(existingBundle.id, {
-        status: 'canceled'
-      });
-      
-      // Also cancel all communities under this bundle
-      const subscriptions = await communitiesStorage.getSubscriptionByOrganizer(organizerId);
-      for (const sub of subscriptions) {
-        if (sub.bundleId === existingBundle.id) {
-          await communitiesStorage.updateSubscriptionStatus(sub.id, 'canceled', {
-            canceledAt: new Date().toISOString()
-          });
-        }
+  if (!communityId) {
+    console.error('No communityId in subscription metadata');
+    return;
+  }
+
+  // Cancel individual subscription
+  const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
+  
+  if (existingSubscription) {
+    await communitiesStorage.updateSubscriptionStatus(
+      existingSubscription.id,
+      'canceled',
+      {
+        canceledAt: new Date().toISOString()
       }
-    }
+    );
   }
 }
 
@@ -317,7 +249,12 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
     return;
   }
 
-  const { communityId, organizerId, type } = metadata;
+  const { communityId } = metadata;
+
+  if (!communityId) {
+    console.error('No communityId in subscription metadata');
+    return;
+  }
 
   // Log payment
   const payment = {
@@ -326,7 +263,7 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
     amountPaid: invoice.amount_paid,
     currency: invoice.currency.toUpperCase(),
     status: 'succeeded',
-    description: invoice.description || `Payment for ${type} subscription`,
+    description: invoice.description || 'Payment for community subscription',
     billingPeriodStart: invoice.period_start 
       ? new Date(invoice.period_start * 1000).toISOString() 
       : undefined,
@@ -334,25 +271,16 @@ async function handleInvoicePaymentSucceeded(invoice: Stripe.Invoice) {
       ? new Date(invoice.period_end * 1000).toISOString() 
       : undefined,
     receiptUrl: invoice.hosted_invoice_url || undefined,
-    metadata: { type }
+    metadata: { type: 'individual' }
   };
 
-  if (type === 'individual' && communityId) {
-    const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
-    if (existingSubscription) {
-      await communitiesStorage.createPayment({
-        ...payment,
-        subscriptionId: existingSubscription.id,
-        communityId
-      });
-    }
-  } else if (type === 'bundle' && organizerId) {
-    const existingBundle = await communitiesStorage.getBundleByOrganizer(organizerId);
-    if (existingBundle) {
-      // For bundles, we need to create a payment record
-      // This would require extending the payment schema to support bundles
-      console.log('Bundle payment recorded:', payment);
-    }
+  const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
+  if (existingSubscription) {
+    await communitiesStorage.createPayment({
+      ...payment,
+      subscriptionId: existingSubscription.id,
+      communityId
+    });
   }
 }
 
@@ -376,7 +304,12 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     return;
   }
 
-  const { communityId, organizerId, type } = metadata;
+  const { communityId } = metadata;
+
+  if (!communityId) {
+    console.error('No communityId in subscription metadata');
+    return;
+  }
 
   // Log failed payment
   const payment = {
@@ -385,7 +318,7 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
     amountPaid: 0,
     currency: invoice.currency.toUpperCase(),
     status: 'failed',
-    description: invoice.description || `Failed payment for ${type} subscription`,
+    description: invoice.description || 'Failed payment for community subscription',
     billingPeriodStart: invoice.period_start 
       ? new Date(invoice.period_start * 1000).toISOString() 
       : undefined,
@@ -393,32 +326,22 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
       ? new Date(invoice.period_end * 1000).toISOString() 
       : undefined,
     failureReason: 'Payment failed',
-    metadata: { type }
+    metadata: { type: 'individual' }
   };
 
-  if (type === 'individual' && communityId) {
-    const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
-    if (existingSubscription) {
-      await communitiesStorage.createPayment({
-        ...payment,
-        subscriptionId: existingSubscription.id,
-        communityId
-      });
-      
-      // Update subscription status to past_due
-      await communitiesStorage.updateSubscriptionStatus(
-        existingSubscription.id,
-        'past_due'
-      );
-    }
-  } else if (type === 'bundle' && organizerId) {
-    const existingBundle = await communitiesStorage.getBundleByOrganizer(organizerId);
-    if (existingBundle) {
-      // Update bundle status to past_due
-      await communitiesStorage.updateBundle(existingBundle.id, {
-        status: 'past_due'
-      });
-    }
+  const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
+  if (existingSubscription) {
+    await communitiesStorage.createPayment({
+      ...payment,
+      subscriptionId: existingSubscription.id,
+      communityId
+    });
+    
+    // Update subscription status to past_due
+    await communitiesStorage.updateSubscriptionStatus(
+      existingSubscription.id,
+      'past_due'
+    );
   }
 }
 
