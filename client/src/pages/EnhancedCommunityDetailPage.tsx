@@ -292,6 +292,12 @@ export default function EnhancedCommunityDetailPage() {
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [slowmodeValue, setSlowmodeValue] = useState<string>('0');
   const [bannedWordsValue, setBannedWordsValue] = useState<string>('');
+  
+  // Custom dialog states
+  const [deletePostDialog, setDeletePostDialog] = useState<{ open: boolean; postId: string | null }>({ open: false, postId: null });
+  const [promoteMemberDialog, setPromoteMemberDialog] = useState<{ open: boolean; member: Member | null }>({ open: false, member: null });
+  const [demoteMemberDialog, setDemoteMemberDialog] = useState<{ open: boolean; member: Member | null }>({ open: false, member: null });
+  const [removeMemberDialog, setRemoveMemberDialog] = useState<{ open: boolean; member: Member | null }>({ open: false, member: null });
   const [communitySettings, setCommunitySettings] = useState({
     name: '',
     description: '',
@@ -1344,9 +1350,7 @@ export default function EnhancedCommunityDetailPage() {
                         canDelete={isOwner}
                         onEdit={() => handleEditPost(post)}
                         onDelete={() => {
-                          if (confirm('Are you sure you want to delete this post?')) {
-                            deletePostMutation.mutate(post.id);
-                          }
+                          setDeletePostDialog({ open: true, postId: post.id });
                         }}
                         onReaction={(type) => handleReaction(post.id, type)}
                         onComment={(content, parentId) => handleComment(post.id, content, parentId)}
@@ -1461,9 +1465,7 @@ export default function EnhancedCommunityDetailPage() {
                                       variant="outline"
                                       className="text-blue-500 border-blue-500/30 hover:bg-blue-500/10"
                                       onClick={() => {
-                                        if (confirm(`Promote ${memberName} to moderator?`)) {
-                                          updateMemberRoleMutation.mutate({ userId: member.userId, role: 'moderator' });
-                                        }
+                                        setPromoteMemberDialog({ open: true, member });
                                       }}
                                       disabled={updateMemberRoleMutation.isPending}
                                       data-testid={`promote-member-${member.id}`}
@@ -1479,9 +1481,7 @@ export default function EnhancedCommunityDetailPage() {
                                       variant="outline"
                                       className="text-orange-500 border-orange-500/30 hover:bg-orange-500/10"
                                       onClick={() => {
-                                        if (confirm(`Demote ${memberName} to regular member?`)) {
-                                          updateMemberRoleMutation.mutate({ userId: member.userId, role: 'member' });
-                                        }
+                                        setDemoteMemberDialog({ open: true, member });
                                       }}
                                       disabled={updateMemberRoleMutation.isPending}
                                       data-testid={`demote-member-${member.id}`}
@@ -1499,9 +1499,7 @@ export default function EnhancedCommunityDetailPage() {
                                   variant="outline"
                                   className="text-red-500 border-red-500/30 hover:bg-red-500/10"
                                   onClick={() => {
-                                    if (confirm(`Remove ${memberName} from the community? This action cannot be undone.`)) {
-                                      removeMemberMutation.mutate({ userId: member.userId });
-                                    }
+                                    setRemoveMemberDialog({ open: true, member });
                                   }}
                                   disabled={removeMemberMutation.isPending}
                                   data-testid={`remove-member-${member.id}`}
@@ -2425,6 +2423,146 @@ export default function EnhancedCommunityDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Post Confirmation Dialog */}
+      <AlertDialog open={deletePostDialog.open} onOpenChange={(open) => setDeletePostDialog({ open, postId: null })}>
+        <AlertDialogContent className="bg-premium-surface border-premium-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-premium-text-primary">Delete Post</AlertDialogTitle>
+            <AlertDialogDescription className="text-premium-text-secondary">
+              Are you sure you want to delete this post? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-premium-border hover:bg-premium-surface-elevated">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deletePostDialog.postId) {
+                  deletePostMutation.mutate(deletePostDialog.postId);
+                }
+                setDeletePostDialog({ open: false, postId: null });
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white"
+              data-testid="confirm-delete-post"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Promote Member Dialog */}
+      <AlertDialog open={promoteMemberDialog.open} onOpenChange={(open) => setPromoteMemberDialog({ open, member: null })}>
+        <AlertDialogContent className="bg-premium-surface border-premium-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-premium-text-primary">Promote to Moderator</AlertDialogTitle>
+            <AlertDialogDescription className="text-premium-text-secondary">
+              {promoteMemberDialog.member && (
+                <>
+                  Promote {promoteMemberDialog.member.user?.firstName && promoteMemberDialog.member.user?.lastName
+                    ? `${promoteMemberDialog.member.user.firstName} ${promoteMemberDialog.member.user.lastName}`
+                    : promoteMemberDialog.member.user?.email || 'this member'} to moderator?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-premium-border hover:bg-premium-surface-elevated">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (promoteMemberDialog.member) {
+                  updateMemberRoleMutation.mutate({ 
+                    userId: promoteMemberDialog.member.userId, 
+                    role: 'moderator' 
+                  });
+                }
+                setPromoteMemberDialog({ open: false, member: null });
+              }}
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+              data-testid="confirm-promote-member"
+            >
+              Promote
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Demote Member Dialog */}
+      <AlertDialog open={demoteMemberDialog.open} onOpenChange={(open) => setDemoteMemberDialog({ open, member: null })}>
+        <AlertDialogContent className="bg-premium-surface border-premium-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-premium-text-primary">Demote to Member</AlertDialogTitle>
+            <AlertDialogDescription className="text-premium-text-secondary">
+              {demoteMemberDialog.member && (
+                <>
+                  Demote {demoteMemberDialog.member.user?.firstName && demoteMemberDialog.member.user?.lastName
+                    ? `${demoteMemberDialog.member.user.firstName} ${demoteMemberDialog.member.user.lastName}`
+                    : demoteMemberDialog.member.user?.email || 'this member'} to regular member?
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-premium-border hover:bg-premium-surface-elevated">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (demoteMemberDialog.member) {
+                  updateMemberRoleMutation.mutate({ 
+                    userId: demoteMemberDialog.member.userId, 
+                    role: 'member' 
+                  });
+                }
+                setDemoteMemberDialog({ open: false, member: null });
+              }}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+              data-testid="confirm-demote-member"
+            >
+              Demote
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Remove Member Dialog */}
+      <AlertDialog open={removeMemberDialog.open} onOpenChange={(open) => setRemoveMemberDialog({ open, member: null })}>
+        <AlertDialogContent className="bg-premium-surface border-premium-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-premium-text-primary">Remove Member</AlertDialogTitle>
+            <AlertDialogDescription className="text-premium-text-secondary">
+              {removeMemberDialog.member && (
+                <>
+                  Remove {removeMemberDialog.member.user?.firstName && removeMemberDialog.member.user?.lastName
+                    ? `${removeMemberDialog.member.user.firstName} ${removeMemberDialog.member.user.lastName}`
+                    : removeMemberDialog.member.user?.email || 'this member'} from the community? This action cannot be undone.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-premium-border hover:bg-premium-surface-elevated">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (removeMemberDialog.member) {
+                  removeMemberMutation.mutate({ userId: removeMemberDialog.member.userId });
+                }
+                setRemoveMemberDialog({ open: false, member: null });
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white"
+              data-testid="confirm-remove-member"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }

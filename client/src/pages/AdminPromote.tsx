@@ -39,6 +39,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { toast } from '@/hooks/use-toast';
 import { ENDPOINTS, adminFetch } from '@/lib/endpoints';
@@ -145,6 +146,10 @@ export default function AdminPromote() {
   const [showOnboardingDialog, setShowOnboardingDialog] = useState(false);
   const [onboardingRecipient, setOnboardingRecipient] = useState('');
   const [onboardingToken, setOnboardingToken] = useState<PortalToken | null>(null);
+  
+  // Custom dialog states
+  const [deleteCampaignDialog, setDeleteCampaignDialog] = useState<{ open: boolean; campaignId: string | null }>({ open: false, campaignId: null });
+  const [revokeTokenDialog, setRevokeTokenDialog] = useState<{ open: boolean; tokenId: string | null }>({ open: false, tokenId: null });
 
   // Check admin session on load
   useEffect(() => {
@@ -354,8 +359,6 @@ export default function AdminPromote() {
   };
 
   const deleteCampaign = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this campaign?')) return;
-
     try {
       const response = await adminFetch(`${ENDPOINTS.ADMIN.CAMPAIGNS}/${id}`, {
         method: 'DELETE'
@@ -399,8 +402,6 @@ export default function AdminPromote() {
   };
 
   const revokeToken = async (id: string) => {
-    if (!confirm('Are you sure you want to revoke this portal token?')) return;
-
     try {
       const response = await adminFetch(`${ENDPOINTS.ADMIN.PORTAL_TOKENS}/${id}`, {
         method: 'DELETE'
@@ -1041,7 +1042,7 @@ export default function AdminPromote() {
                                     Open portal
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
-                                    onClick={() => revokeToken(existingToken.id)}
+                                    onClick={() => setRevokeTokenDialog({ open: true, tokenId: existingToken.id })}
                                     className="text-orange-400 hover:bg-orange-500/20"
                                   >
                                     <Shield className="w-4 h-4 mr-2" />
@@ -1057,7 +1058,7 @@ export default function AdminPromote() {
                                 Duplicate
                               </DropdownMenuItem>
                               <DropdownMenuItem 
-                                onClick={() => deleteCampaign(campaign.id)}
+                                onClick={() => setDeleteCampaignDialog({ open: true, campaignId: campaign.id })}
                                 className="text-red-400 hover:bg-red-500/20"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
@@ -1135,7 +1136,7 @@ export default function AdminPromote() {
                                 Open
                               </Button>
                               <Button
-                                onClick={() => revokeToken(existingToken.id)}
+                                onClick={() => setRevokeTokenDialog({ open: true, tokenId: existingToken.id })}
                                 variant="outline"
                                 size="sm"
                                 className="border-orange-500/50 text-orange-400 hover:bg-orange-500/20 h-11"
@@ -1172,7 +1173,7 @@ export default function AdminPromote() {
                             Duplicate
                           </Button>
                           <Button
-                            onClick={() => deleteCampaign(campaign.id)}
+                            onClick={() => setDeleteCampaignDialog({ open: true, campaignId: campaign.id })}
                             variant="outline"
                             size="sm"
                             className="border-red-500/50 text-red-400 hover:bg-red-500/20 h-11"
@@ -1285,7 +1286,7 @@ export default function AdminPromote() {
                             Open portal
                           </DropdownMenuItem>
                           <DropdownMenuItem 
-                            onClick={() => revokeToken(token.id)}
+                            onClick={() => setRevokeTokenDialog({ open: true, tokenId: token.id })}
                             className="text-red-400 hover:bg-red-500/20"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
@@ -1317,7 +1318,7 @@ export default function AdminPromote() {
                         <ExternalLink className="w-4 h-4" />
                       </Button>
                       <Button
-                        onClick={() => revokeToken(token.id)}
+                        onClick={() => setRevokeTokenDialog({ open: true, tokenId: token.id })}
                         variant="outline"
                         size="sm"
                         className="border-red-500/50 text-red-400 hover:bg-red-500/20 h-11"
@@ -1985,6 +1986,64 @@ export default function AdminPromote() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Campaign Confirmation Dialog */}
+      <AlertDialog open={deleteCampaignDialog.open} onOpenChange={(open) => setDeleteCampaignDialog({ open, campaignId: null })}>
+        <AlertDialogContent className="bg-bg border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Delete Campaign</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted">
+              Are you sure you want to delete this campaign? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteCampaignDialog.campaignId) {
+                  deleteCampaign(deleteCampaignDialog.campaignId);
+                }
+                setDeleteCampaignDialog({ open: false, campaignId: null });
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white"
+              data-testid="confirm-delete-campaign"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Revoke Token Confirmation Dialog */}
+      <AlertDialog open={revokeTokenDialog.open} onOpenChange={(open) => setRevokeTokenDialog({ open, tokenId: null })}>
+        <AlertDialogContent className="bg-bg border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Revoke Portal Token</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted">
+              Are you sure you want to revoke this portal token? The sponsor will lose access to the portal immediately.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (revokeTokenDialog.tokenId) {
+                  revokeToken(revokeTokenDialog.tokenId);
+                }
+                setRevokeTokenDialog({ open: false, tokenId: null });
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white"
+              data-testid="confirm-revoke-token"
+            >
+              Revoke
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
