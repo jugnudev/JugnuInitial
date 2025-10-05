@@ -678,7 +678,7 @@ export const userSessions = pgTable("user_sessions", {
 });
 
 // ============ COMMUNITY GROUPS FEATURE ============
-// Communities - One per verified organizer
+// Communities - Organizers can create multiple communities
 export const communities = pgTable("communities", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
