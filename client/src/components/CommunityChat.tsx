@@ -260,6 +260,7 @@ export default function CommunityChat({
         >
           <div className="relative">
             <Avatar className="w-9 h-9 border-2 border-green-500/20">
+              {user.profileImageUrl && <AvatarImage src={user.profileImageUrl} alt={user.userName} />}
               <AvatarFallback className="text-xs bg-gradient-to-br from-accent/20 to-accent/10">
                 {user.userName.split(' ').map(n => n[0]).join('').slice(0, 2)}
               </AvatarFallback>

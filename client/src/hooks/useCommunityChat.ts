@@ -26,6 +26,7 @@ interface OnlineUser {
   userId: string;
   userName: string;
   userRole: string;
+  profileImageUrl?: string | null;
 }
 
 export function useCommunityChat(communityId: string, token: string | null) {

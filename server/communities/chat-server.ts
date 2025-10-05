@@ -441,6 +441,7 @@ export function startChatServer(httpServer: Server) {
           userId: user.id,
           userName: `${user.firstName} ${user.lastName}`,
           userRole: membership?.role || 'member',
+          profileImageUrl: user.profileImageUrl || null,
         });
       }
     }
