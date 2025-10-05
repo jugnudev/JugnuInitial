@@ -580,17 +580,17 @@ export function CommunitiesProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
-      <div className="container max-w-6xl mx-auto py-8 px-4">
-        {/* Premium Header */}
-        <div className="relative mb-12">
+      <div className="container max-w-6xl mx-auto py-4 sm:py-8 px-3 sm:px-4">
+        {/* Premium Header - Mobile Optimized */}
+        <div className="relative mb-6 sm:mb-12">
           {/* Background Card */}
           <Card className="border-0 shadow-lg bg-gradient-to-r from-card to-card/80 backdrop-blur-sm">
-            <CardContent className="p-8">
-              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <CardContent className="p-4 sm:p-6 lg:p-8">
+              <div className="flex flex-col gap-4 sm:gap-6">
                 {/* Profile Section */}
-                <div className="flex items-center gap-6">
-                  <div className="relative">
-                    <Avatar className="w-20 h-20 border-4 border-background shadow-lg">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
+                  <div className="relative flex-shrink-0">
+                    <Avatar className="w-20 h-20 sm:w-20 sm:h-20 border-4 border-background shadow-lg">
                       <AvatarImage src={user.profileImageUrl || undefined} />
                       <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
                         {getUserInitials()}
@@ -602,45 +602,46 @@ export function CommunitiesProfilePage() {
                       </div>
                     )}
                   </div>
-                  <div className="space-y-1">
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
+                  <div className="space-y-1 text-center sm:text-left flex-1">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text break-words">
                       {user.firstName} {user.lastName}
                     </h1>
-                    <p className="text-lg text-muted-foreground font-medium">{user.email}</p>
-                    <div className="flex items-center gap-3 mt-3">
+                    <p className="text-sm sm:text-base lg:text-lg text-muted-foreground font-medium truncate">{user.email}</p>
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2 sm:mt-3">
                       <Badge 
                         variant={user.emailVerified ? 'default' : 'secondary'}
-                        className="px-3 py-1 text-sm font-medium"
+                        className="px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium"
                       >
                         <CheckCircle className="w-3 h-3 mr-1" />
-                        {user.emailVerified ? 'Verified Account' : 'Unverified'}
+                        {user.emailVerified ? 'Verified' : 'Unverified'}
                       </Badge>
                       {user.role === 'organizer' && organizer?.status === 'active' && (
-                        <Badge className="px-3 py-1 text-sm font-medium bg-accent/10 text-accent border-accent/20">
+                        <Badge className="px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium bg-accent/10 text-accent border-accent/20">
                           <Building2 className="w-3 h-3 mr-1" />
-                          Business Account
+                          Business
                         </Badge>
                       )}
                     </div>
                   </div>
                 </div>
                 
-                {/* Actions Section */}
-                <div className="flex items-center gap-3">
+                {/* Actions Section - Mobile Optimized */}
+                <div className="flex items-center justify-center sm:justify-end gap-2 sm:gap-3">
                   <Button
                     variant="outline"
                     size="default"
                     onClick={() => signOutMutation.mutate()}
                     disabled={signOutMutation.isPending}
                     data-testid="button-signout"
-                    className="px-6 font-medium border-destructive/20 hover:border-destructive/40 hover:bg-destructive/5 text-destructive hover:text-destructive"
+                    className="w-full sm:w-auto px-4 sm:px-6 font-medium border-destructive/20 hover:border-destructive/40 hover:bg-destructive/5 text-destructive hover:text-destructive"
                   >
                     {signOutMutation.isPending ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                     ) : (
                       <LogOut className="w-4 h-4 mr-2" />
                     )}
-                    Sign Out
+                    <span className="hidden sm:inline">Sign Out</span>
+                    <span className="sm:hidden">Sign Out</span>
                   </Button>
                 </div>
               </div>
@@ -648,88 +649,94 @@ export function CommunitiesProfilePage() {
           </Card>
         </div>
 
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
-          <div className="border-b border-border/50">
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 bg-muted/30 p-1 h-12">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4 sm:space-y-8">
+          <div className="border-b border-border/50 -mx-3 sm:mx-0 px-3 sm:px-0">
+            <TabsList className="grid w-full max-w-full sm:max-w-md sm:mx-auto grid-cols-3 bg-muted/30 p-1 h-11 sm:h-12 rounded-none sm:rounded-md">
               <TabsTrigger 
                 value="profile" 
-                className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="text-xs sm:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 sm:px-4"
+                aria-label="Profile"
               >
-                <User className="w-4 h-4 mr-2" />
-                Profile
+                <User className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" aria-hidden="true" />
+                <span className="hidden sm:inline">Profile</span>
+                <span className="sr-only sm:not-sr-only">Profile</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="organizer" 
-                className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="text-xs sm:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 sm:px-4"
+                aria-label="Business Account"
               >
-                <Building2 className="w-4 h-4 mr-2" />
-                Business Account
+                <Building2 className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" aria-hidden="true" />
+                <span className="hidden sm:inline">Business</span>
+                <span className="sr-only sm:not-sr-only">Business</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="settings" 
-                className="text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                className="text-xs sm:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 sm:px-4"
+                aria-label="Settings"
               >
-                <Settings className="w-4 h-4 mr-2" />
-                Settings
+                <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" aria-hidden="true" />
+                <span className="hidden sm:inline">Settings</span>
+                <span className="sr-only sm:not-sr-only">Settings</span>
               </TabsTrigger>
             </TabsList>
           </div>
 
           {/* Profile Tab */}
-          <TabsContent value="profile" className="space-y-8">
+          <TabsContent value="profile" className="space-y-4 sm:space-y-8">
             {/* Profile Overview Card */}
             <Card className="border-0 shadow-md bg-gradient-to-r from-card to-card/90">
-              <CardHeader className="pb-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <User className="w-4 h-4 text-primary" />
+              <CardHeader className="pb-3 sm:pb-4 p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg sm:text-xl lg:text-2xl font-bold flex items-center gap-2">
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <User className="w-3 h-3 sm:w-4 sm:h-4 text-primary" />
                       </div>
-                      Profile Information
+                      <span className="truncate">Profile Information</span>
                     </CardTitle>
-                    <CardDescription className="text-base mt-2">
-                      Manage your personal information and preferences
+                    <CardDescription className="text-sm sm:text-base mt-1 sm:mt-2">
+                      Manage your personal information
                     </CardDescription>
                   </div>
                   <Button
                     variant={isEditing ? 'outline' : 'default'}
-                    size="lg"
+                    size="default"
                     onClick={() => setIsEditing(!isEditing)}
                     data-testid="button-edit"
-                    className="px-6 font-medium"
+                    className="w-full sm:w-auto px-4 sm:px-6 font-medium"
                   >
                     <Settings className="w-4 h-4 mr-2" />
-                    {isEditing ? 'Cancel Changes' : 'Edit Profile'}
+                    {isEditing ? 'Cancel' : 'Edit Profile'}
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 sm:space-y-6 p-4 sm:p-6">
                 {isEditing ? (
-                  <form onSubmit={form.handleSubmit(onUpdateSubmit)} className="space-y-8">
+                  <form onSubmit={form.handleSubmit(onUpdateSubmit)} className="space-y-6 sm:space-y-8">
                     {/* Basic Information Section */}
-                    <div className="space-y-6">
-                      <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                        <div className="w-6 h-6 rounded-md bg-blue-500/10 flex items-center justify-center">
+                    <div className="space-y-4 sm:space-y-6">
+                      <div className="flex items-center gap-2 sm:gap-3 pb-2 border-b border-border/50">
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-md bg-blue-500/10 flex items-center justify-center flex-shrink-0">
                           <User className="w-3 h-3 text-blue-600" />
                         </div>
-                        <h3 className="text-lg font-semibold text-foreground">Basic Information</h3>
+                        <h3 className="text-base sm:text-lg font-semibold text-foreground">Basic Information</h3>
                       </div>
                       
                       {/* Profile Picture Upload Section */}
                       <div className="space-y-3">
                         <Label className="text-sm font-medium text-foreground">Profile Picture</Label>
-                        <div className="flex items-start gap-6">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
                           <div className="flex-shrink-0">
-                            <Avatar className="w-24 h-24 border-2 border-border shadow-sm">
+                            <Avatar className="w-20 h-20 sm:w-24 sm:h-24 border-2 border-border shadow-sm">
                               <AvatarImage src={user.profileImageUrl || undefined} />
-                              <AvatarFallback className="text-lg font-bold bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
+                              <AvatarFallback className="text-base sm:text-lg font-bold bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
                                 {getUserInitials()}
                               </AvatarFallback>
                             </Avatar>
                           </div>
-                          <div className="flex-1 space-y-3">
-                            <div className="flex gap-2">
+                          <div className="flex-1 w-full space-y-3">
+                            <div className="flex flex-col sm:flex-row gap-2 w-full">
                               <Button
                                 type="button"
                                 variant="outline"
@@ -737,16 +744,17 @@ export function CommunitiesProfilePage() {
                                 onClick={() => setShowCropDialog(true)}
                                 disabled={uploadProfileImageMutation.isPending}
                                 data-testid="button-upload-profile-picture"
+                                className="w-full sm:w-auto"
                               >
                                 {uploadProfileImageMutation.isPending ? (
                                   <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Uploading...
+                                    <span className="truncate">Uploading...</span>
                                   </>
                                 ) : (
                                   <>
                                     <Upload className="w-4 h-4 mr-2" />
-                                    Upload Photo
+                                    <span className="truncate">Upload Photo</span>
                                   </>
                                 )}
                               </Button>
@@ -758,24 +766,24 @@ export function CommunitiesProfilePage() {
                                   onClick={() => removeProfileImageMutation.mutate()}
                                   disabled={removeProfileImageMutation.isPending}
                                   data-testid="button-remove-profile-picture"
+                                  className="w-full sm:w-auto"
                                 >
                                   {removeProfileImageMutation.isPending ? (
                                     <>
                                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                      Removing...
+                                      <span className="truncate">Removing...</span>
                                     </>
                                   ) : (
                                     <>
                                       <Trash2 className="w-4 h-4 mr-2" />
-                                      Remove
+                                      <span className="truncate">Remove</span>
                                     </>
                                   )}
                                 </Button>
                               )}
                             </div>
-                            <p className="text-xs text-muted-foreground">
-                              Upload a clear photo of yourself. JPG, PNG, or WebP up to 5MB.
-                              You'll be able to adjust the crop area and position.
+                            <p className="text-xs text-muted-foreground text-center sm:text-left">
+                              Upload a clear photo. JPG, PNG, or WebP up to 5MB.
                             </p>
                           </div>
                         </div>
@@ -996,11 +1004,12 @@ export function CommunitiesProfilePage() {
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-3 pt-2">
                       <Button 
                         type="submit" 
                         disabled={updateMutation.isPending}
                         data-testid="button-save"
+                        className="w-full sm:flex-1"
                       >
                         {updateMutation.isPending ? (
                           <>
@@ -1016,6 +1025,7 @@ export function CommunitiesProfilePage() {
                         variant="outline"
                         onClick={() => setIsEditing(false)}
                         data-testid="button-cancel"
+                        className="w-full sm:flex-1"
                       >
                         Cancel
                       </Button>
@@ -1023,7 +1033,7 @@ export function CommunitiesProfilePage() {
                   </form>
                 ) : (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label>First name</Label>
                         <p className="mt-1">{user.firstName}</p>
@@ -1041,7 +1051,7 @@ export function CommunitiesProfilePage() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {user.location && (
                         <div>
                           <Label>Location</Label>
@@ -1055,7 +1065,7 @@ export function CommunitiesProfilePage() {
                       <Separator />
                       <div className="space-y-4">
                         <Label className="text-base font-medium">Personal Details</Label>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           {user.phoneNumber && (
                             <div>
                               <Label>Phone Number</Label>
@@ -1139,15 +1149,15 @@ export function CommunitiesProfilePage() {
           </TabsContent>
 
           {/* Business Tab */}
-          <TabsContent value="organizer" className="space-y-6">
+          <TabsContent value="organizer" className="space-y-4 sm:space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-amber-500 bg-clip-text text-transparent">Business Account Status</CardTitle>
-                <CardDescription>
-                  Manage your business account application and premium profile
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-amber-600 via-orange-600 to-amber-500 bg-clip-text text-transparent">Business Account Status</CardTitle>
+                <CardDescription className="text-sm sm:text-base">
+                  Manage your business account application
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 p-4 sm:p-6">
                 {organizer?.status === 'active' ? (
                   <div className="space-y-6">
                     {/* Clean Verification Status */}
@@ -1360,21 +1370,21 @@ export function CommunitiesProfilePage() {
           </TabsContent>
 
           {/* Settings Tab */}
-          <TabsContent value="settings" className="space-y-6">
+          <TabsContent value="settings" className="space-y-4 sm:space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Account Settings</CardTitle>
-                <CardDescription>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl">Account Settings</CardTitle>
+                <CardDescription className="text-sm sm:text-base">
                   Manage your account preferences and notifications
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="emailNotifications">Email Notifications</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Receive notifications about your account and applications
+              <CardContent className="space-y-4 p-4 sm:p-6">
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 py-2 sm:py-0">
+                    <div className="flex-1">
+                      <Label htmlFor="emailNotifications" className="text-sm sm:text-base">Email Notifications</Label>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                        Receive notifications about your account
                       </p>
                     </div>
                     <Switch
@@ -1393,10 +1403,10 @@ export function CommunitiesProfilePage() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="marketingEmails">Marketing Emails</Label>
-                      <p className="text-sm text-muted-foreground">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 py-2 sm:py-0">
+                    <div className="flex-1">
+                      <Label htmlFor="marketingEmails" className="text-sm sm:text-base">Marketing Emails</Label>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                         Receive emails about new features and updates
                       </p>
                     </div>
@@ -1413,14 +1423,15 @@ export function CommunitiesProfilePage() {
                         });
                       }}
                       data-testid="switch-marketing-emails"
+                      className="self-start sm:self-auto"
                     />
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="newsletter">Newsletter</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Receive our weekly newsletter with event highlights
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 py-2 sm:py-0">
+                    <div className="flex-1">
+                      <Label htmlFor="newsletter" className="text-sm sm:text-base">Newsletter</Label>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                        Receive our weekly newsletter with highlights
                       </p>
                     </div>
                     <Switch
