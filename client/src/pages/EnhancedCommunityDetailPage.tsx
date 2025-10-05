@@ -2141,20 +2141,20 @@ export default function EnhancedCommunityDetailPage() {
           }
         }}
       >
-        <DialogContent className="max-w-2xl bg-card border-premium-border max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl bg-card border-premium-border max-h-[90vh] overflow-y-auto w-[95vw] md:w-full">
           <DialogHeader>
-            <DialogTitle className="font-fraunces text-2xl">
+            <DialogTitle className="font-fraunces text-xl md:text-2xl">
               {editingPost ? 'Edit Post' : 'Create New Post'}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs md:text-sm">
               Share updates, announcements, or events with your community.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-6">
+          <div className="space-y-4 md:space-y-6">
             {/* Post Type */}
             <div>
-              <Label>Post Type</Label>
+              <Label className="text-sm md:text-base">Post Type</Label>
               <Select
                 value={postForm.postType}
                 onValueChange={(value: 'announcement' | 'update' | 'event') => 
@@ -2189,25 +2189,27 @@ export default function EnhancedCommunityDetailPage() {
             
             {/* Title */}
             <div>
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="title" className="text-sm md:text-base">Title *</Label>
               <Input
                 id="title"
                 value={postForm.title}
                 onChange={(e) => setPostForm(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="Give your post a title..."
+                className="text-sm md:text-base"
                 data-testid="post-title-input"
               />
             </div>
             
             {/* Content */}
             <div>
-              <Label htmlFor="content">Content *</Label>
+              <Label htmlFor="content" className="text-sm md:text-base">Content *</Label>
               <Textarea
                 id="content"
                 value={postForm.content}
                 onChange={(e) => setPostForm(prev => ({ ...prev, content: e.target.value }))}
                 placeholder="Write your post content... (Markdown supported)"
                 rows={6}
+                className="text-sm md:text-base"
                 data-testid="post-content-input"
               />
             </div>
