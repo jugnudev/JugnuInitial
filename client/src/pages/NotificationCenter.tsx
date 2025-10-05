@@ -222,19 +222,19 @@ export function NotificationCenter() {
   const totalPages = Math.ceil((data?.total || 0) / limit);
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="container mx-auto py-4 sm:py-8 px-3 sm:px-4 max-w-6xl">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="text-page-title">
-            <Bell className="h-8 w-8" />
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2" data-testid="text-page-title">
+            <Bell className="h-6 w-6 sm:h-8 sm:w-8" />
             Notification Center
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage all your notifications in one place
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
+            Manage all your notifications
           </p>
         </div>
         <Link href="/account/profile#notifications">
-          <Button variant="outline" data-testid="button-settings">
+          <Button variant="outline" size="sm" data-testid="button-settings" className="w-full sm:w-auto">
             <Settings className="h-4 w-4 mr-2" />
             Settings
           </Button>
@@ -242,31 +242,31 @@ export function NotificationCenter() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Notifications</CardTitle>
+          <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium">Total</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-total-count">{data?.total || 0}</div>
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="text-lg sm:text-2xl font-bold" data-testid="text-total-count">{data?.total || 0}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Unread</CardTitle>
+          <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium">Unread</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600" data-testid="text-unread-count">
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-blue-600" data-testid="text-unread-count">
               {data?.unreadCount || 0}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Selected</CardTitle>
+          <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
+            <CardTitle className="text-xs sm:text-sm font-medium">Selected</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-selected-count">
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="text-lg sm:text-2xl font-bold" data-testid="text-selected-count">
               {selectedNotifications.size}
             </div>
           </CardContent>
@@ -274,12 +274,12 @@ export function NotificationCenter() {
       </div>
 
       {/* Filters and Search */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-lg">Filters</CardTitle>
+      <Card className="mb-4 sm:mb-6">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="text-base sm:text-lg">Filters</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -336,9 +336,9 @@ export function NotificationCenter() {
       {/* Bulk Actions */}
       {selectedNotifications.size > 0 && (
         <Card className="mb-4 bg-accent">
-          <CardContent className="flex items-center justify-between py-4">
-            <span className="text-sm">
-              {selectedNotifications.size} notification(s) selected
+          <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4">
+            <span className="text-sm font-medium">
+              {selectedNotifications.size} selected
             </span>
             <div className="flex gap-2">
               <Button
@@ -347,9 +347,10 @@ export function NotificationCenter() {
                 onClick={handleBulkMarkAsRead}
                 disabled={markAsReadMutation.isPending}
                 data-testid="button-bulk-read"
+                className="flex-1 sm:flex-initial"
               >
-                <Eye className="h-4 w-4 mr-1" />
-                Mark as read
+                <Eye className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline ml-1">Mark as read</span>
               </Button>
               <Button
                 size="sm"
@@ -357,9 +358,10 @@ export function NotificationCenter() {
                 onClick={handleBulkDelete}
                 disabled={deleteNotificationsMutation.isPending}
                 data-testid="button-bulk-delete"
+                className="flex-1 sm:flex-initial"
               >
-                <Trash2 className="h-4 w-4 mr-1" />
-                Delete
+                <Trash2 className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline ml-1">Delete</span>
               </Button>
             </div>
           </CardContent>
@@ -368,9 +370,9 @@ export function NotificationCenter() {
 
       {/* Notifications List */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Notifications</CardTitle>
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-base sm:text-lg">Notifications</CardTitle>
             {data?.unreadCount !== undefined && data.unreadCount > 0 && (
               <Button
                 variant="outline"
@@ -378,6 +380,7 @@ export function NotificationCenter() {
                 onClick={() => markAllAsReadMutation.mutate()}
                 disabled={markAllAsReadMutation.isPending}
                 data-testid="button-mark-all-read"
+                className="w-full sm:w-auto"
               >
                 <CheckCheck className="h-4 w-4 mr-1" />
                 Mark all as read
@@ -385,7 +388,7 @@ export function NotificationCenter() {
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
           {isLoading ? (
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
@@ -431,7 +434,7 @@ export function NotificationCenter() {
               {filteredNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`flex items-start gap-3 p-4 rounded-lg border transition-colors ${
+                  className={`flex items-start gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg border transition-colors ${
                     !notification.isRead ? 'bg-accent' : ''
                   } ${notificationColors[notification.type] || 'bg-gray-50 border-gray-200'} ${
                     selectedNotifications.has(notification.id) ? 'ring-2 ring-primary' : ''
@@ -442,22 +445,23 @@ export function NotificationCenter() {
                     checked={selectedNotifications.has(notification.id)}
                     onCheckedChange={() => handleSelectNotification(notification.id)}
                     data-testid={`checkbox-notification-${notification.id}`}
+                    className="mt-0.5"
                   />
                   
-                  <span className="text-2xl">
+                  <span className="text-xl sm:text-2xl">
                     {notificationIcons[notification.type] || '🔔'}
                   </span>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-col gap-2">
                       <div className="flex-1">
-                        <h3 className="font-medium">{notification.title}</h3>
+                        <h3 className="font-medium text-sm sm:text-base">{notification.title}</h3>
                         {notification.body && (
-                          <p className="text-sm text-muted-foreground mt-1">
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                             {notification.body}
                           </p>
                         )}
-                        <div className="flex items-center gap-4 mt-2">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
                           <Badge variant="outline" className="text-xs">
                             {notificationTypeLabels[notification.type] || notification.type}
                           </Badge>
@@ -472,13 +476,14 @@ export function NotificationCenter() {
                         </div>
                       </div>
                       
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 flex-wrap">
                         {notification.actionUrl && (
                           <Button
                             variant="ghost"
                             size="sm"
                             asChild
                             data-testid={`button-view-${notification.id}`}
+                            className="h-8 text-xs"
                           >
                             <Link href={notification.actionUrl}>View</Link>
                           </Button>
@@ -486,20 +491,22 @@ export function NotificationCenter() {
                         {!notification.isRead && (
                           <Button
                             variant="ghost"
-                            size="icon"
+                            size="sm"
                             onClick={() => markAsReadMutation.mutate([notification.id])}
                             data-testid={`button-mark-read-${notification.id}`}
+                            className="h-8 px-2"
                           >
-                            <Eye className="h-4 w-4" />
+                            <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                           </Button>
                         )}
                         <Button
                           variant="ghost"
-                          size="icon"
+                          size="sm"
                           onClick={() => deleteNotificationsMutation.mutate([notification.id])}
                           data-testid={`button-delete-${notification.id}`}
+                          className="h-8 px-2"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                         </Button>
                       </div>
                     </div>
@@ -511,20 +518,21 @@ export function NotificationCenter() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
+            <div className="flex items-center justify-between mt-4 sm:mt-6 gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setPage(p => Math.max(0, p - 1))}
                 disabled={page === 0}
                 data-testid="button-prev-page"
+                className="flex-1 sm:flex-initial"
               >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
+                <ChevronLeft className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Previous</span>
               </Button>
               
-              <span className="text-sm text-muted-foreground">
-                Page {page + 1} of {totalPages}
+              <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+                {page + 1} / {totalPages}
               </span>
               
               <Button
@@ -533,9 +541,10 @@ export function NotificationCenter() {
                 onClick={() => setPage(p => p + 1)}
                 disabled={!data?.hasMore}
                 data-testid="button-next-page"
+                className="flex-1 sm:flex-initial"
               >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight className="h-4 w-4 sm:ml-1" />
               </Button>
             </div>
           )}
