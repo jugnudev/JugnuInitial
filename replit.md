@@ -132,6 +132,7 @@ Preferred communication style: Simple, everyday language.
   - UI: Toggle switch in both create and edit post forms
   - Use Case: Allows community owners/moderators to post official announcements as the business while still being able to post personal updates as themselves
 - **Hybrid Billing System** (Phase 10):
+  - **Multiple Communities**: Organizers can create unlimited communities (one-community-per-account limit removed)
   - Dual pricing model: Individual subscriptions ($20 CAD/month per community) and Bundle subscriptions ($75 CAD/month for 5 communities)
   - Database: `community_subscriptions`, `organizer_subscription_bundles`, `community_payments`, `community_billing_events` tables
   - Stripe Integration: Checkout sessions, subscription management, webhook handling
@@ -140,6 +141,7 @@ Preferred communication style: Simple, everyday language.
   - Webhook Handler: `/api/webhooks/stripe` for processing Stripe events (payment success/failure, subscription updates)
   - Components: `BundleSelector` for plan selection, `BundleAssignment` for bundle management, updated `CommunityBilling`
   - Features: 7-day free trial, automatic proration, conflict resolution for existing subscriptions
+  - Per-Community Billing: Each community requires its own subscription or bundle slot
 
 ### Feature Flags
 - **Ticketing System**: Controlled by `ENABLE_TICKETING` (server) and `VITE_ENABLE_TICKETING` (client). Disabling hides routes, APIs, UI, and ensures SEO isolation via `robots.txt` and `sitemap.xml`.
