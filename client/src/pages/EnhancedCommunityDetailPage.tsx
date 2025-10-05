@@ -1739,7 +1739,7 @@ export default function EnhancedCommunityDetailPage() {
                         }
                       }}
                       placeholder="0 (no slowmode)"
-                      className="bg-premium-surface-elevated border-premium-border text-premium-text-primary placeholder:text-premium-text-muted text-sm md:text-base"
+                      className="text-sm md:text-base"
                       data-testid="input-slowmode"
                     />
                     <p className="text-xs md:text-sm text-premium-text-muted mt-1">
