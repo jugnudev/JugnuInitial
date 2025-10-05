@@ -10,6 +10,12 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Card } from '@/components/ui/card';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { format, formatDistanceToNow } from 'date-fns';
 import { 
   Send, 
@@ -52,6 +58,7 @@ export default function CommunityChat({
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [slowmodeTimer, setSlowmodeTimer] = useState(0);
+  const [isOnlineUsersOpen, setIsOnlineUsersOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const slowmodeIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -243,10 +250,60 @@ export default function CommunityChat({
     );
   }
 
+  const renderOnlineUsersList = () => (
+    <div className="space-y-1">
+      {onlineUsers.map((user) => (
+        <div 
+          key={user.userId} 
+          className="flex items-center gap-3 p-3 rounded-xl hover:bg-muted/30 transition-all duration-200 group" 
+          data-testid={`online-user-${user.userId}`}
+        >
+          <div className="relative">
+            <Avatar className="w-9 h-9 border-2 border-green-500/20">
+              <AvatarFallback className="text-xs bg-gradient-to-br from-accent/20 to-accent/10">
+                {user.userName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+              </AvatarFallback>
+            </Avatar>
+            <Circle className="w-3 h-3 fill-green-500 text-green-500 absolute -bottom-0.5 -right-0.5 animate-pulse border-2 border-background rounded-full" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-medium block truncate">{user.userName}</span>
+          </div>
+          <div className="flex items-center">
+            {renderRoleBadge(user.userRole)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
-    <div className="flex h-[600px] border rounded-lg overflow-hidden">
+    <>
+    <div className="flex h-[600px] border rounded-lg overflow-hidden relative">
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
+        {/* Mobile Online Users Button - Only visible on mobile */}
+        <div className="md:hidden bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b px-4 py-3 pb-safe">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsOnlineUsersOpen(true)}
+            className="w-full justify-between group hover:bg-accent/10 border-accent/20 transition-all duration-300 hover:shadow-md hover:shadow-accent/10"
+            data-testid="mobile-online-users-button"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="relative">
+                <Users className="w-4 h-4 text-accent transition-transform group-hover:scale-110" />
+                <Circle className="w-2 h-2 fill-green-500 text-green-500 absolute -top-1 -right-1 animate-pulse" />
+              </div>
+              <span className="font-medium text-sm">Online Members</span>
+            </div>
+            <Badge variant="secondary" className="bg-accent/20 text-accent border-accent/30 font-semibold">
+              {onlineUsers.length}
+            </Badge>
+          </Button>
+        </div>
+
         {/* Pinned Messages Banner */}
         {pinnedMessages && pinnedMessages.messages?.length > 0 && (
           <div className="bg-amber-50/50 dark:bg-amber-900/10 border-b border-amber-200 dark:border-amber-800/30 p-3">
@@ -389,7 +446,7 @@ export default function CommunityChat({
         </ScrollArea>
 
         {/* Message Input */}
-        <div className="p-4 border-t">
+        <div className="p-4 pb-safe border-t bg-background">
           {!isConnected ? (
             <div className="text-center text-muted-foreground text-sm">
               {isConnecting ? 'Connecting to chat...' : 'Disconnected from chat'}
@@ -408,13 +465,14 @@ export default function CommunityChat({
                   onKeyDown={handleKeyPress}
                   placeholder={slowmodeTimer > 0 ? `Wait ${slowmodeTimer}s...` : "Type a message..."}
                   disabled={slowmodeTimer > 0 || !isConnected}
-                  className="flex-1"
+                  className="flex-1 h-11 text-base"
                   data-testid="chat-message-input"
                 />
                 <Button
                   onClick={() => handleSendMessage()}
                   disabled={!messageInput.trim() || slowmodeTimer > 0 || !isConnected}
                   size="icon"
+                  className="h-11 w-11"
                   data-testid="send-message-button"
                 >
                   <Send className="w-4 h-4" />
@@ -423,7 +481,7 @@ export default function CommunityChat({
                   <Button
                     onClick={() => handleSendMessage(true)}
                     disabled={!messageInput.trim() || slowmodeTimer > 0 || !isConnected}
-                    className="bg-accent/20 hover:bg-accent/30 text-accent border border-accent/30"
+                    className="bg-accent/20 hover:bg-accent/30 text-accent border border-accent/30 h-11 w-11"
                     size="icon"
                     title="Send as announcement"
                     data-testid="send-announcement-button"
@@ -442,24 +500,56 @@ export default function CommunityChat({
         </div>
       </div>
 
-      {/* Online Users Sidebar */}
-      <div className="w-64 border-l bg-muted/10 p-4">
+      {/* Online Users Sidebar - Desktop Only */}
+      <div className="hidden md:flex md:w-64 border-l bg-muted/10 p-4 flex-col">
         <div className="flex items-center gap-2 mb-4">
           <Users className="w-4 h-4" />
           <span className="font-medium">Online ({onlineUsers.length})</span>
         </div>
         <ScrollArea className="h-[500px]">
-          <div className="space-y-2">
-            {onlineUsers.map((user) => (
-              <div key={user.userId} className="flex items-center gap-2" data-testid={`online-user-${user.userId}`}>
-                <Circle className="w-2 h-2 fill-green-500 text-green-500" />
-                <span className="text-sm">{user.userName}</span>
-                {renderRoleBadge(user.userRole)}
-              </div>
-            ))}
-          </div>
+          {renderOnlineUsersList()}
         </ScrollArea>
       </div>
     </div>
+
+    {/* Mobile Online Users Sheet */}
+    <Sheet open={isOnlineUsersOpen} onOpenChange={setIsOnlineUsersOpen}>
+      <SheetContent 
+        side="right" 
+        className="w-[85vw] sm:w-[400px] bg-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/90 border-l border-accent/20"
+      >
+        <SheetHeader className="border-b border-accent/10 pb-5 mb-5">
+          <SheetTitle className="flex items-center gap-3">
+            <div className="relative flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-accent/20 to-accent/10">
+              <Users className="w-5 h-5 text-accent" />
+              <Circle className="w-2.5 h-2.5 fill-green-500 text-green-500 absolute -top-0.5 -right-0.5 animate-pulse border-2 border-background rounded-full" />
+            </div>
+            <div className="flex flex-col items-start">
+              <span className="text-lg font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+                Online Members
+              </span>
+              <span className="text-xs text-muted-foreground font-normal">
+                {onlineUsers.length} {onlineUsers.length === 1 ? 'member' : 'members'} active now
+              </span>
+            </div>
+          </SheetTitle>
+        </SheetHeader>
+        
+        <ScrollArea className="h-[calc(100vh-160px)] pr-3 -mr-3">
+          {onlineUsers.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
+                <Users className="w-8 h-8 opacity-50" />
+              </div>
+              <p className="text-sm font-medium">No members online</p>
+              <p className="text-xs mt-1 opacity-70">Check back later</p>
+            </div>
+          ) : (
+            renderOnlineUsersList()
+          )}
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
+  </>
   );
 }
