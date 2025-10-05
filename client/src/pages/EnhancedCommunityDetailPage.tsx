@@ -105,43 +105,23 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import type { Community, CommunityMembership, CommunityPost, CommunityComment } from "@shared/schema";
 
-interface Community {
-  id: string;
-  name: string;
-  description: string;
-  imageUrl?: string;
-  coverUrl?: string;
-  isPrivate: boolean;
-  membershipPolicy: 'open' | 'approval_required' | 'closed';
-  status: string;
-  memberCount?: number;
-  postCount?: number;
-}
+// Extended member type with user information for display
+type Member = CommunityMembership & {
+  user?: {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    profileImageUrl?: string;
+    createdAt: string;
+    role: string;
+  };
+};
 
-interface Membership {
-  id: string;
-  status: 'pending' | 'approved' | 'declined';
-  role: 'member' | 'moderator' | 'owner';
-  requestedAt: string;
-  approvedAt?: string;
-}
-
-interface Post {
-  id: string;
-  title: string;
-  content: string;
-  imageUrl?: string;
-  linkUrl?: string;
-  linkText?: string;
-  linkDescription?: string;
-  tags?: string[];
-  metadata?: any;
-  postType: 'announcement' | 'update' | 'event';
-  isPinned: boolean;
-  postAsBusiness?: boolean;
-  createdAt: string;
-  authorId: string;
+// Extended post type with author and engagement data
+type Post = CommunityPost & {
   author?: {
     id: string;
     firstName?: string;
@@ -157,35 +137,19 @@ interface Post {
     count: number;
     hasReacted?: boolean;
   }[];
-  comments?: Comment[];
-}
+  comments?: CommentWithReplies[];
+};
 
-interface Comment {
-  id: string;
-  content: string;
-  authorId: string;
+// Extended comment type with likes and replies
+type CommentWithReplies = CommunityComment & {
   authorName: string;
   authorAvatar?: string;
   authorRole?: 'owner' | 'moderator' | 'member';
-  createdAt: string;
   likes: number;
   hasLiked?: boolean;
-  replies?: Comment[];
-  parentId?: string;
+  replies?: CommentWithReplies[];
   isEdited?: boolean;
-}
-
-interface Member {
-  id: string;
-  userId: string;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  status: 'pending' | 'approved' | 'declined';
-  role: 'member' | 'moderator' | 'owner';
-  joinedAt?: string;
-  requestedAt?: string;
-}
+};
 
 interface User {
   id: string;
@@ -197,7 +161,7 @@ interface User {
 
 interface CommunityDetailResponse {
   community?: Community;
-  membership?: Membership;
+  membership?: CommunityMembership;
   posts?: Post[];
   members?: Member[];
   canManage?: boolean;
@@ -375,6 +339,20 @@ export default function EnhancedCommunityDetailPage() {
       setBannedWordsValue(community.bannedWords.join(', '));
     }
   }, [community?.bannedWords]);
+
+  // Sync community settings when community data loads
+  useEffect(() => {
+    if (community) {
+      setCommunitySettings({
+        name: community.name || '',
+        description: community.description || '',
+        welcomeText: community.welcomeText || '',
+        membershipPolicy: community.membershipPolicy || 'approval_required',
+        chatMode: community.chatMode || 'all_members',
+        isPrivate: community.isPrivate || false
+      });
+    }
+  }, [community?.id]);
 
   // Get analytics data (only if member/owner and analytics tab is active)
   const { data: analyticsData } = useQuery<{
@@ -1893,11 +1871,21 @@ export default function EnhancedCommunityDetailPage() {
                     <Label htmlFor="community-name">Community Name</Label>
                     <Input
                       id="community-name"
-                      value={community.name}
+                      value={communitySettings.name}
                       onChange={(e) => {
-                        // Update locally first for immediate feedback
-                        // Then save to server
+                        setCommunitySettings(prev => ({ ...prev, name: e.target.value }));
                       }}
+                      onBlur={() => {
+                        if (communitySettings.name.trim() && communitySettings.name !== community.name) {
+                          updateCommunityMutation.mutate({
+                            name: communitySettings.name.trim()
+                          });
+                        } else if (!communitySettings.name.trim()) {
+                          // Reset to original if empty
+                          setCommunitySettings(prev => ({ ...prev, name: community.name || '' }));
+                        }
+                      }}
+                      data-testid="input-community-name"
                     />
                   </div>
                   
@@ -1905,12 +1893,19 @@ export default function EnhancedCommunityDetailPage() {
                     <Label htmlFor="description">Description</Label>
                     <Textarea
                       id="description"
-                      value={community.description || ''}
+                      value={communitySettings.description}
                       onChange={(e) => {
-                        // Update locally first for immediate feedback
-                        // Then save to server
+                        setCommunitySettings(prev => ({ ...prev, description: e.target.value }));
+                      }}
+                      onBlur={() => {
+                        if (communitySettings.description !== community.description) {
+                          updateCommunityMutation.mutate({
+                            description: communitySettings.description
+                          });
+                        }
                       }}
                       rows={4}
+                      data-testid="input-community-description"
                     />
                   </div>
 
