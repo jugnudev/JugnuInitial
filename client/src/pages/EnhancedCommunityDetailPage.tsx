@@ -1678,15 +1678,15 @@ export default function EnhancedCommunityDetailPage() {
             <TabsContent value="settings" className="space-y-6">
               <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
                 <CardHeader>
-                  <CardTitle>Chat Settings</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-base md:text-lg">Chat Settings</CardTitle>
+                  <CardDescription className="text-xs md:text-sm">
                     Configure chat permissions and moderation settings for your community
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4 md:space-y-6">
                   {/* Chat Mode */}
                   <div>
-                    <Label>Chat Mode</Label>
+                    <Label className="text-sm md:text-base">Chat Mode</Label>
                     <Select
                       value={community.chatMode || 'all_members'}
                       onValueChange={(value) => {
@@ -1717,7 +1717,7 @@ export default function EnhancedCommunityDetailPage() {
                   
                   {/* Slowmode */}
                   <div>
-                    <Label htmlFor="slowmode">Slowmode (seconds between messages)</Label>
+                    <Label htmlFor="slowmode" className="text-sm md:text-base">Slowmode (seconds between messages)</Label>
                     <Input
                       id="slowmode"
                       type="number"
@@ -1739,20 +1739,20 @@ export default function EnhancedCommunityDetailPage() {
                         }
                       }}
                       placeholder="0 (no slowmode)"
-                      className="bg-premium-surface-elevated border-premium-border text-premium-text-primary placeholder:text-premium-text-muted"
+                      className="bg-premium-surface-elevated border-premium-border text-premium-text-primary placeholder:text-premium-text-muted text-sm md:text-base"
                       data-testid="input-slowmode"
                     />
-                    <p className="text-sm text-premium-text-muted mt-1">
+                    <p className="text-xs md:text-sm text-premium-text-muted mt-1">
                       Set a cooldown period between messages (0-300 seconds)
                     </p>
                   </div>
                   
                   {/* Auto-moderation */}
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="auto-mod">Auto-moderation</Label>
-                        <p className="text-sm text-premium-text-muted">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <Label htmlFor="auto-mod" className="text-sm md:text-base">Auto-moderation</Label>
+                        <p className="text-xs md:text-sm text-premium-text-muted">
                           Automatically filter inappropriate content
                         </p>
                       </div>
@@ -1834,12 +1834,12 @@ export default function EnhancedCommunityDetailPage() {
               
               <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
                 <CardHeader>
-                  <CardTitle>General Settings</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-base md:text-lg">General Settings</CardTitle>
+                  <CardDescription className="text-xs md:text-sm">
                     Manage your community's basic settings
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-6">
+                <CardContent className="space-y-4 md:space-y-6">
                   <div>
                     <Label htmlFor="community-name">Community Name</Label>
                     <Input
