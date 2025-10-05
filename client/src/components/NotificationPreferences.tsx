@@ -190,13 +190,13 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
     updatePreferencesMutation.mutate(values);
   };
 
-  const containerClass = embedded ? '' : 'container mx-auto py-8 px-4 max-w-4xl';
+  const containerClass = embedded ? '' : 'container mx-auto py-4 sm:py-8 px-3 sm:px-4 max-w-4xl';
 
   if (isLoading) {
     return (
       <div className={containerClass}>
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin" />
+          <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin" />
         </div>
       </div>
     );
@@ -205,26 +205,26 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
   return (
     <div className={containerClass}>
       {!embedded && (
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold flex items-center gap-2" data-testid="text-preferences-title">
-            <Bell className="h-8 w-8" />
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2" data-testid="text-preferences-title">
+            <Bell className="h-6 w-6 sm:h-8 sm:w-8" />
             Notification Preferences
           </h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Customize how and when you receive notifications
           </p>
         </div>
       )}
 
       {!communityId && communitiesData?.communities && communitiesData.communities.length > 0 && (
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Select Scope</CardTitle>
-            <CardDescription>
-              Choose global settings or customize for specific communities
+        <Card className="mb-4 sm:mb-6">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Select Scope</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
+              Choose global or customize for communities
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
             <Select value={selectedCommunity} onValueChange={setSelectedCommunity}>
               <SelectTrigger data-testid="select-community-scope">
                 <SelectValue />
@@ -243,36 +243,36 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
       )}
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
           <Tabs defaultValue="channels" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="channels">Channels</TabsTrigger>
-              <TabsTrigger value="types">Notification Types</TabsTrigger>
-              <TabsTrigger value="schedule">Schedule</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 h-auto">
+              <TabsTrigger value="channels" className="text-xs sm:text-sm py-2 sm:py-2.5">Channels</TabsTrigger>
+              <TabsTrigger value="types" className="text-xs sm:text-sm py-2 sm:py-2.5">Types</TabsTrigger>
+              <TabsTrigger value="schedule" className="text-xs sm:text-sm py-2 sm:py-2.5">Schedule</TabsTrigger>
             </TabsList>
 
             {/* Channels Tab */}
-            <TabsContent value="channels" className="space-y-6 mt-6">
+            <TabsContent value="channels" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Notification Channels</CardTitle>
-                  <CardDescription>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Notification Channels</CardTitle>
+                  <CardDescription className="text-sm sm:text-base">
                     Choose how you want to receive notifications
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
                   <FormField
                     control={form.control}
                     name="inAppEnabled"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-y-0 p-4 border rounded-lg">
-                        <div className="space-y-0.5">
-                          <FormLabel className="flex items-center gap-2">
+                      <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 space-y-0 p-3 sm:p-4 border rounded-lg">
+                        <div className="space-y-0.5 flex-1">
+                          <FormLabel className="flex items-center gap-2 text-sm sm:text-base">
                             <Bell className="h-4 w-4" />
                             In-App Notifications
                           </FormLabel>
-                          <FormDescription>
-                            Receive notifications within the application
+                          <FormDescription className="text-xs sm:text-sm">
+                            Receive notifications in the app
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -280,6 +280,7 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                             checked={field.value}
                             onCheckedChange={field.onChange}
                             data-testid="switch-in-app"
+                            className="self-start sm:self-auto"
                           />
                         </FormControl>
                       </FormItem>
@@ -290,13 +291,13 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                     control={form.control}
                     name="emailEnabled"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-y-0 p-4 border rounded-lg">
-                        <div className="space-y-0.5">
-                          <FormLabel className="flex items-center gap-2">
+                      <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 space-y-0 p-3 sm:p-4 border rounded-lg">
+                        <div className="space-y-0.5 flex-1">
+                          <FormLabel className="flex items-center gap-2 text-sm sm:text-base">
                             <Mail className="h-4 w-4" />
                             Email Notifications
                           </FormLabel>
-                          <FormDescription>
+                          <FormDescription className="text-xs sm:text-sm">
                             Receive notifications via email
                           </FormDescription>
                         </div>
@@ -305,6 +306,7 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                             checked={field.value}
                             onCheckedChange={field.onChange}
                             data-testid="switch-email"
+                            className="self-start sm:self-auto"
                           />
                         </FormControl>
                       </FormItem>
@@ -315,15 +317,15 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                     control={form.control}
                     name="pushEnabled"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-y-0 p-4 border rounded-lg opacity-50">
-                        <div className="space-y-0.5">
-                          <FormLabel className="flex items-center gap-2">
+                      <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 space-y-0 p-3 sm:p-4 border rounded-lg opacity-50">
+                        <div className="space-y-0.5 flex-1">
+                          <FormLabel className="flex items-center gap-2 text-sm sm:text-base">
                             <Smartphone className="h-4 w-4" />
                             Push Notifications
-                            <Badge variant="secondary">Coming Soon</Badge>
+                            <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
                           </FormLabel>
-                          <FormDescription>
-                            Receive push notifications on your device
+                          <FormDescription className="text-xs sm:text-sm">
+                            Push notifications on your device
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -332,6 +334,7 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                             onCheckedChange={field.onChange}
                             disabled
                             data-testid="switch-push"
+                            className="self-start sm:self-auto"
                           />
                         </FormControl>
                       </FormItem>
@@ -342,27 +345,28 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
             </TabsContent>
 
             {/* Notification Types Tab */}
-            <TabsContent value="types" className="space-y-6 mt-6">
+            <TabsContent value="types" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Notification Types</CardTitle>
-                  <CardDescription>
-                    Choose which types of notifications you want to receive
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Notification Types</CardTitle>
+                  <CardDescription className="text-sm sm:text-base">
+                    Choose which types you want to receive
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4">
+                <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
+                  <div className="grid gap-3 sm:gap-4">
                     <FormField
                       control={form.control}
                       name="newPosts"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between space-y-0">
-                          <FormLabel>New Posts</FormLabel>
+                        <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 space-y-0 p-2 sm:p-0">
+                          <FormLabel className="text-sm sm:text-base">New Posts</FormLabel>
                           <FormControl>
                             <Switch
                               checked={field.value}
                               onCheckedChange={field.onChange}
                               data-testid="switch-new-posts"
+                              className="self-start sm:self-auto"
                             />
                           </FormControl>
                         </FormItem>
@@ -373,13 +377,14 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                       control={form.control}
                       name="postComments"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between space-y-0">
-                          <FormLabel>Comments on Your Posts</FormLabel>
+                        <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 space-y-0 p-2 sm:p-0">
+                          <FormLabel className="text-sm sm:text-base">Comments on Your Posts</FormLabel>
                           <FormControl>
                             <Switch
                               checked={field.value}
                               onCheckedChange={field.onChange}
                               data-testid="switch-post-comments"
+                              className="self-start sm:self-auto"
                             />
                           </FormControl>
                         </FormItem>
@@ -390,13 +395,14 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                       control={form.control}
                       name="commentReplies"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between space-y-0">
-                          <FormLabel>Replies to Your Comments</FormLabel>
+                        <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 space-y-0 p-2 sm:p-0">
+                          <FormLabel className="text-sm sm:text-base">Replies to Your Comments</FormLabel>
                           <FormControl>
                             <Switch
                               checked={field.value}
                               onCheckedChange={field.onChange}
                               data-testid="switch-comment-replies"
+                              className="self-start sm:self-auto"
                             />
                           </FormControl>
                         </FormItem>
@@ -407,13 +413,14 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                       control={form.control}
                       name="mentions"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between space-y-0">
-                          <FormLabel>Mentions</FormLabel>
+                        <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 space-y-0 p-2 sm:p-0">
+                          <FormLabel className="text-sm sm:text-base">Mentions</FormLabel>
                           <FormControl>
                             <Switch
                               checked={field.value}
                               onCheckedChange={field.onChange}
                               data-testid="switch-mentions"
+                              className="self-start sm:self-auto"
                             />
                           </FormControl>
                         </FormItem>
@@ -424,13 +431,14 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                       control={form.control}
                       name="pollResults"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between space-y-0">
-                          <FormLabel>Poll Results</FormLabel>
+                        <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 space-y-0 p-2 sm:p-0">
+                          <FormLabel className="text-sm sm:text-base">Poll Results</FormLabel>
                           <FormControl>
                             <Switch
                               checked={field.value}
                               onCheckedChange={field.onChange}
                               data-testid="switch-poll-results"
+                              className="self-start sm:self-auto"
                             />
                           </FormControl>
                         </FormItem>
@@ -441,13 +449,14 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                       control={form.control}
                       name="membershipUpdates"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between space-y-0">
-                          <FormLabel>Membership Updates</FormLabel>
+                        <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 space-y-0 p-2 sm:p-0">
+                          <FormLabel className="text-sm sm:text-base">Membership Updates</FormLabel>
                           <FormControl>
                             <Switch
                               checked={field.value}
                               onCheckedChange={field.onChange}
                               data-testid="switch-membership"
+                              className="self-start sm:self-auto"
                             />
                           </FormControl>
                         </FormItem>
@@ -458,13 +467,14 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                       control={form.control}
                       name="communityAnnouncements"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between space-y-0">
-                          <FormLabel>Community Announcements</FormLabel>
+                        <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 space-y-0 p-2 sm:p-0">
+                          <FormLabel className="text-sm sm:text-base">Community Announcements</FormLabel>
                           <FormControl>
                             <Switch
                               checked={field.value}
                               onCheckedChange={field.onChange}
                               data-testid="switch-announcements"
+                              className="self-start sm:self-auto"
                             />
                           </FormControl>
                         </FormItem>
@@ -475,13 +485,14 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                       control={form.control}
                       name="newDeals"
                       render={({ field }) => (
-                        <FormItem className="flex items-center justify-between space-y-0">
-                          <FormLabel>New Deals & Offers</FormLabel>
+                        <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 space-y-0 p-2 sm:p-0">
+                          <FormLabel className="text-sm sm:text-base">New Deals & Offers</FormLabel>
                           <FormControl>
                             <Switch
                               checked={field.value}
                               onCheckedChange={field.onChange}
                               data-testid="switch-deals"
+                              className="self-start sm:self-auto"
                             />
                           </FormControl>
                         </FormItem>
@@ -493,15 +504,15 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
             </TabsContent>
 
             {/* Schedule Tab */}
-            <TabsContent value="schedule" className="space-y-6 mt-6">
+            <TabsContent value="schedule" className="space-y-4 sm:space-y-6 mt-4 sm:mt-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Email Frequency</CardTitle>
-                  <CardDescription>
-                    How often should we send you email notifications?
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Email Frequency</CardTitle>
+                  <CardDescription className="text-sm sm:text-base">
+                    How often should we send email notifications?
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
                   <FormField
                     control={form.control}
                     name="emailFrequency"
@@ -573,22 +584,22 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle>Quiet Hours</CardTitle>
-                  <CardDescription>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Quiet Hours</CardTitle>
+                  <CardDescription className="text-sm sm:text-base">
                     Pause notifications during specific hours
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
                   <FormField
                     control={form.control}
                     name="quietHoursEnabled"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between space-y-0">
-                        <div className="space-y-0.5">
-                          <FormLabel>Enable Quiet Hours</FormLabel>
-                          <FormDescription>
-                            Don't send email notifications during quiet hours
+                      <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 space-y-0">
+                        <div className="space-y-0.5 flex-1">
+                          <FormLabel className="text-sm sm:text-base">Enable Quiet Hours</FormLabel>
+                          <FormDescription className="text-xs sm:text-sm">
+                            Pause email notifications during these hours
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -596,6 +607,7 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                             checked={field.value}
                             onCheckedChange={field.onChange}
                             data-testid="switch-quiet-hours"
+                            className="self-start sm:self-auto"
                           />
                         </FormControl>
                       </FormItem>
@@ -603,7 +615,7 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                   />
 
                   {form.watch('quietHoursEnabled') && (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <FormField
                         control={form.control}
                         name="quietHoursStart"
@@ -650,12 +662,13 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
             </TabsContent>
           </Tabs>
 
-          <div className="flex justify-end gap-4">
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-3 sm:gap-4 pt-2">
             <Button
               type="button"
               variant="outline"
               onClick={() => form.reset()}
               data-testid="button-reset"
+              className="w-full sm:w-auto"
             >
               Reset
             </Button>
@@ -663,6 +676,7 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
               type="submit"
               disabled={updatePreferencesMutation.isPending}
               data-testid="button-save"
+              className="w-full sm:w-auto"
             >
               {updatePreferencesMutation.isPending && (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
