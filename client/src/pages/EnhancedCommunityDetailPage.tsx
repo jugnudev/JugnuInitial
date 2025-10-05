@@ -208,11 +208,13 @@ function PostCardWithComments({
   post,
   communityId,
   communityName,
+  communityImageUrl,
   ...otherProps
 }: {
   post: Post;
   communityId: string;
   communityName?: string;
+  communityImageUrl?: string;
   [key: string]: any;
 }) {
   const { data: commentsData } = useQuery({
@@ -228,9 +230,9 @@ function PostCardWithComments({
   let authorAvatar = post.authorAvatar;
   
   if (post.postAsBusiness !== false && communityName) {
-    // Post as business (default behavior)
+    // Post as business (default behavior) - use community profile image
     authorName = communityName;
-    authorAvatar = undefined; // Will show building icon
+    authorAvatar = communityImageUrl; // Use community's profile image
   } else if (post.author) {
     // Post as user
     authorName = `${post.author.firstName || ''} ${post.author.lastName || ''}`.trim() || 'Unknown User';
@@ -1296,6 +1298,7 @@ export default function EnhancedCommunityDetailPage() {
                         post={post}
                         communityId={community?.id || ''}
                         communityName={community?.name}
+                        communityImageUrl={community?.imageUrl}
                         canEdit={isOwner || post.authorId === user?.id}
                         canDelete={isOwner}
                         onEdit={() => handleEditPost(post)}
@@ -2006,6 +2009,7 @@ export default function EnhancedCommunityDetailPage() {
                         post={post}
                         communityId={community?.id || ''}
                         communityName={community?.name}
+                        communityImageUrl={community?.imageUrl}
                         canEdit={post.authorId === user?.id}
                         canDelete={false}
                         onReaction={(type) => handleReaction(post.id, type)}
