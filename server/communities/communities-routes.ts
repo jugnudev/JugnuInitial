@@ -1446,7 +1446,7 @@ export function addCommunitiesRoutes(app: Express) {
 
   /**
    * POST /api/communities
-   * Create a new community (organizers only, max 1 per organizer)
+   * Create a new community (organizers only)
    * curl -X POST http://localhost:5000/api/communities \
    *   -H "Authorization: Bearer YOUR_TOKEN" \
    *   -H "Content-Type: application/json" \
@@ -1455,12 +1455,6 @@ export function addCommunitiesRoutes(app: Express) {
   app.post('/api/communities', checkCommunitiesFeatureFlag, requireAuth, requireApprovedOrganizer, async (req: Request, res: Response) => {
     try {
       const organizer = (req as any).organizer;
-
-      // Check if organizer already has a community
-      const existingCommunity = await communitiesStorage.getCommunityByOrganizerId(organizer.id);
-      if (existingCommunity) {
-        return res.status(400).json({ ok: false, error: 'You can only create one community' });
-      }
 
       const validationResult = createCommunitySchema.safeParse(req.body);
       if (!validationResult.success) {
