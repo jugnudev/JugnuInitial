@@ -123,13 +123,13 @@ export function ReactionsBar({
     <div className={`relative flex items-center gap-2 ${className}`}>
       {/* Active Reactions Display */}
       {activeReactions.length > 0 && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-wrap">
           {activeReactions.map((reaction, idx) => (
             <button
               key={reaction.type}
               onClick={() => handleReaction(reaction.type)}
               className={`
-                relative flex items-center gap-1 px-2.5 py-1.5 rounded-full
+                relative flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full
                 border transition-all duration-150
                 ${hasReacted(reaction.type) 
                   ? `${reaction.bgColorActive} ${reaction.borderColorActive} ${reaction.color}` 
@@ -139,8 +139,8 @@ export function ReactionsBar({
               `}
               data-testid={`reaction-${reaction.type}-${postId}`}
             >
-              <span className="text-lg">{reaction.emoji}</span>
-              <span className="text-xs font-medium">{getReactionCount(reaction.type)}</span>
+              <span className="text-base sm:text-lg">{reaction.emoji}</span>
+              <span className="text-xs font-medium min-w-[12px] text-center">{getReactionCount(reaction.type)}</span>
               
             </button>
           ))}

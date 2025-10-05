@@ -140,15 +140,15 @@ export function PostCard({
       case 'event':
         return {
           badge: {
-            color: 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-400 border-purple-500/30',
+            color: 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border-emerald-500/30',
             icon: Calendar,
             label: 'Event'
           },
           card: {
-            border: 'border-purple-500/30 hover:border-purple-500/50',
-            background: 'bg-gradient-to-br from-premium-surface via-purple-500/5 to-premium-surface-elevated',
-            accent: 'bg-gradient-to-r from-purple-500/20 to-pink-500/20',
-            shadow: 'hover:shadow-purple-500/20'
+            border: 'border-emerald-500/30 hover:border-emerald-500/50',
+            background: 'bg-gradient-to-br from-premium-surface via-emerald-500/5 to-premium-surface-elevated',
+            accent: 'bg-gradient-to-r from-emerald-500/20 to-teal-500/20',
+            shadow: 'hover:shadow-emerald-500/20'
           }
         };
       case 'update':
