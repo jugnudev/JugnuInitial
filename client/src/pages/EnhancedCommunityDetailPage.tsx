@@ -326,6 +326,7 @@ export default function EnhancedCommunityDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [slowmodeValue, setSlowmodeValue] = useState<string>('0');
   const [communitySettings, setCommunitySettings] = useState({
     name: '',
     description: '',
@@ -359,6 +360,13 @@ export default function EnhancedCommunityDetailPage() {
   const isPending = membership?.status === 'pending';
   const isDeclined = membership?.status === 'declined';
   const isOwner = membership?.role === 'owner' || canManage;
+
+  // Sync slowmode value when community data loads
+  useEffect(() => {
+    if (community?.chatSlowmodeSeconds !== undefined) {
+      setSlowmodeValue(String(community.chatSlowmodeSeconds));
+    }
+  }, [community?.chatSlowmodeSeconds]);
 
   // Get analytics data (only if member/owner and analytics tab is active)
   const { data: analyticsData } = useQuery<{
@@ -1689,21 +1697,23 @@ export default function EnhancedCommunityDetailPage() {
                       type="number"
                       min="0"
                       max="300"
-                      value={community.chatSlowmodeSeconds || 0}
+                      value={slowmodeValue}
                       onChange={(e) => {
-                        const value = parseInt(e.target.value) || 0;
+                        setSlowmodeValue(e.target.value);
+                      }}
+                      onBlur={() => {
+                        const value = parseInt(slowmodeValue) || 0;
                         if (value >= 0 && value <= 300) {
                           updateCommunityMutation.mutate({
                             chatSlowmodeSeconds: value
                           });
+                        } else {
+                          // Reset to valid value if out of range
+                          setSlowmodeValue(String(community?.chatSlowmodeSeconds || 0));
                         }
                       }}
-                      onKeyDown={(e) => {
-                        // Allow typing without immediate mutation
-                        e.stopPropagation();
-                      }}
                       placeholder="0 (no slowmode)"
-                      className="bg-premium-surface border-premium-border text-premium-text-primary dark:text-white"
+                      className="bg-premium-surface-elevated border-premium-border text-premium-text-primary placeholder:text-premium-text-muted"
                       data-testid="input-slowmode"
                     />
                     <p className="text-sm text-premium-text-muted mt-1">
