@@ -1102,7 +1102,7 @@ export default function EnhancedCommunityDetailPage() {
     >
       {/* Community Header */}
       <motion.div 
-        className="relative h-72 sm:h-80 md:h-96 overflow-hidden"
+        className="relative h-80 sm:h-96 md:h-[28rem] overflow-hidden"
         variants={headerAnimation}
       >
         {community.coverUrl ? (
@@ -1115,19 +1115,19 @@ export default function EnhancedCommunityDetailPage() {
           <div className="w-full h-full bg-gradient-to-br from-copper-500/30 via-copper-600/20 to-copper-900/30" />
         )}
         
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/20" />
         
         {/* Header Actions */}
-        <div className="absolute top-4 md:top-6 left-4 md:left-6 right-4 md:right-6 flex justify-between gap-2">
+        <div className="absolute top-4 sm:top-6 left-4 sm:left-6 right-4 sm:right-6 flex justify-between items-center gap-3">
           <Link href="/communities">
             <Button 
               variant="outline" 
               size="sm"
-              className="bg-black/50 backdrop-blur-md border-white/20 text-white hover:bg-black/70"
+              className="bg-black/60 backdrop-blur-md border-white/30 text-white hover:bg-black/80 transition-all"
               data-testid="back-to-communities"
             >
-              <ArrowLeft className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Back</span>
+              <ArrowLeft className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Back</span>
             </Button>
           </Link>
           
@@ -1136,7 +1136,7 @@ export default function EnhancedCommunityDetailPage() {
               <Button 
                 variant="outline" 
                 size="sm"
-                className="bg-black/50 backdrop-blur-md border-white/20 text-white hover:bg-black/70"
+                className="bg-black/60 backdrop-blur-md border-white/30 text-white hover:bg-black/80 transition-all"
                 data-testid="community-options-menu"
               >
                 <MoreVertical className="h-4 w-4" />
@@ -1165,63 +1165,69 @@ export default function EnhancedCommunityDetailPage() {
         </div>
         
         {/* Community Info */}
-        <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6 md:p-8">
+        <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-6 pb-6 sm:pb-8 pt-20">
           <div className="max-w-6xl mx-auto">
-            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6">
-              <Avatar className="h-24 w-24 sm:h-28 sm:w-28 border-4 border-black/50 shadow-2xl ring-2 ring-white/10">
-                <AvatarImage src={community.imageUrl} alt={community.name} />
-                <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white text-3xl sm:text-4xl font-bold">
-                  {community.name.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1 w-full sm:mb-2">
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  <h1 className="font-fraunces text-2xl sm:text-3xl md:text-4xl font-bold text-white break-words">
+            <div className="flex flex-col space-y-5">
+              {/* Avatar and Title Row */}
+              <div className="flex items-end gap-4">
+                <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-white/20 shadow-2xl flex-shrink-0">
+                  <AvatarImage src={community.imageUrl} alt={community.name} />
+                  <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white text-2xl sm:text-3xl font-bold">
+                    {community.name.substring(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                
+                <div className="flex-1 min-w-0">
+                  <h1 className="font-fraunces text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 break-words leading-tight">
                     {community.name}
                   </h1>
-                  {isOwner && (
-                    <Badge className="bg-amber-500/20 text-yellow-400 border-yellow-500/30 text-xs flex-shrink-0">
-                      <Crown className="h-3 w-3 mr-1" />
-                      Owner
-                    </Badge>
-                  )}
-                  {community.isPrivate && (
-                    <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs flex-shrink-0">
-                      <Lock className="h-3 w-3 mr-1" />
-                      Private
-                    </Badge>
-                  )}
-                </div>
-                
-                <p className="text-white/90 mb-4 text-sm sm:text-base leading-relaxed line-clamp-2 sm:line-clamp-none">
-                  {community.description}
-                </p>
-                
-                <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-white/70 text-xs sm:text-sm">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 flex-shrink-0" />
-                    <span className="whitespace-nowrap">{community.memberCount || 0} members</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4 flex-shrink-0" />
-                    <span className="whitespace-nowrap">{community.postCount || 0} posts</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {isOwner && (
+                      <Badge className="bg-amber-500/20 text-yellow-400 border-yellow-500/30 text-xs">
+                        <Crown className="h-3 w-3 mr-1" />
+                        Owner
+                      </Badge>
+                    )}
+                    {community.isPrivate && (
+                      <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">
+                        <Lock className="h-3 w-3 mr-1" />
+                        Private
+                      </Badge>
+                    )}
                   </div>
                 </div>
               </div>
               
-              {/* Quick Actions */}
-              {isOwner && (
-                <Button
-                  onClick={() => setShowCreatePost(true)}
-                  size="sm"
-                  className="bg-accent hover:bg-accent/80 text-white shadow-glow w-full sm:w-auto mt-2 sm:mt-0"
-                  data-testid="create-post-button"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Post
-                </Button>
-              )}
+              {/* Description */}
+              <p className="text-white/90 text-sm sm:text-base leading-relaxed max-w-3xl">
+                {community.description}
+              </p>
+              
+              {/* Stats and CTA Row */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+                <div className="flex items-center gap-6 text-white/70 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    <span>{community.memberCount || 0} members</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    <span>{community.postCount || 0} posts</span>
+                  </div>
+                </div>
+                
+                {/* Quick Actions */}
+                {isOwner && (
+                  <Button
+                    onClick={() => setShowCreatePost(true)}
+                    className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-accent/90 text-black font-semibold shadow-lg transition-all w-full sm:w-auto sm:ml-auto"
+                    data-testid="create-post-button"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    New Post
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
