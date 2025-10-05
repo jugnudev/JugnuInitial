@@ -14,6 +14,7 @@ import {
   DialogHeader, 
   DialogTitle 
 } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import { queryClient } from '@/lib/queryClient';
@@ -107,6 +108,9 @@ export default function AdminCommunitiesPage() {
   const [suspendReason, setSuspendReason] = useState('');
   const [showSelfTest, setShowSelfTest] = useState(false);
   const [selfTestResults, setSelfTestResults] = useState<any>(null);
+  
+  // Custom dialog states
+  const [restoreCommunityDialog, setRestoreCommunityDialog] = useState<{ open: boolean; community: CommunityAdmin | null }>({ open: false, community: null });
 
   // Check authentication
   const { data: authCheck, refetch: checkAuth } = useQuery({
@@ -330,9 +334,7 @@ export default function AdminCommunitiesPage() {
   };
 
   const handleRestore = (community: CommunityAdmin) => {
-    if (confirm(`Are you sure you want to restore "${community.name}"?`)) {
-      restoreMutation.mutate(community.id);
-    }
+    setRestoreCommunityDialog({ open: true, community });
   };
 
   const exportToCSV = () => {
@@ -779,6 +781,39 @@ export default function AdminCommunitiesPage() {
             onRerun={() => selfTestMutation.mutate()}
           />
         )}
+
+        {/* Restore Community Confirmation Dialog */}
+        <AlertDialog open={restoreCommunityDialog.open} onOpenChange={(open) => setRestoreCommunityDialog({ open, community: null })}>
+          <AlertDialogContent className="bg-black/90 border-white/10">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white">Restore Community</AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-400">
+                {restoreCommunityDialog.community && (
+                  <>
+                    Are you sure you want to restore "{restoreCommunityDialog.community.name}"? This will reactivate the community and allow members to access it again.
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="border-white/20 text-white hover:bg-white/10">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (restoreCommunityDialog.community) {
+                    restoreMutation.mutate(restoreCommunityDialog.community.id);
+                  }
+                  setRestoreCommunityDialog({ open: false, community: null });
+                }}
+                className="bg-green-500 hover:bg-green-600 text-white"
+                data-testid="confirm-restore-community"
+              >
+                Restore
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

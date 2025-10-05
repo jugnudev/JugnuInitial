@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { 
   Users, 
   MessageSquare, 
@@ -434,6 +435,9 @@ export default function CommunityDetailPage() {
     membershipPolicy: 'approval_required' as 'open' | 'approval_required' | 'closed'
   });
   
+  // Custom dialog states
+  const [deleteAnnouncementDialog, setDeleteAnnouncementDialog] = useState<{ open: boolean; postId: string | null }>({ open: false, postId: null });
+  const [deleteCommunityDialog, setDeleteCommunityDialog] = useState(false);
 
   // Handle form submissions
   const handleCreateAnnouncement = async () => {
@@ -449,9 +453,7 @@ export default function CommunityDetailPage() {
   };
 
   const handleDeleteAnnouncement = (postId: string) => {
-    if (confirm("Are you sure you want to delete this announcement?")) {
-      deleteAnnouncementMutation.mutate(postId);
-    }
+    setDeleteAnnouncementDialog({ open: true, postId });
   };
   
   const handleEditAnnouncement = (post: Post) => {
@@ -1628,9 +1630,7 @@ export default function CommunityDetailPage() {
                             variant="destructive"
                             className="ml-4 font-bold px-6 py-3 hover:shadow-lg"
                             onClick={() => {
-                              if (confirm("Are you sure you want to permanently delete this community? This action cannot be undone.")) {
-                                deleteCommunityMutation.mutate();
-                              }
+                              setDeleteCommunityDialog(true);
                             }}
                             disabled={deleteCommunityMutation.isPending}
                             data-testid="delete-community-button"
@@ -2054,6 +2054,62 @@ export default function CommunityDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Announcement Confirmation Dialog */}
+      <AlertDialog open={deleteAnnouncementDialog.open} onOpenChange={(open) => setDeleteAnnouncementDialog({ open, postId: null })}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-text">Delete Announcement</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted">
+              Are you sure you want to delete this announcement? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-border hover:bg-surface-elevated">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteAnnouncementDialog.postId) {
+                  deleteAnnouncementMutation.mutate(deleteAnnouncementDialog.postId);
+                }
+                setDeleteAnnouncementDialog({ open: false, postId: null });
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white"
+              data-testid="confirm-delete-announcement"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Community Confirmation Dialog */}
+      <AlertDialog open={deleteCommunityDialog} onOpenChange={setDeleteCommunityDialog}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-text">Delete Community</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted">
+              Are you sure you want to permanently delete this community? This action cannot be undone and will remove all member access.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-border hover:bg-surface-elevated">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                deleteCommunityMutation.mutate();
+                setDeleteCommunityDialog(false);
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white"
+              data-testid="confirm-delete-community"
+            >
+              Delete Community
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
