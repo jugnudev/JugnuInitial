@@ -1109,7 +1109,7 @@ export default function EnhancedCommunityDetailPage() {
           <img 
             src={community.coverUrl} 
             alt={community.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover object-center"
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-copper-500/30 via-copper-600/20 to-copper-900/30" />
