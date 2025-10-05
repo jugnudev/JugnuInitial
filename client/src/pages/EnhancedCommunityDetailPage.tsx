@@ -1227,7 +1227,7 @@ export default function EnhancedCommunityDetailPage() {
       </motion.div>
       
       {/* Content Area */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
         {isOwner ? (
           // Owner Console with Tabs
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -1494,16 +1494,16 @@ export default function EnhancedCommunityDetailPage() {
                 </div>
               ) : (
                 <>
-              <div className="grid md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Total Members</CardTitle>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base md:text-lg">Total Members</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold text-accent">
+                    <p className="text-2xl md:text-3xl font-bold text-accent">
                       {analytics.totalMembers}
                     </p>
-                    <p className="text-sm text-premium-text-muted mt-2">
+                    <p className="text-xs md:text-sm text-premium-text-muted mt-2">
                       <TrendingUp className="h-3 w-3 inline mr-1" />
                       {(analytics.memberGrowthRate * 100).toFixed(0)}% this month
                     </p>
@@ -1511,14 +1511,14 @@ export default function EnhancedCommunityDetailPage() {
                 </Card>
                 
                 <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Total Engagement</CardTitle>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base md:text-lg">Total Engagement</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold text-accent">
+                    <p className="text-2xl md:text-3xl font-bold text-accent">
                       {analytics.totalReactions + analytics.totalComments}
                     </p>
-                    <p className="text-sm text-premium-text-muted mt-2">
+                    <p className="text-xs md:text-sm text-premium-text-muted mt-2">
                       <Heart className="h-3 w-3 inline mr-1" />
                       {analytics.avgEngagementPerPost.toFixed(1)} avg per post
                     </p>
@@ -1526,14 +1526,14 @@ export default function EnhancedCommunityDetailPage() {
                 </Card>
                 
                 <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Engagement Rate</CardTitle>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base md:text-lg">Engagement Rate</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold text-accent">
+                    <p className="text-2xl md:text-3xl font-bold text-accent">
                       {(analytics.engagementRate * 100).toFixed(1)}%
                     </p>
-                    <p className="text-sm text-premium-text-muted mt-2">
+                    <p className="text-xs md:text-sm text-premium-text-muted mt-2">
                       <TrendingUp className="h-3 w-3 inline mr-1" />
                       {analytics.engagementTrend.direction === 'growing' ? 'Growing' : analytics.engagementTrend.direction === 'declining' ? 'Declining' : 'Stable'}
                     </p>
@@ -1541,14 +1541,14 @@ export default function EnhancedCommunityDetailPage() {
                 </Card>
                 
                 <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
-                  <CardHeader>
-                    <CardTitle className="text-lg">Retention Rate</CardTitle>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base md:text-lg">Retention Rate</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-3xl font-bold text-accent">
+                    <p className="text-2xl md:text-3xl font-bold text-accent">
                       {(analytics.retentionRate * 100).toFixed(0)}%
                     </p>
-                    <p className="text-sm text-premium-text-muted mt-2">
+                    <p className="text-xs md:text-sm text-premium-text-muted mt-2">
                       <MessageCircle className="h-3 w-3 inline mr-1" />
                       Active members (30d)
                     </p>
@@ -1559,18 +1559,18 @@ export default function EnhancedCommunityDetailPage() {
               {/* Post Performance Table */}
               <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
                 <CardHeader>
-                  <CardTitle>Post Performance</CardTitle>
-                  <CardDescription>Top performing posts by engagement</CardDescription>
+                  <CardTitle className="text-base md:text-lg">Post Performance</CardTitle>
+                  <CardDescription className="text-xs md:text-sm">Top performing posts by engagement</CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Post Title</TableHead>
-                        <TableHead>Views</TableHead>
-                        <TableHead>Reactions</TableHead>
-                        <TableHead>Comments</TableHead>
-                        <TableHead>Engagement Rate</TableHead>
+                        <TableHead className="min-w-[150px]">Post Title</TableHead>
+                        <TableHead className="min-w-[80px]">Views</TableHead>
+                        <TableHead className="min-w-[90px]">Reactions</TableHead>
+                        <TableHead className="min-w-[100px]">Comments</TableHead>
+                        <TableHead className="min-w-[130px]">Engagement Rate</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -1583,11 +1583,11 @@ export default function EnhancedCommunityDetailPage() {
                         
                         return (
                           <TableRow key={post.id}>
-                            <TableCell className="font-medium">{post.title}</TableCell>
-                            <TableCell>{views > 0 ? views : '-'}</TableCell>
-                            <TableCell>{reactions}</TableCell>
-                            <TableCell>{post.comments?.length || 0}</TableCell>
-                            <TableCell>{engagementRate}%</TableCell>
+                            <TableCell className="font-medium text-xs md:text-sm truncate max-w-[200px]">{post.title}</TableCell>
+                            <TableCell className="text-xs md:text-sm">{views > 0 ? views : '-'}</TableCell>
+                            <TableCell className="text-xs md:text-sm">{reactions}</TableCell>
+                            <TableCell className="text-xs md:text-sm">{post.comments?.length || 0}</TableCell>
+                            <TableCell className="text-xs md:text-sm">{engagementRate}%</TableCell>
                           </TableRow>
                         );
                       })}
@@ -1599,26 +1599,26 @@ export default function EnhancedCommunityDetailPage() {
               {/* Best Time to Post */}
               <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
                 <CardHeader>
-                  <CardTitle>Best Time to Post</CardTitle>
-                  <CardDescription>Based on actual community engagement patterns</CardDescription>
+                  <CardTitle className="text-base md:text-lg">Best Time to Post</CardTitle>
+                  <CardDescription className="text-xs md:text-sm">Based on actual community engagement patterns</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div>
-                      <p className="font-semibold mb-2">Highest Engagement Days</p>
+                      <p className="font-semibold mb-3 text-sm md:text-base">Highest Engagement Days</p>
                       <div className="space-y-2">
                         {analytics.bestTimeToPost.days.length === 0 ? (
-                          <p className="text-sm text-premium-text-muted">Not enough data yet</p>
+                          <p className="text-xs md:text-sm text-premium-text-muted">Not enough data yet</p>
                         ) : (
                           analytics.bestTimeToPost.days.map((day, idx) => (
                             <div key={day.day} className="flex justify-between items-center">
-                              <span className="text-sm">{day.day}</span>
+                              <span className="text-xs md:text-sm">{day.day}</span>
                               <div className="flex items-center gap-2">
                                 <div 
                                   className="h-2 bg-gradient-to-r from-copper-500 to-accent rounded" 
                                   style={{ width: `${Math.max(day.percentage * 0.8, 40)}px` }}
                                 />
-                                <span className="text-sm text-premium-text-muted">{day.percentage}%</span>
+                                <span className="text-xs md:text-sm text-premium-text-muted min-w-[35px] text-right">{day.percentage}%</span>
                               </div>
                             </div>
                           ))
@@ -1626,13 +1626,13 @@ export default function EnhancedCommunityDetailPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="font-semibold mb-2">Peak Hours</p>
-                      <div className="space-y-2">
+                      <p className="font-semibold mb-3 text-sm md:text-base">Peak Hours</p>
+                      <div className="flex flex-wrap gap-2">
                         {analytics.bestTimeToPost.hours.length === 0 ? (
-                          <p className="text-sm text-premium-text-muted">Not enough data yet</p>
+                          <p className="text-xs md:text-sm text-premium-text-muted">Not enough data yet</p>
                         ) : (
                           analytics.bestTimeToPost.hours.map((hour, idx) => (
-                            <Badge key={idx} variant="outline" className="mr-2">{hour}</Badge>
+                            <Badge key={idx} variant="outline" className="text-xs">{hour}</Badge>
                           ))
                         )}
                       </div>
