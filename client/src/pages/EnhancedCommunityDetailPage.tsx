@@ -1117,15 +1117,16 @@ export default function EnhancedCommunityDetailPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
         
         {/* Header Actions */}
-        <div className="absolute top-6 left-6 right-6 flex justify-between">
+        <div className="absolute top-4 md:top-6 left-4 md:left-6 right-4 md:right-6 flex justify-between gap-2">
           <Link href="/communities">
             <Button 
               variant="outline" 
+              size="sm"
               className="bg-black/50 backdrop-blur-md border-white/20 text-white hover:bg-black/70"
               data-testid="back-to-communities"
             >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              <ArrowLeft className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Back</span>
             </Button>
           </Link>
           
@@ -1133,6 +1134,7 @@ export default function EnhancedCommunityDetailPage() {
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="outline" 
+                size="sm"
                 className="bg-black/50 backdrop-blur-md border-white/20 text-white hover:bg-black/70"
                 data-testid="community-options-menu"
               >
@@ -1162,40 +1164,40 @@ export default function EnhancedCommunityDetailPage() {
         </div>
         
         {/* Community Info */}
-        <div className="absolute bottom-0 left-0 right-0 p-6">
+        <div className="absolute bottom-0 left-0 right-0 p-4 md:p-6">
           <div className="max-w-6xl mx-auto">
-            <div className="flex items-end gap-6">
-              <Avatar className="h-24 w-24 border-4 border-premium-surface ring-4 ring-accent/20">
+            <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4 sm:gap-6">
+              <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-premium-surface ring-4 ring-accent/20">
                 <AvatarImage src={community.imageUrl} alt={community.name} />
-                <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white text-3xl font-bold">
+                <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white text-2xl sm:text-3xl font-bold">
                   {community.name.substring(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               
-              <div className="flex-1 mb-2">
-                <div className="flex items-center gap-3 mb-2">
-                  <h1 className="font-fraunces text-3xl md:text-4xl font-bold text-white">
+              <div className="flex-1 sm:mb-2">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
+                  <h1 className="font-fraunces text-2xl sm:text-3xl md:text-4xl font-bold text-white">
                     {community.name}
                   </h1>
                   {isOwner && (
-                    <Badge className="bg-amber-500/20 text-yellow-400 border-yellow-500/30">
+                    <Badge className="bg-amber-500/20 text-yellow-400 border-yellow-500/30 text-xs">
                       <Crown className="h-3 w-3 mr-1" />
                       Owner
                     </Badge>
                   )}
                   {community.isPrivate && (
-                    <Badge className="bg-red-500/20 text-red-400 border-red-500/30">
+                    <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-xs">
                       <Lock className="h-3 w-3 mr-1" />
                       Private
                     </Badge>
                   )}
                 </div>
                 
-                <p className="text-white/80 mb-3">
+                <p className="text-white/80 mb-3 text-sm md:text-base line-clamp-2 md:line-clamp-none">
                   {community.description}
                 </p>
                 
-                <div className="flex items-center gap-6 text-white/60 text-sm">
+                <div className="flex items-center gap-4 sm:gap-6 text-white/60 text-xs sm:text-sm">
                   <div className="flex items-center gap-1.5">
                     <Users className="h-4 w-4" />
                     <span>{community.memberCount || 0} members</span>
@@ -1211,7 +1213,8 @@ export default function EnhancedCommunityDetailPage() {
               {isOwner && (
                 <Button
                   onClick={() => setShowCreatePost(true)}
-                  className="bg-accent hover:bg-accent/80 text-white shadow-glow"
+                  size="sm"
+                  className="bg-accent hover:bg-accent/80 text-white shadow-glow w-full sm:w-auto"
                   data-testid="create-post-button"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -1228,58 +1231,73 @@ export default function EnhancedCommunityDetailPage() {
         {isOwner ? (
           // Owner Console with Tabs
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-2xl grid-cols-7 bg-premium-surface border border-premium-border">
-              <TabsTrigger 
-                value="announcements"
-                data-testid="announcements-tab"
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Posts
-              </TabsTrigger>
-              <TabsTrigger 
-                value="chat"
-                data-testid="chat-tab"
-              >
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Chat
-              </TabsTrigger>
-              <TabsTrigger 
-                value="polls"
-                data-testid="polls-tab"
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Polls
-              </TabsTrigger>
-              <TabsTrigger 
-                value="members"
-                data-testid="members-tab"
-              >
-                <Users className="h-4 w-4 mr-2" />
-                Members
-              </TabsTrigger>
-              <TabsTrigger 
-                value="analytics"
-                data-testid="analytics-tab"
-              >
-                <Activity className="h-4 w-4 mr-2" />
-                Analytics
-              </TabsTrigger>
-              <TabsTrigger 
-                value="settings"
-                data-testid="settings-tab"
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </TabsTrigger>
-              <TabsTrigger 
-                value="billing"
-                data-testid="billing-tab"
-                className="relative"
-              >
-                <CreditCard className="h-4 w-4 mr-2" />
-                Billing
-              </TabsTrigger>
-            </TabsList>
+            <div className="w-full overflow-x-auto scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
+              <TabsList className="inline-flex md:grid w-full md:max-w-2xl md:grid-cols-7 bg-premium-surface border border-premium-border min-w-max md:min-w-0">
+                <TabsTrigger 
+                  value="announcements"
+                  data-testid="announcements-tab"
+                  className="flex-shrink-0"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Posts</span>
+                  <span className="sm:hidden">Posts</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="chat"
+                  data-testid="chat-tab"
+                  className="flex-shrink-0"
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Chat</span>
+                  <span className="sm:hidden">Chat</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="polls"
+                  data-testid="polls-tab"
+                  className="flex-shrink-0"
+                >
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Polls</span>
+                  <span className="sm:hidden">Polls</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="members"
+                  data-testid="members-tab"
+                  className="flex-shrink-0"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Members</span>
+                  <span className="sm:hidden">Members</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="analytics"
+                  data-testid="analytics-tab"
+                  className="flex-shrink-0"
+                >
+                  <Activity className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Analytics</span>
+                  <span className="sm:hidden">Analytics</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="settings"
+                  data-testid="settings-tab"
+                  className="flex-shrink-0"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Settings</span>
+                  <span className="sm:hidden">Settings</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="billing"
+                  data-testid="billing-tab"
+                  className="relative flex-shrink-0"
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Billing</span>
+                  <span className="sm:hidden">Billing</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
             
             {/* Posts Tab */}
             <TabsContent value="announcements" className="space-y-6">
