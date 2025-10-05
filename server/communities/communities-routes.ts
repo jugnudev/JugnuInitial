@@ -2056,25 +2056,60 @@ export function addCommunitiesRoutes(app: Express) {
 
   /**
    * POST /api/communities/:id/members/:userId/remove
-   * Remove/ban member from community (owner only)
+   * Remove/ban member from community (owner can remove anyone except owners, moderators can remove members only)
    * curl -X POST http://localhost:5000/api/communities/COMMUNITY_ID/members/USER_ID/remove \
    *   -H "Authorization: Bearer YOUR_TOKEN" \
    *   -H "Content-Type: application/json" \
    *   -d '{"reason":"Violation of community guidelines","ban":true}'
    */
-  app.post('/api/communities/:id/members/:userId/remove', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/members/:userId/remove', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id, userId } = req.params;
-      const community = (req as any).community;
+      const currentUser = (req as any).user;
       const { reason, ban = false } = req.body;
 
-      const membership = await communitiesStorage.getMembershipByUserAndCommunity(userId, community.id);
-      if (!membership) {
+      // Get the community
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      // Get the organizer to check ownership
+      const organizer = await communitiesStorage.getOrganizerByUserId(currentUser.id);
+      const isOwner = organizer && organizer.id === community.organizerId;
+
+      // Get current user's membership to check if they're a moderator
+      const currentUserMembership = await communitiesStorage.getMembershipByUserAndCommunity(currentUser.id, community.id);
+      const isModerator = currentUserMembership?.role === 'moderator';
+
+      // Check if current user has permission to remove members (must be owner or moderator)
+      if (!isOwner && !isModerator) {
+        return res.status(403).json({ ok: false, error: 'Only community owners and moderators can remove members' });
+      }
+
+      // Get the target user's membership
+      const targetMembership = await communitiesStorage.getMembershipByUserAndCommunity(userId, community.id);
+      if (!targetMembership) {
         return res.status(404).json({ ok: false, error: 'Member not found' });
       }
 
+      // Check if target is the owner (owners cannot be removed)
+      const targetOrganizer = await communitiesStorage.getOrganizerByUserId(userId);
+      const isTargetOwner = targetOrganizer && targetOrganizer.id === community.organizerId;
+      
+      if (isTargetOwner) {
+        return res.status(403).json({ ok: false, error: 'Community owners cannot be removed' });
+      }
+
+      // Check permissions based on roles:
+      // - Moderators can only remove regular members (not other moderators)
+      // - Owners can remove anyone (except owners)
+      if (isModerator && !isOwner && targetMembership.role === 'moderator') {
+        return res.status(403).json({ ok: false, error: 'Moderators cannot remove other moderators. Only the owner can do this.' });
+      }
+
       // Update membership to 'left' status with reason
-      await communitiesStorage.updateMembership(membership.id, {
+      await communitiesStorage.updateMembership(targetMembership.id, {
         status: 'left',
         leftAt: new Date().toISOString(),
         rejectionReason: reason

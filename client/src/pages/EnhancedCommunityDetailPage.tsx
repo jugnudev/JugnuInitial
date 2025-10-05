@@ -479,6 +479,28 @@ export default function EnhancedCommunityDetailPage() {
     },
   });
 
+  // Remove member mutation
+  const removeMemberMutation = useMutation({
+    mutationFn: async ({ userId, reason }: { userId: string; reason?: string }) => {
+      if (!community?.id) throw new Error('Community ID not available');
+      return apiRequest('POST', `/api/communities/${community.id}/members/${userId}/remove`, { reason });
+    },
+    onSuccess: () => {
+      toast({ 
+        title: 'Member removed',
+        description: 'The member has been removed from the community'
+      });
+      refetch();
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to remove member", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
   // Upload profile image mutation
   const uploadProfileImageMutation = useMutation({
     mutationFn: async ({ file, communityId }: { file: File; communityId: string }) => {
@@ -1380,11 +1402,20 @@ export default function EnhancedCommunityDetailPage() {
                     <div className="space-y-3">
                       {members.map((member) => {
                         const isCurrentUser = member.userId === user?.id;
+                        const currentUserMembership = members.find(m => m.userId === user?.id);
+                        const currentUserIsModerator = currentUserMembership?.role === 'moderator';
                         const canManageRole = isOwner && !isCurrentUser && member.role !== 'owner' && member.status === 'approved';
                         const memberName = member.user?.firstName && member.user?.lastName
                           ? `${member.user.firstName} ${member.user.lastName}`
                           : member.user?.email || 'Unknown User';
                         const memberInitial = (member.user?.firstName?.[0] || member.user?.email?.[0] || 'U').toUpperCase();
+                        
+                        // Permission logic for removing members:
+                        // - Owners can remove moderators and members (not owners)
+                        // - Moderators can remove regular members only (not other moderators or owners)
+                        const canRemoveMember = !isCurrentUser && member.role !== 'owner' && member.status === 'approved' && (
+                          isOwner || (currentUserIsModerator && member.role === 'member')
+                        );
                         
                         return (
                           <div
@@ -1475,6 +1506,24 @@ export default function EnhancedCommunityDetailPage() {
                                     </Button>
                                   )}
                                 </>
+                              )}
+                              
+                              {canRemoveMember && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-red-500 border-red-500/30 hover:bg-red-500/10"
+                                  onClick={() => {
+                                    if (confirm(`Remove ${memberName} from the community? This action cannot be undone.`)) {
+                                      removeMemberMutation.mutate({ userId: member.userId });
+                                    }
+                                  }}
+                                  disabled={removeMemberMutation.isPending}
+                                  data-testid={`remove-member-${member.id}`}
+                                >
+                                  <UserX className="h-4 w-4 mr-1" />
+                                  Remove
+                                </Button>
                               )}
                             </div>
                           </div>
