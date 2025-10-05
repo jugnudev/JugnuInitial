@@ -82,6 +82,14 @@ Preferred communication style: Simple, everyday language.
     - Query Optimization: Uses Drizzle's inArray() for portable, efficient queries across reactions/comments/users
   - Event tracking, error monitoring, performance metrics, admin reports
 - **Real-Time Chat**: WebSocket server (`/chat`) for instant messaging, bearer token authentication, Supabase persistence, online presence, typing indicators, role-based permissions, slowmode, announcements, message management (pin, delete), standardized protocol, error handling, dev mode compatibility.
+  - **Auto-Moderation**: Content filtering system to maintain community standards
+    - Database: `auto_moderation` boolean and `banned_words` text array in `communities` table
+    - Backend: `/api/communities/:id` PATCH endpoint handles updates with automatic string-to-array conversion for comma-separated banned words
+    - Chat Server: Pre-send validation checks messages against banned words list (case-insensitive matching)
+    - Storage Layer: `updateCommunity()` normalizes banned words input (accepts both string and array formats, splits on commas, trims whitespace)
+    - UI: Settings toggle to enable/disable auto-moderation (community owners only)
+    - Behavior: Blocked messages return error "Your message contains inappropriate content" without saving
+    - Performance: O(n*m) where n=banned words, m=message length (acceptable for typical use cases)
 - **Moderator & Permissions System**: 
   - Role management: Community owners can promote/demote members to/from moderator role via Members tab
   - Granular permissions: 8 configurable permissions (moderator: post, events, polls, manage members; member: post, comment, events, polls)

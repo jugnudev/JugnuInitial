@@ -327,6 +327,7 @@ export default function EnhancedCommunityDetailPage() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [slowmodeValue, setSlowmodeValue] = useState<string>('0');
+  const [bannedWordsValue, setBannedWordsValue] = useState<string>('');
   const [communitySettings, setCommunitySettings] = useState({
     name: '',
     description: '',
@@ -367,6 +368,13 @@ export default function EnhancedCommunityDetailPage() {
       setSlowmodeValue(String(community.chatSlowmodeSeconds));
     }
   }, [community?.chatSlowmodeSeconds]);
+
+  // Sync banned words value when community data loads
+  useEffect(() => {
+    if (community?.bannedWords !== undefined) {
+      setBannedWordsValue(community.bannedWords.join(', '));
+    }
+  }, [community?.bannedWords]);
 
   // Get analytics data (only if member/owner and analytics tab is active)
   const { data: analyticsData } = useQuery<{
@@ -1722,22 +1730,51 @@ export default function EnhancedCommunityDetailPage() {
                   </div>
                   
                   {/* Auto-moderation */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <Label htmlFor="auto-mod">Auto-moderation</Label>
-                      <p className="text-sm text-premium-text-muted">
-                        Automatically filter inappropriate content
-                      </p>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="auto-mod">Auto-moderation</Label>
+                        <p className="text-sm text-premium-text-muted">
+                          Automatically filter inappropriate content
+                        </p>
+                      </div>
+                      <Switch
+                        id="auto-mod"
+                        checked={community.autoModeration || false}
+                        onCheckedChange={(checked) => {
+                          updateCommunityMutation.mutate({
+                            autoModeration: checked
+                          });
+                        }}
+                        data-testid="switch-auto-moderation"
+                      />
                     </div>
-                    <Switch
-                      id="auto-mod"
-                      checked={community.autoModeration || false}
-                      onCheckedChange={(checked) => {
-                        updateCommunityMutation.mutate({
-                          autoModeration: checked
-                        });
-                      }}
-                    />
+                    
+                    {community.autoModeration && (
+                      <div>
+                        <Label htmlFor="banned-words">Banned Words</Label>
+                        <Textarea
+                          id="banned-words"
+                          placeholder="Enter words separated by commas (e.g., spam, inappropriate, test)"
+                          value={bannedWordsValue}
+                          onChange={(e) => {
+                            setBannedWordsValue(e.target.value);
+                          }}
+                          onBlur={() => {
+                            const trimmedValue = bannedWordsValue.trim();
+                            updateCommunityMutation.mutate({
+                              bannedWords: trimmedValue
+                            });
+                          }}
+                          className="bg-premium-surface-elevated border-premium-border text-premium-text-primary placeholder:text-premium-text-muted"
+                          data-testid="input-banned-words"
+                          rows={3}
+                        />
+                        <p className="text-sm text-premium-text-muted mt-1">
+                          Messages containing these words will be blocked
+                        </p>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Clear Chat History */}

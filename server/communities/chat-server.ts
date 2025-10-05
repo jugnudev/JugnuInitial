@@ -313,20 +313,19 @@ export function startChatServer(httpServer: Server) {
         }
       }
 
-      // Auto-moderation for banned words (if implemented)
-      // Note: autoModeration and bannedWords properties need to be added to Community schema
-      // if (community.autoModeration && community.bannedWords?.length > 0) {
-      //   const contentLower = payload.content.toLowerCase();
-      //   for (const word of community.bannedWords) {
-      //     if (contentLower.includes(word.toLowerCase())) {
-      //       ws.send(JSON.stringify({ 
-      //         type: 'error', 
-      //         payload: 'Your message contains inappropriate content' 
-      //       }));
-      //       return;
-      //     }
-      //   }
-      // }
+      // Auto-moderation for banned words
+      if (community.autoModeration && community.bannedWords && community.bannedWords.length > 0) {
+        const contentLower = payload.content.toLowerCase();
+        for (const word of community.bannedWords) {
+          if (contentLower.includes(word.toLowerCase())) {
+            ws.send(JSON.stringify({ 
+              type: 'error', 
+              payload: 'Your message contains inappropriate content' 
+            }));
+            return;
+          }
+        }
+      }
 
       // Save message to database
       const savedMessage = await communitiesStorage.saveChatMessage(

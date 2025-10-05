@@ -695,6 +695,8 @@ export const communities = pgTable("communities", {
   membershipPolicy: text("membership_policy").notNull().default("approval_required"), // approval_required | open | invite_only
   chatMode: text("chat_mode").notNull().default("owner_only"), // disabled | owner_only | moderators_only | all_members
   chatSlowmodeSeconds: integer("chat_slowmode_seconds").notNull().default(0),
+  autoModeration: boolean("auto_moderation").notNull().default(false),
+  bannedWords: text("banned_words").array().default(sql`'{}'`),
   allowMemberPosts: boolean("allow_member_posts").notNull().default(false),
   
   // Permissions for moderators

@@ -826,6 +826,18 @@ export class CommunitiesSupabaseDB {
     // Chat settings
     if (data.chatMode !== undefined) updateData.chat_mode = data.chatMode;
     if (data.chatSlowmodeSeconds !== undefined) updateData.chat_slowmode_seconds = data.chatSlowmodeSeconds;
+    if (data.autoModeration !== undefined) updateData.auto_moderation = data.autoModeration;
+    if (data.bannedWords !== undefined) {
+      // Handle both string (comma-separated) and array formats
+      if (typeof data.bannedWords === 'string') {
+        updateData.banned_words = data.bannedWords
+          .split(',')
+          .map(word => word.trim())
+          .filter(word => word.length > 0);
+      } else {
+        updateData.banned_words = data.bannedWords;
+      }
+    }
     
     // Moderator permissions
     if (data.moderatorCanPost !== undefined) updateData.moderator_can_post = data.moderatorCanPost;
@@ -1590,6 +1602,8 @@ export class CommunitiesSupabaseDB {
       welcomeText: data.welcome_text,
       chatMode: data.chat_mode || 'owner_only',
       chatSlowmodeSeconds: data.chat_slowmode_seconds || 0,
+      autoModeration: data.auto_moderation || false,
+      bannedWords: data.banned_words || [],
       allowMemberPosts: data.allow_member_posts || false,
       
       // Moderator permissions
