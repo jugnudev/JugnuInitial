@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import confetti from 'canvas-confetti';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -180,10 +181,45 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
       return apiRequest('POST', `/api/communities/${communityId}/giveaways/${giveawayId}/draw`, {});
     },
     onSuccess: () => {
+      // Trigger confetti animation
+      const duration = 3000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+      const randomInRange = (min: number, max: number) => {
+        return Math.random() * (max - min) + min;
+      };
+
+      const interval = setInterval(() => {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 50 * (timeLeft / duration);
+
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+        });
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+        });
+      }, 250);
+
+      // Switch to ended tab to show winners
+      setActiveTab('ended');
+      
+      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'giveaways'] });
+      
       toast({
-        title: "Winners drawn",
-        description: "Giveaway winners have been selected!"
+        title: "Winners drawn! 🎉",
+        description: "Giveaway winners have been selected! Check the Ended tab to see them."
       });
     },
     onError: (error: any) => {
