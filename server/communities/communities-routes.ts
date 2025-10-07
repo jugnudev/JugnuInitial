@@ -3763,6 +3763,251 @@ export function addCommunitiesRoutes(app: Express) {
     }
   });
 
+  // ============ GIVEAWAYS ROUTES ============
+  /**
+   * POST /api/communities/:id/giveaways
+   * Create a new giveaway
+   */
+  app.post('/api/communities/:id/giveaways', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId } = req.params;
+      const user = (req as any).user;
+
+      // Check membership and role FIRST
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      // Only owners and moderators can create giveaways
+      if (membership.role !== 'owner' && membership.role !== 'moderator') {
+        return res.status(403).json({ ok: false, error: 'Only owners and moderators can create giveaways' });
+      }
+
+      // Parse and validate request body - basic validation for now
+      // TODO: Use insertCommunityGiveawaySchema.parse(req.body) for full type safety
+      const giveawayData = req.body;
+      
+      if (!giveawayData.title || !giveawayData.prizeTitle || !giveawayData.endsAt || !giveawayData.giveawayType) {
+        return res.status(400).json({ ok: false, error: 'Missing required fields: title, prizeTitle, endsAt, giveawayType' });
+      }
+
+      // Validate giveaway type
+      const validTypes = ['random_draw', 'first_come', 'task_based', 'points_based'];
+      if (!validTypes.includes(giveawayData.giveawayType)) {
+        return res.status(400).json({ ok: false, error: 'Invalid giveaway type' });
+      }
+
+      const giveaway = await communitiesStorage.createGiveaway(communityId, user.id, {
+        ...giveawayData,
+        endsAt: new Date(giveawayData.endsAt),
+        startsAt: giveawayData.startsAt ? new Date(giveawayData.startsAt) : undefined,
+        drawAt: giveawayData.drawAt ? new Date(giveawayData.drawAt) : undefined
+      });
+
+      res.json({ ok: true, giveaway });
+    } catch (error: any) {
+      console.error('Create giveaway error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to create giveaway' });
+    }
+  });
+
+  /**
+   * GET /api/communities/:id/giveaways
+   * Get giveaways for the community
+   */
+  app.get('/api/communities/:id/giveaways', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId } = req.params;
+      const status = (req.query.status as 'active' | 'ended' | 'all') || 'all';
+      const user = (req as any).user;
+
+      // Check membership
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      const giveaways = await communitiesStorage.getGiveaways(communityId, status);
+
+      res.json({ ok: true, giveaways });
+    } catch (error: any) {
+      console.error('Get giveaways error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get giveaways' });
+    }
+  });
+
+  /**
+   * GET /api/communities/:id/giveaways/:giveawayId
+   * Get giveaway details with user entry status
+   */
+  app.get('/api/communities/:id/giveaways/:giveawayId', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId, giveawayId } = req.params;
+      const user = (req as any).user;
+
+      // Check membership
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      const giveaway = await communitiesStorage.getGiveawayDetails(giveawayId, user.id);
+
+      res.json({ ok: true, giveaway });
+    } catch (error: any) {
+      console.error('Get giveaway details error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get giveaway details' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/giveaways/:giveawayId/enter
+   * Enter a giveaway
+   */
+  app.post('/api/communities/:id/giveaways/:giveawayId/enter', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId, giveawayId } = req.params;
+      const user = (req as any).user;
+
+      // Check membership
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      // Get IP and User-Agent for fraud prevention
+      const ipAddress = req.ip || req.headers['x-forwarded-for'] as string || '';
+      const userAgent = req.headers['user-agent'] || '';
+
+      const entry = await communitiesStorage.enterGiveaway(giveawayId, user.id, {
+        entryMethod: 'manual',
+        ipAddress,
+        userAgent
+      });
+
+      res.json({ ok: true, entry });
+    } catch (error: any) {
+      console.error('Enter giveaway error:', error);
+      res.status(400).json({ ok: false, error: error.message || 'Failed to enter giveaway' });
+    }
+  });
+
+  /**
+   * DELETE /api/communities/:id/giveaways/:giveawayId/entry
+   * Remove giveaway entry
+   */
+  app.delete('/api/communities/:id/giveaways/:giveawayId/entry', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId, giveawayId } = req.params;
+      const user = (req as any).user;
+
+      // Check membership
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      await communitiesStorage.removeGiveawayEntry(giveawayId, user.id);
+
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error('Remove giveaway entry error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to remove entry' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/giveaways/:giveawayId/draw
+   * Draw winners for a giveaway (owner/moderator only)
+   */
+  app.post('/api/communities/:id/giveaways/:giveawayId/draw', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId, giveawayId } = req.params;
+      const user = (req as any).user;
+
+      // Check membership and role - CRITICAL: Must be owner or moderator
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      // Explicit role check - only owner and moderator can draw winners
+      if (membership.role !== 'owner' && membership.role !== 'moderator') {
+        console.log(`Draw winners denied - User ${user.id} has role: ${membership.role}`);
+        return res.status(403).json({ ok: false, error: 'Only owners and moderators can draw winners' });
+      }
+
+      const winners = await communitiesStorage.drawGiveawayWinners(giveawayId, user.id);
+
+      res.json({ ok: true, winners });
+    } catch (error: any) {
+      console.error('Draw giveaway winners error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to draw winners' });
+    }
+  });
+
+  /**
+   * PATCH /api/communities/:id/giveaways/:giveawayId
+   * Update giveaway status (owner only)
+   */
+  app.patch('/api/communities/:id/giveaways/:giveawayId', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId, giveawayId } = req.params;
+      const { status } = req.body;
+      const user = (req as any).user;
+
+      // Check membership and role
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      if (membership.role !== 'owner' && membership.role !== 'moderator') {
+        return res.status(403).json({ ok: false, error: 'Only owners and moderators can update giveaway status' });
+      }
+
+      if (!status) {
+        return res.status(400).json({ ok: false, error: 'Status is required' });
+      }
+
+      await communitiesStorage.updateGiveawayStatus(giveawayId, status, user.id);
+
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error('Update giveaway status error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to update giveaway status' });
+    }
+  });
+
+  /**
+   * GET /api/communities/:id/giveaways/:giveawayId/entries
+   * Get all entries for a giveaway (owner/moderator only)
+   */
+  app.get('/api/communities/:id/giveaways/:giveawayId/entries', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId, giveawayId } = req.params;
+      const user = (req as any).user;
+
+      // Check membership and role
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      if (membership.role !== 'owner' && membership.role !== 'moderator') {
+        return res.status(403).json({ ok: false, error: 'Only owners and moderators can view entries' });
+      }
+
+      const entries = await communitiesStorage.getGiveawayEntries(giveawayId);
+
+      res.json({ ok: true, entries });
+    } catch (error: any) {
+      console.error('Get giveaway entries error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get entries' });
+    }
+  });
+
   /**
    * GET /api/communities/:id/analytics
    * Get comprehensive community analytics data

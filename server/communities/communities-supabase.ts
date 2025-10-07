@@ -2028,6 +2028,381 @@ export class CommunitiesSupabaseDB {
     }
   }
 
+  // ============ GIVEAWAYS METHODS ============
+  async createGiveaway(
+    communityId: string,
+    userId: string,
+    giveawayData: {
+      title: string;
+      description?: string;
+      imageUrl?: string;
+      giveawayType: 'random_draw' | 'first_come' | 'task_based' | 'points_based';
+      prizeTitle: string;
+      prizeDescription?: string;
+      prizeValue?: string;
+      numberOfWinners?: number;
+      maxEntriesPerUser?: number;
+      entryCostType?: string;
+      entryCostValue?: number;
+      minMemberDays?: number;
+      startsAt?: Date;
+      endsAt: Date;
+      drawAt?: Date;
+      autoDraw?: boolean;
+      termsConditions?: string;
+      rules?: string;
+    }
+  ): Promise<any> {
+    const { data: giveaway, error: giveawayError } = await this.client
+      .from('community_giveaways')
+      .insert({
+        community_id: communityId,
+        author_id: userId,
+        title: giveawayData.title,
+        description: giveawayData.description,
+        image_url: giveawayData.imageUrl,
+        giveaway_type: giveawayData.giveawayType,
+        prize_title: giveawayData.prizeTitle,
+        prize_description: giveawayData.prizeDescription,
+        prize_value: giveawayData.prizeValue,
+        number_of_winners: giveawayData.numberOfWinners || 1,
+        max_entries_per_user: giveawayData.maxEntriesPerUser,
+        entry_cost_type: giveawayData.entryCostType,
+        entry_cost_value: giveawayData.entryCostValue || 0,
+        min_member_days: giveawayData.minMemberDays || 0,
+        starts_at: giveawayData.startsAt?.toISOString(),
+        ends_at: giveawayData.endsAt.toISOString(),
+        draw_at: giveawayData.drawAt?.toISOString(),
+        auto_draw: giveawayData.autoDraw !== false,
+        status: 'active',
+        terms_conditions: giveawayData.termsConditions,
+        rules: giveawayData.rules,
+        total_entries: 0,
+        unique_participants: 0
+      })
+      .select()
+      .single();
+
+    if (giveawayError) throw giveawayError;
+
+    // Log creation in audit log
+    await this.client
+      .from('community_giveaway_audit_log')
+      .insert({
+        giveaway_id: giveaway.id,
+        actor_id: userId,
+        action: 'giveaway_created',
+        description: `Giveaway "${giveawayData.title}" created`
+      });
+
+    return giveaway;
+  }
+
+  async getGiveaways(
+    communityId: string,
+    status: 'active' | 'ended' | 'all' = 'all'
+  ): Promise<any[]> {
+    let query = this.client
+      .from('community_giveaways')
+      .select(`
+        *,
+        author:author_id (id, first_name, last_name, profile_image_url)
+      `)
+      .eq('community_id', communityId)
+      .order('created_at', { ascending: false });
+
+    if (status === 'active') {
+      query = query.in('status', ['active', 'draft']);
+    } else if (status === 'ended') {
+      query = query.in('status', ['ended', 'drawn', 'completed']);
+    }
+
+    const { data, error } = await query;
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getGiveawayDetails(giveawayId: string, userId?: string): Promise<any> {
+    const { data: giveaway, error: giveawayError } = await this.client
+      .from('community_giveaways')
+      .select(`
+        *,
+        author:author_id (id, first_name, last_name, profile_image_url)
+      `)
+      .eq('id', giveawayId)
+      .single();
+
+    if (giveawayError) throw giveawayError;
+
+    // Check if user has entered
+    let userEntry = null;
+    if (userId) {
+      const { data, error } = await this.client
+        .from('community_giveaway_entries')
+        .select('*')
+        .eq('giveaway_id', giveawayId)
+        .eq('user_id', userId)
+        .single();
+
+      if (!error) {
+        userEntry = data;
+      }
+    }
+
+    // Get winners if drawn
+    let winners = [];
+    if (giveaway.status === 'drawn' || giveaway.status === 'completed') {
+      const { data: winnersData, error: winnersError } = await this.client
+        .from('community_giveaway_winners')
+        .select(`
+          *,
+          user:user_id (id, first_name, last_name, profile_image_url)
+        `)
+        .eq('giveaway_id', giveawayId)
+        .order('position', { ascending: true });
+
+      if (!winnersError) {
+        winners = winnersData || [];
+      }
+    }
+
+    return { ...giveaway, userEntry, winners };
+  }
+
+  async enterGiveaway(
+    giveawayId: string,
+    userId: string,
+    entryData: {
+      entryMethod?: string;
+      pointsSpent?: number;
+      ipAddress?: string;
+      userAgent?: string;
+    }
+  ): Promise<any> {
+    // Check if user already entered
+    const { data: existingEntry } = await this.client
+      .from('community_giveaway_entries')
+      .select('*')
+      .eq('giveaway_id', giveawayId)
+      .eq('user_id', userId)
+      .single();
+
+    if (existingEntry) {
+      throw new Error('You have already entered this giveaway');
+    }
+
+    // Create entry
+    const { data: entry, error: entryError } = await this.client
+      .from('community_giveaway_entries')
+      .insert({
+        giveaway_id: giveawayId,
+        user_id: userId,
+        entry_count: 1,
+        entry_method: entryData.entryMethod || 'manual',
+        points_spent: entryData.pointsSpent || 0,
+        is_valid: true,
+        ip_address: entryData.ipAddress,
+        user_agent: entryData.userAgent
+      })
+      .select()
+      .single();
+
+    if (entryError) throw entryError;
+
+    // Update giveaway entry counts
+    await this.updateGiveawayEntryCounts(giveawayId);
+
+    // Log entry in audit log
+    await this.client
+      .from('community_giveaway_audit_log')
+      .insert({
+        giveaway_id: giveawayId,
+        actor_id: userId,
+        action: 'entry_created',
+        description: 'User entered giveaway',
+        ip_address: entryData.ipAddress,
+        user_agent: entryData.userAgent
+      });
+
+    return entry;
+  }
+
+  async removeGiveawayEntry(giveawayId: string, userId: string): Promise<boolean> {
+    const { error } = await this.client
+      .from('community_giveaway_entries')
+      .delete()
+      .eq('giveaway_id', giveawayId)
+      .eq('user_id', userId);
+
+    if (error) throw error;
+
+    // Update giveaway entry counts
+    await this.updateGiveawayEntryCounts(giveawayId);
+
+    // Log removal in audit log
+    await this.client
+      .from('community_giveaway_audit_log')
+      .insert({
+        giveaway_id: giveawayId,
+        actor_id: userId,
+        action: 'entry_removed',
+        description: 'User removed giveaway entry'
+      });
+
+    return true;
+  }
+
+  async drawGiveawayWinners(
+    giveawayId: string,
+    drawnByUserId: string
+  ): Promise<any[]> {
+    // Get giveaway details
+    const { data: giveaway, error: giveawayError } = await this.client
+      .from('community_giveaways')
+      .select('*')
+      .eq('id', giveawayId)
+      .single();
+
+    if (giveawayError) throw giveawayError;
+
+    // Get all valid entries
+    const { data: entries, error: entriesError } = await this.client
+      .from('community_giveaway_entries')
+      .select('*')
+      .eq('giveaway_id', giveawayId)
+      .eq('is_valid', true);
+
+    if (entriesError) throw entriesError;
+
+    if (!entries || entries.length === 0) {
+      throw new Error('No valid entries to draw from');
+    }
+
+    // Randomly select winners
+    const numberOfWinners = Math.min(giveaway.number_of_winners, entries.length);
+    const shuffled = [...entries].sort(() => 0.5 - Math.random());
+    const selectedWinners = shuffled.slice(0, numberOfWinners);
+
+    // Create winner records
+    const winners = [];
+    for (let i = 0; i < selectedWinners.length; i++) {
+      const { data: winner, error: winnerError } = await this.client
+        .from('community_giveaway_winners')
+        .insert({
+          giveaway_id: giveawayId,
+          user_id: selectedWinners[i].user_id,
+          position: i + 1,
+          status: 'pending',
+          drawn_by: drawnByUserId,
+          draw_method: 'random'
+        })
+        .select(`
+          *,
+          user:user_id (id, first_name, last_name, profile_image_url, email)
+        `)
+        .single();
+
+      if (winnerError) throw winnerError;
+      winners.push(winner);
+    }
+
+    // Update giveaway status to drawn
+    await this.client
+      .from('community_giveaways')
+      .update({ status: 'drawn' })
+      .eq('id', giveawayId);
+
+    // Log draw in audit log
+    await this.client
+      .from('community_giveaway_audit_log')
+      .insert({
+        giveaway_id: giveawayId,
+        actor_id: drawnByUserId,
+        action: 'winners_drawn',
+        description: `${numberOfWinners} winner(s) drawn`,
+        metadata: { winner_ids: winners.map(w => w.user_id) }
+      });
+
+    return winners;
+  }
+
+  async updateGiveawayStatus(
+    giveawayId: string,
+    status: string,
+    userId: string
+  ): Promise<boolean> {
+    const { error } = await this.client
+      .from('community_giveaways')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', giveawayId);
+
+    if (error) throw error;
+
+    // Log status change in audit log
+    await this.client
+      .from('community_giveaway_audit_log')
+      .insert({
+        giveaway_id: giveawayId,
+        actor_id: userId,
+        action: 'status_updated',
+        description: `Status changed to ${status}`
+      });
+
+    return true;
+  }
+
+  async updateGiveawayEntryCounts(giveawayId: string): Promise<void> {
+    // Get all valid entries
+    const { data: entries, error: entriesError } = await this.client
+      .from('community_giveaway_entries')
+      .select('user_id, entry_count')
+      .eq('giveaway_id', giveawayId)
+      .eq('is_valid', true);
+
+    if (entriesError) throw entriesError;
+
+    const totalEntries = (entries || []).reduce((sum, e) => sum + (e.entry_count || 1), 0);
+    const uniqueParticipants = new Set((entries || []).map(e => e.user_id)).size;
+
+    // Update giveaway totals
+    await this.client
+      .from('community_giveaways')
+      .update({
+        total_entries: totalEntries,
+        unique_participants: uniqueParticipants
+      })
+      .eq('id', giveawayId);
+  }
+
+  async getGiveawayEntries(giveawayId: string): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('community_giveaway_entries')
+      .select(`
+        *,
+        user:user_id (id, first_name, last_name, profile_image_url)
+      `)
+      .eq('giveaway_id', giveawayId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getGiveawayWinners(giveawayId: string): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('community_giveaway_winners')
+      .select(`
+        *,
+        user:user_id (id, first_name, last_name, profile_image_url, email)
+      `)
+      .eq('giveaway_id', giveawayId)
+      .order('position', { ascending: true });
+
+    if (error) throw error;
+    return data || [];
+  }
+
   // ============ ANALYTICS METHODS ============
   async getVisitorAnalytics(since: Date): Promise<any[]> {
     const { data, error } = await this.client

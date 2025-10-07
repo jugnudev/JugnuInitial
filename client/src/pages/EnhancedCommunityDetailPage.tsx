@@ -88,6 +88,7 @@ import { PostCard } from "@/components/PostCard";
 import { JoinGate } from "@/components/JoinGate";
 import CommunityChat from "@/components/CommunityChat";
 import CommunityPolls from "@/components/CommunityPolls";
+import CommunityGiveaways from "@/components/CommunityGiveaways";
 import CommunityBilling from "@/components/CommunityBilling";
 import BillingCheckout from "@/components/BillingCheckout";
 import {
@@ -1695,15 +1696,38 @@ export default function EnhancedCommunityDetailPage() {
               </TabsContent>
             )}
             
-            {/* Polls Tab */}
+            {/* Polls & Giveaways Tab */}
             <TabsContent value="polls" className="space-y-6">
-              <CommunityPolls 
-                communityId={community.id}
-                currentMember={currentMember && currentMember.status === 'approved' ? {
-                  role: currentMember.role,
-                  userId: user?.id || ''
-                } : undefined}
-              />
+              <Tabs defaultValue="polls" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6 bg-premium-surface-elevated/50">
+                  <TabsTrigger value="polls" className="data-[state=active]:bg-premium-primary data-[state=active]:text-white" data-testid="subtab-polls">
+                    Polls
+                  </TabsTrigger>
+                  <TabsTrigger value="giveaways" className="data-[state=active]:bg-premium-primary data-[state=active]:text-white" data-testid="subtab-giveaways">
+                    Giveaways
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="polls">
+                  <CommunityPolls 
+                    communityId={community.id}
+                    currentMember={currentMember && currentMember.status === 'approved' ? {
+                      role: currentMember.role,
+                      userId: user?.id || ''
+                    } : undefined}
+                  />
+                </TabsContent>
+                
+                <TabsContent value="giveaways">
+                  <CommunityGiveaways 
+                    communityId={community.id}
+                    currentMember={currentMember && currentMember.status === 'approved' ? {
+                      role: currentMember.role,
+                      userId: user?.id || ''
+                    } : undefined}
+                  />
+                </TabsContent>
+              </Tabs>
             </TabsContent>
             
             {/* Settings Tab */}
