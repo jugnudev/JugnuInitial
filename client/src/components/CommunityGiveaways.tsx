@@ -274,16 +274,12 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
   }
   
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-premium-text flex items-center gap-2">
-            <Gift className="h-6 w-6 text-premium-primary" />
-            Giveaways
-          </h2>
-          <p className="text-sm text-premium-text-muted mt-1">
-            Enter for a chance to win amazing prizes
-          </p>
+    <div className="space-y-4">
+      {/* Giveaways Section */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Gift className="h-5 w-5 text-premium-primary" />
+          <h3 className="text-lg font-semibold">Giveaways</h3>
         </div>
         {canCreateGiveaway && (
           <Button 
@@ -297,12 +293,21 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
         )}
       </div>
       
+      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'active' | 'ended')} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-premium-surface-elevated/50">
-          <TabsTrigger value="active" className="data-[state=active]:bg-premium-primary data-[state=active]:text-white" data-testid="tab-active-giveaways">
+        <TabsList className="grid w-full grid-cols-2 bg-gray-900 dark:bg-gray-800">
+          <TabsTrigger 
+            value="active" 
+            className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-300" 
+            data-testid="tab-active-giveaways"
+          >
             Active ({activeCount})
           </TabsTrigger>
-          <TabsTrigger value="ended" className="data-[state=active]:bg-premium-primary data-[state=active]:text-white" data-testid="tab-ended-giveaways">
+          <TabsTrigger 
+            value="ended" 
+            className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-300" 
+            data-testid="tab-ended-giveaways"
+          >
             Ended ({endedCount})
           </TabsTrigger>
         </TabsList>

@@ -281,19 +281,17 @@ export default function CommunityPolls({ communityId, currentMember }: Community
   
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold font-fraunces">Community Polls</h2>
-          <p className="text-muted-foreground">
-            {activePollsCount} active {activePollsCount === 1 ? 'poll' : 'polls'}
-            {closedPollsCount > 0 && ` · ${closedPollsCount} closed`}
-          </p>
+      {/* Polls Section */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Vote className="h-5 w-5 text-premium-primary" />
+          <h3 className="text-lg font-semibold">Polls</h3>
         </div>
         {canManagePolls && (
           <Button 
             onClick={() => setIsCreateModalOpen(true)}
             data-testid="create-poll-button"
+            className="bg-gradient-to-r from-premium-primary to-purple-600 hover:from-premium-primary/90 hover:to-purple-600/90"
           >
             <Plus className="w-4 h-4 mr-2" />
             Create Poll
@@ -301,7 +299,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
         )}
       </div>
       
-      {/* Polls Tabs */}
+      {/* Tabs */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'closed')} className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-gray-900 dark:bg-gray-800">
           <TabsTrigger 
@@ -309,14 +307,14 @@ export default function CommunityPolls({ communityId, currentMember }: Community
             data-testid="active-polls-tab"
             className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-300"
           >
-            Active Polls ({activePollsCount})
+            Active ({activePollsCount})
           </TabsTrigger>
           <TabsTrigger 
             value="closed" 
             data-testid="closed-polls-tab"
             className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-300"
           >
-            Closed Polls ({closedPollsCount})
+            Closed ({closedPollsCount})
           </TabsTrigger>
         </TabsList>
         
