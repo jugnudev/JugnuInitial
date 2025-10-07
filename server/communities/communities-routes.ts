@@ -3830,19 +3830,31 @@ export function addCommunitiesRoutes(app: Express) {
 
       const giveaways = await communitiesStorage.getGiveaways(communityId, status);
       
-      // Check user entries for each giveaway
-      const giveawaysWithUserEntries = await Promise.all(
-        giveaways.map(async (giveaway: any) => {
-          const { data: userEntry } = await (communitiesStorage as any).client
-            .from('community_giveaway_entries')
-            .select('*')
-            .eq('giveaway_id', giveaway.id)
-            .eq('user_id', user.id)
-            .single();
-          
-          return { ...giveaway, userEntry: userEntry || null };
-        })
-      );
+      // Batch fetch user entries for all giveaways in one query
+      const giveawayIds = giveaways.map((g: any) => g.id);
+      let userEntriesMap: Record<string, any> = {};
+      
+      if (giveawayIds.length > 0) {
+        const { data: userEntries } = await (communitiesStorage as any).client
+          .from('community_giveaway_entries')
+          .select('*')
+          .in('giveaway_id', giveawayIds)
+          .eq('user_id', user.id);
+        
+        // Map entries by giveaway_id for quick lookup
+        if (userEntries) {
+          userEntriesMap = userEntries.reduce((acc: Record<string, any>, entry: any) => {
+            acc[entry.giveaway_id] = entry;
+            return acc;
+          }, {});
+        }
+      }
+      
+      // Attach user entries to giveaways
+      const giveawaysWithUserEntries = giveaways.map((giveaway: any) => ({
+        ...giveaway,
+        userEntry: userEntriesMap[giveaway.id] || null
+      }));
 
       res.json({ ok: true, giveaways: giveawaysWithUserEntries });
     } catch (error: any) {

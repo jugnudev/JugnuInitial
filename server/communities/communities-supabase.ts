@@ -2123,26 +2123,40 @@ export class CommunitiesSupabaseDB {
     
     const giveaways = data || [];
     
-    // Fetch winners for giveaways that have been drawn
-    const giveawaysWithWinners = await Promise.all(
-      giveaways.map(async (giveaway) => {
-        if (giveaway.status === 'drawn' || giveaway.status === 'completed' || giveaway.status === 'ended') {
-          const { data: winnersData } = await this.client
-            .from('community_giveaway_winners')
-            .select(`
-              *,
-              user:user_id (id, first_name, last_name, profile_image_url)
-            `)
-            .eq('giveaway_id', giveaway.id)
-            .order('position', { ascending: true });
-          
-          return { ...giveaway, winners: winnersData || [] };
-        }
-        return { ...giveaway, winners: [] };
-      })
-    );
+    // Batch fetch winners for all drawn giveaways in one query
+    const drawnGiveawayIds = giveaways
+      .filter(g => g.status === 'drawn' || g.status === 'completed' || g.status === 'ended')
+      .map(g => g.id);
     
-    return giveawaysWithWinners;
+    let winnersMap: Record<string, any[]> = {};
+    
+    if (drawnGiveawayIds.length > 0) {
+      const { data: allWinners } = await this.client
+        .from('community_giveaway_winners')
+        .select(`
+          *,
+          user:user_id (id, first_name, last_name, profile_image_url)
+        `)
+        .in('giveaway_id', drawnGiveawayIds)
+        .order('position', { ascending: true });
+      
+      // Group winners by giveaway_id
+      if (allWinners) {
+        winnersMap = allWinners.reduce((acc: Record<string, any[]>, winner: any) => {
+          if (!acc[winner.giveaway_id]) {
+            acc[winner.giveaway_id] = [];
+          }
+          acc[winner.giveaway_id].push(winner);
+          return acc;
+        }, {});
+      }
+    }
+    
+    // Attach winners to giveaways
+    return giveaways.map(giveaway => ({
+      ...giveaway,
+      winners: winnersMap[giveaway.id] || []
+    }));
   }
 
   async getGiveawayDetails(giveawayId: string, userId?: string): Promise<any> {
