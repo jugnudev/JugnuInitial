@@ -3768,7 +3768,7 @@ export function addCommunitiesRoutes(app: Express) {
    * POST /api/communities/:id/giveaways
    * Create a new giveaway
    */
-  app.post('/api/communities/:id/giveaways', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/giveaways', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id: communityId } = req.params;
       const user = (req as any).user;
@@ -3816,7 +3816,7 @@ export function addCommunitiesRoutes(app: Express) {
    * GET /api/communities/:id/giveaways
    * Get giveaways for the community
    */
-  app.get('/api/communities/:id/giveaways', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.get('/api/communities/:id/giveaways', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id: communityId } = req.params;
       const status = (req.query.status as 'active' | 'ended' | 'all') || 'all';
@@ -3841,7 +3841,7 @@ export function addCommunitiesRoutes(app: Express) {
    * GET /api/communities/:id/giveaways/:giveawayId
    * Get giveaway details with user entry status
    */
-  app.get('/api/communities/:id/giveaways/:giveawayId', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.get('/api/communities/:id/giveaways/:giveawayId', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id: communityId, giveawayId } = req.params;
       const user = (req as any).user;
@@ -3865,7 +3865,7 @@ export function addCommunitiesRoutes(app: Express) {
    * POST /api/communities/:id/giveaways/:giveawayId/enter
    * Enter a giveaway
    */
-  app.post('/api/communities/:id/giveaways/:giveawayId/enter', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/giveaways/:giveawayId/enter', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id: communityId, giveawayId } = req.params;
       const user = (req as any).user;
@@ -3897,7 +3897,7 @@ export function addCommunitiesRoutes(app: Express) {
    * DELETE /api/communities/:id/giveaways/:giveawayId/entry
    * Remove giveaway entry
    */
-  app.delete('/api/communities/:id/giveaways/:giveawayId/entry', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.delete('/api/communities/:id/giveaways/:giveawayId/entry', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id: communityId, giveawayId } = req.params;
       const user = (req as any).user;
@@ -3921,7 +3921,7 @@ export function addCommunitiesRoutes(app: Express) {
    * POST /api/communities/:id/giveaways/:giveawayId/draw
    * Draw winners for a giveaway (owner/moderator only)
    */
-  app.post('/api/communities/:id/giveaways/:giveawayId/draw', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/giveaways/:giveawayId/draw', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id: communityId, giveawayId } = req.params;
       const user = (req as any).user;
@@ -3951,7 +3951,7 @@ export function addCommunitiesRoutes(app: Express) {
    * PATCH /api/communities/:id/giveaways/:giveawayId
    * Update giveaway status (owner only)
    */
-  app.patch('/api/communities/:id/giveaways/:giveawayId', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.patch('/api/communities/:id/giveaways/:giveawayId', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id: communityId, giveawayId } = req.params;
       const { status } = req.body;
@@ -3984,7 +3984,7 @@ export function addCommunitiesRoutes(app: Express) {
    * GET /api/communities/:id/giveaways/:giveawayId/entries
    * Get all entries for a giveaway (owner/moderator only)
    */
-  app.get('/api/communities/:id/giveaways/:giveawayId/entries', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.get('/api/communities/:id/giveaways/:giveawayId/entries', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id: communityId, giveawayId } = req.params;
       const user = (req as any).user;
