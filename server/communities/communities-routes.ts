@@ -3829,8 +3829,22 @@ export function addCommunitiesRoutes(app: Express) {
       }
 
       const giveaways = await communitiesStorage.getGiveaways(communityId, status);
+      
+      // Check user entries for each giveaway
+      const giveawaysWithUserEntries = await Promise.all(
+        giveaways.map(async (giveaway: any) => {
+          const { data: userEntry } = await (communitiesStorage as any).client
+            .from('community_giveaway_entries')
+            .select('*')
+            .eq('giveaway_id', giveaway.id)
+            .eq('user_id', user.id)
+            .single();
+          
+          return { ...giveaway, userEntry: userEntry || null };
+        })
+      );
 
-      res.json({ ok: true, giveaways });
+      res.json({ ok: true, giveaways: giveawaysWithUserEntries });
     } catch (error: any) {
       console.error('Get giveaways error:', error);
       res.status(500).json({ ok: false, error: error.message || 'Failed to get giveaways' });

@@ -2120,7 +2120,29 @@ export class CommunitiesSupabaseDB {
     const { data, error } = await query;
 
     if (error) throw error;
-    return data || [];
+    
+    const giveaways = data || [];
+    
+    // Fetch winners for giveaways that have been drawn
+    const giveawaysWithWinners = await Promise.all(
+      giveaways.map(async (giveaway) => {
+        if (giveaway.status === 'drawn' || giveaway.status === 'completed' || giveaway.status === 'ended') {
+          const { data: winnersData } = await this.client
+            .from('community_giveaway_winners')
+            .select(`
+              *,
+              user:user_id (id, first_name, last_name, profile_image_url)
+            `)
+            .eq('giveaway_id', giveaway.id)
+            .order('position', { ascending: true });
+          
+          return { ...giveaway, winners: winnersData || [] };
+        }
+        return { ...giveaway, winners: [] };
+      })
+    );
+    
+    return giveawaysWithWinners;
   }
 
   async getGiveawayDetails(giveawayId: string, userId?: string): Promise<any> {
