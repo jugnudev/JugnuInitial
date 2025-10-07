@@ -141,6 +141,21 @@ Preferred communication style: Simple, everyday language.
   - Components: Updated `CommunityBilling` for subscription management
   - Features: 7-day free trial, automatic proration
   - Per-Community Billing: Each community requires its own individual subscription
+- **Giveaway System**:
+  - Comprehensive giveaway functionality within Communities Polls tab
+  - Types: Random draw, first-come-first-serve, task-based, points-based
+  - Database: `community_giveaways`, `community_giveaway_entries`, `community_giveaway_winners` tables
+  - Features: Entry tracking, automated winner selection, prize management
+  - Winner Display: Golden gradient cards with position (1st, 2nd, etc.) and user profiles
+  - UX Enhancements: 
+    - 3-second confetti animation when winners are drawn (using canvas-confetti)
+    - Automatic tab switching to "Ended" tab after drawing winners
+  - Performance Optimization: Batched queries to avoid N+1 pattern
+    - Winners batch-fetched using `in('giveaway_id', ids)` and grouped in memory
+    - User entries batch-fetched in single query instead of per-item requests
+    - Query count: O(1) - constant 3 queries regardless of giveaway count
+  - API Routes: `/api/communities/:id/giveaways` (CRUD), `/api/communities/:id/giveaways/:giveawayId/enter`, `/api/communities/:id/giveaways/:giveawayId/draw`
+  - Permissions: All members can view/enter, only owners/moderators can create and draw winners
 
 ### Feature Flags
 - **Ticketing System**: Controlled by `ENABLE_TICKETING` (server) and `VITE_ENABLE_TICKETING` (client). Disabling hides routes, APIs, UI, and ensures SEO isolation via `robots.txt` and `sitemap.xml`.
