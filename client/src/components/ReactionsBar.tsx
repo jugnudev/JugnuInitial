@@ -24,9 +24,9 @@ const REACTION_TYPES = [
     icon: Heart,
     color: 'text-red-500',
     bgColor: 'bg-red-500/10 hover:bg-red-500/20',
-    bgColorActive: 'bg-blue-100 dark:bg-blue-900/30',
+    bgColorActive: 'bg-red-500/20 dark:bg-red-500/20',
     borderColor: 'border-red-500/30',
-    borderColorActive: 'border-blue-400 dark:border-blue-600'
+    borderColorActive: 'border-red-500 dark:border-red-500'
   },
   { 
     type: 'fire',
@@ -34,9 +34,9 @@ const REACTION_TYPES = [
     icon: Flame,
     color: 'text-orange-500',
     bgColor: 'bg-orange-500/10 hover:bg-orange-500/20',
-    bgColorActive: 'bg-blue-100 dark:bg-blue-900/30',
+    bgColorActive: 'bg-orange-500/20 dark:bg-orange-500/20',
     borderColor: 'border-orange-500/30',
-    borderColorActive: 'border-blue-400 dark:border-blue-600'
+    borderColorActive: 'border-orange-500 dark:border-orange-500'
   },
   { 
     type: 'like',
@@ -44,9 +44,9 @@ const REACTION_TYPES = [
     icon: ThumbsUp,
     color: 'text-blue-500',
     bgColor: 'bg-blue-500/10 hover:bg-blue-500/20',
-    bgColorActive: 'bg-blue-100 dark:bg-blue-900/30',
+    bgColorActive: 'bg-blue-500/20 dark:bg-blue-500/20',
     borderColor: 'border-blue-500/30',
-    borderColorActive: 'border-blue-400 dark:border-blue-600'
+    borderColorActive: 'border-blue-500 dark:border-blue-500'
   },
   { 
     type: 'celebrate',
@@ -54,9 +54,9 @@ const REACTION_TYPES = [
     icon: PartyPopper,
     color: 'text-purple-500',
     bgColor: 'bg-purple-500/10 hover:bg-purple-500/20',
-    bgColorActive: 'bg-blue-100 dark:bg-blue-900/30',
+    bgColorActive: 'bg-purple-500/20 dark:bg-purple-500/20',
     borderColor: 'border-purple-500/30',
-    borderColorActive: 'border-blue-400 dark:border-blue-600'
+    borderColorActive: 'border-purple-500 dark:border-purple-500'
   },
   { 
     type: 'star',
@@ -64,9 +64,9 @@ const REACTION_TYPES = [
     icon: Star,
     color: 'text-yellow-500',
     bgColor: 'bg-yellow-500/10 hover:bg-yellow-500/20',
-    bgColorActive: 'bg-blue-100 dark:bg-blue-900/30',
+    bgColorActive: 'bg-yellow-500/20 dark:bg-yellow-500/20',
     borderColor: 'border-yellow-500/30',
-    borderColorActive: 'border-blue-400 dark:border-blue-600'
+    borderColorActive: 'border-yellow-500 dark:border-yellow-500'
   }
 ];
 
