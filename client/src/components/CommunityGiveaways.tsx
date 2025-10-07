@@ -216,13 +216,16 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
       return;
     }
     
+    // Strip non-numeric characters from prize value (e.g., "$50" -> "50")
+    const cleanedPrizeValue = prizeValue ? prizeValue.replace(/[^0-9.]/g, '') : undefined;
+    
     createGiveawayMutation.mutate({
       title: title.trim(),
       description: description.trim() || undefined,
       giveawayType,
       prizeTitle: prizeTitle.trim(),
       prizeDescription: prizeDescription.trim() || undefined,
-      prizeValue: prizeValue || undefined,
+      prizeValue: cleanedPrizeValue || undefined,
       numberOfWinners,
       endsAt
     });
@@ -534,137 +537,131 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
       
       {/* Create Giveaway Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="max-w-2xl bg-black/95 dark:bg-black/95 backdrop-blur-xl border-2 border-premium-primary/20 text-white dark:text-white max-h-[90vh] overflow-y-auto shadow-2xl">
-          <DialogHeader className="pb-6 border-b border-premium-primary/20">
-            <DialogTitle className="flex items-center gap-3 text-2xl">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-premium-primary/20 to-purple-500/20">
-                <Gift className="h-6 w-6 text-premium-primary" />
-              </div>
-              Create New Giveaway
-            </DialogTitle>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create New Giveaway</DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-6 py-6">
-            <div className="space-y-2">
-              <Label htmlFor="title" className="text-sm font-medium text-gray-200">Giveaway Title *</Label>
+          <div className="space-y-4 my-4">
+            <div>
+              <Label htmlFor="title">Giveaway Title *</Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g., Win a Premium Membership"
-                className="bg-gray-900 dark:bg-gray-900 border-gray-700 dark:border-gray-700 text-white dark:text-white placeholder:text-gray-500 focus:border-premium-primary focus:ring-premium-primary/20 h-11 transition-all"
+                className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                 data-testid="input-giveaway-title"
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="description" className="text-sm font-medium text-gray-200">Description</Label>
+            <div>
+              <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe your giveaway..."
-                className="bg-gray-900 dark:bg-gray-900 border-gray-700 dark:border-gray-700 text-white dark:text-white placeholder:text-gray-500 focus:border-premium-primary focus:ring-premium-primary/20 min-h-[100px] transition-all resize-none"
+                rows={3}
+                className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                 data-testid="input-giveaway-description"
               />
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="giveawayType" className="text-sm font-medium text-gray-200">Giveaway Type *</Label>
+              <div>
+                <Label htmlFor="giveawayType">Giveaway Type *</Label>
                 <Select value={giveawayType} onValueChange={(v) => setGiveawayType(v as any)}>
-                  <SelectTrigger className="bg-gray-900 dark:bg-gray-900 border-gray-700 dark:border-gray-700 text-white dark:text-white h-11 focus:border-premium-primary focus:ring-premium-primary/20" data-testid="select-giveaway-type">
+                  <SelectTrigger className="bg-card border-border text-card-foreground" data-testid="select-giveaway-type">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-gray-900 dark:bg-gray-900 border-gray-700 dark:border-gray-700 text-white dark:text-white">
-                    <SelectItem value="random_draw" className="hover:bg-gray-800 focus:bg-gray-800">Random Draw</SelectItem>
-                    <SelectItem value="first_come" className="hover:bg-gray-800 focus:bg-gray-800">First Come First Serve</SelectItem>
-                    <SelectItem value="task_based" className="hover:bg-gray-800 focus:bg-gray-800">Task Based</SelectItem>
-                    <SelectItem value="points_based" className="hover:bg-gray-800 focus:bg-gray-800">Points Based</SelectItem>
+                  <SelectContent>
+                    <SelectItem value="random_draw">Random Draw</SelectItem>
+                    <SelectItem value="first_come">First Come First Serve</SelectItem>
+                    <SelectItem value="task_based">Task Based</SelectItem>
+                    <SelectItem value="points_based">Points Based</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="numberOfWinners" className="text-sm font-medium text-gray-200">Number of Winners *</Label>
+              <div>
+                <Label htmlFor="numberOfWinners">Number of Winners *</Label>
                 <Input
                   id="numberOfWinners"
                   type="number"
                   min={1}
                   value={numberOfWinners}
                   onChange={(e) => setNumberOfWinners(parseInt(e.target.value) || 1)}
-                  className="bg-gray-900 dark:bg-gray-900 border-gray-700 dark:border-gray-700 text-white dark:text-white placeholder:text-gray-500 focus:border-premium-primary focus:ring-premium-primary/20 h-11 transition-all"
+                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                   data-testid="input-number-of-winners"
                 />
               </div>
             </div>
             
-            <div className="p-4 bg-gradient-to-br from-premium-primary/10 to-purple-500/10 rounded-lg border border-premium-primary/20">
-              <h4 className="text-sm font-semibold text-gray-200 mb-4 flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-premium-primary" />
+            <div className="border rounded-lg p-4 space-y-4">
+              <h4 className="font-semibold flex items-center gap-2">
+                <Trophy className="h-4 w-4" />
                 Prize Details
               </h4>
               
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="prizeTitle" className="text-sm font-medium text-gray-200">Prize Title *</Label>
-                  <Input
-                    id="prizeTitle"
-                    value={prizeTitle}
-                    onChange={(e) => setPrizeTitle(e.target.value)}
-                    placeholder="e.g., 3-Month Premium Membership"
-                    className="bg-gray-900 dark:bg-gray-900 border-gray-700 dark:border-gray-700 text-white dark:text-white placeholder:text-gray-500 focus:border-premium-primary focus:ring-premium-primary/20 h-11 transition-all"
-                    data-testid="input-prize-title"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="prizeDescription" className="text-sm font-medium text-gray-200">Prize Description</Label>
-                  <Textarea
-                    id="prizeDescription"
-                    value={prizeDescription}
-                    onChange={(e) => setPrizeDescription(e.target.value)}
-                    placeholder="Describe the prize..."
-                    className="bg-gray-900 dark:bg-gray-900 border-gray-700 dark:border-gray-700 text-white dark:text-white placeholder:text-gray-500 focus:border-premium-primary focus:ring-premium-primary/20 min-h-[80px] transition-all resize-none"
-                    data-testid="input-prize-description"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="prizeValue" className="text-sm font-medium text-gray-200">Prize Value (optional)</Label>
-                  <Input
-                    id="prizeValue"
-                    value={prizeValue}
-                    onChange={(e) => setPrizeValue(e.target.value)}
-                    placeholder="e.g., $50.00"
-                    className="bg-gray-900 dark:bg-gray-900 border-gray-700 dark:border-gray-700 text-white dark:text-white placeholder:text-gray-500 focus:border-premium-primary focus:ring-premium-primary/20 h-11 transition-all"
-                    data-testid="input-prize-value"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="prizeTitle">Prize Title *</Label>
+                <Input
+                  id="prizeTitle"
+                  value={prizeTitle}
+                  onChange={(e) => setPrizeTitle(e.target.value)}
+                  placeholder="e.g., 3-Month Premium Membership"
+                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
+                  data-testid="input-prize-title"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="prizeDescription">Prize Description</Label>
+                <Textarea
+                  id="prizeDescription"
+                  value={prizeDescription}
+                  onChange={(e) => setPrizeDescription(e.target.value)}
+                  placeholder="Describe the prize..."
+                  rows={2}
+                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
+                  data-testid="input-prize-description"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="prizeValue">Prize Value (optional)</Label>
+                <Input
+                  id="prizeValue"
+                  value={prizeValue}
+                  onChange={(e) => setPrizeValue(e.target.value)}
+                  placeholder="e.g., $50.00"
+                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
+                  data-testid="input-prize-value"
+                />
               </div>
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="endsAt" className="text-sm font-medium text-gray-200">End Date & Time *</Label>
+            <div>
+              <Label htmlFor="endsAt">End Date & Time *</Label>
               <Input
                 id="endsAt"
                 type="datetime-local"
                 value={endsAt}
                 onChange={(e) => setEndsAt(e.target.value)}
-                className="bg-gray-900 dark:bg-gray-900 border-gray-700 dark:border-gray-700 text-white dark:text-white placeholder:text-gray-500 focus:border-premium-primary focus:ring-premium-primary/20 h-11 transition-all"
+                className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
                 data-testid="input-ends-at"
               />
             </div>
           </div>
           
-          <DialogFooter className="pt-6 border-t border-premium-primary/20">
+          <DialogFooter>
             <Button
               variant="outline"
               onClick={() => {
                 setIsCreateModalOpen(false);
                 resetForm();
               }}
-              className="border-gray-700 dark:border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-white transition-all"
               data-testid="button-cancel-create"
             >
               Cancel
@@ -672,12 +669,11 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
             <Button
               onClick={handleCreateGiveaway}
               disabled={createGiveawayMutation.isPending}
-              className="bg-gradient-to-r from-premium-primary to-purple-600 hover:from-premium-primary/90 hover:to-purple-600/90 shadow-lg shadow-premium-primary/20 transition-all transform hover:scale-105"
               data-testid="button-submit-create"
             >
               {createGiveawayMutation.isPending ? (
                 <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent mr-2"></div>
                   Creating...
                 </>
               ) : (
