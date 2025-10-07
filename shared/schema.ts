@@ -1089,6 +1089,144 @@ export const communityInviteLinks = pgTable("community_invite_links", {
   metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // campaign tracking, etc
 });
 
+// ============ COMMUNITY GIVEAWAYS ============
+// Main giveaways table
+export const communityGiveaways = pgTable("community_giveaways", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }),
+  authorId: uuid("author_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  imageUrl: text("image_url"),
+  giveawayType: text("giveaway_type").notNull(), // random_draw | first_come | task_based | points_based
+  prizeTitle: text("prize_title").notNull(),
+  prizeDescription: text("prize_description"),
+  prizeValue: numeric("prize_value"),
+  prizeCurrency: text("prize_currency").default("CAD"),
+  prizeImageUrl: text("prize_image_url"),
+  numberOfWinners: integer("number_of_winners").notNull().default(1),
+  maxEntriesPerUser: integer("max_entries_per_user"),
+  entryCostType: text("entry_cost_type"), // free | points | action
+  entryCostValue: integer("entry_cost_value").default(0),
+  minMemberDays: integer("min_member_days").default(0),
+  requiredRoles: text("required_roles").array().default(sql`ARRAY['member', 'moderator', 'owner']`),
+  requireEmailVerified: boolean("require_email_verified").default(false),
+  startsAt: timestamp("starts_at", { withTimezone: true }),
+  endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+  drawAt: timestamp("draw_at", { withTimezone: true }),
+  status: text("status").notNull().default("draft"), // draft | active | ended | drawn | completed | cancelled
+  isFeatured: boolean("is_featured").default(false),
+  autoDraw: boolean("auto_draw").default(true),
+  totalEntries: integer("total_entries").default(0),
+  uniqueParticipants: integer("unique_participants").default(0),
+  allowEntryRemoval: boolean("allow_entry_removal").default(true),
+  showParticipantCount: boolean("show_participant_count").default(true),
+  showEntriesBeforeEnd: boolean("show_entries_before_end").default(false),
+  anonymousEntries: boolean("anonymous_entries").default(false),
+  termsConditions: text("terms_conditions"),
+  rules: text("rules"),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+});
+
+// Giveaway entries
+export const communityGiveawayEntries = pgTable("community_giveaway_entries", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  giveawayId: uuid("giveaway_id").notNull().references(() => communityGiveaways.id, { onDelete: 'cascade' }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  entryCount: integer("entry_count").default(1),
+  entryMethod: text("entry_method"),
+  pointsSpent: integer("points_spent").default(0),
+  isValid: boolean("is_valid").default(true),
+  invalidationReason: text("invalidation_reason"),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+}, (table) => ({
+  uniqueGiveawayUser: unique().on(table.giveawayId, table.userId),
+}));
+
+// Giveaway winners
+export const communityGiveawayWinners = pgTable("community_giveaway_winners", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  giveawayId: uuid("giveaway_id").notNull().references(() => communityGiveaways.id, { onDelete: 'cascade' }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  position: integer("position").notNull(),
+  prizeVariant: text("prize_variant"),
+  status: text("status").notNull().default("pending"), // pending | contacted | confirmed | claimed | fulfilled | forfeited
+  contactedAt: timestamp("contacted_at", { withTimezone: true }),
+  confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+  claimedAt: timestamp("claimed_at", { withTimezone: true }),
+  fulfilledAt: timestamp("fulfilled_at", { withTimezone: true }),
+  contactEmail: text("contact_email"),
+  contactNotes: text("contact_notes"),
+  shippingInfo: jsonb("shipping_info"),
+  drawnBy: uuid("drawn_by").references(() => users.id),
+  drawMethod: text("draw_method").default("random"),
+}, (table) => ({
+  uniqueGiveawayWinner: unique().on(table.giveawayId, table.userId),
+}));
+
+// Giveaway tasks (for task-based giveaways)
+export const communityGiveawayTasks = pgTable("community_giveaway_tasks", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  giveawayId: uuid("giveaway_id").notNull().references(() => communityGiveaways.id, { onDelete: 'cascade' }),
+  taskType: text("task_type").notNull(), // join_community | invite_member | create_post | comment | react | share | custom
+  title: text("title").notNull(),
+  description: text("description"),
+  entriesReward: integer("entries_reward").default(1),
+  pointsReward: integer("points_reward").default(0),
+  required: boolean("required").default(false),
+  maxCompletions: integer("max_completions"),
+  displayOrder: integer("display_order").default(0),
+  isActive: boolean("is_active").default(true),
+  requiresVerification: boolean("requires_verification").default(false),
+  verificationUrl: text("verification_url"),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+});
+
+// Giveaway task completions
+export const communityGiveawayTaskCompletions = pgTable("community_giveaway_task_completions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  taskId: uuid("task_id").notNull().references(() => communityGiveawayTasks.id, { onDelete: 'cascade' }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  giveawayId: uuid("giveaway_id").notNull().references(() => communityGiveaways.id, { onDelete: 'cascade' }),
+  completedAt: timestamp("completed_at", { withTimezone: true }).default(sql`now()`),
+  completionProof: text("completion_proof"),
+  verified: boolean("verified").default(false),
+  verifiedBy: uuid("verified_by").references(() => users.id),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  verificationNotes: text("verification_notes"),
+  entriesGranted: integer("entries_granted").default(0),
+  pointsGranted: integer("points_granted").default(0),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+}, (table) => ({
+  uniqueTaskUser: unique().on(table.taskId, table.userId),
+}));
+
+// Giveaway audit log
+export const communityGiveawayAuditLog = pgTable("community_giveaway_audit_log", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  giveawayId: uuid("giveaway_id").notNull().references(() => communityGiveaways.id, { onDelete: 'cascade' }),
+  actorId: uuid("actor_id").references(() => users.id),
+  actorType: text("actor_type").default("user"),
+  action: text("action").notNull(),
+  targetType: text("target_type"),
+  targetId: text("target_id"),
+  previousValue: jsonb("previous_value"),
+  newValue: jsonb("new_value"),
+  description: text("description"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
+});
+
 // Notification preferences per user per community
 export const communityNotificationPreferences = pgTable("community_notification_preferences", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -1276,6 +1414,38 @@ export const insertCommunityInviteLinkSchema = createInsertSchema(communityInvit
   createdAt: true,
 });
 
+// Giveaway Insert Schemas
+export const insertCommunityGiveawaySchema = createInsertSchema(communityGiveaways).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCommunityGiveawayEntrySchema = createInsertSchema(communityGiveawayEntries).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityGiveawayWinnerSchema = createInsertSchema(communityGiveawayWinners).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityGiveawayTaskSchema = createInsertSchema(communityGiveawayTasks).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityGiveawayTaskCompletionSchema = createInsertSchema(communityGiveawayTaskCompletions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCommunityGiveawayAuditLogSchema = createInsertSchema(communityGiveawayAuditLog).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Authentication & Organizer Type Exports
 export type AuthCode = typeof authCodes.$inferSelect;
 export type InsertAuthCode = z.infer<typeof insertAuthCodeSchema>;
@@ -1348,3 +1518,17 @@ export type CommunityInviteLink = typeof communityInviteLinks.$inferSelect;
 export type InsertCommunityInviteLink = z.infer<typeof insertCommunityInviteLinkSchema>;
 export type CommunityNotificationPreferences = typeof communityNotificationPreferences.$inferSelect;
 export type InsertCommunityNotificationPreferences = z.infer<typeof insertCommunityNotificationPreferencesSchema>;
+
+// Giveaway Type Exports
+export type CommunityGiveaway = typeof communityGiveaways.$inferSelect;
+export type InsertCommunityGiveaway = z.infer<typeof insertCommunityGiveawaySchema>;
+export type CommunityGiveawayEntry = typeof communityGiveawayEntries.$inferSelect;
+export type InsertCommunityGiveawayEntry = z.infer<typeof insertCommunityGiveawayEntrySchema>;
+export type CommunityGiveawayWinner = typeof communityGiveawayWinners.$inferSelect;
+export type InsertCommunityGiveawayWinner = z.infer<typeof insertCommunityGiveawayWinnerSchema>;
+export type CommunityGiveawayTask = typeof communityGiveawayTasks.$inferSelect;
+export type InsertCommunityGiveawayTask = z.infer<typeof insertCommunityGiveawayTaskSchema>;
+export type CommunityGiveawayTaskCompletion = typeof communityGiveawayTaskCompletions.$inferSelect;
+export type InsertCommunityGiveawayTaskCompletion = z.infer<typeof insertCommunityGiveawayTaskCompletionSchema>;
+export type CommunityGiveawayAuditLog = typeof communityGiveawayAuditLog.$inferSelect;
+export type InsertCommunityGiveawayAuditLog = z.infer<typeof insertCommunityGiveawayAuditLogSchema>;
