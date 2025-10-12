@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 import { useEvents } from '@/lib/events';
 
 export default function Waitlist() {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { data: events = [] } = useEvents();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>('');
@@ -16,6 +17,20 @@ export default function Waitlist() {
   });
   
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Check authentication state
+  const { data: authData } = useQuery({
+    queryKey: ['/api/auth/me'],
+    retry: false,
+  });
+  const isAuthenticated = !!(authData as any)?.user;
+  
+  // Redirect authenticated users to account profile settings
+  useEffect(() => {
+    if (isAuthenticated) {
+      setLocation('/account/profile#settings');
+    }
+  }, [isAuthenticated, setLocation]);
 
   // Parse URL search params
   const urlParams = new URLSearchParams(window.location.search);
