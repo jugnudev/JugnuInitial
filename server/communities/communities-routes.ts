@@ -5725,7 +5725,7 @@ export function addCommunitiesRoutes(app: Express) {
 
   /**
    * GET /api/communities/:id/invites
-   * Get all invite links for a community (owners only)
+   * Get all invite links for a community (owners and moderators)
    */
   app.get('/api/communities/:id/invites', checkCommunitiesFeatureFlag, requireAuth, rateLimiter.middleware(rateLimitPresets.authenticated), async (req: Request, res: Response) => {
     try {
@@ -5739,15 +5739,22 @@ export function addCommunitiesRoutes(app: Express) {
         return res.json({ ok: true, invites: cached });
       }
 
-      // Verify user is community owner
+      // Verify user is community owner or moderator
       const community = await communitiesStorage.getCommunityById(id);
       if (!community) {
         return res.status(404).json({ ok: false, error: 'Community not found' });
       }
 
+      // Check if user is owner
       const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
-      if (!organizer || organizer.id !== community.organizerId) {
-        return res.status(403).json({ ok: false, error: 'Only community owners can view invite links' });
+      const isOwner = organizer && organizer.id === community.organizerId;
+      
+      // If not owner, check if user is a moderator
+      if (!isOwner) {
+        const membership = await communitiesStorage.getMembership(community.id, user.id);
+        if (!membership || (membership.role !== 'moderator' && membership.role !== 'owner')) {
+          return res.status(403).json({ ok: false, error: 'Only community owners and moderators can view invite links' });
+        }
       }
 
       // Get invite links
