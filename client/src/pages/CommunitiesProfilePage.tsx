@@ -658,7 +658,7 @@ export function CommunitiesProfilePage() {
                 className="text-xs sm:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 sm:px-4"
               >
                 <User className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" aria-hidden="true" />
-                <span className="hidden sm:inline">Profile</span>
+                <span className="hidden sm:inline" aria-hidden="true">Profile</span>
                 <span className="sr-only">Profile</span>
               </TabsTrigger>
               <TabsTrigger 
@@ -666,7 +666,7 @@ export function CommunitiesProfilePage() {
                 className="text-xs sm:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 sm:px-4"
               >
                 <Building2 className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" aria-hidden="true" />
-                <span className="hidden sm:inline">Business</span>
+                <span className="hidden sm:inline" aria-hidden="true">Business</span>
                 <span className="sr-only">Business</span>
               </TabsTrigger>
               <TabsTrigger 
@@ -674,7 +674,7 @@ export function CommunitiesProfilePage() {
                 className="text-xs sm:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 sm:px-4"
               >
                 <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" aria-hidden="true" />
-                <span className="hidden sm:inline">Settings</span>
+                <span className="hidden sm:inline" aria-hidden="true">Settings</span>
                 <span className="sr-only">Settings</span>
               </TabsTrigger>
             </TabsList>
