@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startChatServer } from "./communities/chat-server";
@@ -7,6 +8,7 @@ import { startChatServer } from "./communities/chat-server";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 
 // Serve uploaded files
 app.use('/uploads', express.static('public/uploads'));

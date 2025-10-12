@@ -2775,7 +2775,7 @@ export class CommunitiesSupabaseDB {
     const { data: notification, error } = await this.client
       .from('community_notifications')
       .insert({
-        recipient_id: data.recipientId,
+        user_id: data.recipientId,
         community_id: data.communityId,
         type: data.type,
         title: data.title,
@@ -2805,7 +2805,7 @@ export class CommunitiesSupabaseDB {
     if (!notifications.length) return [];
 
     const notificationData = notifications.map(n => ({
-      recipient_id: n.recipientId,
+      user_id: n.recipientId,
       community_id: n.communityId,
       type: n.type,
       title: n.title,
@@ -2838,7 +2838,7 @@ export class CommunitiesSupabaseDB {
     let query = this.client
       .from('community_notifications')
       .select('*', { count: 'exact' })
-      .eq('recipient_id', userId)
+      .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     if (options?.communityId) {
@@ -2871,7 +2871,7 @@ export class CommunitiesSupabaseDB {
     let query = this.client
       .from('community_notifications')
       .select('*', { count: 'exact', head: true })
-      .eq('recipient_id', userId)
+      .eq('user_id', userId)
       .eq('is_read', false);
 
     if (communityId) {
@@ -2892,7 +2892,7 @@ export class CommunitiesSupabaseDB {
         read_at: new Date().toISOString()
       })
       .eq('id', notificationId)
-      .eq('recipient_id', userId)
+      .eq('user_id', userId)
       .select()
       .single();
 
@@ -2908,7 +2908,7 @@ export class CommunitiesSupabaseDB {
         is_read: true,
         read_at: new Date().toISOString()
       })
-      .eq('recipient_id', userId)
+      .eq('user_id', userId)
       .eq('is_read', false);
 
     if (communityId) {
@@ -2926,7 +2926,7 @@ export class CommunitiesSupabaseDB {
       .from('community_notifications')
       .delete()
       .eq('id', notificationId)
-      .eq('recipient_id', userId);
+      .eq('user_id', userId);
 
     if (error) throw error;
     return true;
@@ -3091,7 +3091,7 @@ export class CommunitiesSupabaseDB {
     return {
       id: data.id,
       createdAt: data.created_at,
-      recipientId: data.recipient_id,
+      recipientId: data.user_id,
       communityId: data.community_id,
       type: data.type,
       title: data.title,

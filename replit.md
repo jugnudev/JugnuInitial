@@ -18,6 +18,7 @@ Preferred communication style: Simple, everyday language.
 
 ### Technical Implementations
 - **Backend Framework**: Express.js with TypeScript.
+- **Middleware**: cookie-parser for cookie handling (required for community auth tokens), express-session for platform sessions.
 - **Database ORM**: Drizzle ORM for PostgreSQL.
 - **State Management**: TanStack Query for server state, React hooks for local state.
 - **Routing**: Wouter for client-side navigation.
@@ -41,6 +42,7 @@ Preferred communication style: Simple, everyday language.
     - **Post as Business**: Toggle to post announcements as the community/business or as an individual user.
     - **Billing System**: Per-community subscriptions with Stripe integration, webhooks, and a 7-day free trial.
     - **Giveaway System**: Comprehensive functionality including random draw, first-come-first-serve, task-based, points-based with automated winner selection, prize management, winner display with confetti animation, delete capability, and premium mobile-friendly interface. Authors cannot enter their own giveaways to prevent conflicts of interest.
+    - **Notification System**: In-app notifications with email delivery, frequency preferences (immediate/daily/weekly), quiet hours support, and real-time WebSocket updates. Database uses `user_id` column for recipient identification (Supabase queries).
 
 ### System Design Choices
 - **Mobile-first approach**: Implemented using Tailwind CSS breakpoints.
@@ -56,6 +58,7 @@ Preferred communication style: Simple, everyday language.
 - **@tanstack/react-query**: Server state management.
 - **wouter**: React router.
 - **express**: Node.js web framework.
+- **cookie-parser**: Cookie parsing middleware (critical for community auth).
 
 ### UI and Styling
 - **@radix-ui/react-***: Accessible UI primitives.
