@@ -1703,10 +1703,10 @@ export default function EnhancedCommunityDetailPage() {
               <Tabs defaultValue="polls" className="w-full">
                 {/* Premium Copper/Gold Segmented Control */}
                 <div className="mb-8 md:mb-10">
-                  <TabsList className="grid w-full grid-cols-2 h-16 md:h-20 p-2 bg-gradient-to-br from-copper-900/60 via-primary-700/50 to-copper-900/60 backdrop-blur-2xl border-2 border-copper-500/30 rounded-3xl shadow-2xl shadow-copper-500/20">
+                  <TabsList className="grid w-full grid-cols-2 h-16 md:h-20 p-1.5 bg-gradient-to-br from-primary/40 via-copper-900/50 to-primary/40 backdrop-blur-xl border border-copper-500/20 rounded-2xl shadow-lg shadow-copper-500/10">
                     <TabsTrigger 
                       value="polls" 
-                      className="h-full w-full rounded-2xl text-base md:text-lg font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-2xl data-[state=active]:shadow-glow/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-muted hover:text-text hover:bg-copper-500/10 flex items-center justify-center gap-2 md:gap-3 group"
+                      className="h-full w-full rounded-xl text-base md:text-lg font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-xl data-[state=active]:shadow-glow/30 data-[state=active]:scale-[1.02] data-[state=inactive]:bg-gradient-to-br data-[state=inactive]:from-copper-900/30 data-[state=inactive]:to-primary/20 data-[state=inactive]:text-text/70 hover:text-text hover:bg-copper-500/20 flex items-center justify-center gap-2 md:gap-3 group"
                       data-testid="subtab-polls"
                     >
                       <Vote className="w-5 h-5 md:w-6 md:h-6 transition-all group-data-[state=active]:scale-110 group-data-[state=active]:rotate-12" />
@@ -1714,7 +1714,7 @@ export default function EnhancedCommunityDetailPage() {
                     </TabsTrigger>
                     <TabsTrigger 
                       value="giveaways" 
-                      className="h-full w-full rounded-2xl text-base md:text-lg font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-2xl data-[state=active]:shadow-glow/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-muted hover:text-text hover:bg-copper-500/10 flex items-center justify-center gap-2 md:gap-3 group"
+                      className="h-full w-full rounded-xl text-base md:text-lg font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-xl data-[state=active]:shadow-glow/30 data-[state=active]:scale-[1.02] data-[state=inactive]:bg-gradient-to-br data-[state=inactive]:from-copper-900/30 data-[state=inactive]:to-primary/20 data-[state=inactive]:text-text/70 hover:text-text hover:bg-copper-500/20 flex items-center justify-center gap-2 md:gap-3 group"
                       data-testid="subtab-giveaways"
                     >
                       <Gift className="w-5 h-5 md:w-6 md:h-6 transition-all group-data-[state=active]:scale-110 group-data-[state=active]:-rotate-12" />

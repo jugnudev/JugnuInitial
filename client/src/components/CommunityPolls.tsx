@@ -299,11 +299,11 @@ export default function CommunityPolls({ communityId, currentMember }: Community
       
       {/* Premium Status Tabs with Glassmorphism */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'closed')} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-14 md:h-16 p-1.5 bg-gradient-to-br from-copper-900/50 via-primary-700/40 to-copper-900/50 backdrop-blur-xl border border-copper-500/20 rounded-2xl shadow-2xl shadow-copper-500/10 mb-6 md:mb-8">
+        <TabsList className="grid w-full grid-cols-2 h-14 md:h-16 p-1.5 bg-gradient-to-br from-primary/40 via-copper-900/50 to-primary/40 backdrop-blur-xl border border-copper-500/20 rounded-2xl shadow-lg shadow-copper-500/10 mb-6 md:mb-8">
           <TabsTrigger 
             value="active" 
             data-testid="active-polls-tab"
-            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-glow/50 data-[state=active]:scale-[1.02] data-[state=inactive]:text-muted hover:text-text hover:bg-copper-500/10 flex items-center justify-center group"
+            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-glow/50 data-[state=active]:scale-[1.02] data-[state=inactive]:bg-gradient-to-br data-[state=inactive]:from-copper-900/30 data-[state=inactive]:to-primary/20 data-[state=inactive]:text-text/70 hover:text-text hover:bg-copper-500/20 flex items-center justify-center group"
           >
             <span className="flex items-center gap-2">
               <Activity className="w-4 h-4 md:w-5 md:h-5 transition-transform group-data-[state=active]:animate-pulse" />
@@ -314,7 +314,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
           <TabsTrigger 
             value="closed" 
             data-testid="closed-polls-tab"
-            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-copper-600 data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-muted hover:text-text hover:bg-copper-500/10 flex items-center justify-center group"
+            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-copper-600 data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:bg-gradient-to-br data-[state=inactive]:from-copper-900/30 data-[state=inactive]:to-primary/20 data-[state=inactive]:text-text/70 hover:text-text hover:bg-copper-500/20 flex items-center justify-center group"
           >
             <span className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />
