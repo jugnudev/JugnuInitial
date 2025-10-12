@@ -55,8 +55,33 @@ export class InviteSystem {
     }
   ): Promise<InviteLink> {
     try {
-      // Generate invite code (8 characters)
-      const code = options?.customCode || nanoid(8).toUpperCase();
+      // Generate personalized invite code using community name
+      let code = options?.customCode;
+      
+      if (!code) {
+        // Fetch community details to personalize the invite code
+        const { data: community } = await this.client
+          .from('communities')
+          .select('name, slug')
+          .eq('id', communityId)
+          .single();
+        
+        if (community) {
+          // Use slug if available, otherwise create from name
+          const baseSlug = community.slug || community.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .substring(0, 20); // Limit length
+          
+          // Add unique suffix (6 characters)
+          const suffix = nanoid(6).toLowerCase();
+          code = `${baseSlug}-${suffix}`;
+        } else {
+          // Fallback to random code if community not found
+          code = nanoid(8).toUpperCase();
+        }
+      }
       
       // Calculate expiration date if specified
       let expiresAt = null;
@@ -109,7 +134,7 @@ export class InviteSystem {
           *,
           community:communities(id, name, description, image_url, is_private)
         `)
-        .eq('code', code.toUpperCase())
+        .eq('code', code.toLowerCase())
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
