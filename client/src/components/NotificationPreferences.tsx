@@ -245,10 +245,10 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
           <Tabs defaultValue="channels" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 h-auto">
-              <TabsTrigger value="channels" className="text-xs sm:text-sm py-2 sm:py-2.5">Channels</TabsTrigger>
-              <TabsTrigger value="types" className="text-xs sm:text-sm py-2 sm:py-2.5">Types</TabsTrigger>
-              <TabsTrigger value="schedule" className="text-xs sm:text-sm py-2 sm:py-2.5">Schedule</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 h-auto bg-muted/30 dark:bg-muted/10">
+              <TabsTrigger value="channels" className="text-xs sm:text-sm py-2 sm:py-2.5 data-[state=active]:bg-background dark:data-[state=active]:bg-background">Channels</TabsTrigger>
+              <TabsTrigger value="types" className="text-xs sm:text-sm py-2 sm:py-2.5 data-[state=active]:bg-background dark:data-[state=active]:bg-background">Types</TabsTrigger>
+              <TabsTrigger value="schedule" className="text-xs sm:text-sm py-2 sm:py-2.5 data-[state=active]:bg-background dark:data-[state=active]:bg-background">Schedule</TabsTrigger>
             </TabsList>
 
             {/* Channels Tab */}

@@ -656,29 +656,26 @@ export function CommunitiesProfilePage() {
               <TabsTrigger 
                 value="profile" 
                 className="text-xs sm:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 sm:px-4"
-                aria-label="Profile"
               >
                 <User className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" aria-hidden="true" />
                 <span className="hidden sm:inline">Profile</span>
-                <span className="sr-only sm:not-sr-only">Profile</span>
+                <span className="sr-only">Profile</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="organizer" 
                 className="text-xs sm:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 sm:px-4"
-                aria-label="Business Account"
               >
                 <Building2 className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" aria-hidden="true" />
                 <span className="hidden sm:inline">Business</span>
-                <span className="sr-only sm:not-sr-only">Business</span>
+                <span className="sr-only">Business</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="settings" 
                 className="text-xs sm:text-sm font-medium data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 sm:px-4"
-                aria-label="Settings"
               >
                 <Settings className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" aria-hidden="true" />
                 <span className="hidden sm:inline">Settings</span>
-                <span className="sr-only sm:not-sr-only">Settings</span>
+                <span className="sr-only">Settings</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1387,80 +1384,6 @@ export function CommunitiesProfilePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 p-4 sm:p-6">
-                <div className="space-y-4 sm:space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 py-2 sm:py-0">
-                    <div className="flex-1">
-                      <Label htmlFor="emailNotifications" className="text-sm sm:text-base">Email Notifications</Label>
-                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                        Receive notifications about your account
-                      </p>
-                    </div>
-                    <Switch
-                      id="emailNotifications"
-                      checked={form.watch('emailNotifications') ?? true}
-                      onCheckedChange={(checked) => {
-                        form.setValue('emailNotifications', checked);
-                        // Auto-save with complete profile data to satisfy validation
-                        const currentValues = form.getValues();
-                        updateMutation.mutate({
-                          ...currentValues,
-                          emailNotifications: checked
-                        });
-                      }}
-                      data-testid="switch-email-notifications"
-                    />
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 py-2 sm:py-0">
-                    <div className="flex-1">
-                      <Label htmlFor="marketingEmails" className="text-sm sm:text-base">Marketing Emails</Label>
-                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                        Receive emails about new features and updates
-                      </p>
-                    </div>
-                    <Switch
-                      id="marketingEmails"
-                      checked={form.watch('marketingEmails') ?? false}
-                      onCheckedChange={(checked) => {
-                        form.setValue('marketingEmails', checked);
-                        // Auto-save with complete profile data to satisfy validation
-                        const currentValues = form.getValues();
-                        updateMutation.mutate({
-                          ...currentValues,
-                          marketingEmails: checked
-                        });
-                      }}
-                      data-testid="switch-marketing-emails"
-                      className="self-start sm:self-auto"
-                    />
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 py-2 sm:py-0">
-                    <div className="flex-1">
-                      <Label htmlFor="newsletter" className="text-sm sm:text-base">Newsletter</Label>
-                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                        Receive our weekly newsletter with highlights
-                      </p>
-                    </div>
-                    <Switch
-                      id="newsletter"
-                      checked={form.watch('newsletter') ?? false}
-                      onCheckedChange={(checked) => {
-                        form.setValue('newsletter', checked);
-                        // Auto-save with complete profile data to satisfy validation
-                        const currentValues = form.getValues();
-                        updateMutation.mutate({
-                          ...currentValues,
-                          newsletter: checked
-                        });
-                      }}
-                      data-testid="switch-newsletter"
-                    />
-                  </div>
-                </div>
-
-                <Separator />
-
                 <div className="space-y-4">
                   <div>
                     <div className="flex items-center justify-between">
