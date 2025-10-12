@@ -2216,6 +2216,25 @@ export class CommunitiesSupabaseDB {
       userAgent?: string;
     }
   ): Promise<any> {
+    // Get the giveaway to check the author
+    const { data: giveaway, error: giveawayError } = await this.client
+      .from('community_giveaways')
+      .select('author_id, status')
+      .eq('id', giveawayId)
+      .single();
+
+    if (giveawayError) throw new Error('Giveaway not found');
+
+    // Prevent authors from entering their own giveaways
+    if (giveaway.author_id === userId) {
+      throw new Error('You cannot enter your own giveaway');
+    }
+
+    // Check if giveaway is active
+    if (giveaway.status !== 'active') {
+      throw new Error('This giveaway is not active');
+    }
+
     // Check if user already entered
     const { data: existingEntry } = await this.client
       .from('community_giveaway_entries')

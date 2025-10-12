@@ -484,6 +484,16 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
                             Remove Entry
                           </Button>
                         </>
+                      ) : currentMember && giveaway.author.id === currentMember.userId ? (
+                        <Button 
+                          variant="outline"
+                          className="flex-1 border-premium-border cursor-not-allowed opacity-60"
+                          disabled
+                          data-testid={`button-author-${giveaway.id}`}
+                        >
+                          <Crown className="h-4 w-4 mr-2" />
+                          You created this
+                        </Button>
                       ) : (
                         <Button 
                           onClick={() => enterGiveawayMutation.mutate(giveaway.id)}
