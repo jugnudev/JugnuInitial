@@ -30,10 +30,11 @@ Preferred communication style: Simple, everyday language.
 ### Feature Specifications
 - **Admin & Sponsorship Systems**: Key-based Admin API, portal token system (UUID-based), lead management (CRUD), multi-part onboarding for campaigns, creative upload (banners), sponsor portal with real-time analytics and CSV export, and health monitoring endpoints.
 - **Communities Platform**:
-    - **Growth Features**: Invite links, member referrals, community discovery, social sharing.
+    - **Growth Features**: Invite links with copy functionality for owners/moderators, member referrals, community discovery, social sharing.
+    - **Join Link Management**: Owners and moderators can access permanent invite links from Settings tab with one-click copy, usage tracking, and automatic link generation.
     - **Analytics Dashboard**: Real-time insights including best time to post, engagement metrics, member metrics, and post performance.
     - **Real-Time Chat**: WebSocket server with Supabase persistence, online presence, typing indicators, role-based permissions, auto-moderation, and message management.
-    - **Moderator & Permissions**: Role management (owner, moderator, member) with granular permissions.
+    - **Moderator & Permissions**: Role management (owner, moderator, member) with granular permissions. Moderators have access to Settings tab including invite link management.
     - **Post Reactions**: Atomic upsert operations with optimistic UI updates.
     - **Media Upload**: Supports images (JPG/PNG/WebP, max 10MB) and MP4 videos (max 50MB) with drag-and-drop.
     - **Post as Business**: Toggle to post announcements as the community/business or as an individual user.

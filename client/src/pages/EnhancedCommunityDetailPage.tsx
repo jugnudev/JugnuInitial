@@ -295,6 +295,7 @@ export default function EnhancedCommunityDetailPage() {
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [slowmodeValue, setSlowmodeValue] = useState<string>('0');
   const [bannedWordsValue, setBannedWordsValue] = useState<string>('');
+  const [copiedInviteLink, setCopiedInviteLink] = useState(false);
   
   // Custom dialog states
   const [deletePostDialog, setDeletePostDialog] = useState<{ open: boolean; postId: string | null }>({ open: false, postId: null });
@@ -334,6 +335,7 @@ export default function EnhancedCommunityDetailPage() {
   const isPending = membership?.status === 'pending';
   const isDeclined = membership?.status === 'declined';
   const isOwner = membership?.role === 'owner' || canManage;
+  const isOwnerOrModerator = isOwner || membership?.role === 'moderator';
 
   // Sync slowmode value when community data loads
   useEffect(() => {
@@ -406,6 +408,27 @@ export default function EnhancedCommunityDetailPage() {
     retry: false,
   });
   const analytics = analyticsData?.analytics;
+
+  // Get invite links (only for owners and moderators)
+  const { data: invitesData } = useQuery<{
+    ok: boolean;
+    invites: Array<{
+      id: string;
+      code: string;
+      createdBy: string;
+      expiresAt: string | null;
+      maxUses: number | null;
+      currentUses: number;
+      status: string;
+      createdAt: string;
+    }>;
+  }>({
+    queryKey: ['/api/communities', community?.id, 'invites'],
+    enabled: !!community?.id && isOwnerOrModerator,
+    retry: false,
+  });
+  const invites = invitesData?.invites || [];
+  const permanentInvite = invites.find(inv => inv.status === 'active' && !inv.expiresAt && !inv.maxUses);
 
   // Join/Leave community mutation
   const joinCommunityMutation = useMutation({
@@ -482,6 +505,25 @@ export default function EnhancedCommunityDetailPage() {
     onError: (error: any) => {
       toast({ 
         title: "Failed to remove member", 
+        description: error.message,
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Create invite link mutation
+  const createInviteLinkMutation = useMutation({
+    mutationFn: async () => {
+      if (!community?.id) throw new Error('Community ID not available');
+      return apiRequest('POST', `/api/communities/${community.id}/invites`, {});
+    },
+    onSuccess: () => {
+      toast({ title: "Invite link created!" });
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', community?.id, 'invites'] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Failed to create invite link", 
         description: error.message,
         variant: "destructive" 
       });
@@ -1244,8 +1286,8 @@ export default function EnhancedCommunityDetailPage() {
       
       {/* Content Area */}
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
-        {isOwner ? (
-          // Owner Console with Tabs
+        {isOwnerOrModerator ? (
+          // Owner/Moderator Console with Tabs
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <div className="w-full overflow-x-auto scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
               <TabsList className="inline-flex md:grid w-full md:max-w-2xl md:grid-cols-7 bg-premium-surface border border-premium-border min-w-max md:min-w-0">
@@ -2103,6 +2145,80 @@ export default function EnhancedCommunityDetailPage() {
                       }}
                     />
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Join Link Card */}
+              <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                <CardHeader>
+                  <CardTitle className="text-base md:text-lg">Community Join Link</CardTitle>
+                  <CardDescription className="text-xs md:text-sm">
+                    Share this link to invite people to join your community
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {permanentInvite ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 p-3 rounded-lg bg-premium-surface-elevated border border-premium-border">
+                        <Input
+                          value={`${window.location.origin}/invite/${permanentInvite.code}`}
+                          readOnly
+                          className="flex-1 bg-transparent border-none text-premium-text-primary cursor-text"
+                          data-testid="input-join-link"
+                        />
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/invite/${permanentInvite.code}`);
+                            setCopiedInviteLink(true);
+                            setTimeout(() => setCopiedInviteLink(false), 2000);
+                            toast({ title: "Link copied to clipboard!" });
+                          }}
+                          className="flex-shrink-0"
+                          data-testid="button-copy-link"
+                        >
+                          {copiedInviteLink ? (
+                            <>
+                              <Check className="h-4 w-4 mr-2" />
+                              Copied
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-4 w-4 mr-2" />
+                              Copy
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-premium-text-muted">
+                        This permanent link can be used by anyone to join your community. {permanentInvite.currentUses} {permanentInvite.currentUses === 1 ? 'person has' : 'people have'} joined using this link.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-premium-text-muted mb-4">
+                        No permanent invite link exists yet. Create one to share with potential members.
+                      </p>
+                      <Button
+                        onClick={() => createInviteLinkMutation.mutate()}
+                        disabled={createInviteLinkMutation.isPending}
+                        data-testid="button-create-invite-link"
+                      >
+                        {createInviteLinkMutation.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Creating...
+                          </>
+                        ) : (
+                          <>
+                            <LinkIcon className="h-4 w-4 mr-2" />
+                            Create Invite Link
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

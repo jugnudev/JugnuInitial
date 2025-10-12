@@ -1081,8 +1081,9 @@ export const communityInviteLinks = pgTable("community_invite_links", {
   createdBy: varchar("created_by").notNull().references(() => users.id),
   code: text("code").notNull().unique(),
   maxUses: integer("max_uses"),
-  useCount: integer("use_count").notNull().default(0),
+  currentUses: integer("current_uses").notNull().default(0),
   expiresAt: timestamp("expires_at", { withTimezone: true }),
+  status: text("status").notNull().default("active"),
   role: text("role").notNull().default("member"), // member | moderator
   autoApprove: boolean("auto_approve").notNull().default(false),
   isActive: boolean("is_active").notNull().default(true),

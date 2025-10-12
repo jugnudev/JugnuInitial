@@ -5683,7 +5683,7 @@ export function addCommunitiesRoutes(app: Express) {
 
   /**
    * POST /api/communities/:id/invites
-   * Create an invite link for a community (owners only)
+   * Create an invite link for a community (owners and moderators)
    */
   app.post('/api/communities/:id/invites', checkCommunitiesFeatureFlag, requireAuth, rateLimiter.middleware(rateLimitPresets.authenticated), async (req: Request, res: Response) => {
     try {
@@ -5691,15 +5691,22 @@ export function addCommunitiesRoutes(app: Express) {
       const user = (req as any).user;
       const { expiresInDays, maxUses, customCode } = req.body;
 
-      // Verify user is community owner
+      // Verify user is community owner or moderator
       const community = await communitiesStorage.getCommunityById(id);
       if (!community) {
         return res.status(404).json({ ok: false, error: 'Community not found' });
       }
 
+      // Check if user is owner
       const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
-      if (!organizer || organizer.id !== community.organizerId) {
-        return res.status(403).json({ ok: false, error: 'Only community owners can create invite links' });
+      const isOwner = organizer && organizer.id === community.organizerId;
+      
+      // If not owner, check if user is an approved moderator
+      if (!isOwner) {
+        const membership = await communitiesStorage.getMembership(community.id, user.id);
+        if (!membership || membership.status !== 'approved' || (membership.role !== 'moderator' && membership.role !== 'owner')) {
+          return res.status(403).json({ ok: false, error: 'Only community owners and moderators can create invite links' });
+        }
       }
 
       // Create invite link
@@ -5749,10 +5756,10 @@ export function addCommunitiesRoutes(app: Express) {
       const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
       const isOwner = organizer && organizer.id === community.organizerId;
       
-      // If not owner, check if user is a moderator
+      // If not owner, check if user is an approved moderator
       if (!isOwner) {
         const membership = await communitiesStorage.getMembership(community.id, user.id);
-        if (!membership || (membership.role !== 'moderator' && membership.role !== 'owner')) {
+        if (!membership || membership.status !== 'approved' || (membership.role !== 'moderator' && membership.role !== 'owner')) {
           return res.status(403).json({ ok: false, error: 'Only community owners and moderators can view invite links' });
         }
       }
