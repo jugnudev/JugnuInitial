@@ -354,27 +354,27 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
       
       {/* Premium Status Tabs with Glassmorphism */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'active' | 'ended')} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-14 md:h-16 p-1.5 bg-gradient-to-br from-primary/40 via-copper-900/50 to-primary/40 backdrop-blur-xl border border-copper-500/20 rounded-2xl shadow-lg shadow-copper-500/10 mb-6 md:mb-8">
+        <TabsList className="grid w-full grid-cols-2 h-14 md:h-16 p-1.5 bg-gradient-to-br from-black/50 via-copper-950/70 to-black/50 backdrop-blur-xl border border-copper-500/30 rounded-2xl shadow-xl shadow-black/60 mb-6 md:mb-8">
           <TabsTrigger 
             value="active" 
-            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-glow/50 data-[state=active]:scale-[1.02] data-[state=inactive]:bg-gradient-to-br data-[state=inactive]:from-copper-900/30 data-[state=inactive]:to-primary/20 data-[state=inactive]:text-text/70 hover:text-text hover:bg-copper-500/20 flex items-center justify-center group" 
+            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-200 ease-out data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-glow/30 data-[state=inactive]:bg-black/60 data-[state=inactive]:text-copper-400/90 hover:text-copper-300 hover:bg-black/40 flex items-center justify-center group" 
             data-testid="tab-active-giveaways"
           >
             <span className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 md:w-5 md:h-5 transition-transform group-data-[state=active]:animate-pulse" />
+              <Sparkles className="w-4 h-4 md:w-5 md:h-5 transition-colors duration-200" />
               <span>Active</span>
-              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-copper-500/20 text-text border-copper-500/30 group-data-[state=active]:bg-black/20 group-data-[state=active]:text-black group-data-[state=active]:border-black/30 transition-colors font-semibold">{activeCount}</Badge>
+              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-copper-500/20 text-text border-copper-500/30 group-data-[state=active]:bg-black/20 group-data-[state=active]:text-black group-data-[state=active]:border-black/30 transition-colors duration-200 font-semibold">{activeCount}</Badge>
             </span>
           </TabsTrigger>
           <TabsTrigger 
             value="ended" 
-            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-copper-600 data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:bg-gradient-to-br data-[state=inactive]:from-copper-900/30 data-[state=inactive]:to-primary/20 data-[state=inactive]:text-text/70 hover:text-text hover:bg-copper-500/20 flex items-center justify-center group" 
+            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-200 ease-out data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-copper-600 data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/40 data-[state=inactive]:bg-black/60 data-[state=inactive]:text-copper-400/90 hover:text-copper-300 hover:bg-black/40 flex items-center justify-center group" 
             data-testid="tab-ended-giveaways"
           >
             <span className="flex items-center gap-2">
-              <Trophy className="w-4 h-4 md:w-5 md:h-5" />
+              <Trophy className="w-4 h-4 md:w-5 md:h-5 transition-colors duration-200" />
               <span>Ended</span>
-              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-copper-500/20 text-text border-copper-500/30 group-data-[state=active]:bg-black/20 group-data-[state=active]:text-black group-data-[state=active]:border-black/30 transition-colors font-semibold">{endedCount}</Badge>
+              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-copper-500/20 text-text border-copper-500/30 group-data-[state=active]:bg-black/20 group-data-[state=active]:text-black group-data-[state=active]:border-black/30 transition-colors duration-200 font-semibold">{endedCount}</Badge>
             </span>
           </TabsTrigger>
         </TabsList>

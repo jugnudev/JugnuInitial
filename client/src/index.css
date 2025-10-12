@@ -48,9 +48,11 @@
   --primary-700: hsl(29, 52%, 32%);
   --accent: hsl(28, 89%, 57%);
   --glow: hsl(46, 91%, 65%);
+  --copper-400: hsl(24, 76%, 60%);
   --copper-500: hsl(24, 76%, 45%);
   --copper-600: hsl(24, 76%, 40%);
   --copper-900: hsl(24, 76%, 20%);
+  --copper-950: hsl(24, 76%, 10%);
 
   /* Premium Ticketing Design Tokens */
   --premium-surface: hsl(240, 3.7%, 15.9%); /* zinc-900 equivalent */

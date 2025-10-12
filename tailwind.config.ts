@@ -22,9 +22,11 @@ export default {
         accent: "var(--accent)",
         glow: "var(--glow)",
         copper: {
+          400: "var(--copper-400)",
           500: "var(--copper-500)",
           600: "var(--copper-600)",
           900: "var(--copper-900)",
+          950: "var(--copper-950)",
         },
         
         // shadcn compatibility
