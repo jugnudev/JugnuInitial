@@ -1,165 +1,50 @@
 # Replit.md
 
 ## Overview
-Jugnu is a cultural events and communities platform focused on South Asian and global music experiences in Vancouver. It offers exclusive member spaces, event discovery, ticketing integrations, and sponsorship opportunities. The platform prioritizes performance, security, and growth, featuring comprehensive caching, rate limiting, invite systems, and analytics.
+Jugnu is a cultural events and communities platform for South Asian and global music experiences in Vancouver. It offers exclusive member spaces, event discovery, ticketing, and sponsorship opportunities. The platform prioritizes performance, security, and growth, featuring caching, rate limiting, invite systems, and analytics.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
 
 ## System Architecture
 
-### Frontend
-- **Framework**: React 18 with TypeScript, Vite.
-- **Routing**: Wouter.
-- **State Management**: TanStack Query (server state), React hooks (local state).
-- **Styling**: Tailwind CSS, shadcn/ui components, custom variables.
+### UI/UX Decisions
+- **Frontend Framework**: React 18 with TypeScript and Vite.
+- **Styling**: Tailwind CSS, shadcn/ui components, and custom variables for a mobile-first responsive design.
 - **Typography**: Google Fonts (Fraunces, Inter).
-- **Structure**: Pages, components, UI components.
+- **Navigation**: Conditional display with streamlined CTAs in hero sections and fixed bottom action bars for mobile.
+- **Accessibility**: ARIA labels, keyboard navigation, and screen reader support.
 
-### Backend
-- **Framework**: Express.js with TypeScript.
-- **Database ORM**: Drizzle ORM for PostgreSQL (Neon Database), Supabase for Communities.
-- **Session Management**: Connect-pg-simple for PostgreSQL, 24-hour timeout.
-- **API**: RESTful (`/api` prefix), comprehensive error handling.
-- **Security**: Rate limiting (5 req/s authenticated, 1 req/s unauthenticated), input sanitization, CSRF protection, IP blocking.
-- **Performance**: In-memory caching with TTL, query optimization, background cleanup.
-- **Analytics**: Event tracking, engagement, conversion funnels, feature usage.
+### Technical Implementations
+- **Backend Framework**: Express.js with TypeScript.
+- **Database ORM**: Drizzle ORM for PostgreSQL.
+- **State Management**: TanStack Query for server state, React hooks for local state.
+- **Routing**: Wouter for client-side navigation.
+- **Session Management**: Connect-pg-simple with 24-hour timeout.
+- **API**: RESTful with comprehensive error handling.
+- **Security**: Rate limiting, input sanitization, CSRF protection, IP blocking, and environment variables for sensitive data.
+- **Performance**: In-memory caching with TTL, query optimization, code splitting, lazy/progressive image loading, and React memoization.
+- **SEO**: Meta tags, Open Graph, Twitter Cards, and JSON-LD.
+- **Data Management**: Static data from local JSON, automated import and bidirectional sync of community events from Google Calendar ICS feeds, and automated cleanup jobs.
 
-### Data Management
-- **Static Data**: Events and gallery images from local JSON.
-- **Event Logic**: UI renders based on purchasable events.
-- **Community Events**: Automated import and bidirectional sync from Google Calendar ICS feeds.
-- **Waitlist Mode**: Dedicated `/waitlist` page for TBA events.
-- **Data Cleanup**: Automated jobs for old notifications, expired sessions, abandoned drafts, inactive communities.
-- **Caching**: In-memory cache with configurable TTL (60s, 300s, 900s).
+### Feature Specifications
+- **Admin & Sponsorship Systems**: Key-based Admin API, portal token system (UUID-based), lead management (CRUD), multi-part onboarding for campaigns, creative upload (banners), sponsor portal with real-time analytics and CSV export, and health monitoring endpoints.
+- **Communities Platform**:
+    - **Growth Features**: Invite links, member referrals, community discovery, social sharing.
+    - **Analytics Dashboard**: Real-time insights including best time to post, engagement metrics, member metrics, and post performance.
+    - **Real-Time Chat**: WebSocket server with Supabase persistence, online presence, typing indicators, role-based permissions, auto-moderation, and message management.
+    - **Moderator & Permissions**: Role management (owner, moderator, member) with granular permissions.
+    - **Post Reactions**: Atomic upsert operations with optimistic UI updates.
+    - **Media Upload**: Supports images (JPG/PNG/WebP, max 10MB) and MP4 videos (max 50MB) with drag-and-drop.
+    - **Post as Business**: Toggle to post announcements as the community/business or as an individual user.
+    - **Billing System**: Per-community subscriptions with Stripe integration, webhooks, and a 7-day free trial.
+    - **Giveaway System**: Comprehensive functionality including random draw, first-come-first-serve, task-based, points-based with automated winner selection and prize management.
 
-### Responsive Design & Mobile
-- **Approach**: Mobile-first with Tailwind CSS breakpoints.
-- **Navigation**: Conditional display.
-- **CTAs**: Streamlined single CTA in hero and mobile bars, fixed bottom action bar.
-
-### Performance & SEO
-- **Build**: Vite for fast development and optimized production.
-- **Code Splitting**: Dynamic imports.
-- **SEO**: Meta tags, Open Graph, Twitter Cards, JSON-LD via SEOMetaTags component.
-- **Images**: Lazy loading, progressive loading, error handling.
-- **Accessibility**: ARIA labels, keyboard navigation, screen reader support, `data-testid`.
-- **Frontend Optimizations**: Infinite scroll, `React.memo`, loading skeletons.
-- **Error Handling**: Global error boundary, retry logic, user-friendly messages.
-
-### Admin & Sponsorship Systems
-- **Admin API**: Key-based system for campaigns, portal tokens, onboarding.
-- **Refresh Events**: Manual trigger for calendar sync, including deletion of removed events.
-- **Portal Token System**: UUID-based secure tokens (90-day expiration) with legacy hex support.
-- **Admin Authentication**: `x-admin-key` header with audit logging.
-- **Lead Management**: Full CRUD for sponsor leads.
-- **Onboarding Flow**: Multi-part form for campaign creation, creative upload, and token generation.
-- **Creative Upload**: Supports 4 creatives (desktop/mobile banners) with validation.
-- **Health Monitoring**: `/api/health` endpoint with DB checks.
-- **Promote v2 Sales Page**: Premium sponsorship sales page.
-- **Sponsor Portal**: Token-based analytics (`/sponsor/:tokenId`) with real-time metrics, charts, CSV export.
-- **Analytics Backend**: `sponsor_metrics_daily` table (Pacific timezone).
-- **Frequency Capping**: Viewable impression tracking with IntersectionObserver and session-based capping.
-- **Self-test**: `/api/admin/selftest` endpoint for system validation.
-- **Mobile-First Admin Console**: Responsive redesign for `/admin/promote`.
-- **Timezone Hardening**: All metrics use Pacific timezone.
-- **Security**: Environment variables for sensitive data.
-
-### Communities Platform (Phase 9)
-- **Growth Features**: Invite links, member referrals, community discovery (featured, trending, search), social sharing.
-- **Security Enhancements**: Configurable rate limiting, input sanitization, session security (24-hour timeout, secure tokens), CSRF protection.
-- **Performance**: In-memory database caching, query optimization, frontend optimizations (lazy loading, infinite scroll), background jobs for cleanup.
-- **Analytics & Monitoring**: 
-  - **Comprehensive Analytics Dashboard** (Phase 11): Real-time community insights with production-ready implementation
-    - Backend: `/api/communities/:id/analytics` endpoint calculates metrics from actual engagement data
-    - Best Time to Post: Analyzes engagement timestamps (not post creation times) to identify peak days/hours
-    - Engagement Metrics: Total engagement, average per post, engagement rate (interactions/views), 8-week trend analysis
-    - Member Metrics: Total members, growth rate, most active members (top 10 by reactions + comments), 30-day retention rate
-    - Post Performance: Top performing post types (text/image/link), average response time (first engagement)
-    - Performance: O(P+E) complexity using postEngagementMap instead of O(P*E) filtering
-    - Data Model: Returns raw numbers (decimals for rates, numbers for counts, minutes for time) for flexible client-side formatting
-    - Frontend: Analytics tab with loading states, formatted metrics, dynamic "Best Time to Post" visualization
-    - Query Optimization: Uses Drizzle's inArray() for portable, efficient queries across reactions/comments/users
-  - Event tracking, error monitoring, performance metrics, admin reports
-- **Real-Time Chat**: WebSocket server (`/chat`) for instant messaging, bearer token authentication, Supabase persistence, online presence, typing indicators, role-based permissions, slowmode, announcements, message management (pin, delete), standardized protocol, error handling, dev mode compatibility.
-  - **Auto-Moderation**: Content filtering system to maintain community standards
-    - Database: `auto_moderation` boolean and `banned_words` text array in `communities` table
-    - Backend: `/api/communities/:id` PATCH endpoint handles updates with automatic string-to-array conversion for comma-separated banned words
-    - Chat Server: Pre-send validation checks messages against banned words list (case-insensitive matching)
-    - Storage Layer: `updateCommunity()` normalizes banned words input (accepts both string and array formats, splits on commas, trims whitespace)
-    - UI: Settings toggle to enable/disable auto-moderation (community owners only)
-    - Behavior: Blocked messages return error "Your message contains inappropriate content" without saving
-    - Performance: O(n*m) where n=banned words, m=message length (acceptable for typical use cases)
-- **Moderator & Permissions System**: 
-  - Role management: Community owners can promote/demote members to/from moderator role via Members tab
-  - Granular permissions: 8 configurable permissions (moderator: post, events, polls, manage members; member: post, comment, events, polls)
-  - API endpoint: PATCH `/api/communities/:id/members/:userId/role` with strict validation (owner protection, member↔moderator transitions only)
-  - UI: Role badges, promote/demote buttons with confirmation, real-time notifications via WebSocket
-  - Note: Permissions flags defined in schema but enforcement across content routes pending implementation
-- **Post Reactions System**:
-  - One reaction per user per post with atomic upsert operations
-  - Frontend: Full optimistic updates with `queryClient.setQueryData()` for instant UI feedback (< 100ms)
-    - Toggle on: Clears previous reaction, adds new reaction with hasReacted: true
-    - Toggle off: Decrements count, sets hasReacted: false, removes if count = 0
-    - Switch: Removes old reaction first, then adds new one to prevent double-highlighting
-    - Debouncing: 300ms debounce on API calls with state comparison
-      - Snapshots initial state at first click in debounce window
-      - Compares initial vs final state after 300ms
-      - Only sends API call if net change occurred (prevents desync during rapid toggling)
-      - Handles rapid clicking without lag or blocked interactions
-  - Backend: 
-    - Atomic upsert operation leveraging unique constraint on (post_id, user_id) prevents race conditions
-    - API passes userId to getPostsByCommunityId() to enable hasReacted flag
-    - POST /react endpoint uses upsert to atomically add/switch reactions
-  - Database: `community_post_reactions` table with unique constraint ensures data integrity across multiple devices/tabs
-  - Styling: Active reactions show light blue background (bg-blue-100 dark:bg-blue-900/30) and blue border
-  - UX: Instant reaction updates, smooth switching, no lag even with rapid clicking, only one reaction highlighted per user at a time
-- **Media Upload for Posts**:
-  - Supports both images (JPG/PNG/WebP, max 10MB) and MP4 videos (max 50MB)
-  - No aspect ratio restrictions - flexible sizing with object-contain for both images and videos
-  - Video preview uses native HTML5 video player with controls
-  - Image preview shows full image with responsive sizing
-  - Drag-and-drop and click-to-upload functionality
-  - Note: Video detection in preview uses URL string matching (includes '.mp4'), may be brittle for CDN/signed URLs
-- **Post as Business Feature**:
-  - Toggle to post announcements as community/business or as individual user
-  - Database: `post_as_business` boolean field in `community_posts` table (defaults to true)
-  - Backend: `getPostsByCommunityId()` fetches author information (firstName, lastName, profileImageUrl) from users table and attaches to posts
-  - Frontend: `PostCardWithComments` component transforms author data based on `postAsBusiness` flag
-  - Display Logic:
-    - When `postAsBusiness = true` (default): Shows community name with building icon
-    - When `postAsBusiness = false`: Shows user's full name and profile picture
-  - UI: Toggle switch in both create and edit post forms
-  - Use Case: Allows community owners/moderators to post official announcements as the business while still being able to post personal updates as themselves
-- **Billing System** (Phase 10):
-  - **Multiple Communities**: Organizers can create unlimited communities (one-community-per-account limit removed)
-  - Simple pricing model: Individual subscriptions at $20 CAD/month per community
-  - Database: `community_subscriptions`, `community_payments`, `community_billing_events` tables
-  - Stripe Integration: Checkout sessions, subscription management, webhook handling
-  - API Routes: `/api/billing/*` for checkout and subscription management
-  - Webhook Handler: `/api/webhooks/stripe` for processing Stripe events (payment success/failure, subscription updates)
-  - Components: Updated `CommunityBilling` for subscription management
-  - Features: 7-day free trial, automatic proration
-  - Per-Community Billing: Each community requires its own individual subscription
-- **Giveaway System**:
-  - Comprehensive giveaway functionality within Communities Polls tab
-  - Types: Random draw, first-come-first-serve, task-based, points-based
-  - Database: `community_giveaways`, `community_giveaway_entries`, `community_giveaway_winners` tables
-  - Features: Entry tracking, automated winner selection, prize management
-  - Winner Display: Golden gradient cards with position (1st, 2nd, etc.) and user profiles
-  - UX Enhancements: 
-    - 3-second confetti animation when winners are drawn (using canvas-confetti)
-    - Automatic tab switching to "Ended" tab after drawing winners
-  - Performance Optimization: Batched queries to avoid N+1 pattern
-    - Winners batch-fetched using `in('giveaway_id', ids)` and grouped in memory
-    - User entries batch-fetched in single query instead of per-item requests
-    - Query count: O(1) - constant 3 queries regardless of giveaway count
-  - API Routes: `/api/communities/:id/giveaways` (CRUD), `/api/communities/:id/giveaways/:giveawayId/enter`, `/api/communities/:id/giveaways/:giveawayId/draw`
-  - Permissions: All members can view/enter, only owners/moderators can create and draw winners
-
-### Feature Flags
-- **Ticketing System**: Controlled by `ENABLE_TICKETING` (server) and `VITE_ENABLE_TICKETING` (client). Disabling hides routes, APIs, UI, and ensures SEO isolation via `robots.txt` and `sitemap.xml`.
-- **Communities System**: Controlled by `ENABLE_COMMUNITIES` (server) and `VITE_ENABLE_COMMUNITIES` (client). Disabling hides routes, APIs, UI, and ensures SEO isolation.
+### System Design Choices
+- **Mobile-first approach**: Implemented using Tailwind CSS breakpoints.
+- **Feature Flags**: `ENABLE_TICKETING` and `ENABLE_COMMUNITIES` control the visibility and functionality of major system components across both server and client, including SEO isolation via `robots.txt` and `sitemap.xml`.
+- **Database Design**: Separate tables for community subscriptions, payments, billing events, giveaways, entries, and winners.
+- **Timezone Hardening**: All metrics processed and stored in Pacific timezone.
 
 ## External Dependencies
 
@@ -173,23 +58,16 @@ Preferred communication style: Simple, everyday language.
 ### UI and Styling
 - **@radix-ui/react-***: Accessible UI primitives.
 - **tailwindcss**: Utility-first CSS.
-- **class-variance-authority**: Component styling.
-- **clsx**: Conditional className utility.
 
 ### Form and Validation
 - **react-hook-form**: Forms.
-- **@hookform/resolvers**: Validation resolvers.
 - **zod**: TypeScript schema validation.
-- **drizzle-zod**: Zod schema generation.
 
 ### Development Tools
 - **vite**: Build tool and dev server.
 - **typescript**: Static type checking.
-- **tsx**: TypeScript execution.
-- **esbuild**: JavaScript bundler.
 
 ### Active Integrations
-- **Supabase**: Database backend (RLS for `community_events`, sponsor management, ticketing, communities).
+- **Supabase**: Database backend (for community events, sponsor management, ticketing, and communities).
 - **Google Calendar**: ICS feed parsing for community events.
-- **Calendar Export**: Google Calendar and ICS file generation.
-- **Stripe**: Payment processing for ticketing, Connect for multi-vendor.
+- **Stripe**: Payment processing for ticketing and subscriptions.
