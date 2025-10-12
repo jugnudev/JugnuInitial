@@ -233,7 +233,7 @@ export function CommunitiesSigninPage() {
           <CardHeader className="space-y-2 sm:space-y-3 text-center p-4 sm:p-6">
             <CardTitle className="text-xl sm:text-2xl font-bold">Enter verification code</CardTitle>
             <CardDescription className="text-sm sm:text-base">
-              We sent a 6-digit code to <strong className="break-all">{email}</strong>
+              We sent a 6-digit code to <strong className="whitespace-nowrap">{email}</strong>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 p-4 sm:p-6">
