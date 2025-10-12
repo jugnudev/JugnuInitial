@@ -1384,7 +1384,31 @@ export function CommunitiesProfilePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4 p-4 sm:p-6">
-                <div className="space-y-4">
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 py-2 sm:py-0">
+                    <div className="flex-1">
+                      <Label htmlFor="newsletter" className="text-sm sm:text-base">Newsletter</Label>
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                        Receive our weekly newsletter with highlights
+                      </p>
+                    </div>
+                    <Switch
+                      id="newsletter"
+                      checked={form.watch('newsletter') ?? false}
+                      onCheckedChange={(checked) => {
+                        form.setValue('newsletter', checked);
+                        const currentValues = form.getValues();
+                        updateMutation.mutate({
+                          ...currentValues,
+                          newsletter: checked
+                        });
+                      }}
+                      data-testid="switch-newsletter"
+                    />
+                  </div>
+
+                  <Separator />
+
                   <div>
                     <div className="flex items-center justify-between">
                       <Label>Account Email</Label>

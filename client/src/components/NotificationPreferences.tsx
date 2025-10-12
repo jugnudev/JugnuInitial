@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import {
-  Bell, Mail, Smartphone, Clock, Sun, Moon,
+  Bell, Mail, Smartphone, Clock,
   CheckCircle, AlertCircle, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -75,9 +75,6 @@ const preferencesFormSchema = z.object({
   emailFrequency: z.enum(['immediate', 'daily', 'weekly']),
   emailDigestTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
   emailDigestTimezone: z.string(),
-  quietHoursEnabled: z.boolean(),
-  quietHoursStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-  quietHoursEnd: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
 });
 
 type PreferencesFormValues = z.infer<typeof preferencesFormSchema>;
@@ -154,9 +151,6 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
       emailFrequency: 'immediate',
       emailDigestTime: '09:00',
       emailDigestTimezone: 'America/Vancouver',
-      quietHoursEnabled: false,
-      quietHoursStart: '22:00',
-      quietHoursEnd: '08:00',
     },
   });
 
@@ -179,9 +173,6 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
         emailFrequency: prefs.emailFrequency ?? 'immediate',
         emailDigestTime: prefs.emailDigestTime ?? '09:00',
         emailDigestTimezone: prefs.emailDigestTimezone ?? 'America/Vancouver',
-        quietHoursEnabled: prefs.quietHoursEnabled ?? false,
-        quietHoursStart: prefs.quietHoursStart ?? '22:00',
-        quietHoursEnd: prefs.quietHoursEnd ?? '08:00',
       });
     }
   }, [preferencesData, form]);
@@ -579,83 +570,6 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                         )}
                       />
                     </>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg">Quiet Hours</CardTitle>
-                  <CardDescription className="text-sm sm:text-base">
-                    Pause notifications during specific hours
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0 sm:pt-0">
-                  <FormField
-                    control={form.control}
-                    name="quietHoursEnabled"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 space-y-0">
-                        <div className="space-y-0.5 flex-1">
-                          <FormLabel className="text-sm sm:text-base">Enable Quiet Hours</FormLabel>
-                          <FormDescription className="text-xs sm:text-sm">
-                            Pause email notifications during these hours
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                            data-testid="switch-quiet-hours"
-                            className="self-start sm:self-auto"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  {form.watch('quietHoursEnabled') && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                      <FormField
-                        control={form.control}
-                        name="quietHoursStart"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                              <Moon className="h-4 w-4" />
-                              Start Time
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="time"
-                                {...field}
-                                data-testid="input-quiet-start"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="quietHoursEnd"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="flex items-center gap-2">
-                              <Sun className="h-4 w-4" />
-                              End Time
-                            </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="time"
-                                {...field}
-                                data-testid="input-quiet-end"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
                   )}
                 </CardContent>
               </Card>
