@@ -14,6 +14,7 @@ Preferred communication style: Simple, everyday language.
 - **Typography**: Google Fonts (Fraunces, Inter).
 - **Navigation**: Conditional display with streamlined CTAs in hero sections and fixed bottom action bars for mobile.
 - **Accessibility**: ARIA labels, keyboard navigation, and screen reader support.
+- **User Acquisition Hierarchy**: Account creation (primary) > Event exploration (secondary) > Newsletter signup (tertiary, footer only). Authenticated users manage newsletter preferences in account settings.
 
 ### Technical Implementations
 - **Backend Framework**: Express.js with TypeScript.
