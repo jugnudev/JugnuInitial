@@ -390,13 +390,13 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                     >
                       {poll.options.map((option) => (
                         <div key={option.id} className="space-y-2">
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-3 min-h-[48px]" data-testid={`poll-option-${option.id}`}>
                             <RadioGroupItem 
                               value={option.id || ''} 
                               id={option.id}
-                              data-testid={`poll-option-${option.id}`}
+                              className="w-5 h-5"
                             />
-                            <Label htmlFor={option.id} className="flex-1 cursor-pointer">
+                            <Label htmlFor={option.id} className="flex-1 cursor-pointer py-3 text-slate-200">
                               {option.text}
                             </Label>
                           </div>
@@ -419,7 +419,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                     <div className="space-y-3">
                       {poll.options.map((option) => (
                         <div key={option.id} className="space-y-2">
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-3 min-h-[48px]" data-testid={`poll-option-${option.id}`}>
                             <Checkbox
                               id={option.id}
                               checked={selectedOptions.includes(option.id || '')}
@@ -427,9 +427,9 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                                 handleOptionSelect(poll, option.id || '', checked as boolean)
                               }
                               disabled={hasVoted(poll)}
-                              data-testid={`poll-option-${option.id}`}
+                              className="w-5 h-5"
                             />
-                            <Label htmlFor={option.id} className="flex-1 cursor-pointer">
+                            <Label htmlFor={option.id} className="flex-1 cursor-pointer py-3 text-slate-200">
                               {option.text}
                             </Label>
                           </div>
