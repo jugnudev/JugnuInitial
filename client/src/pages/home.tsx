@@ -4,6 +4,7 @@ import Gallery from "@/components/Gallery";
 import ThisWeekEvents from "@/components/ThisWeekEvents";
 import PartnerWithUs from "@/components/PartnerWithUs";
 import { HomeMidSpotlight } from "@/components/spotlight/HomeMidSpotlight";
+import NewsletterSignup from "@/components/NewsletterSignup";
 
 export default function Home() {
   // Get current date for dynamic meta tags
@@ -143,6 +144,7 @@ export default function Home() {
       <Events />
       <PartnerWithUs />
       <Gallery />
+      <NewsletterSignup />
     </>
   );
 }
