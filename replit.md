@@ -38,7 +38,7 @@ Preferred communication style: Simple, everyday language.
     - **Media Upload**: Supports images (JPG/PNG/WebP, max 10MB) and MP4 videos (max 50MB) with drag-and-drop.
     - **Post as Business**: Toggle to post announcements as the community/business or as an individual user.
     - **Billing System**: Per-community subscriptions with Stripe integration, webhooks, and a 7-day free trial.
-    - **Giveaway System**: Comprehensive functionality including random draw, first-come-first-serve, task-based, points-based with automated winner selection and prize management.
+    - **Giveaway System**: Comprehensive functionality including random draw, first-come-first-serve, task-based, points-based with automated winner selection, prize management, winner display with confetti animation, delete capability, and premium mobile-friendly interface. Authors cannot enter their own giveaways to prevent conflicts of interest.
 
 ### System Design Choices
 - **Mobile-first approach**: Implemented using Tailwind CSS breakpoints.
