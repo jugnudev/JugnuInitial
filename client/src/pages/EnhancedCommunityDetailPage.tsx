@@ -73,6 +73,8 @@ import {
   ClockIcon,
   TrendingDown,
   RefreshCw,
+  Vote,
+  Gift,
   Copy,
   Check,
   AlertTriangle,
@@ -1697,18 +1699,33 @@ export default function EnhancedCommunityDetailPage() {
             )}
             
             {/* Polls & Giveaways Tab */}
-            <TabsContent value="polls" className="space-y-6">
+            <TabsContent value="polls" className="space-y-4 md:space-y-6">
               <Tabs defaultValue="polls" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6 bg-premium-surface-elevated/50">
-                  <TabsTrigger value="polls" className="data-[state=active]:bg-premium-primary data-[state=active]:text-white" data-testid="subtab-polls">
-                    Polls
-                  </TabsTrigger>
-                  <TabsTrigger value="giveaways" className="data-[state=active]:bg-premium-primary data-[state=active]:text-white" data-testid="subtab-giveaways">
-                    Giveaways
-                  </TabsTrigger>
-                </TabsList>
+                {/* Premium Segmented Control */}
+                <div className="mb-6 md:mb-8">
+                  <TabsList className="grid w-full grid-cols-2 h-12 md:h-14 p-1 bg-gradient-to-b from-premium-surface to-premium-surface-elevated border border-premium-border rounded-xl">
+                    <TabsTrigger 
+                      value="polls" 
+                      className="h-full w-full rounded-lg text-sm md:text-base font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-premium-primary data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-muted-foreground hover:text-foreground flex items-center justify-center gap-2"
+                      data-testid="subtab-polls"
+                    >
+                      <Vote className="w-4 h-4 md:w-5 md:h-5" />
+                      <span className="hidden sm:inline">Polls</span>
+                      <span className="sm:hidden">Polls</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="giveaways" 
+                      className="h-full w-full rounded-lg text-sm md:text-base font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-premium-primary data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-muted-foreground hover:text-foreground flex items-center justify-center gap-2"
+                      data-testid="subtab-giveaways"
+                    >
+                      <Gift className="w-4 h-4 md:w-5 md:h-5" />
+                      <span className="hidden sm:inline">Giveaways</span>
+                      <span className="sm:hidden">Giveaways</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
                 
-                <TabsContent value="polls">
+                <TabsContent value="polls" className="mt-0">
                   <CommunityPolls 
                     communityId={community.id}
                     currentMember={currentMember && currentMember.status === 'approved' ? {
@@ -1718,7 +1735,7 @@ export default function EnhancedCommunityDetailPage() {
                   />
                 </TabsContent>
                 
-                <TabsContent value="giveaways">
+                <TabsContent value="giveaways" className="mt-0">
                   <CommunityGiveaways 
                     communityId={community.id}
                     currentMember={currentMember && currentMember.status === 'approved' ? {

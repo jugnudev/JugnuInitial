@@ -313,41 +313,48 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
   }
   
   return (
-    <div className="space-y-4">
-      {/* Giveaways Section */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Gift className="h-5 w-5 text-premium-primary" />
-          <h3 className="text-lg font-semibold">Giveaways</h3>
-        </div>
-        {canCreateGiveaway && (
+    <div className="space-y-4 md:space-y-6">
+      {/* Action Bar */}
+      {canCreateGiveaway && (
+        <div className="flex justify-end">
           <Button 
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-gradient-to-r from-premium-primary to-purple-600 hover:from-premium-primary/90 hover:to-purple-600/90"
+            className="bg-gradient-to-r from-premium-primary to-purple-600 hover:from-premium-primary/90 hover:to-purple-600/90 shadow-lg shadow-premium-primary/20 text-sm md:text-base"
             data-testid="button-create-giveaway"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Create Giveaway
+            <Plus className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+            <span className="hidden sm:inline">Create Giveaway</span>
+            <span className="sm:hidden">Create</span>
           </Button>
-        )}
-      </div>
+        </div>
+      )}
       
-      {/* Tabs */}
+      {/* Premium Status Tabs */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'active' | 'ended')} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 bg-gray-900 dark:bg-gray-800">
+        <TabsList className="grid w-full grid-cols-2 h-12 md:h-14 p-1 bg-gradient-to-b from-premium-surface to-premium-surface-elevated/80 border border-premium-border/50 rounded-lg mb-4 md:mb-6">
           <TabsTrigger 
             value="active" 
-            className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-300" 
+            className="h-full rounded-md text-sm md:text-base font-medium transition-all duration-200 data-[state=active]:bg-premium-surface-elevated data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground hover:text-foreground flex items-center justify-center" 
             data-testid="tab-active-giveaways"
           >
-            Active ({activeCount})
+            <span className="flex items-center gap-1.5 md:gap-2">
+              <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Active</span>
+              <span className="sm:hidden">Active</span>
+              <Badge variant="secondary" className="ml-1 md:ml-2 text-xs px-1.5 py-0">{activeCount}</Badge>
+            </span>
           </TabsTrigger>
           <TabsTrigger 
             value="ended" 
-            className="data-[state=active]:bg-gray-700 data-[state=active]:text-white text-gray-300" 
+            className="h-full rounded-md text-sm md:text-base font-medium transition-all duration-200 data-[state=active]:bg-premium-surface-elevated data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground hover:text-foreground flex items-center justify-center" 
             data-testid="tab-ended-giveaways"
           >
-            Ended ({endedCount})
+            <span className="flex items-center gap-1.5 md:gap-2">
+              <Trophy className="w-3.5 h-3.5 md:w-4 md:h-4" />
+              <span className="hidden sm:inline">Ended</span>
+              <span className="sm:hidden">Ended</span>
+              <Badge variant="secondary" className="ml-1 md:ml-2 text-xs px-1.5 py-0">{endedCount}</Badge>
+            </span>
           </TabsTrigger>
         </TabsList>
         
