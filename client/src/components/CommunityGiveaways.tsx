@@ -354,48 +354,48 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
       
       {/* Premium Status Tabs with Glassmorphism */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'active' | 'ended')} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-14 md:h-16 p-1.5 bg-gradient-to-br from-amber-900/40 via-rose-900/20 to-purple-900/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-purple-500/10 mb-6 md:mb-8">
+        <TabsList className="grid w-full grid-cols-2 h-14 md:h-16 p-1.5 bg-gradient-to-br from-copper-900/50 via-primary-700/40 to-copper-900/50 backdrop-blur-xl border border-copper-500/20 rounded-2xl shadow-2xl shadow-copper-500/10 mb-6 md:mb-8">
           <TabsTrigger 
             value="active" 
-            className="h-full rounded-xl text-sm md:text-base font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-amber-500/50 data-[state=active]:scale-[1.02] data-[state=inactive]:text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center group" 
+            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-glow/50 data-[state=active]:scale-[1.02] data-[state=inactive]:text-muted hover:text-text hover:bg-copper-500/10 flex items-center justify-center group" 
             data-testid="tab-active-giveaways"
           >
             <span className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 md:w-5 md:h-5 transition-transform group-data-[state=active]:animate-pulse" />
               <span>Active</span>
-              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-white/20 text-white border-white/30 group-data-[state=active]:bg-white group-data-[state=active]:text-amber-600 transition-colors">{activeCount}</Badge>
+              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-copper-500/20 text-text border-copper-500/30 group-data-[state=active]:bg-black/20 group-data-[state=active]:text-black group-data-[state=active]:border-black/30 transition-colors font-semibold">{activeCount}</Badge>
             </span>
           </TabsTrigger>
           <TabsTrigger 
             value="ended" 
-            className="h-full rounded-xl text-sm md:text-base font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-[1.02] data-[state=inactive]:text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center group" 
+            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-copper-600 data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-muted hover:text-text hover:bg-copper-500/10 flex items-center justify-center group" 
             data-testid="tab-ended-giveaways"
           >
             <span className="flex items-center gap-2">
               <Trophy className="w-4 h-4 md:w-5 md:h-5" />
               <span>Ended</span>
-              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-white/20 text-white border-white/30 group-data-[state=active]:bg-white group-data-[state=active]:text-purple-600 transition-colors">{endedCount}</Badge>
+              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-copper-500/20 text-text border-copper-500/30 group-data-[state=active]:bg-black/20 group-data-[state=active]:text-black group-data-[state=active]:border-black/30 transition-colors font-semibold">{endedCount}</Badge>
             </span>
           </TabsTrigger>
         </TabsList>
         
         <TabsContent value="active" className="space-y-4 md:space-y-6 mt-6">
           {isLoading ? (
-            <Card className="p-12 text-center bg-gradient-to-br from-amber-900/40 to-rose-900/30 backdrop-blur-xl border-white/10">
+            <Card className="p-12 text-center bg-gradient-to-br from-copper-900/40 via-primary-700/30 to-copper-900/40 backdrop-blur-xl border-copper-500/20">
               <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
-                <p className="text-slate-300 font-medium">Loading giveaways...</p>
+                <div className="w-12 h-12 border-4 border-copper-500/30 border-t-copper-500 rounded-full animate-spin" />
+                <p className="text-text font-medium">Loading giveaways...</p>
               </div>
             </Card>
           ) : giveaways.length === 0 ? (
-            <Card className="p-12 text-center bg-gradient-to-br from-amber-900/40 to-rose-900/30 backdrop-blur-xl border-white/10">
-              <Gift className="w-16 h-16 mx-auto mb-4 text-amber-400/50" />
-              <p className="text-slate-300 font-medium text-lg" data-testid="text-no-active-giveaways">No active giveaways</p>
-              <p className="text-slate-400 text-sm mt-2">Create exciting giveaways to engage your community</p>
+            <Card className="p-12 text-center bg-gradient-to-br from-copper-900/40 via-primary-700/30 to-copper-900/40 backdrop-blur-xl border-copper-500/20">
+              <Gift className="w-16 h-16 mx-auto mb-4 text-copper-500/50" />
+              <p className="text-text font-medium text-lg" data-testid="text-no-active-giveaways">No active giveaways</p>
+              <p className="text-muted text-sm mt-2">Create exciting giveaways to engage your community</p>
               {canCreateGiveaway && (
                 <Button 
                   onClick={() => setIsCreateModalOpen(true)}
-                  className="mt-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/30"
+                  className="mt-6 bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-primary text-black font-bold shadow-lg shadow-glow/30"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Create First Giveaway
@@ -407,62 +407,62 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
               {giveaways.map((giveaway) => (
                 <Card 
                   key={giveaway.id} 
-                  className="bg-gradient-to-br from-amber-900/60 via-rose-900/20 to-purple-900/40 backdrop-blur-xl border-white/10 hover:border-amber-500/30 transition-all duration-300 hover:shadow-2xl hover:shadow-amber-500/20 hover:scale-[1.01]"
+                  className="bg-gradient-to-br from-copper-900/50 via-primary-700/30 to-copper-900/50 backdrop-blur-xl border-copper-500/20 hover:border-copper-500/40 transition-all duration-300 hover:shadow-2xl hover:shadow-copper-500/20 hover:scale-[1.01]"
                   data-testid={`card-giveaway-${giveaway.id}`}
                 >
                   <CardHeader>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <CardTitle className="text-xl md:text-2xl bg-gradient-to-r from-amber-300 via-orange-300 to-amber-300 bg-clip-text text-transparent font-bold flex items-center gap-2">
-                          <Trophy className="h-5 w-5 md:h-6 md:w-6 text-amber-400" />
+                        <CardTitle className="text-xl md:text-2xl bg-gradient-to-r from-accent via-glow to-copper-500 bg-clip-text text-transparent font-bold flex items-center gap-2">
+                          <Trophy className="h-5 w-5 md:h-6 md:w-6 text-glow" />
                           {giveaway.title}
                         </CardTitle>
                         {giveaway.description && (
-                          <CardDescription className="text-slate-300 mt-2">
+                          <CardDescription className="text-text/90 mt-2">
                             {giveaway.description}
                           </CardDescription>
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         {getStatusBadge(giveaway.status)}
-                        <Badge className="bg-blue-500/20 text-blue-200 border-blue-500/30" data-testid={`badge-type-${giveaway.id}`}>
+                        <Badge className="bg-accent/20 text-accent border-accent/30 font-semibold" data-testid={`badge-type-${giveaway.id}`}>
                           {getGiveawayTypeLabel(giveaway.giveaway_type)}
                         </Badge>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 rounded-xl p-4 md:p-5 border border-amber-500/30 backdrop-blur-sm">
+                    <div className="bg-gradient-to-r from-copper-500/20 via-accent/20 to-glow/20 rounded-xl p-4 md:p-5 border border-copper-500/30 backdrop-blur-sm">
                       <div className="flex items-start gap-3">
-                        <Award className="h-6 w-6 md:h-7 md:w-7 text-amber-400 mt-1" />
+                        <Award className="h-6 w-6 md:h-7 md:w-7 text-glow mt-1" />
                         <div className="flex-1">
-                          <h4 className="font-bold text-white text-lg">{giveaway.prize_title}</h4>
+                          <h4 className="font-bold text-text text-lg">{giveaway.prize_title}</h4>
                           {giveaway.prize_description && (
-                            <p className="text-sm text-slate-300 mt-1.5">{giveaway.prize_description}</p>
+                            <p className="text-sm text-text/80 mt-1.5">{giveaway.prize_description}</p>
                           )}
                           {giveaway.prize_value && (
-                            <p className="text-sm font-semibold text-amber-400 mt-2">Value: ${giveaway.prize_value}</p>
+                            <p className="text-sm font-semibold text-glow mt-2">Value: ${giveaway.prize_value}</p>
                           )}
                         </div>
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div className="flex items-center gap-2 text-premium-text-muted">
-                        <Users className="h-4 w-4" />
-                        <span data-testid={`text-participants-${giveaway.id}`}>{giveaway.unique_participants} participants</span>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 text-sm">
+                      <div className="flex items-center gap-1.5 bg-copper-500/10 px-3 py-1.5 rounded-lg border border-copper-500/20">
+                        <Users className="h-4 w-4 text-copper-500" />
+                        <span className="text-text font-medium" data-testid={`text-participants-${giveaway.id}`}>{giveaway.unique_participants} participants</span>
                       </div>
-                      <div className="flex items-center gap-2 text-premium-text-muted">
-                        <Trophy className="h-4 w-4" />
-                        <span data-testid={`text-winners-${giveaway.id}`}>{giveaway.number_of_winners} winner{giveaway.number_of_winners > 1 ? 's' : ''}</span>
+                      <div className="flex items-center gap-1.5 bg-glow/10 px-3 py-1.5 rounded-lg border border-glow/20">
+                        <Trophy className="h-4 w-4 text-glow" />
+                        <span className="text-text font-medium" data-testid={`text-winners-${giveaway.id}`}>{giveaway.number_of_winners} winner{giveaway.number_of_winners > 1 ? 's' : ''}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-premium-text-muted">
-                        <Calendar className="h-4 w-4" />
-                        <span>Ends {format(new Date(giveaway.ends_at), 'MMM d')}</span>
+                      <div className="flex items-center gap-1.5 bg-accent/10 px-3 py-1.5 rounded-lg border border-accent/20">
+                        <Calendar className="h-4 w-4 text-accent" />
+                        <span className="text-text font-medium">Ends {format(new Date(giveaway.ends_at), 'MMM d')}</span>
                       </div>
-                      <div className="flex items-center gap-2 text-premium-text-muted">
-                        <Sparkles className="h-4 w-4" />
-                        <span>{giveaway.total_entries} entries</span>
+                      <div className="flex items-center gap-1.5 bg-copper-500/10 px-3 py-1.5 rounded-lg border border-copper-500/20">
+                        <Sparkles className="h-4 w-4 text-copper-500" />
+                        <span className="text-text font-medium">{giveaway.total_entries} entries</span>
                       </div>
                     </div>
                     
