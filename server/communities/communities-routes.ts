@@ -5109,10 +5109,7 @@ export function addCommunitiesRoutes(app: Express) {
             newDeals: true,
             emailFrequency: 'immediate',
             emailDigestTime: '09:00',
-            emailDigestTimezone: 'America/Vancouver',
-            quietHoursEnabled: false,
-            quietHoursStart: '22:00',
-            quietHoursEnd: '08:00'
+            emailDigestTimezone: 'America/Vancouver'
           }
         });
       }

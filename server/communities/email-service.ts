@@ -333,13 +333,6 @@ export class CommunityEmailService {
         return false;
       }
 
-      // Check quiet hours
-      if (this.isInQuietHours(preferences)) {
-        console.log(`[Email Service] In quiet hours for user ${recipient.id}, queuing for later`);
-        await this.queueEmailForLater(notification, recipient, community);
-        return false;
-      }
-
       // Get the appropriate template
       const template = this.getTemplateForNotificationType(notification.type);
       if (!template) {
@@ -375,35 +368,6 @@ export class CommunityEmailService {
       console.error('[Email Service] Failed to send email:', error);
       return false;
     }
-  }
-
-  // Queue an email to be sent later (respecting quiet hours)
-  private async queueEmailForLater(
-    notification: CommunityNotification,
-    recipient: User,
-    community?: Community
-  ): Promise<void> {
-    const preferences = await communitiesStorage.getNotificationPreferences(
-      recipient.id,
-      notification.communityId
-    );
-    
-    // Calculate when to send based on quiet hours end
-    const scheduledFor = this.getNextSendTime(preferences);
-    
-    await communitiesStorage.queueEmail({
-      recipientEmail: recipient.email,
-      recipientName: `${recipient.firstName} ${recipient.lastName}`.trim(),
-      communityId: notification.communityId,
-      templateId: notification.type,
-      subject: notification.title,
-      variables: {
-        notification,
-        recipient,
-        community
-      },
-      scheduledFor
-    });
   }
 
   // Send batch notifications (for bulk operations)
@@ -525,42 +489,6 @@ export class CommunityEmailService {
     };
   }
 
-  // Check if current time is in quiet hours
-  private isInQuietHours(preferences: CommunityNotificationPreferences | null): boolean {
-    if (!preferences?.quietHoursEnabled) return false;
-    
-    const now = new Date();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-    
-    const [startHour, startMin] = (preferences.quietHoursStart || '22:00').split(':').map(Number);
-    const [endHour, endMin] = (preferences.quietHoursEnd || '08:00').split(':').map(Number);
-    
-    const quietStart = startHour * 60 + startMin;
-    const quietEnd = endHour * 60 + endMin;
-    
-    if (quietStart < quietEnd) {
-      return currentTime >= quietStart && currentTime < quietEnd;
-    } else {
-      return currentTime >= quietStart || currentTime < quietEnd;
-    }
-  }
-
-  // Get next available send time (after quiet hours)
-  private getNextSendTime(preferences: CommunityNotificationPreferences | null): Date {
-    if (!preferences?.quietHoursEnabled) return new Date();
-    
-    const now = new Date();
-    const [endHour, endMin] = (preferences.quietHoursEnd || '08:00').split(':').map(Number);
-    
-    const nextSend = new Date();
-    nextSend.setHours(endHour, endMin, 0, 0);
-    
-    if (nextSend <= now) {
-      nextSend.setDate(nextSend.getDate() + 1);
-    }
-    
-    return nextSend;
-  }
 
   // Get next digest send time
   private getNextDigestTime(preferences: CommunityNotificationPreferences | null): Date {

@@ -2990,9 +2990,6 @@ export class CommunitiesSupabaseDB {
       email_frequency: preferences.emailFrequency,
       email_digest_time: preferences.emailDigestTime,
       email_digest_timezone: preferences.emailDigestTimezone,
-      quiet_hours_enabled: preferences.quietHoursEnabled,
-      quiet_hours_start: preferences.quietHoursStart,
-      quiet_hours_end: preferences.quietHoursEnd,
       updated_at: new Date().toISOString()
     };
 
@@ -3126,9 +3123,6 @@ export class CommunitiesSupabaseDB {
       emailFrequency: data.email_frequency,
       emailDigestTime: data.email_digest_time,
       emailDigestTimezone: data.email_digest_timezone,
-      quietHoursEnabled: data.quiet_hours_enabled,
-      quietHoursStart: data.quiet_hours_start,
-      quietHoursEnd: data.quiet_hours_end,
       lastDigestSentAt: data.last_digest_sent_at
     };
   }

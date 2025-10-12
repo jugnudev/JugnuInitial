@@ -1256,11 +1256,6 @@ export const communityNotificationPreferences = pgTable("community_notification_
   emailDigestTime: text("email_digest_time").default("09:00"), // Time in HH:MM format
   emailDigestTimezone: text("email_digest_timezone").default("America/Vancouver"),
   
-  // Quiet hours
-  quietHoursEnabled: boolean("quiet_hours_enabled").notNull().default(false),
-  quietHoursStart: text("quiet_hours_start").default("22:00"), // Time in HH:MM format
-  quietHoursEnd: text("quiet_hours_end").default("08:00"), // Time in HH:MM format
-  
   // Last digest sent timestamp
   lastDigestSentAt: timestamp("last_digest_sent_at", { withTimezone: true }),
 });
