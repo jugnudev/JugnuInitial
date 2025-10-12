@@ -32,6 +32,7 @@ Preferred communication style: Simple, everyday language.
 ### Feature Specifications
 - **Admin & Sponsorship Systems**: Key-based Admin API, portal token system (UUID-based), lead management (CRUD), multi-part onboarding for campaigns, creative upload (banners), sponsor portal with real-time analytics and CSV export, and health monitoring endpoints.
 - **Communities Platform**:
+    - **Notification Preferences**: Email frequency settings (immediate/daily/weekly), digest time scheduling, timezone configuration. UI integrated in Account Settings > Schedule tab. Requires manual Supabase table setup (see SETUP_NOTIFICATION_PREFS.md).
     - **Growth Features**: Invite links with copy functionality for owners/moderators, member referrals, community discovery, social sharing.
     - **Join Link Management**: Owners and moderators can access permanent invite links from Settings tab with one-click copy, usage tracking, and automatic link generation.
     - **Analytics Dashboard**: Real-time insights including best time to post, engagement metrics, member metrics, and post performance.

@@ -226,8 +226,68 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- SELECT cron.schedule('cleanup-auth-codes', '0 */6 * * *', 'SELECT cleanup_expired_auth_codes()');
 -- SELECT cron.schedule('cleanup-sessions', '0 2 * * *', 'SELECT cleanup_expired_sessions()');
 
+-- Notification preferences table
+CREATE TABLE IF NOT EXISTS public.community_notification_preferences (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    user_id text NOT NULL,
+    community_id uuid REFERENCES public.communities(id) ON DELETE CASCADE,
+    
+    -- Channel preferences
+    in_app_enabled boolean NOT NULL DEFAULT true,
+    email_enabled boolean NOT NULL DEFAULT true,
+    push_enabled boolean NOT NULL DEFAULT false,
+    
+    -- Notification type preferences
+    new_posts boolean NOT NULL DEFAULT true,
+    post_comments boolean NOT NULL DEFAULT true,
+    comment_replies boolean NOT NULL DEFAULT true,
+    mentions boolean NOT NULL DEFAULT true,
+    poll_results boolean NOT NULL DEFAULT true,
+    membership_updates boolean NOT NULL DEFAULT true,
+    community_announcements boolean NOT NULL DEFAULT true,
+    new_deals boolean NOT NULL DEFAULT true,
+    
+    -- Email frequency settings
+    email_frequency text NOT NULL DEFAULT 'immediate' CHECK (email_frequency IN ('immediate', 'daily', 'weekly')),
+    email_digest_time text DEFAULT '09:00',
+    email_digest_timezone text DEFAULT 'America/Vancouver',
+    
+    -- Quiet hours
+    quiet_hours_enabled boolean NOT NULL DEFAULT false,
+    quiet_hours_start text DEFAULT '22:00',
+    quiet_hours_end text DEFAULT '08:00',
+    
+    -- Last digest sent timestamp
+    last_digest_sent_at timestamptz,
+    
+    -- Unique constraint: one preference row per user per community (null community = global)
+    UNIQUE(user_id, community_id)
+);
+
+-- Create indexes for faster lookups
+CREATE INDEX IF NOT EXISTS idx_notification_prefs_user ON public.community_notification_preferences(user_id);
+CREATE INDEX IF NOT EXISTS idx_notification_prefs_community ON public.community_notification_preferences(community_id);
+
+-- RLS Policies for community_notification_preferences
+ALTER TABLE public.community_notification_preferences ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own notification preferences" ON public.community_notification_preferences
+    FOR SELECT USING (auth.uid()::text = user_id);
+
+CREATE POLICY "Users can insert their own notification preferences" ON public.community_notification_preferences
+    FOR INSERT WITH CHECK (auth.uid()::text = user_id);
+
+CREATE POLICY "Users can update their own notification preferences" ON public.community_notification_preferences
+    FOR UPDATE USING (auth.uid()::text = user_id);
+
+CREATE POLICY "Users can delete their own notification preferences" ON public.community_notification_preferences
+    FOR DELETE USING (auth.uid()::text = user_id);
+
 COMMENT ON TABLE public.community_users IS 'Main user accounts for Communities feature';
 COMMENT ON TABLE public.community_auth_codes IS 'Email verification codes for passwordless authentication';
 COMMENT ON TABLE public.community_organizer_applications IS 'Pending organizer applications awaiting admin approval';
 COMMENT ON TABLE public.community_organizers IS 'Approved organizers for Communities (separate from ticketing)';
 COMMENT ON TABLE public.community_user_sessions IS 'Active user sessions for Communities auth';
+COMMENT ON TABLE public.community_notification_preferences IS 'User notification preferences per community';

@@ -20,6 +20,7 @@ import { z } from 'zod';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import { NotificationPreferences } from '@/components/NotificationPreferences';
 
 const updateProfileSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -1601,6 +1602,11 @@ export function CommunitiesProfilePage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Notification Preferences - Full Settings */}
+            <div className="mt-6">
+              <NotificationPreferences embedded={true} />
+            </div>
           </TabsContent>
         </Tabs>
       </div>
