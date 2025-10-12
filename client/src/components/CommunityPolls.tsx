@@ -299,83 +299,83 @@ export default function CommunityPolls({ communityId, currentMember }: Community
       
       {/* Premium Status Tabs with Glassmorphism */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'closed')} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-14 md:h-16 p-1.5 bg-gradient-to-br from-slate-900/40 via-purple-900/20 to-slate-900/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-purple-500/10 mb-6 md:mb-8">
+        <TabsList className="grid w-full grid-cols-2 h-14 md:h-16 p-1.5 bg-gradient-to-br from-copper-900/50 via-primary-700/40 to-copper-900/50 backdrop-blur-xl border border-copper-500/20 rounded-2xl shadow-2xl shadow-copper-500/10 mb-6 md:mb-8">
           <TabsTrigger 
             value="active" 
             data-testid="active-polls-tab"
-            className="h-full rounded-xl text-sm md:text-base font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-500 data-[state=active]:to-teal-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-emerald-500/50 data-[state=active]:scale-[1.02] data-[state=inactive]:text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center group"
+            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-glow/50 data-[state=active]:scale-[1.02] data-[state=inactive]:text-muted hover:text-text hover:bg-copper-500/10 flex items-center justify-center group"
           >
             <span className="flex items-center gap-2">
               <Activity className="w-4 h-4 md:w-5 md:h-5 transition-transform group-data-[state=active]:animate-pulse" />
               <span>Active</span>
-              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-white/20 text-white border-white/30 group-data-[state=active]:bg-white group-data-[state=active]:text-emerald-600 transition-colors">{activePollsCount}</Badge>
+              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-copper-500/20 text-text border-copper-500/30 group-data-[state=active]:bg-black/20 group-data-[state=active]:text-black group-data-[state=active]:border-black/30 transition-colors font-semibold">{activePollsCount}</Badge>
             </span>
           </TabsTrigger>
           <TabsTrigger 
             value="closed" 
             data-testid="closed-polls-tab"
-            className="h-full rounded-xl text-sm md:text-base font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-slate-500 data-[state=active]:to-slate-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-slate-500/50 data-[state=active]:scale-[1.02] data-[state=inactive]:text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center group"
+            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-copper-600 data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-muted hover:text-text hover:bg-copper-500/10 flex items-center justify-center group"
           >
             <span className="flex items-center gap-2">
               <CheckCircle className="w-4 h-4 md:w-5 md:h-5" />
               <span>Closed</span>
-              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-white/20 text-white border-white/30 group-data-[state=active]:bg-white group-data-[state=active]:text-slate-600 transition-colors">{closedPollsCount}</Badge>
+              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-copper-500/20 text-text border-copper-500/30 group-data-[state=active]:bg-black/20 group-data-[state=active]:text-black group-data-[state=active]:border-black/30 transition-colors font-semibold">{closedPollsCount}</Badge>
             </span>
           </TabsTrigger>
         </TabsList>
         
         <TabsContent value="active" className="space-y-4 md:space-y-6">
           {isLoading ? (
-            <Card className="p-12 text-center bg-gradient-to-br from-slate-900/40 to-purple-900/30 backdrop-blur-xl border-white/10">
+            <Card className="p-12 text-center bg-gradient-to-br from-copper-900/40 via-primary-700/30 to-copper-900/40 backdrop-blur-xl border-copper-500/20">
               <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
-                <p className="text-slate-300 font-medium">Loading polls...</p>
+                <div className="w-12 h-12 border-4 border-copper-500/30 border-t-copper-500 rounded-full animate-spin" />
+                <p className="text-text font-medium">Loading polls...</p>
               </div>
             </Card>
           ) : !pollsData?.polls || pollsData.polls.length === 0 ? (
-            <Card className="p-12 text-center bg-gradient-to-br from-slate-900/40 to-purple-900/30 backdrop-blur-xl border-white/10">
-              <Vote className="w-16 h-16 mx-auto mb-4 text-purple-400/50" />
-              <p className="text-slate-300 font-medium text-lg">No active polls</p>
-              <p className="text-slate-400 text-sm mt-2">Create a poll to engage with your community</p>
+            <Card className="p-12 text-center bg-gradient-to-br from-copper-900/40 via-primary-700/30 to-copper-900/40 backdrop-blur-xl border-copper-500/20">
+              <Vote className="w-16 h-16 mx-auto mb-4 text-copper-500/50" />
+              <p className="text-text font-medium text-lg">No active polls</p>
+              <p className="text-muted text-sm mt-2">Create a poll to engage with your community</p>
             </Card>
           ) : (
             pollsData.polls.map((poll: Poll) => (
-              <Card key={poll.id} data-testid={`poll-${poll.id}`} className="bg-gradient-to-br from-slate-900/60 via-purple-900/20 to-slate-900/60 backdrop-blur-xl border-white/10 hover:border-purple-500/30 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 hover:scale-[1.01]">
+              <Card key={poll.id} data-testid={`poll-${poll.id}`} className="bg-gradient-to-br from-copper-900/50 via-primary-700/30 to-copper-900/50 backdrop-blur-xl border-copper-500/20 hover:border-copper-500/40 transition-all duration-300 hover:shadow-2xl hover:shadow-copper-500/20 hover:scale-[1.01]">
                 <CardHeader>
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1">
-                      <CardTitle className="font-fraunces text-xl md:text-2xl bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">{poll.question}</CardTitle>
+                      <CardTitle className="font-fraunces text-xl md:text-2xl bg-gradient-to-r from-accent via-glow to-copper-500 bg-clip-text text-transparent font-bold">{poll.question}</CardTitle>
                       {poll.description && (
-                        <CardDescription className="mt-2 text-slate-300">{poll.description}</CardDescription>
+                        <CardDescription className="mt-2 text-text/90">{poll.description}</CardDescription>
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       {poll.anonymous_voting && (
-                        <Badge className="bg-purple-500/20 text-purple-200 border-purple-500/30">
+                        <Badge className="bg-copper-500/20 text-copper-400 border-copper-500/30 font-semibold">
                           <EyeOff className="w-3 h-3 mr-1" />
                           Anonymous
                         </Badge>
                       )}
                       {poll.poll_type === 'multiple' && (
-                        <Badge className="bg-blue-500/20 text-blue-200 border-blue-500/30">Multiple Choice</Badge>
+                        <Badge className="bg-accent/20 text-accent border-accent/30 font-semibold">Multiple Choice</Badge>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-4 md:gap-6 mt-4 text-sm text-slate-300">
-                    <span className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-lg">
-                      <Users className="w-4 h-4 text-emerald-400" />
-                      <span className="font-medium">{poll.unique_voters}</span>
-                      <span className="text-slate-400">{poll.unique_voters === 1 ? 'voter' : 'voters'}</span>
+                  <div className="flex items-center gap-4 md:gap-6 mt-4 text-sm text-text">
+                    <span className="flex items-center gap-1.5 bg-copper-500/10 px-3 py-1.5 rounded-lg border border-copper-500/20">
+                      <Users className="w-4 h-4 text-copper-500" />
+                      <span className="font-semibold">{poll.unique_voters}</span>
+                      <span className="text-muted">{poll.unique_voters === 1 ? 'voter' : 'voters'}</span>
                     </span>
-                    <span className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-lg">
-                      <BarChart3 className="w-4 h-4 text-blue-400" />
-                      <span className="font-medium">{poll.total_votes}</span>
-                      <span className="text-slate-400">{poll.total_votes === 1 ? 'vote' : 'votes'}</span>
+                    <span className="flex items-center gap-1.5 bg-accent/10 px-3 py-1.5 rounded-lg border border-accent/20">
+                      <BarChart3 className="w-4 h-4 text-accent" />
+                      <span className="font-semibold">{poll.total_votes}</span>
+                      <span className="text-muted">{poll.total_votes === 1 ? 'vote' : 'votes'}</span>
                     </span>
                     {poll.closes_at && (
-                      <span className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-lg">
-                        <Clock className="w-4 h-4 text-orange-400" />
-                        <span className="text-slate-300">Closes {format(new Date(poll.closes_at), 'PPp')}</span>
+                      <span className="flex items-center gap-1.5 bg-glow/10 px-3 py-1.5 rounded-lg border border-glow/20">
+                        <Clock className="w-4 h-4 text-glow" />
+                        <span className="text-text">Closes {format(new Date(poll.closes_at), 'PPp')}</span>
                       </span>
                     )}
                   </div>
@@ -396,7 +396,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                               id={option.id}
                               className="w-5 h-5"
                             />
-                            <Label htmlFor={option.id} className="flex-1 cursor-pointer py-3 text-slate-200">
+                            <Label htmlFor={option.id} className="flex-1 cursor-pointer py-3 text-text">
                               {option.text}
                             </Label>
                           </div>
@@ -429,7 +429,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                               disabled={hasVoted(poll)}
                               className="w-5 h-5"
                             />
-                            <Label htmlFor={option.id} className="flex-1 cursor-pointer py-3 text-slate-200">
+                            <Label htmlFor={option.id} className="flex-1 cursor-pointer py-3 text-text">
                               {option.text}
                             </Label>
                           </div>
