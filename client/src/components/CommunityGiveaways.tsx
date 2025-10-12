@@ -7,6 +7,7 @@ import confetti from 'canvas-confetti';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -24,7 +25,8 @@ import {
   Sparkles,
   CheckCircle,
   Clock,
-  Award
+  Award,
+  Trash2
 } from 'lucide-react';
 
 interface Giveaway {
@@ -225,6 +227,27 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
     onError: (error: any) => {
       toast({
         title: "Failed to draw winners",
+        description: error.message || "Please try again",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete giveaway mutation
+  const deleteGiveawayMutation = useMutation({
+    mutationFn: async (giveawayId: string) => {
+      return apiRequest('DELETE', `/api/communities/${communityId}/giveaways/${giveawayId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'giveaways'] });
+      toast({
+        title: "Giveaway deleted",
+        description: "The giveaway has been permanently deleted."
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to delete giveaway",
         description: error.message || "Please try again",
         variant: "destructive"
       });
@@ -474,16 +497,46 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
                       )}
                       
                       {canCreateGiveaway && giveaway.status === 'active' && (
-                        <Button 
-                          onClick={() => drawWinnersMutation.mutate(giveaway.id)}
-                          disabled={drawWinnersMutation.isPending || giveaway.unique_participants === 0}
-                          variant="outline"
-                          className="border-premium-border hover:bg-premium-surface-elevated"
-                          data-testid={`button-draw-winners-${giveaway.id}`}
-                        >
-                          <Trophy className="h-4 w-4 mr-2" />
-                          Draw Winners
-                        </Button>
+                        <>
+                          <Button 
+                            onClick={() => drawWinnersMutation.mutate(giveaway.id)}
+                            disabled={drawWinnersMutation.isPending || giveaway.unique_participants === 0}
+                            variant="outline"
+                            className="border-premium-border hover:bg-premium-surface-elevated"
+                            data-testid={`button-draw-winners-${giveaway.id}`}
+                          >
+                            <Trophy className="h-4 w-4 mr-2" />
+                            Draw Winners
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="outline"
+                                className="border-red-500/50 text-red-500 hover:bg-red-500/10"
+                                data-testid={`button-delete-giveaway-${giveaway.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Giveaway?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete "{giveaway.title}" and all associated entries. This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteGiveawayMutation.mutate(giveaway.id)}
+                                  className="bg-red-500 hover:bg-red-600"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </>
                       )}
                     </div>
                   </CardContent>
@@ -570,6 +623,40 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
                         <span>Ended {format(new Date(giveaway.ends_at), 'MMM d, yyyy')}</span>
                       </div>
                     </div>
+
+                    {canCreateGiveaway && (
+                      <div className="flex justify-end pt-2">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button 
+                              variant="outline"
+                              className="border-red-500/50 text-red-500 hover:bg-red-500/10"
+                              data-testid={`button-delete-ended-giveaway-${giveaway.id}`}
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete Giveaway
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Giveaway?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete "{giveaway.title}" and all associated entries and winners. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteGiveawayMutation.mutate(giveaway.id)}
+                                className="bg-red-500 hover:bg-red-600"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
