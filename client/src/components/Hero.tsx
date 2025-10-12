@@ -1,10 +1,19 @@
 import { useEvents } from "@/lib/events";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { UserPlus } from "lucide-react";
 import heroLogoImage from "@assets/Upscaled Logo copy_1754763190534.png";
 
 export default function Hero() {
   const { data: events = [] } = useEvents();
+  
+  // Check authentication state
+  const { data: authData } = useQuery({
+    queryKey: ['/api/auth/me'],
+    retry: false,
+  });
+  const isAuthenticated = !!(authData as any)?.user;
 
   // Determine CTA state based on events - waitlist mode logic
   const hasTicketsAvailable = events.some(event => 
@@ -55,7 +64,7 @@ export default function Hero() {
 
           {/* Dual CTA */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            {/* Primary CTA - Tickets available show Get Tickets, otherwise Join Waitlist */}
+            {/* Primary CTA - Tickets available show Get Tickets, otherwise Get Started */}
             {hasTicketsAvailable ? (
               <a
                 href="#events"
@@ -65,15 +74,16 @@ export default function Hero() {
               >
                 Get Tickets
               </a>
-            ) : (
+            ) : !isAuthenticated ? (
               <Link
-                href="/waitlist"
-                className="inline-flex items-center justify-center px-8 py-4 text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200 shadow-lg hover:shadow-xl btn-glow bg-[#c05a0e]"
-                data-testid="button-join-waitlist"
+                href="/account/signup"
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 text-black/90 font-medium tracking-wide rounded-2xl hover:bg-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg transition-all duration-200 shadow-lg hover:shadow-xl btn-glow bg-[#c05a0e]"
+                data-testid="button-get-started"
               >
-                Join
+                <UserPlus className="h-5 w-5" />
+                Get Started
               </Link>
-            )}
+            ) : null}
             
             {/* Secondary CTA - Explore Events */}
             <Link

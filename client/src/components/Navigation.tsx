@@ -157,18 +157,6 @@ export default function Navigation() {
               >
                 Promote
               </Link>
-
-              <Link
-                href="/waitlist"
-                className={`transition-colors duration-200 font-medium ${
-                  location === '/waitlist' 
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-waitlist"
-              >
-                Join
-              </Link>
               
               {/* Notification Bell - Show for authenticated users */}
               {isAuthenticated && (
@@ -368,19 +356,6 @@ export default function Navigation() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Promote
-              </Link>
-
-              <Link
-                href="/waitlist"
-                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
-                  location === '/waitlist' 
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-mobile-waitlist"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Join
               </Link>
               
               {/* Authentication - Mobile */}
