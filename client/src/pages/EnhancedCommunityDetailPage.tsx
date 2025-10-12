@@ -1701,26 +1701,24 @@ export default function EnhancedCommunityDetailPage() {
             {/* Polls & Giveaways Tab */}
             <TabsContent value="polls" className="space-y-4 md:space-y-6">
               <Tabs defaultValue="polls" className="w-full">
-                {/* Premium Segmented Control */}
-                <div className="mb-6 md:mb-8">
-                  <TabsList className="grid w-full grid-cols-2 h-12 md:h-14 p-1 bg-gradient-to-b from-premium-surface to-premium-surface-elevated border border-premium-border rounded-xl">
+                {/* Premium Segmented Control with Enhanced Glassmorphism */}
+                <div className="mb-8 md:mb-10">
+                  <TabsList className="grid w-full grid-cols-2 h-16 md:h-20 p-2 bg-gradient-to-br from-indigo-900/50 via-purple-900/40 to-pink-900/50 backdrop-blur-2xl border-2 border-white/20 rounded-3xl shadow-2xl shadow-purple-500/20">
                     <TabsTrigger 
                       value="polls" 
-                      className="h-full w-full rounded-lg text-sm md:text-base font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-premium-primary data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-muted-foreground hover:text-foreground flex items-center justify-center gap-2"
+                      className="h-full w-full rounded-2xl text-base md:text-lg font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-blue-500 data-[state=active]:via-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-2xl data-[state=active]:shadow-purple-500/60 data-[state=active]:scale-[1.02] data-[state=inactive]:text-slate-300 hover:text-white hover:bg-white/10 flex items-center justify-center gap-2 md:gap-3 group"
                       data-testid="subtab-polls"
                     >
-                      <Vote className="w-4 h-4 md:w-5 md:h-5" />
-                      <span className="hidden sm:inline">Polls</span>
-                      <span className="sm:hidden">Polls</span>
+                      <Vote className="w-5 h-5 md:w-6 md:h-6 transition-all group-data-[state=active]:scale-110 group-data-[state=active]:rotate-12" />
+                      <span className="tracking-wide">Polls</span>
                     </TabsTrigger>
                     <TabsTrigger 
                       value="giveaways" 
-                      className="h-full w-full rounded-lg text-sm md:text-base font-medium transition-all duration-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-premium-primary data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-muted-foreground hover:text-foreground flex items-center justify-center gap-2"
+                      className="h-full w-full rounded-2xl text-base md:text-lg font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-amber-500 data-[state=active]:via-orange-500 data-[state=active]:to-pink-500 data-[state=active]:text-white data-[state=active]:shadow-2xl data-[state=active]:shadow-amber-500/60 data-[state=active]:scale-[1.02] data-[state=inactive]:text-slate-300 hover:text-white hover:bg-white/10 flex items-center justify-center gap-2 md:gap-3 group"
                       data-testid="subtab-giveaways"
                     >
-                      <Gift className="w-4 h-4 md:w-5 md:h-5" />
-                      <span className="hidden sm:inline">Giveaways</span>
-                      <span className="sm:hidden">Giveaways</span>
+                      <Gift className="w-5 h-5 md:w-6 md:h-6 transition-all group-data-[state=active]:scale-110 group-data-[state=active]:-rotate-12" />
+                      <span className="tracking-wide">Giveaways</span>
                     </TabsTrigger>
                   </TabsList>
                 </div>

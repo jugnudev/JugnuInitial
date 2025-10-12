@@ -352,92 +352,96 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
         </div>
       )}
       
-      {/* Premium Status Tabs */}
+      {/* Premium Status Tabs with Glassmorphism */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'active' | 'ended')} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-12 md:h-14 p-1 bg-gradient-to-b from-premium-surface to-premium-surface-elevated/80 border border-premium-border/50 rounded-lg mb-4 md:mb-6">
+        <TabsList className="grid w-full grid-cols-2 h-14 md:h-16 p-1.5 bg-gradient-to-br from-amber-900/40 via-rose-900/20 to-purple-900/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-purple-500/10 mb-6 md:mb-8">
           <TabsTrigger 
             value="active" 
-            className="h-full rounded-md text-sm md:text-base font-medium transition-all duration-200 data-[state=active]:bg-premium-surface-elevated data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground hover:text-foreground flex items-center justify-center" 
+            className="h-full rounded-xl text-sm md:text-base font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500 data-[state=active]:to-orange-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-amber-500/50 data-[state=active]:scale-[1.02] data-[state=inactive]:text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center group" 
             data-testid="tab-active-giveaways"
           >
-            <span className="flex items-center gap-1.5 md:gap-2">
-              <Sparkles className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Active</span>
-              <span className="sm:hidden">Active</span>
-              <Badge variant="secondary" className="ml-1 md:ml-2 text-xs px-1.5 py-0">{activeCount}</Badge>
+            <span className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 md:w-5 md:h-5 transition-transform group-data-[state=active]:animate-pulse" />
+              <span>Active</span>
+              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-white/20 text-white border-white/30 group-data-[state=active]:bg-white group-data-[state=active]:text-amber-600 transition-colors">{activeCount}</Badge>
             </span>
           </TabsTrigger>
           <TabsTrigger 
             value="ended" 
-            className="h-full rounded-md text-sm md:text-base font-medium transition-all duration-200 data-[state=active]:bg-premium-surface-elevated data-[state=active]:text-foreground data-[state=active]:shadow-md data-[state=inactive]:text-muted-foreground hover:text-foreground flex items-center justify-center" 
+            className="h-full rounded-xl text-sm md:text-base font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/50 data-[state=active]:scale-[1.02] data-[state=inactive]:text-slate-400 hover:text-white hover:bg-white/5 flex items-center justify-center group" 
             data-testid="tab-ended-giveaways"
           >
-            <span className="flex items-center gap-1.5 md:gap-2">
-              <Trophy className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              <span className="hidden sm:inline">Ended</span>
-              <span className="sm:hidden">Ended</span>
-              <Badge variant="secondary" className="ml-1 md:ml-2 text-xs px-1.5 py-0">{endedCount}</Badge>
+            <span className="flex items-center gap-2">
+              <Trophy className="w-4 h-4 md:w-5 md:h-5" />
+              <span>Ended</span>
+              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-white/20 text-white border-white/30 group-data-[state=active]:bg-white group-data-[state=active]:text-purple-600 transition-colors">{endedCount}</Badge>
             </span>
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="active" className="space-y-4 mt-6">
+        <TabsContent value="active" className="space-y-4 md:space-y-6 mt-6">
           {isLoading ? (
-            <p className="text-center text-premium-text-muted py-8">Loading giveaways...</p>
+            <Card className="p-12 text-center bg-gradient-to-br from-amber-900/40 to-rose-900/30 backdrop-blur-xl border-white/10">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+                <p className="text-slate-300 font-medium">Loading giveaways...</p>
+              </div>
+            </Card>
           ) : giveaways.length === 0 ? (
-            <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
-              <CardContent className="pt-6 text-center py-12">
-                <Gift className="h-12 w-12 text-premium-text-muted mx-auto mb-4" />
-                <p className="text-premium-text-muted" data-testid="text-no-active-giveaways">No active giveaways</p>
-                {canCreateGiveaway && (
-                  <Button 
-                    onClick={() => setIsCreateModalOpen(true)}
-                    variant="outline"
-                    className="mt-4 border-premium-border hover:bg-premium-surface-elevated"
-                  >
-                    Create the first giveaway
-                  </Button>
-                )}
-              </CardContent>
+            <Card className="p-12 text-center bg-gradient-to-br from-amber-900/40 to-rose-900/30 backdrop-blur-xl border-white/10">
+              <Gift className="w-16 h-16 mx-auto mb-4 text-amber-400/50" />
+              <p className="text-slate-300 font-medium text-lg" data-testid="text-no-active-giveaways">No active giveaways</p>
+              <p className="text-slate-400 text-sm mt-2">Create exciting giveaways to engage your community</p>
+              {canCreateGiveaway && (
+                <Button 
+                  onClick={() => setIsCreateModalOpen(true)}
+                  className="mt-6 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/30"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create First Giveaway
+                </Button>
+              )}
             </Card>
           ) : (
-            <div className="grid gap-4">
+            <div className="grid gap-4 md:gap-6">
               {giveaways.map((giveaway) => (
                 <Card 
                   key={giveaway.id} 
-                  className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border hover:shadow-lg transition-shadow"
+                  className="bg-gradient-to-br from-amber-900/60 via-rose-900/20 to-purple-900/40 backdrop-blur-xl border-white/10 hover:border-amber-500/30 transition-all duration-300 hover:shadow-2xl hover:shadow-amber-500/20 hover:scale-[1.01]"
                   data-testid={`card-giveaway-${giveaway.id}`}
                 >
                   <CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <CardTitle className="text-premium-text flex items-center gap-2">
-                          <Trophy className="h-5 w-5 text-premium-primary" />
+                        <CardTitle className="text-xl md:text-2xl bg-gradient-to-r from-amber-300 via-orange-300 to-amber-300 bg-clip-text text-transparent font-bold flex items-center gap-2">
+                          <Trophy className="h-5 w-5 md:h-6 md:w-6 text-amber-400" />
                           {giveaway.title}
                         </CardTitle>
-                        <CardDescription className="text-premium-text-muted mt-1">
-                          {giveaway.description}
-                        </CardDescription>
+                        {giveaway.description && (
+                          <CardDescription className="text-slate-300 mt-2">
+                            {giveaway.description}
+                          </CardDescription>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {getStatusBadge(giveaway.status)}
-                        <Badge variant="secondary" data-testid={`badge-type-${giveaway.id}`}>
+                        <Badge className="bg-blue-500/20 text-blue-200 border-blue-500/30" data-testid={`badge-type-${giveaway.id}`}>
                           {getGiveawayTypeLabel(giveaway.giveaway_type)}
                         </Badge>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-lg p-4 border border-purple-500/20">
+                    <div className="bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-rose-500/20 rounded-xl p-4 md:p-5 border border-amber-500/30 backdrop-blur-sm">
                       <div className="flex items-start gap-3">
-                        <Award className="h-6 w-6 text-premium-primary mt-1" />
+                        <Award className="h-6 w-6 md:h-7 md:w-7 text-amber-400 mt-1" />
                         <div className="flex-1">
-                          <h4 className="font-semibold text-premium-text">{giveaway.prize_title}</h4>
+                          <h4 className="font-bold text-white text-lg">{giveaway.prize_title}</h4>
                           {giveaway.prize_description && (
-                            <p className="text-sm text-premium-text-muted mt-1">{giveaway.prize_description}</p>
+                            <p className="text-sm text-slate-300 mt-1.5">{giveaway.prize_description}</p>
                           )}
                           {giveaway.prize_value && (
-                            <p className="text-sm font-medium text-premium-primary mt-1">Value: ${giveaway.prize_value}</p>
+                            <p className="text-sm font-semibold text-amber-400 mt-2">Value: ${giveaway.prize_value}</p>
                           )}
                         </div>
                       </div>
