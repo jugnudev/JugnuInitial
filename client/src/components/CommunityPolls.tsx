@@ -505,31 +505,44 @@ export default function CommunityPolls({ communityId, currentMember }: Community
           )}
         </TabsContent>
         
-        <TabsContent value="closed" className="space-y-4">
+        <TabsContent value="closed" className="space-y-4 md:space-y-6">
           {isLoading ? (
-            <Card className="p-8 text-center">
-              <p className="text-muted-foreground">Loading polls...</p>
+            <Card className="p-12 text-center bg-gradient-to-br from-copper-900/40 via-primary-700/30 to-copper-900/40 backdrop-blur-xl border-copper-500/20">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-4 border-copper-500/30 border-t-copper-500 rounded-full animate-spin" />
+                <p className="text-text font-medium">Loading polls...</p>
+              </div>
             </Card>
           ) : !pollsData?.polls || pollsData.polls.length === 0 ? (
-            <Card className="p-8 text-center">
-              <XCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">No closed polls</p>
+            <Card className="p-12 text-center bg-gradient-to-br from-copper-900/40 via-primary-700/30 to-copper-900/40 backdrop-blur-xl border-copper-500/20">
+              <XCircle className="w-16 h-16 mx-auto mb-4 text-copper-500/50" />
+              <p className="text-text font-medium text-lg">No closed polls</p>
+              <p className="text-muted text-sm mt-2">Closed polls will appear here</p>
             </Card>
           ) : (
             pollsData.polls.map((poll: Poll) => (
-              <Card key={poll.id} className="opacity-75">
+              <Card key={poll.id} data-testid={`poll-${poll.id}`} className="bg-gradient-to-br from-copper-900/50 via-primary-700/30 to-copper-900/50 backdrop-blur-xl border-copper-500/20 opacity-90">
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="font-fraunces">{poll.question}</CardTitle>
+                      <CardTitle className="font-fraunces text-xl md:text-2xl bg-gradient-to-r from-accent via-glow to-copper-500 bg-clip-text text-transparent font-bold">{poll.question}</CardTitle>
                       {poll.description && (
-                        <CardDescription className="mt-2">{poll.description}</CardDescription>
+                        <CardDescription className="mt-2 text-text/90">{poll.description}</CardDescription>
                       )}
                     </div>
                     <Badge variant="secondary">Closed</Badge>
                   </div>
-                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                    <span>Final Results: {poll.unique_voters} voters · {poll.total_votes} votes</span>
+                  <div className="flex items-center gap-3 md:gap-4 mt-4 text-sm flex-wrap">
+                    <span className="flex items-center gap-1.5 bg-copper-500/10 px-3 py-1.5 rounded-lg border border-copper-500/20">
+                      <Users className="w-4 h-4 text-copper-500" />
+                      <span className="font-semibold text-text">{poll.unique_voters}</span>
+                      <span className="text-muted">{poll.unique_voters === 1 ? 'voter' : 'voters'}</span>
+                    </span>
+                    <span className="flex items-center gap-1.5 bg-accent/10 px-3 py-1.5 rounded-lg border border-accent/20">
+                      <BarChart3 className="w-4 h-4 text-accent" />
+                      <span className="font-semibold text-text">{poll.total_votes}</span>
+                      <span className="text-muted">{poll.total_votes === 1 ? 'vote' : 'votes'}</span>
+                    </span>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -537,9 +550,9 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                   <div className="space-y-3">
                     {poll.options.map((option) => (
                       <div key={option.id}>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="font-medium">{option.text}</span>
-                          <span className="text-muted-foreground">
+                        <div className="flex justify-between text-sm mb-1.5">
+                          <span className="font-semibold text-text">{option.text}</span>
+                          <span className="text-muted">
                             {option.vote_count || 0} votes ({option.vote_percentage || 0}%)
                           </span>
                         </div>
