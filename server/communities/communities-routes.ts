@@ -4007,6 +4007,34 @@ export function addCommunitiesRoutes(app: Express) {
   });
 
   /**
+   * DELETE /api/communities/:id/giveaways/:giveawayId
+   * Delete a giveaway (owner/moderator only)
+   */
+  app.delete('/api/communities/:id/giveaways/:giveawayId', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId, giveawayId } = req.params;
+      const user = (req as any).user;
+
+      // Check membership and role
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      if (membership.role !== 'owner' && membership.role !== 'moderator') {
+        return res.status(403).json({ ok: false, error: 'Only owners and moderators can delete giveaways' });
+      }
+
+      await communitiesStorage.deleteGiveaway(giveawayId, user.id);
+
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error('Delete giveaway error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to delete giveaway' });
+    }
+  });
+
+  /**
    * GET /api/communities/:id/giveaways/:giveawayId/entries
    * Get all entries for a giveaway (owner/moderator only)
    */

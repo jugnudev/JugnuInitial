@@ -2388,6 +2388,31 @@ export class CommunitiesSupabaseDB {
     return true;
   }
 
+  async deleteGiveaway(
+    giveawayId: string,
+    userId: string
+  ): Promise<boolean> {
+    // First log the deletion in audit log before deleting
+    await this.client
+      .from('community_giveaway_audit_log')
+      .insert({
+        giveaway_id: giveawayId,
+        actor_id: userId,
+        action: 'giveaway_deleted',
+        description: 'Giveaway deleted by owner/moderator',
+      });
+
+    // Delete the giveaway (cascade will handle related records)
+    const { error } = await this.client
+      .from('community_giveaways')
+      .delete()
+      .eq('id', giveawayId);
+
+    if (error) throw error;
+
+    return true;
+  }
+
   async updateGiveawayEntryCounts(giveawayId: string): Promise<void> {
     // Get all valid entries
     const { data: entries, error: entriesError } = await this.client
