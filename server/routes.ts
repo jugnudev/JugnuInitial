@@ -245,11 +245,16 @@ Disallow: /account/*`;
       const lastNameTrimmed = (last_name || "").trim();
       const emailTrimmed = (email || "").trim().toLowerCase();
 
-      if (!firstNameTrimmed || firstNameTrimmed.length > 80) {
+      // Use null for missing names (for email-only signups)
+      const finalFirstName = firstNameTrimmed || null;
+      const finalLastName = lastNameTrimmed || null;
+
+      // Validate length if provided
+      if (firstNameTrimmed && firstNameTrimmed.length > 80) {
         return res.status(400).json({ ok: false, error: "invalid_first_name" });
       }
       
-      if (!lastNameTrimmed || lastNameTrimmed.length > 80) {
+      if (lastNameTrimmed && lastNameTrimmed.length > 80) {
         return res.status(400).json({ ok: false, error: "invalid_last_name" });
       }
 
@@ -257,9 +262,11 @@ Disallow: /account/*`;
         return res.status(400).json({ ok: false, error: "invalid_email" });
       }
 
+      // Consent is required - must be explicitly provided
       if (!consent) {
         return res.status(400).json({ ok: false, error: "consent_required" });
       }
+      
       const eventSlug = event_slug || null;
       const sourceParam = source || null;
       const userAgent = req.headers['user-agent'] || null;
@@ -275,13 +282,13 @@ Disallow: /account/*`;
       const supabase = getSupabaseAdmin();
       const payload = {
         email: emailTrimmed,
-        first_name: firstNameTrimmed,
-        last_name: lastNameTrimmed,
-        name: `${firstNameTrimmed} ${lastNameTrimmed}`, // Keep for backwards compatibility
+        first_name: finalFirstName,
+        last_name: finalLastName,
+        name: finalFirstName && finalLastName ? `${finalFirstName} ${finalLastName}` : null, // Keep for backwards compatibility
         event_slug: eventSlug,
         source: sourceParam,
         user_agent: userAgent,
-        consent: true,
+        consent: consent,
         ...utmData
       };
 
