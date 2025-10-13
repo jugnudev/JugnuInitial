@@ -297,6 +297,12 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
   const activeCount = allGiveawaysData?.giveaways.filter(g => g.status === 'active').length || 0;
   const endedCount = allGiveawaysData?.giveaways.filter(g => ['ended', 'drawn', 'completed'].includes(g.status)).length || 0;
   
+  // Helper to check if current user is a winner
+  const isUserWinner = (giveaway: Giveaway): boolean => {
+    if (!currentMember || !giveaway.winners) return false;
+    return giveaway.winners.some(w => w.user.id === currentMember.userId);
+  };
+  
   const getGiveawayTypeLabel = (type: string) => {
     const labels = {
       random_draw: 'Random Draw',
@@ -425,6 +431,12 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
+                        {isUserWinner(giveaway) && (
+                          <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold shadow-lg shadow-amber-500/50 animate-pulse" data-testid={`badge-winner-${giveaway.id}`}>
+                            <Trophy className="h-3 w-3 mr-1" />
+                            You Won!
+                          </Badge>
+                        )}
                         {getStatusBadge(giveaway.status)}
                         <Badge className="bg-accent/20 text-accent border-accent/30 font-semibold" data-testid={`badge-type-${giveaway.id}`}>
                           {getGiveawayTypeLabel(giveaway.giveaway_type)}
@@ -590,7 +602,15 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
                           Prize: {giveaway.prize_title}
                         </CardDescription>
                       </div>
-                      {getStatusBadge(giveaway.status)}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isUserWinner(giveaway) && (
+                          <Badge className="bg-gradient-to-r from-amber-500 to-yellow-500 text-black font-bold shadow-lg shadow-amber-500/50" data-testid={`badge-winner-ended-${giveaway.id}`}>
+                            <Trophy className="h-3 w-3 mr-1" />
+                            You Won!
+                          </Badge>
+                        )}
+                        {getStatusBadge(giveaway.status)}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -601,29 +621,44 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
                           Winners
                         </h4>
                         <div className="space-y-2">
-                          {giveaway.winners.map((winner) => (
-                            <div key={winner.id} className="flex items-center gap-3 p-2 bg-white/5 rounded">
-                              {winner.user.profile_image_url ? (
-                                <img 
-                                  src={winner.user.profile_image_url} 
-                                  alt={`${winner.user.first_name} ${winner.user.last_name}`}
-                                  className="w-8 h-8 rounded-full"
-                                />
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-premium-primary/20 flex items-center justify-center">
-                                  <span className="text-xs font-medium text-premium-primary">
-                                    {winner.user.first_name[0]}{winner.user.last_name[0]}
-                                  </span>
+                          {giveaway.winners.map((winner) => {
+                            const isCurrentUser = currentMember && winner.user.id === currentMember.userId;
+                            return (
+                              <div 
+                                key={winner.id} 
+                                className={`flex items-center gap-3 p-2 rounded ${
+                                  isCurrentUser 
+                                    ? 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/40' 
+                                    : 'bg-white/5'
+                                }`}
+                                data-testid={isCurrentUser ? `winner-item-current-${winner.id}` : `winner-item-${winner.id}`}
+                              >
+                                {winner.user.profile_image_url ? (
+                                  <img 
+                                    src={winner.user.profile_image_url} 
+                                    alt={`${winner.user.first_name} ${winner.user.last_name}`}
+                                    className="w-8 h-8 rounded-full"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-premium-primary/20 flex items-center justify-center">
+                                    <span className="text-xs font-medium text-premium-primary">
+                                      {winner.user.first_name[0]}{winner.user.last_name[0]}
+                                    </span>
+                                  </div>
+                                )}
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-premium-text flex items-center gap-1">
+                                    {winner.user.first_name} {winner.user.last_name}
+                                    {isCurrentUser && (
+                                      <Badge className="ml-1 bg-amber-500 text-black text-xs" data-testid="badge-you">You</Badge>
+                                    )}
+                                  </p>
+                                  <p className="text-xs text-premium-text-muted">Position #{winner.position}</p>
                                 </div>
-                              )}
-                              <div className="flex-1">
-                                <p className="text-sm font-medium text-premium-text">
-                                  {winner.user.first_name} {winner.user.last_name}
-                                </p>
-                                <p className="text-xs text-premium-text-muted">Position #{winner.position}</p>
+                                {isCurrentUser && <Trophy className="h-5 w-5 text-amber-500" />}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     )}

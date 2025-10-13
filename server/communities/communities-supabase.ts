@@ -2360,6 +2360,32 @@ export class CommunitiesSupabaseDB {
 
       if (winnerError) throw winnerError;
       winners.push(winner);
+
+      // Create notification for winner (non-blocking - errors won't fail the draw)
+      try {
+        const { error: notificationError } = await this.client
+          .from('community_notifications')
+          .insert({
+            recipient_id: selectedWinners[i].user_id,
+            community_id: giveaway.community_id,
+            type: 'giveaway_winner',
+            title: '🎉 Congratulations! You won a giveaway!',
+            body: `You've won "${giveaway.prize_title}" in the "${giveaway.title}" giveaway! Position #${i + 1}${giveaway.number_of_winners > 1 ? ` of ${giveaway.number_of_winners}` : ''}.`,
+            action_url: `/communities/${giveaway.community_id}?tab=giveaways`,
+            metadata: {
+              giveaway_id: giveawayId,
+              prize_title: giveaway.prize_title,
+              position: i + 1
+            }
+          });
+        
+        if (notificationError) {
+          console.error(`Failed to create winner notification for giveaway ${giveawayId}, recipient ${selectedWinners[i].user_id}:`, notificationError);
+        }
+      } catch (err) {
+        // Catch any unexpected errors (network issues, etc.)
+        console.error(`Unexpected error creating winner notification for giveaway ${giveawayId}, recipient ${selectedWinners[i].user_id}:`, err);
+      }
     }
 
     // Update giveaway status to drawn
