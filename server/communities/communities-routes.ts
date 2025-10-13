@@ -1421,6 +1421,21 @@ export function addCommunitiesRoutes(app: Express) {
     imageUrl: z.string().url().optional().or(z.literal('')),
     isPrivate: z.boolean().optional(),
     membershipPolicy: z.enum(['approval_required', 'open', 'closed']).optional(),
+    // Chat settings
+    chatMode: z.enum(['disabled', 'owner_only', 'moderators_only', 'all_members']).optional(),
+    chatSlowmodeSeconds: z.number().min(0).max(300).optional(),
+    autoModeration: z.boolean().optional(),
+    bannedWords: z.union([z.string(), z.array(z.string())]).optional(),
+    // Moderator permissions
+    moderatorCanPost: z.boolean().optional(),
+    moderatorCanCreateEvents: z.boolean().optional(),
+    moderatorCanCreatePolls: z.boolean().optional(),
+    moderatorCanManageMembers: z.boolean().optional(),
+    // Member permissions
+    memberCanPost: z.boolean().optional(),
+    memberCanComment: z.boolean().optional(),
+    memberCanCreateEvents: z.boolean().optional(),
+    memberCanCreatePolls: z.boolean().optional(),
   });
 
   const createPostSchema = z.object({
