@@ -691,14 +691,33 @@ export default function CommunityPolls({ communityId, currentMember }: Community
             
             <div>
               <Label htmlFor="closes-at">Close date (optional)</Label>
-              <Input
-                id="closes-at"
-                type="datetime-local"
-                value={closesAt}
-                onChange={(e) => setClosesAt(e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
-                className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  id="closes-date"
+                  type="date"
+                  value={closesAt.split('T')[0]}
+                  onChange={(e) => {
+                    const time = closesAt.split('T')[1] || '23:59';
+                    setClosesAt(e.target.value ? `${e.target.value}T${time}` : '');
+                  }}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
+                  placeholder="Date"
+                />
+                <Input
+                  id="closes-time"
+                  type="time"
+                  value={closesAt.split('T')[1] || ''}
+                  onChange={(e) => {
+                    const date = closesAt.split('T')[0];
+                    if (date) {
+                      setClosesAt(`${date}T${e.target.value}`);
+                    }
+                  }}
+                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
+                  placeholder="Time"
+                />
+              </div>
             </div>
           </div>
           

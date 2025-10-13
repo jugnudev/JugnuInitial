@@ -788,14 +788,35 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
             
             <div>
               <Label htmlFor="endsAt">End Date & Time *</Label>
-              <Input
-                id="endsAt"
-                type="datetime-local"
-                value={endsAt}
-                onChange={(e) => setEndsAt(e.target.value)}
-                className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
-                data-testid="input-ends-at"
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  id="ends-date"
+                  type="date"
+                  value={endsAt.split('T')[0]}
+                  onChange={(e) => {
+                    const time = endsAt.split('T')[1] || '23:59';
+                    setEndsAt(e.target.value ? `${e.target.value}T${time}` : '');
+                  }}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
+                  placeholder="Date"
+                  data-testid="input-ends-date"
+                />
+                <Input
+                  id="ends-time"
+                  type="time"
+                  value={endsAt.split('T')[1] || ''}
+                  onChange={(e) => {
+                    const date = endsAt.split('T')[0];
+                    if (date) {
+                      setEndsAt(`${date}T${e.target.value}`);
+                    }
+                  }}
+                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
+                  placeholder="Time"
+                  data-testid="input-ends-time"
+                />
+              </div>
             </div>
           </div>
           
