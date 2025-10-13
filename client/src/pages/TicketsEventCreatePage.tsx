@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DateTimePicker } from "@/components/DateTimePicker";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar, ArrowLeft, Plus } from "lucide-react";
 import { Link } from "wouter";
@@ -175,44 +176,15 @@ export function TicketsEventCreatePage() {
               </div>
 
               {/* Date and Time */}
-              <div className="space-y-2">
-                <Label htmlFor="startAt">Date & Time *</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input
-                    id="start-date"
-                    type="date"
-                    value={form.startAt ? new Date(form.startAt).toISOString().split('T')[0] : ''}
-                    onChange={(e) => {
-                      if (e.target.value) {
-                        const currentTime = form.startAt ? new Date(form.startAt).toISOString().split('T')[1] : '19:00:00.000Z';
-                        const isoDateTime = new Date(`${e.target.value}T${currentTime}`).toISOString();
-                        handleInputChange('startAt', isoDateTime);
-                      } else {
-                        handleInputChange('startAt', '');
-                      }
-                    }}
-                    className="bg-card border-border text-card-foreground"
-                    placeholder="Date"
-                    data-testid="input-event-date"
-                    required
-                  />
-                  <Input
-                    id="start-time"
-                    type="time"
-                    value={form.startAt ? new Date(form.startAt).toTimeString().slice(0, 5) : ''}
-                    onChange={(e) => {
-                      if (form.startAt && e.target.value) {
-                        const date = new Date(form.startAt).toISOString().split('T')[0];
-                        const isoDateTime = new Date(`${date}T${e.target.value}`).toISOString();
-                        handleInputChange('startAt', isoDateTime);
-                      }
-                    }}
-                    className="bg-card border-border text-card-foreground"
-                    placeholder="Time"
-                    data-testid="input-event-time"
-                  />
-                </div>
-              </div>
+              <DateTimePicker
+                label="Event Date & Time"
+                value={form.startAt}
+                onChange={(value) => handleInputChange('startAt', value)}
+                required
+                minDate={new Date()}
+                placeholder="Select event date and time"
+                testId="event-datetime"
+              />
 
               {/* Venue */}
               <div className="space-y-2">

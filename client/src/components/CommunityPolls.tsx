@@ -15,6 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DateTimePicker } from '@/components/DateTimePicker';
 import { 
   Plus, 
   X, 
@@ -689,36 +690,14 @@ export default function CommunityPolls({ communityId, currentMember }: Community
               )}
             </div>
             
-            <div>
-              <Label htmlFor="closes-at">Close date (optional)</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  id="closes-date"
-                  type="date"
-                  value={closesAt.split('T')[0]}
-                  onChange={(e) => {
-                    const time = closesAt.split('T')[1] || '23:59';
-                    setClosesAt(e.target.value ? `${e.target.value}T${time}` : '');
-                  }}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
-                  placeholder="Date"
-                />
-                <Input
-                  id="closes-time"
-                  type="time"
-                  value={closesAt.split('T')[1] || ''}
-                  onChange={(e) => {
-                    const date = closesAt.split('T')[0];
-                    if (date) {
-                      setClosesAt(`${date}T${e.target.value}`);
-                    }
-                  }}
-                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
-                  placeholder="Time"
-                />
-              </div>
-            </div>
+            <DateTimePicker
+              label="Close date"
+              value={closesAt}
+              onChange={setClosesAt}
+              minDate={new Date()}
+              placeholder="Select when poll closes"
+              testId="poll-closes-at"
+            />
           </div>
           
           <DialogFooter>

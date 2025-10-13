@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DateTimePicker } from '@/components/DateTimePicker';
 import { 
   Plus, 
   Gift, 
@@ -786,38 +787,15 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
               </div>
             </div>
             
-            <div>
-              <Label htmlFor="endsAt">End Date & Time *</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  id="ends-date"
-                  type="date"
-                  value={endsAt.split('T')[0]}
-                  onChange={(e) => {
-                    const time = endsAt.split('T')[1] || '23:59';
-                    setEndsAt(e.target.value ? `${e.target.value}T${time}` : '');
-                  }}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
-                  placeholder="Date"
-                  data-testid="input-ends-date"
-                />
-                <Input
-                  id="ends-time"
-                  type="time"
-                  value={endsAt.split('T')[1] || ''}
-                  onChange={(e) => {
-                    const date = endsAt.split('T')[0];
-                    if (date) {
-                      setEndsAt(`${date}T${e.target.value}`);
-                    }
-                  }}
-                  className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
-                  placeholder="Time"
-                  data-testid="input-ends-time"
-                />
-              </div>
-            </div>
+            <DateTimePicker
+              label="End Date & Time"
+              value={endsAt}
+              onChange={setEndsAt}
+              required
+              minDate={new Date()}
+              placeholder="Select when giveaway ends"
+              testId="giveaway-ends-at"
+            />
           </div>
           
           <DialogFooter>

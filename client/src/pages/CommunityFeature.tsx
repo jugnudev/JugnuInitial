@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DateTimePicker } from "@/components/DateTimePicker";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 
@@ -401,79 +402,33 @@ export default function CommunityFeature() {
               </div>
 
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="startIso">Start Date & Time *</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      id="start-date"
-                      type="date"
-                      value={form.watch("startIso")?.split('T')[0] || ''}
-                      onChange={(e) => {
-                        const currentValue = form.watch("startIso") || '';
-                        const time = currentValue.split('T')[1] || '19:00';
-                        form.setValue("startIso", e.target.value ? `${e.target.value}T${time}` : '');
-                      }}
-                      className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
-                      placeholder="Date"
-                      data-testid="input-start-date"
-                    />
-                    <Input
-                      id="start-time"
-                      type="time"
-                      value={form.watch("startIso")?.split('T')[1] || ''}
-                      onChange={(e) => {
-                        const currentValue = form.watch("startIso") || '';
-                        const date = currentValue.split('T')[0];
-                        if (date) {
-                          form.setValue("startIso", `${date}T${e.target.value}`);
-                        }
-                      }}
-                      className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
-                      placeholder="Time"
-                      data-testid="input-start-time"
-                    />
-                  </div>
-                  <p className="text-xs text-muted/80">Vancouver timezone</p>
+                <div>
+                  <DateTimePicker
+                    label="Start Date & Time"
+                    value={form.watch("startIso") || ''}
+                    onChange={(value) => form.setValue("startIso", value)}
+                    required
+                    placeholder="Select event start time"
+                    testId="start-datetime"
+                  />
+                  <p className="text-xs text-muted/80 mt-1">Vancouver timezone</p>
                   {form.formState.errors.startIso && (
-                    <p className="text-sm text-red-400">{form.formState.errors.startIso.message}</p>
+                    <p className="text-sm text-red-400 mt-1">{form.formState.errors.startIso.message}</p>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="endIso">End Date & Time *</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      id="end-date"
-                      type="date"
-                      value={form.watch("endIso")?.split('T')[0] || ''}
-                      onChange={(e) => {
-                        const currentValue = form.watch("endIso") || '';
-                        const time = currentValue.split('T')[1] || '23:00';
-                        form.setValue("endIso", e.target.value ? `${e.target.value}T${time}` : '');
-                      }}
-                      className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
-                      placeholder="Date"
-                      data-testid="input-end-date"
-                    />
-                    <Input
-                      id="end-time"
-                      type="time"
-                      value={form.watch("endIso")?.split('T')[1] || ''}
-                      onChange={(e) => {
-                        const currentValue = form.watch("endIso") || '';
-                        const date = currentValue.split('T')[0];
-                        if (date) {
-                          form.setValue("endIso", `${date}T${e.target.value}`);
-                        }
-                      }}
-                      className="bg-card border-border text-card-foreground placeholder:text-muted-foreground"
-                      placeholder="Time"
-                      data-testid="input-end-time"
-                    />
-                  </div>
-                  <p className="text-xs text-muted/80">Vancouver timezone</p>
+                <div>
+                  <DateTimePicker
+                    label="End Date & Time"
+                    value={form.watch("endIso") || ''}
+                    onChange={(value) => form.setValue("endIso", value)}
+                    required
+                    placeholder="Select event end time"
+                    testId="end-datetime"
+                  />
+                  <p className="text-xs text-muted/80 mt-1">Vancouver timezone</p>
                   {form.formState.errors.endIso && (
-                    <p className="text-sm text-red-400">{form.formState.errors.endIso.message}</p>
+                    <p className="text-sm text-red-400 mt-1">{form.formState.errors.endIso.message}</p>
                   )}
                 </div>
               </div>
