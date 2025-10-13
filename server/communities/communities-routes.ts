@@ -2561,7 +2561,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"scheduledAt":"2024-12-01T10:00:00Z"}'
    */
-  app.post('/api/communities/:id/posts/:postId/schedule', checkCommunitiesFeatureFlag, requireSessionAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/posts/:postId/schedule', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const community = (req as any).community;
@@ -2600,7 +2600,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"pinned":true}'
    */
-  app.post('/api/communities/:id/posts/:postId/pin', checkCommunitiesFeatureFlag, requireSessionAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/posts/:postId/pin', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const community = (req as any).community;
@@ -2733,7 +2733,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Authorization: Bearer YOUR_TOKEN" \
    *   -F "image=@path/to/image.jpg"
    */
-  app.post('/api/communities/:id/posts/:postId/images', checkCommunitiesFeatureFlag, requireSessionAuth, requireCommunityOwner, upload.single('image'), async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/posts/:postId/images', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, upload.single('image'), async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const community = (req as any).community;
@@ -2777,7 +2777,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X DELETE http://localhost:5000/api/communities/COMMUNITY_ID/posts/POST_ID/images/IMAGE_ID \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.delete('/api/communities/:id/posts/:postId/images/:imageId', checkCommunitiesFeatureFlag, requireSessionAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+  app.delete('/api/communities/:id/posts/:postId/images/:imageId', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
     try {
       const { id, postId, imageId } = req.params;
       const community = (req as any).community;
@@ -2807,7 +2807,7 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"imageIds":["id1","id2","id3"]}'
    */
-  app.patch('/api/communities/:id/posts/:postId/images/reorder', checkCommunitiesFeatureFlag, requireSessionAuth, requireCommunityOwner, async (req: Request, res: Response) => {
+  app.patch('/api/communities/:id/posts/:postId/images/reorder', checkCommunitiesFeatureFlag, requireAuth, requireCommunityOwner, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const community = (req as any).community;
@@ -2842,7 +2842,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X GET http://localhost:5000/api/communities/COMMUNITY_ID/posts/POST_ID/reactions \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.get('/api/communities/:id/posts/:postId/reactions', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.get('/api/communities/:id/posts/:postId/reactions', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id, postId } = req.params;
       const user = (req as any).user;
@@ -2960,7 +2960,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X DELETE http://localhost:5000/api/communities/COMMUNITY_ID/posts/POST_ID/react/heart \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.delete('/api/communities/:id/posts/:postId/react/:type', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.delete('/api/communities/:id/posts/:postId/react/:type', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id, postId, type } = req.params;
       const user = (req as any).user;
@@ -3557,7 +3557,7 @@ export function addCommunitiesRoutes(app: Express) {
    * POST /api/communities/:id/polls
    * Create a new poll
    */
-  app.post('/api/communities/:id/polls', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/polls', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id: communityId } = req.params;
       const user = (req as any).user;
@@ -3637,7 +3637,7 @@ export function addCommunitiesRoutes(app: Express) {
    * GET /api/communities/:id/polls
    * Get polls for the community
    */
-  app.get('/api/communities/:id/polls', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.get('/api/communities/:id/polls', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id: communityId } = req.params;
       const status = (req.query.status as 'active' | 'closed' | 'all') || 'active';
@@ -3662,7 +3662,7 @@ export function addCommunitiesRoutes(app: Express) {
    * GET /api/communities/:id/polls/:pollId
    * Get poll details with results
    */
-  app.get('/api/communities/:id/polls/:pollId', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.get('/api/communities/:id/polls/:pollId', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id: communityId, pollId } = req.params;
       const user = (req as any).user;
@@ -3686,7 +3686,7 @@ export function addCommunitiesRoutes(app: Express) {
    * POST /api/communities/:id/polls/:pollId/vote
    * Vote on a poll
    */
-  app.post('/api/communities/:id/polls/:pollId/vote', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.post('/api/communities/:id/polls/:pollId/vote', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id: communityId, pollId } = req.params;
       const { optionIds } = req.body;
@@ -3715,7 +3715,7 @@ export function addCommunitiesRoutes(app: Express) {
    * DELETE /api/communities/:id/polls/:pollId/vote
    * Remove vote from a poll
    */
-  app.delete('/api/communities/:id/polls/:pollId/vote', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.delete('/api/communities/:id/polls/:pollId/vote', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id: communityId, pollId } = req.params;
       const user = (req as any).user;
@@ -3739,7 +3739,7 @@ export function addCommunitiesRoutes(app: Express) {
    * PATCH /api/communities/:id/polls/:pollId
    * Close a poll (owner only)
    */
-  app.patch('/api/communities/:id/polls/:pollId', checkCommunitiesFeatureFlag, requireSessionAuth, async (req: Request, res: Response) => {
+  app.patch('/api/communities/:id/polls/:pollId', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
       const { id: communityId, pollId } = req.params;
       const user = (req as any).user;
