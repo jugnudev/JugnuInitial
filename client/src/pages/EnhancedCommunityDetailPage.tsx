@@ -1743,24 +1743,34 @@ export default function EnhancedCommunityDetailPage() {
             {/* Polls & Giveaways Tab */}
             <TabsContent value="polls" className="space-y-4 md:space-y-6">
               <Tabs defaultValue="polls" className="w-full">
-                {/* Premium Dark Copper/Gold Segmented Control */}
+                {/* Innovative Card-Based Navigation */}
                 <div className="mb-8 md:mb-10">
-                  <TabsList className="grid w-full grid-cols-2 h-16 md:h-20 p-1.5 bg-gradient-to-br from-black/50 via-copper-950/70 to-black/50 backdrop-blur-xl border border-copper-500/30 rounded-2xl shadow-xl shadow-black/60">
+                  <TabsList className="w-full h-auto p-0 bg-transparent gap-3 md:gap-4 grid grid-cols-2">
                     <TabsTrigger 
                       value="polls" 
-                      className="h-full w-full rounded-xl text-base md:text-lg font-bold transition-all duration-200 ease-out data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-glow/30 data-[state=inactive]:bg-black/60 data-[state=inactive]:text-copper-400/90 hover:text-copper-300 hover:bg-black/40 flex items-center justify-center gap-2 md:gap-3 group"
+                      className="relative h-28 md:h-32 rounded-2xl text-base md:text-lg font-bold transition-all duration-300 ease-out border-2 data-[state=active]:border-copper-500 data-[state=inactive]:border-copper-500/20 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500/20 data-[state=active]:via-accent/10 data-[state=active]:to-copper-500/20 data-[state=inactive]:bg-gradient-to-br data-[state=inactive]:from-black/30 data-[state=inactive]:via-copper-950/20 data-[state=inactive]:to-black/30 backdrop-blur-xl hover:scale-[1.02] active:scale-[0.98] group overflow-hidden"
                       data-testid="subtab-polls"
                     >
-                      <Vote className="w-5 h-5 md:w-6 md:h-6 transition-colors duration-200" />
-                      <span className="tracking-wide">Polls</span>
+                      <div className="absolute inset-0 bg-gradient-to-br from-copper-500/0 via-accent/0 to-copper-500/0 group-data-[state=active]:from-copper-500/10 group-data-[state=active]:via-accent/5 group-data-[state=active]:to-copper-500/10 transition-all duration-300" />
+                      <div className="relative flex flex-col items-center justify-center gap-2 md:gap-3">
+                        <div className="p-3 md:p-4 rounded-xl bg-copper-500/10 group-data-[state=active]:bg-copper-500/20 group-data-[state=active]:shadow-lg group-data-[state=active]:shadow-copper-500/30 transition-all duration-300">
+                          <Vote className="w-7 h-7 md:w-8 md:h-8 text-copper-400 group-data-[state=active]:text-copper-500 transition-colors duration-300" />
+                        </div>
+                        <span className="tracking-wide text-copper-400/90 group-data-[state=active]:text-copper-500 group-data-[state=active]:font-extrabold transition-all duration-300">Polls</span>
+                      </div>
                     </TabsTrigger>
                     <TabsTrigger 
                       value="giveaways" 
-                      className="h-full w-full rounded-xl text-base md:text-lg font-bold transition-all duration-200 ease-out data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-glow/30 data-[state=inactive]:bg-black/60 data-[state=inactive]:text-copper-400/90 hover:text-copper-300 hover:bg-black/40 flex items-center justify-center gap-2 md:gap-3 group"
+                      className="relative h-28 md:h-32 rounded-2xl text-base md:text-lg font-bold transition-all duration-300 ease-out border-2 data-[state=active]:border-accent data-[state=inactive]:border-accent/20 data-[state=active]:bg-gradient-to-br data-[state=active]:from-accent/20 data-[state=active]:via-glow/10 data-[state=active]:to-accent/20 data-[state=inactive]:bg-gradient-to-br data-[state=inactive]:from-black/30 data-[state=inactive]:via-copper-950/20 data-[state=inactive]:to-black/30 backdrop-blur-xl hover:scale-[1.02] active:scale-[0.98] group overflow-hidden"
                       data-testid="subtab-giveaways"
                     >
-                      <Gift className="w-5 h-5 md:w-6 md:h-6 transition-colors duration-200" />
-                      <span className="tracking-wide">Giveaways</span>
+                      <div className="absolute inset-0 bg-gradient-to-br from-accent/0 via-glow/0 to-accent/0 group-data-[state=active]:from-accent/10 group-data-[state=active]:via-glow/5 group-data-[state=active]:to-accent/10 transition-all duration-300" />
+                      <div className="relative flex flex-col items-center justify-center gap-2 md:gap-3">
+                        <div className="p-3 md:p-4 rounded-xl bg-accent/10 group-data-[state=active]:bg-accent/20 group-data-[state=active]:shadow-lg group-data-[state=active]:shadow-accent/30 transition-all duration-300">
+                          <Gift className="w-7 h-7 md:w-8 md:h-8 text-accent/80 group-data-[state=active]:text-accent transition-colors duration-300" />
+                        </div>
+                        <span className="tracking-wide text-accent/80 group-data-[state=active]:text-accent group-data-[state=active]:font-extrabold transition-all duration-300">Giveaways</span>
+                      </div>
                     </TabsTrigger>
                   </TabsList>
                 </div>

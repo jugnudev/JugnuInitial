@@ -344,49 +344,68 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
   
   return (
     <div className="space-y-4 md:space-y-6">
-      {/* Action Bar */}
-      {canCreateGiveaway && (
-        <div className="flex justify-end">
+      {/* Action Bar with Integrated Filter */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between">
+        {/* Filter Pills */}
+        <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+          <button
+            onClick={() => setActiveTab('active')}
+            data-testid="tab-active-giveaways"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-300 ${
+              activeTab === 'active'
+                ? 'bg-gradient-to-r from-copper-500 to-accent text-black shadow-lg shadow-copper-500/30 scale-105'
+                : 'bg-black/30 text-copper-400/90 hover:bg-black/50 hover:text-copper-400 border border-copper-500/20'
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Active</span>
+            <Badge className={`text-xs px-2 py-0.5 ${
+              activeTab === 'active'
+                ? 'bg-black/20 text-black border-black/30'
+                : 'bg-copper-500/20 text-text border-copper-500/30'
+            }`}>{activeCount}</Badge>
+          </button>
+          <button
+            onClick={() => setActiveTab('ended')}
+            data-testid="tab-ended-giveaways"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-300 ${
+              activeTab === 'ended'
+                ? 'bg-gradient-to-r from-primary to-copper-600 text-black shadow-lg shadow-copper-500/30 scale-105'
+                : 'bg-black/30 text-copper-400/90 hover:bg-black/50 hover:text-copper-400 border border-copper-500/20'
+            }`}
+          >
+            <Trophy className="w-4 h-4" />
+            <span>Ended</span>
+            <Badge className={`text-xs px-2 py-0.5 ${
+              activeTab === 'ended'
+                ? 'bg-black/20 text-black border-black/30'
+                : 'bg-copper-500/20 text-text border-copper-500/30'
+            }`}>{endedCount}</Badge>
+          </button>
+        </div>
+        
+        {/* Create Button */}
+        {canCreateGiveaway && (
           <Button 
             onClick={() => setIsCreateModalOpen(true)}
-            className="bg-gradient-to-r from-premium-primary to-purple-600 hover:from-premium-primary/90 hover:to-purple-600/90 shadow-lg shadow-premium-primary/20 text-sm md:text-base"
+            className="bg-gradient-to-r from-premium-primary to-purple-600 hover:from-premium-primary/90 hover:to-purple-600/90 shadow-lg shadow-premium-primary/20 text-sm md:text-base whitespace-nowrap"
             data-testid="button-create-giveaway"
           >
             <Plus className="w-4 h-4 md:w-5 md:h-5 mr-2" />
             <span className="hidden sm:inline">Create Giveaway</span>
             <span className="sm:hidden">Create</span>
           </Button>
-        </div>
-      )}
+        )}
+      </div>
       
-      {/* Premium Status Tabs with Glassmorphism */}
+      {/* Content Area */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'active' | 'ended')} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-14 md:h-16 p-1.5 bg-gradient-to-br from-black/50 via-copper-950/70 to-black/50 backdrop-blur-xl border border-copper-500/30 rounded-2xl shadow-xl shadow-black/60 mb-6 md:mb-8">
-          <TabsTrigger 
-            value="active" 
-            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-200 ease-out data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-glow/30 data-[state=inactive]:bg-black/60 data-[state=inactive]:text-copper-400/90 hover:text-copper-300 hover:bg-black/40 flex items-center justify-center group" 
-            data-testid="tab-active-giveaways"
-          >
-            <span className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 md:w-5 md:h-5 transition-colors duration-200" />
-              <span>Active</span>
-              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-copper-500/20 text-text border-copper-500/30 group-data-[state=active]:bg-black/20 group-data-[state=active]:text-black group-data-[state=active]:border-black/30 transition-colors duration-200 font-semibold">{activeCount}</Badge>
-            </span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="ended" 
-            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-200 ease-out data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-copper-600 data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/40 data-[state=inactive]:bg-black/60 data-[state=inactive]:text-copper-400/90 hover:text-copper-300 hover:bg-black/40 flex items-center justify-center group" 
-            data-testid="tab-ended-giveaways"
-          >
-            <span className="flex items-center gap-2">
-              <Trophy className="w-4 h-4 md:w-5 md:h-5 transition-colors duration-200" />
-              <span>Ended</span>
-              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-copper-500/20 text-text border-copper-500/30 group-data-[state=active]:bg-black/20 group-data-[state=active]:text-black group-data-[state=active]:border-black/30 transition-colors duration-200 font-semibold">{endedCount}</Badge>
-            </span>
-          </TabsTrigger>
+        <TabsList className="hidden">
+          <TabsTrigger value="active" />
+          <TabsTrigger value="ended" />
         </TabsList>
         
-        <TabsContent value="active" className="space-y-4 md:space-y-6 mt-6">
+        <TabsContent value="active" className="space-y-4 md:space-y-6">
           {isLoading ? (
             <Card className="p-12 text-center bg-gradient-to-br from-copper-900/40 via-primary-700/30 to-copper-900/40 backdrop-blur-xl border-copper-500/20">
               <div className="flex flex-col items-center gap-4">

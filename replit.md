@@ -15,6 +15,7 @@ Preferred communication style: Simple, everyday language.
 - **Navigation**: Conditional display with streamlined CTAs in hero sections and fixed bottom action bars for mobile.
 - **Accessibility**: ARIA labels, keyboard navigation, and screen reader support.
 - **User Acquisition Hierarchy**: Account creation (primary) > Event exploration (secondary) > Newsletter signup (tertiary, homepage bottom only). Authenticated users manage newsletter preferences in account settings.
+- **Polls & Giveaways UI**: Card-based navigation with interactive hover effects and scale animations for primary type selection. Status filters (Active/Closed/Ended) integrated as pill buttons with gradient highlights in action bar, eliminating stacked tab bars for cleaner UX.
 
 ### Technical Implementations
 - **Backend Framework**: Express.js with TypeScript.

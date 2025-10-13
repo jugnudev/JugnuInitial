@@ -283,46 +283,65 @@ export default function CommunityPolls({ communityId, currentMember }: Community
   
   return (
     <div className="space-y-4 md:space-y-6">
-      {/* Action Bar */}
-      {canManagePolls && (
-        <div className="flex justify-end">
+      {/* Action Bar with Integrated Filter */}
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between">
+        {/* Filter Pills */}
+        <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+          <button
+            onClick={() => setActiveTab('active')}
+            data-testid="active-polls-tab"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-300 ${
+              activeTab === 'active'
+                ? 'bg-gradient-to-r from-copper-500 to-accent text-black shadow-lg shadow-copper-500/30 scale-105'
+                : 'bg-black/30 text-copper-400/90 hover:bg-black/50 hover:text-copper-400 border border-copper-500/20'
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            <span>Active</span>
+            <Badge className={`text-xs px-2 py-0.5 ${
+              activeTab === 'active'
+                ? 'bg-black/20 text-black border-black/30'
+                : 'bg-copper-500/20 text-text border-copper-500/30'
+            }`}>{activePollsCount}</Badge>
+          </button>
+          <button
+            onClick={() => setActiveTab('closed')}
+            data-testid="closed-polls-tab"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-300 ${
+              activeTab === 'closed'
+                ? 'bg-gradient-to-r from-primary to-copper-600 text-black shadow-lg shadow-copper-500/30 scale-105'
+                : 'bg-black/30 text-copper-400/90 hover:bg-black/50 hover:text-copper-400 border border-copper-500/20'
+            }`}
+          >
+            <CheckCircle className="w-4 h-4" />
+            <span>Closed</span>
+            <Badge className={`text-xs px-2 py-0.5 ${
+              activeTab === 'closed'
+                ? 'bg-black/20 text-black border-black/30'
+                : 'bg-copper-500/20 text-text border-copper-500/30'
+            }`}>{closedPollsCount}</Badge>
+          </button>
+        </div>
+        
+        {/* Create Button */}
+        {canManagePolls && (
           <Button 
             onClick={() => setIsCreateModalOpen(true)}
             data-testid="create-poll-button"
-            className="bg-gradient-to-r from-premium-primary to-purple-600 hover:from-premium-primary/90 hover:to-purple-600/90 shadow-lg shadow-premium-primary/20 text-sm md:text-base"
+            className="bg-gradient-to-r from-premium-primary to-purple-600 hover:from-premium-primary/90 hover:to-purple-600/90 shadow-lg shadow-premium-primary/20 text-sm md:text-base whitespace-nowrap"
           >
             <Plus className="w-4 h-4 md:w-5 md:h-5 mr-2" />
             <span className="hidden sm:inline">Create Poll</span>
             <span className="sm:hidden">Create</span>
           </Button>
-        </div>
-      )}
+        )}
+      </div>
       
-      {/* Premium Status Tabs with Glassmorphism */}
+      {/* Content Area */}
       <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'active' | 'closed')} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-14 md:h-16 p-1.5 bg-gradient-to-br from-black/50 via-copper-950/70 to-black/50 backdrop-blur-xl border border-copper-500/30 rounded-2xl shadow-xl shadow-black/60 mb-6 md:mb-8">
-          <TabsTrigger 
-            value="active" 
-            data-testid="active-polls-tab"
-            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-200 ease-out data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500 data-[state=active]:to-accent data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-glow/30 data-[state=inactive]:bg-black/60 data-[state=inactive]:text-copper-400/90 hover:text-copper-300 hover:bg-black/40 flex items-center justify-center group"
-          >
-            <span className="flex items-center gap-2">
-              <Activity className="w-4 h-4 md:w-5 md:h-5 transition-colors duration-200" />
-              <span>Active</span>
-              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-copper-500/20 text-text border-copper-500/30 group-data-[state=active]:bg-black/20 group-data-[state=active]:text-black group-data-[state=active]:border-black/30 transition-colors duration-200 font-semibold">{activePollsCount}</Badge>
-            </span>
-          </TabsTrigger>
-          <TabsTrigger 
-            value="closed" 
-            data-testid="closed-polls-tab"
-            className="h-full rounded-xl text-sm md:text-base font-bold transition-all duration-200 ease-out data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-copper-600 data-[state=active]:text-black data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/40 data-[state=inactive]:bg-black/60 data-[state=inactive]:text-copper-400/90 hover:text-copper-300 hover:bg-black/40 flex items-center justify-center group"
-          >
-            <span className="flex items-center gap-2">
-              <CheckCircle className="w-4 h-4 md:w-5 md:h-5 transition-colors duration-200" />
-              <span>Closed</span>
-              <Badge className="ml-1.5 md:ml-2 text-xs px-2 py-0.5 bg-copper-500/20 text-text border-copper-500/30 group-data-[state=active]:bg-black/20 group-data-[state=active]:text-black group-data-[state=active]:border-black/30 transition-colors duration-200 font-semibold">{closedPollsCount}</Badge>
-            </span>
-          </TabsTrigger>
+        <TabsList className="hidden">
+          <TabsTrigger value="active" />
+          <TabsTrigger value="closed" />
         </TabsList>
         
         <TabsContent value="active" className="space-y-4 md:space-y-6">
