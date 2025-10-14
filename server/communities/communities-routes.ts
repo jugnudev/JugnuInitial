@@ -3666,7 +3666,13 @@ export function addCommunitiesRoutes(app: Express) {
 
       const polls = await communitiesStorage.getPolls(communityId, status);
 
-      res.json({ ok: true, polls });
+      // Add user votes for each poll
+      const pollsWithVotes = await Promise.all(polls.map(async (poll: any) => {
+        const userVotes = await communitiesStorage.getUserPollVotes(poll.id, user.id);
+        return { ...poll, userVotes };
+      }));
+
+      res.json({ ok: true, polls: pollsWithVotes });
     } catch (error: any) {
       console.error('Get polls error:', error);
       res.status(500).json({ ok: false, error: error.message || 'Failed to get polls' });

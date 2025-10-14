@@ -1894,6 +1894,17 @@ export class CommunitiesSupabaseDB {
     return data || [];
   }
 
+  async getUserPollVotes(pollId: string, userId: string): Promise<string[]> {
+    const { data, error } = await this.client
+      .from('community_poll_votes')
+      .select('option_id')
+      .eq('poll_id', pollId)
+      .eq('user_id', userId);
+
+    if (error) return [];
+    return (data || []).map(v => v.option_id);
+  }
+
   async getPollDetails(pollId: string, userId?: string): Promise<any> {
     const { data: poll, error: pollError } = await this.client
       .from('community_polls')
@@ -1908,18 +1919,7 @@ export class CommunitiesSupabaseDB {
     if (pollError) throw pollError;
 
     // Check if user has voted
-    let userVotes = [];
-    if (userId) {
-      const { data, error } = await this.client
-        .from('community_poll_votes')
-        .select('option_id')
-        .eq('poll_id', pollId)
-        .eq('user_id', userId);
-
-      if (!error) {
-        userVotes = (data || []).map(v => v.option_id);
-      }
-    }
+    const userVotes = userId ? await this.getUserPollVotes(pollId, userId) : [];
 
     return { ...poll, userVotes };
   }
