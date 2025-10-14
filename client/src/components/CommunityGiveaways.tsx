@@ -359,11 +359,11 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
           >
             <Sparkles className="w-4 h-4" />
             <span>Active</span>
-            <Badge className={`text-xs px-2 py-0.5 ${
+            <span className={`inline-flex items-center justify-center rounded-md text-xs px-2 py-0.5 border ${
               activeTab === 'active'
                 ? 'bg-black/20 text-black border-black/30'
                 : 'bg-copper-500/20 text-text border-copper-500/30'
-            }`}>{activeCount}</Badge>
+            }`}>{activeCount}</span>
           </button>
           <button
             onClick={() => setActiveTab('ended')}
@@ -376,11 +376,11 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
           >
             <Trophy className="w-4 h-4" />
             <span>Ended</span>
-            <Badge className={`text-xs px-2 py-0.5 ${
+            <span className={`inline-flex items-center justify-center rounded-md text-xs px-2 py-0.5 border ${
               activeTab === 'ended'
                 ? 'bg-black/20 text-black border-black/30'
                 : 'bg-copper-500/20 text-text border-copper-500/30'
-            }`}>{endedCount}</Badge>
+            }`}>{endedCount}</span>
           </button>
         </div>
         
