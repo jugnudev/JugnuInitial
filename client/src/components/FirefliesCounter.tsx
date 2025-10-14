@@ -72,7 +72,7 @@ export default function FirefliesCounter() {
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5 }}
-      className="fixed bottom-6 left-6 z-50 flex items-center gap-3 bg-black/60 backdrop-blur-md rounded-full px-4 py-2.5 border border-copper-500/20"
+      className="fixed bottom-4 left-4 sm:bottom-6 sm:left-6 z-50 flex items-center gap-2 sm:gap-3 bg-black/60 backdrop-blur-md rounded-full px-3 py-2 sm:px-4 sm:py-2.5 border border-copper-500/20"
       data-testid="fireflies-counter"
     >
       {/* Glowing Orb */}
@@ -108,7 +108,7 @@ export default function FirefliesCounter() {
         
         {/* Core orb */}
         <motion.div
-          className="relative w-3 h-3 rounded-full bg-gradient-to-br from-amber-300 to-copper-400"
+          className="relative w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-gradient-to-br from-amber-300 to-copper-400"
           animate={{
             scale: [1, 1.1, 1],
           }}
@@ -120,12 +120,12 @@ export default function FirefliesCounter() {
           }}
         >
           {/* Inner bright spot */}
-          <div className="absolute top-0.5 left-0.5 w-1 h-1 rounded-full bg-white/80" />
+          <div className="absolute top-0.5 left-0.5 w-0.5 h-0.5 sm:w-1 sm:h-1 rounded-full bg-white/80" />
         </motion.div>
       </div>
 
       {/* Count Display */}
-      <div className="flex items-baseline gap-1.5">
+      <div className="flex items-baseline gap-1 sm:gap-1.5">
         <AnimatePresence mode="wait">
           <motion.span
             key={count}
@@ -133,14 +133,15 @@ export default function FirefliesCounter() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -10, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="text-lg font-bold text-copper-400"
+            className="text-base sm:text-lg font-bold text-copper-400"
             data-testid="fireflies-count"
           >
             {count}
           </motion.span>
         </AnimatePresence>
-        <span className="text-sm text-copper-400/80">
-          {count === 1 ? 'firefly' : 'fireflies'} here now
+        <span className="text-xs sm:text-sm text-copper-400/80">
+          <span className="hidden sm:inline">{count === 1 ? 'firefly' : 'fireflies'} here now</span>
+          <span className="sm:hidden">{count === 1 ? 'firefly' : 'fireflies'}</span>
         </span>
       </div>
 

@@ -153,11 +153,11 @@ export function ReactionsBar({
           variant="ghost"
           size="sm"
           onClick={() => setShowPicker(!showPicker)}
-          className="h-8 px-3 text-premium-text-muted hover:text-accent hover:bg-accent/10 transition-all duration-200"
+          className="h-8 px-3 text-premium-text-muted hover:text-accent hover:bg-accent/10 transition-all duration-200 whitespace-nowrap"
           data-testid={`add-reaction-${postId}`}
         >
-          <Sparkles className="h-4 w-4 mr-1.5" />
-          React
+          <Sparkles className="h-4 w-4 sm:mr-1.5" />
+          <span className="hidden sm:inline">React</span>
         </Button>
         
         {/* Reaction Picker */}
