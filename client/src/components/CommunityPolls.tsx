@@ -286,7 +286,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
       {/* Action Bar with Integrated Filter */}
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between">
         {/* Filter Pills */}
-        <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+        <div className="flex gap-2">
           <button
             onClick={() => setActiveTab('active')}
             data-testid="active-polls-tab"
