@@ -369,7 +369,7 @@ export default function Navigation() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 px-3 py-2 bg-muted/30 rounded-lg">
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={user?.profilePicture} />
+                        <AvatarImage src={user?.profileImageUrl} />
                         <AvatarFallback className="bg-orange-500 text-white text-sm">
                           {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
                         </AvatarFallback>
