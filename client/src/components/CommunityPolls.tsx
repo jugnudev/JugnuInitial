@@ -73,7 +73,7 @@ interface CommunityPollsProps {
 export default function CommunityPolls({ communityId, currentMember }: CommunityPollsProps) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedPoll, setSelectedPoll] = useState<Poll | null>(null);
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({});
   const [activeTab, setActiveTab] = useState<'active' | 'closed'>('active');
   
   // Poll creation form state
@@ -143,7 +143,12 @@ export default function CommunityPolls({ communityId, currentMember }: Community
     onSuccess: (_, { pollId }) => {
       queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'polls'] });
       queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'polls', pollId] });
-      setSelectedOptions([]);
+      // Clear selected options for this specific poll
+      setSelectedOptions(prev => {
+        const updated = { ...prev };
+        delete updated[pollId];
+        return updated;
+      });
       toast({
         title: "Vote submitted",
         description: "Your vote has been recorded."
@@ -241,7 +246,8 @@ export default function CommunityPolls({ communityId, currentMember }: Community
   };
   
   const handleVote = (poll: Poll) => {
-    if (selectedOptions.length === 0) {
+    const pollOptions = selectedOptions[poll.id] || [];
+    if (pollOptions.length === 0) {
       toast({
         title: "No option selected",
         description: "Please select at least one option to vote.",
@@ -250,17 +256,19 @@ export default function CommunityPolls({ communityId, currentMember }: Community
       return;
     }
     
-    voteMutation.mutate({ pollId: poll.id, optionIds: selectedOptions });
+    voteMutation.mutate({ pollId: poll.id, optionIds: pollOptions });
   };
   
   const handleOptionSelect = (poll: Poll, optionId: string, checked: boolean) => {
+    const pollOptions = selectedOptions[poll.id] || [];
+    
     if (poll.poll_type === 'single') {
-      setSelectedOptions([optionId]);
+      setSelectedOptions({ ...selectedOptions, [poll.id]: [optionId] });
     } else {
       if (checked) {
-        setSelectedOptions([...selectedOptions, optionId]);
+        setSelectedOptions({ ...selectedOptions, [poll.id]: [...pollOptions, optionId] });
       } else {
-        setSelectedOptions(selectedOptions.filter(id => id !== optionId));
+        setSelectedOptions({ ...selectedOptions, [poll.id]: pollOptions.filter(id => id !== optionId) });
       }
     }
   };
@@ -404,8 +412,8 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                   {/* Poll Options */}
                   {poll.poll_type === 'single' ? (
                     <RadioGroup
-                      value={selectedOptions[0] || ''}
-                      onValueChange={(value) => setSelectedOptions([value])}
+                      value={(selectedOptions[poll.id] || [])[0] || ''}
+                      onValueChange={(value) => setSelectedOptions({ ...selectedOptions, [poll.id]: [value] })}
                       disabled={hasVoted(poll)}
                     >
                       {poll.options.map((option) => (
@@ -442,7 +450,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                           <div className="flex items-center space-x-3 min-h-[48px]" data-testid={`poll-option-${option.id}`}>
                             <Checkbox
                               id={option.id}
-                              checked={selectedOptions.includes(option.id || '')}
+                              checked={(selectedOptions[poll.id] || []).includes(option.id || '')}
                               onCheckedChange={(checked) => 
                                 handleOptionSelect(poll, option.id || '', checked as boolean)
                               }
@@ -475,7 +483,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                     {!hasVoted(poll) ? (
                       <Button 
                         onClick={() => handleVote(poll)}
-                        disabled={selectedOptions.length === 0 || voteMutation.isPending}
+                        disabled={(selectedOptions[poll.id] || []).length === 0 || voteMutation.isPending}
                         data-testid={`vote-button-${poll.id}`}
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
@@ -483,7 +491,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                       </Button>
                     ) : (
                       <>
-                        <Badge variant="secondary">
+                        <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
                           <CheckCircle className="w-3 h-3 mr-1" />
                           You voted
                         </Badge>
