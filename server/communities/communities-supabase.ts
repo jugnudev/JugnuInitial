@@ -1905,6 +1905,29 @@ export class CommunitiesSupabaseDB {
     return (data || []).map(v => v.option_id);
   }
 
+  async getBatchUserPollVotes(pollIds: string[], userId: string): Promise<Record<string, string[]>> {
+    if (pollIds.length === 0) return {};
+
+    const { data, error } = await this.client
+      .from('community_poll_votes')
+      .select('poll_id, option_id')
+      .in('poll_id', pollIds)
+      .eq('user_id', userId);
+
+    if (error) return {};
+
+    // Group votes by poll ID
+    const votesByPoll: Record<string, string[]> = {};
+    (data || []).forEach((vote: any) => {
+      if (!votesByPoll[vote.poll_id]) {
+        votesByPoll[vote.poll_id] = [];
+      }
+      votesByPoll[vote.poll_id].push(vote.option_id);
+    });
+
+    return votesByPoll;
+  }
+
   async getPollDetails(pollId: string, userId?: string): Promise<any> {
     const { data: poll, error: pollError } = await this.client
       .from('community_polls')

@@ -491,7 +491,11 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                       </Button>
                     ) : (
                       <>
-                        <Badge variant="secondary" className="bg-green-500/20 text-green-400 border-green-500/30">
+                        <Badge 
+                          variant="secondary" 
+                          className="bg-green-500/20 text-green-400 border-green-500/30"
+                          data-testid={`you-voted-badge-${poll.id}`}
+                        >
                           <CheckCircle className="w-3 h-3 mr-1" />
                           You voted
                         </Badge>

@@ -3666,10 +3666,14 @@ export function addCommunitiesRoutes(app: Express) {
 
       const polls = await communitiesStorage.getPolls(communityId, status);
 
-      // Add user votes for each poll
-      const pollsWithVotes = await Promise.all(polls.map(async (poll: any) => {
-        const userVotes = await communitiesStorage.getUserPollVotes(poll.id, user.id);
-        return { ...poll, userVotes };
+      // Batch fetch all user votes for these polls in a single query
+      const pollIds = polls.map((p: any) => p.id);
+      const allUserVotes = await communitiesStorage.getBatchUserPollVotes(pollIds, user.id);
+      
+      // Map votes to each poll
+      const pollsWithVotes = polls.map((poll: any) => ({
+        ...poll,
+        userVotes: allUserVotes[poll.id] || []
       }));
 
       res.json({ ok: true, polls: pollsWithVotes });
