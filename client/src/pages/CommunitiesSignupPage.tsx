@@ -260,32 +260,42 @@ export function CommunitiesSignupPage() {
 
                 {/* Professional Account Banner */}
                 <div className="relative mt-6">
-                  <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-orange-600/10 to-orange-500/10 rounded-xl blur-xl"></div>
+                  {/* Outer glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-orange-600/30 via-orange-500/40 to-orange-600/30 rounded-2xl blur-2xl"></div>
+                  
                   <button
                     onClick={() => setLocation('/business/signup')}
                     className="relative w-full group"
                     data-testid="link-business-signup"
                   >
-                    <div className="relative overflow-hidden rounded-xl border border-orange-200/20 dark:border-orange-800/20 bg-gradient-to-br from-orange-50 via-white to-orange-50 dark:from-orange-950/20 dark:via-background dark:to-orange-950/20 p-6 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/10 hover:border-orange-300/40 dark:hover:border-orange-700/40">
-                      <div className="flex items-start gap-4">
+                    {/* Dark gradient card */}
+                    <div className="relative overflow-hidden rounded-2xl border border-orange-500/30 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-orange-500/30 hover:border-orange-500/50 hover:scale-[1.02]">
+                      {/* Subtle inner glow */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-orange-600/5 opacity-50"></div>
+                      
+                      {/* Content */}
+                      <div className="relative flex items-start gap-4">
                         <div className="flex-shrink-0">
-                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform duration-300">
-                            <Briefcase className="w-6 h-6 text-white" />
+                          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/50 group-hover:scale-110 group-hover:shadow-orange-500/70 transition-all duration-300">
+                            <Briefcase className="w-7 h-7 text-white" />
                           </div>
                         </div>
+                        
                         <div className="flex-1 text-left">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-base sm:text-lg text-foreground">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-bold text-lg sm:text-xl text-white">
                               Create a Professional Account
                             </h3>
-                            <Sparkles className="w-4 h-4 text-orange-500 animate-pulse" />
+                            <Sparkles className="w-5 h-5 text-orange-400 animate-pulse" />
                           </div>
-                          <p className="text-sm text-muted-foreground mb-3">
-                            For event organizers, venues, artists, promoters, and businesses
+                          
+                          <p className="text-sm sm:text-base text-gray-300 mb-4 leading-relaxed">
+                            For event organizers, venues, artists, restaurants, and businesses
                           </p>
-                          <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400 font-medium text-sm group-hover:gap-3 transition-all duration-300">
+                          
+                          <div className="flex items-center gap-2 text-orange-400 font-semibold text-sm sm:text-base group-hover:gap-3 transition-all duration-300">
                             <span>Get started with business features</span>
-                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
                           </div>
                         </div>
                       </div>
