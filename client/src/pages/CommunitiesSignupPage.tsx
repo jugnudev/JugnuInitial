@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Mail, ArrowLeft, User } from 'lucide-react';
+import { Loader2, Mail, ArrowLeft, User, Briefcase, ArrowRight, Sparkles } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -246,8 +246,8 @@ export function CommunitiesSignupPage() {
                 </Button>
               </form>
 
-              <div className="text-center text-sm space-y-2">
-                <p className="text-muted-foreground">
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground text-center">
                   Already have an account?{' '}
                   <button
                     onClick={() => setLocation('/account/signin')}
@@ -257,16 +257,41 @@ export function CommunitiesSignupPage() {
                     Sign in
                   </button>
                 </p>
-                <p className="text-muted-foreground">
-                  Are you an organizer, venue, or artist?{' '}
+
+                {/* Professional Account Banner */}
+                <div className="relative mt-6">
+                  <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-orange-600/10 to-orange-500/10 rounded-xl blur-xl"></div>
                   <button
                     onClick={() => setLocation('/business/signup')}
-                    className="text-primary hover:underline font-medium"
+                    className="relative w-full group"
                     data-testid="link-business-signup"
                   >
-                    Sign up as a business
+                    <div className="relative overflow-hidden rounded-xl border border-orange-200/20 dark:border-orange-800/20 bg-gradient-to-br from-orange-50 via-white to-orange-50 dark:from-orange-950/20 dark:via-background dark:to-orange-950/20 p-6 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/10 hover:border-orange-300/40 dark:hover:border-orange-700/40">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0">
+                          <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30 group-hover:scale-110 transition-transform duration-300">
+                            <Briefcase className="w-6 h-6 text-white" />
+                          </div>
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-base sm:text-lg text-foreground">
+                              Create a Professional Account
+                            </h3>
+                            <Sparkles className="w-4 h-4 text-orange-500 animate-pulse" />
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-3">
+                            For event organizers, venues, artists, promoters, and businesses
+                          </p>
+                          <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400 font-medium text-sm group-hover:gap-3 transition-all duration-300">
+                            <span>Get started with business features</span>
+                            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </button>
-                </p>
+                </div>
               </div>
             </CardContent>
           </Card>
