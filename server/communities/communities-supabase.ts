@@ -3227,7 +3227,7 @@ export class CommunitiesSupabaseDB {
           id,
           user_id,
           business_name,
-          users!inner (
+          users!community_organizers_user_id_fkey (
             id,
             email,
             first_name,
