@@ -444,22 +444,39 @@ export class CommunitiesSupabaseDB {
 
   // ============ ORGANIZER APPLICATIONS ============
   async createOrganizerApplication(data: InsertOrganizerApplication): Promise<OrganizerApplication> {
+    // Build insert object with only guaranteed columns
+    // (Supabase table may not have optional columns like years_experience, sample_events yet)
+    const insertData: any = {
+      user_id: data.userId,
+      business_name: data.businessName,
+      business_description: data.businessDescription,
+      business_type: data.businessType,
+      social_media_handles: data.socialMediaHandles || {},
+      business_email: data.businessEmail.toLowerCase().trim(),
+      status: 'pending'
+    };
+
+    // Only include optional fields if they have values
+    if (data.businessWebsite) {
+      insertData.business_website = data.businessWebsite;
+    }
+    if (data.businessPhone) {
+      insertData.business_phone = data.businessPhone;
+    }
+    if (data.businessAddress) {
+      insertData.business_address = data.businessAddress;
+    }
+    // Include years_experience if it's a valid number (including 0)
+    if (typeof data.yearsExperience === 'number' && !isNaN(data.yearsExperience)) {
+      insertData.years_experience = data.yearsExperience;
+    }
+    if (data.sampleEvents) {
+      insertData.sample_events = data.sampleEvents;
+    }
+
     const { data: application, error } = await this.client
       .from('organizer_applications')
-      .insert({
-        user_id: data.userId,
-        business_name: data.businessName,
-        business_website: data.businessWebsite,
-        business_description: data.businessDescription,
-        business_type: data.businessType,
-        years_experience: data.yearsExperience,
-        sample_events: data.sampleEvents,
-        social_media_handles: data.socialMediaHandles || {},
-        business_email: data.businessEmail.toLowerCase().trim(),
-        business_phone: data.businessPhone,
-        business_address: data.businessAddress,
-        status: 'pending'
-      })
+      .insert(insertData)
       .select()
       .single();
 

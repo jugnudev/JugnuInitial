@@ -237,6 +237,28 @@ const verifyCodeSchema = z.object({
   code: z.string().length(6, 'Code must be 6 digits'),
 });
 
+// Business signup schema (combines user + organizer application)
+const businessSignupSchema = signupSchema.extend({
+  businessName: z.string().min(1, 'Business name is required'),
+  businessEmail: z.string().email('Business email is required'),
+  businessDescription: z.string().min(10, 'Please provide a detailed business description (min 10 characters)'),
+  businessType: z.enum(['event_organizer', 'venue', 'artist', 'promoter', 'other'], {
+    errorMap: () => ({ message: 'Please select a valid business type' })
+  }),
+  businessWebsite: z.string().url().optional().or(z.literal('')),
+  businessPhone: z.string().optional(),
+  businessAddress: z.string().optional(),
+  yearsExperience: z.number().min(0).max(50).optional(),
+  sampleEvents: z.string().max(5000).optional(),
+  socialMediaHandles: z.object({
+    instagram: z.string().optional(),
+    facebook: z.string().optional(),
+    twitter: z.string().optional(),
+    linkedin: z.string().optional(),
+    website: z.string().optional(),
+  }).optional(),
+});
+
 const updateProfileSchema = z.object({
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
@@ -380,6 +402,103 @@ export function addCommunitiesRoutes(app: Express) {
     } catch (error: any) {
       console.error('Signup error:', error);
       res.status(500).json({ ok: false, error: error.message || 'Failed to create account' });
+    }
+  });
+
+  /**
+   * POST /api/auth/signup-business
+   * Create a new business account with organizer application in one step
+   */
+  app.post('/api/auth/signup-business', rateLimiter.middleware(rateLimitPresets.sensitive), async (req: Request, res: Response) => {
+    try {
+      const validationResult = businessSignupSchema.safeParse(req.body);
+      if (!validationResult.success) {
+        return res.status(400).json({
+          ok: false,
+          error: 'Validation failed',
+          details: validationResult.error.errors
+        });
+      }
+
+      const {
+        email,
+        firstName,
+        lastName,
+        bio,
+        location,
+        website,
+        businessName,
+        businessEmail,
+        businessDescription,
+        businessType,
+        businessWebsite,
+        businessPhone,
+        businessAddress,
+        yearsExperience,
+        sampleEvents,
+        socialMediaHandles
+      } = validationResult.data;
+
+      // Check if user already exists
+      const existingUser = await communitiesStorage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ ok: false, error: 'User already exists with this email' });
+      }
+
+      // Create user account
+      const userData = {
+        email: email.toLowerCase().trim(),
+        firstName,
+        lastName,
+        bio,
+        location,
+        website,
+        status: 'pending_verification' as const,
+        role: 'user' as const,
+        emailVerified: false,
+        emailNotifications: true,
+        marketingEmails: false
+      };
+
+      const user = await communitiesStorage.createUser(userData);
+
+      // Create organizer application atomically
+      const applicationData = {
+        userId: user.id,
+        businessName,
+        businessEmail,
+        businessDescription,
+        businessType,
+        businessWebsite: businessWebsite || null,
+        businessPhone: businessPhone || null,
+        businessAddress: businessAddress || null,
+        yearsExperience: yearsExperience || null,
+        sampleEvents: sampleEvents || null,
+        socialMediaHandles: socialMediaHandles || null,
+        status: 'pending' as const
+      };
+
+      const application = await communitiesStorage.createOrganizerApplication(applicationData);
+
+      // Create and send verification code
+      const authCode = await communitiesStorage.createAuthCode({
+        userId: user.id,
+        email: user.email,
+        purpose: 'signup'
+      });
+
+      await sendEmailCode(user.email, authCode.code, 'signup');
+
+      res.status(201).json({
+        ok: true,
+        message: 'Business account created successfully. Please check your email for the verification code.',
+        userId: user.id,
+        applicationId: application.id,
+        requiresApproval: true
+      });
+    } catch (error: any) {
+      console.error('Business signup error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to create business account' });
     }
   });
 

@@ -246,7 +246,7 @@ export function CommunitiesSignupPage() {
                 </Button>
               </form>
 
-              <div className="text-center text-sm">
+              <div className="text-center text-sm space-y-2">
                 <p className="text-muted-foreground">
                   Already have an account?{' '}
                   <button
@@ -255,6 +255,16 @@ export function CommunitiesSignupPage() {
                     data-testid="link-signin"
                   >
                     Sign in
+                  </button>
+                </p>
+                <p className="text-muted-foreground">
+                  Are you an organizer, venue, or artist?{' '}
+                  <button
+                    onClick={() => setLocation('/business/signup')}
+                    className="text-primary hover:underline font-medium"
+                    data-testid="link-business-signup"
+                  >
+                    Sign up as a business
                   </button>
                 </p>
               </div>

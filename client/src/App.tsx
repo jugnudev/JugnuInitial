@@ -43,6 +43,7 @@ import { TicketsOrganizerPayouts } from "@/pages/TicketsOrganizerPayouts";
 import { TicketsOrganizerSettings } from "@/pages/TicketsOrganizerSettings";
 import { CommunitiesSigninPage } from "@/pages/CommunitiesSigninPage";
 import { CommunitiesSignupPage } from "@/pages/CommunitiesSignupPage";
+import { BusinessSignupPage } from "@/pages/BusinessSignupPage";
 import { CommunitiesProfilePage } from "@/pages/CommunitiesProfilePage";
 import { CommunitiesOrganizerApplicationPage } from "@/pages/CommunitiesOrganizerApplicationPage";
 import CommunitiesIndexPage from "@/pages/CommunitiesIndexPage";
@@ -113,6 +114,7 @@ function Router() {
             <Route path="/account" component={() => { window.location.href = '/account/signin'; return null; }} />
             <Route path="/account/signin" component={CommunitiesSigninPage} />
             <Route path="/account/signup" component={CommunitiesSignupPage} />
+            <Route path="/business/signup" component={BusinessSignupPage} />
             <Route path="/account/profile" component={CommunitiesProfilePage} />
             <Route path="/account/apply-organizer" component={CommunitiesOrganizerApplicationPage} />
             <Route path="/admin/organizers" component={AdminOrganizers} />
