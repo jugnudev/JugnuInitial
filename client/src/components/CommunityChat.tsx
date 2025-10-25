@@ -84,7 +84,9 @@ export default function CommunityChat({
     isConnected,
     isConnecting,
     sendMessage: wsSendMessage,
-    sendTyping
+    sendTyping,
+    markMessageDeleted,
+    updateMessagePinStatus
   } = useCommunityChat(communityId, authToken);
 
   // Load pinned messages (via REST API)
@@ -105,7 +107,9 @@ export default function CommunityChat({
         description: "The message has been removed",
       });
     },
-    onError: (error: any) => {
+    onError: (error: any, messageId: string) => {
+      // Revert optimistic update on error
+      markMessageDeleted(messageId, false);
       toast({
         title: "Failed to delete message",
         description: error.message || "Please try again",
@@ -121,6 +125,8 @@ export default function CommunityChat({
 
   const handleDeleteConfirm = () => {
     if (messageToDelete) {
+      // Optimistically update UI immediately
+      markMessageDeleted(messageToDelete);
       deleteMessageMutation.mutate(messageToDelete);
       setDeleteConfirmOpen(false);
       setMessageToDelete(null);
@@ -130,12 +136,16 @@ export default function CommunityChat({
   // Pin message mutation
   const pinMessageMutation = useMutation({
     mutationFn: async ({ messageId, isPinned }: { messageId: string, isPinned: boolean }) => {
+      // Optimistically update UI immediately
+      updateMessagePinStatus(messageId, isPinned);
       return apiRequest('POST', `/api/communities/${communityId}/chat/messages/${messageId}/pin`, { isPinned });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'chat/pinned'] });
     },
-    onError: (error: any) => {
+    onError: (error: any, variables) => {
+      // Revert optimistic update on error
+      updateMessagePinStatus(variables.messageId, !variables.isPinned);
       toast({
         title: "Failed to pin message",
         description: error.message || "Please try again",

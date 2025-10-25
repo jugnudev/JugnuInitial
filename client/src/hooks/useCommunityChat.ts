@@ -286,6 +286,24 @@ export function useCommunityChat(communityId: string, token: string | null) {
     return () => clearInterval(pingInterval);
   }, []);
 
+  // Mark a message as deleted locally (for optimistic UI updates)
+  const markMessageDeleted = useCallback((messageId: string, isDeleted: boolean = true) => {
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId 
+        ? { ...msg, is_deleted: isDeleted } 
+        : msg
+    ));
+  }, []);
+
+  // Update message pin status locally (for optimistic UI updates)
+  const updateMessagePinStatus = useCallback((messageId: string, isPinned: boolean) => {
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId 
+        ? { ...msg, is_pinned: isPinned } 
+        : msg
+    ));
+  }, []);
+
   return {
     messages,
     onlineUsers,
@@ -294,6 +312,8 @@ export function useCommunityChat(communityId: string, token: string | null) {
     isConnecting,
     sendMessage,
     sendTyping,
+    markMessageDeleted,
+    updateMessagePinStatus,
     connect,
     disconnect
   };
