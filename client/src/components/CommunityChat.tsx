@@ -11,6 +11,16 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Card } from '@/components/ui/card';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -59,6 +69,8 @@ export default function CommunityChat({
   const [isTyping, setIsTyping] = useState(false);
   const [slowmodeTimer, setSlowmodeTimer] = useState(0);
   const [isOnlineUsersOpen, setIsOnlineUsersOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const slowmodeIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -86,6 +98,13 @@ export default function CommunityChat({
     mutationFn: async (messageId: string) => {
       return apiRequest('DELETE', `/api/communities/${communityId}/chat/messages/${messageId}`);
     },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', communityId, 'chat/pinned'] });
+      toast({
+        title: "Message deleted",
+        description: "The message has been removed",
+      });
+    },
     onError: (error: any) => {
       toast({
         title: "Failed to delete message",
@@ -94,6 +113,19 @@ export default function CommunityChat({
       });
     }
   });
+
+  const handleDeleteClick = (messageId: string) => {
+    setMessageToDelete(messageId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (messageToDelete) {
+      deleteMessageMutation.mutate(messageToDelete);
+      setDeleteConfirmOpen(false);
+      setMessageToDelete(null);
+    }
+  };
 
   // Pin message mutation
   const pinMessageMutation = useMutation({
@@ -307,22 +339,24 @@ export default function CommunityChat({
 
         {/* Pinned Messages Banner */}
         {pinnedMessages && pinnedMessages.messages?.length > 0 && (
-          <div className="bg-amber-50/50 dark:bg-amber-900/10 border-b border-amber-200 dark:border-amber-800/30 p-3">
-            <div className="flex items-center gap-2">
-              <Pin className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-              <span className="text-sm font-medium text-amber-900 dark:text-amber-100">Pinned Messages</span>
+          <div className="border-b border-accent/20 p-4 backdrop-blur-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-accent/10">
+                <Pin className="w-3.5 h-3.5 text-accent" />
+              </div>
+              <span className="text-sm font-semibold text-foreground">Pinned Messages</span>
             </div>
-            <div className="mt-2 space-y-2">
+            <div className="space-y-2">
               {pinnedMessages.messages.slice(0, 2).map((msg: any) => (
-                <div key={`pinned-${msg.id}`} className="flex items-start justify-between gap-2 group">
-                  <p className="text-sm text-amber-700 dark:text-amber-300 flex-1 line-clamp-2">
+                <div key={`pinned-${msg.id}`} className="flex items-start justify-between gap-3 p-3 rounded-lg border border-accent/10 bg-accent/5 hover:bg-accent/10 transition-colors">
+                  <p className="text-sm text-foreground/90 flex-1 line-clamp-2">
                     {msg.content}
                   </p>
-                  {currentMember.role === 'owner' && (
+                  {(currentMember.role === 'owner' || currentMember.role === 'moderator') && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-xs opacity-60 hover:opacity-100 shrink-0"
+                      className="h-7 px-2 text-xs shrink-0 hover:bg-accent/20"
                       onClick={() => pinMessageMutation.mutate({
                         messageId: msg.id,
                         isPinned: false
@@ -394,19 +428,19 @@ export default function CommunityChat({
                     )}
                     {/* Message Actions */}
                     {!message.is_deleted && (
-                      <div className={`flex items-center gap-2 mt-2 transition-opacity ${message.is_pinned ? 'opacity-100' : 'opacity-0 hover:opacity-100'}`}>
-                        {currentMember.role === 'owner' && (
+                      <div className="flex items-center gap-2 mt-2">
+                        {(currentMember.role === 'owner' || currentMember.role === 'moderator') && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 px-2 text-xs"
+                            className="h-7 px-2 text-xs hover:bg-accent/10"
                             onClick={() => pinMessageMutation.mutate({
                               messageId: message.id,
                               isPinned: !message.is_pinned
                             })}
                             data-testid={`pin-message-${message.id}`}
                           >
-                            <Pin className="w-3 h-3 mr-1" />
+                            <Pin className={`w-3 h-3 mr-1 ${message.is_pinned ? 'text-accent' : ''}`} />
                             {message.is_pinned ? 'Unpin' : 'Pin'}
                           </Button>
                         )}
@@ -414,8 +448,8 @@ export default function CommunityChat({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-6 px-2 text-xs text-destructive"
-                            onClick={() => deleteMessageMutation.mutate(message.id)}
+                            className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteClick(message.id)}
                             data-testid={`delete-message-${message.id}`}
                           >
                             <Trash2 className="w-3 h-3 mr-1" />
@@ -551,6 +585,27 @@ export default function CommunityChat({
         </ScrollArea>
       </SheetContent>
     </Sheet>
+
+    {/* Delete Confirmation Dialog */}
+    <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Message</AlertDialogTitle>
+          <AlertDialogDescription>
+            Are you sure you want to delete this message? This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDeleteConfirm}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </>
   );
 }

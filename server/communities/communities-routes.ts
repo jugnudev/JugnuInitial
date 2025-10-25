@@ -3436,7 +3436,7 @@ export function addCommunitiesRoutes(app: Express) {
 
   /**
    * POST /api/communities/:id/chat/messages/:messageId/pin
-   * Pin/unpin a message (owner only)
+   * Pin/unpin a message (owner and moderators)
    */
   app.post('/api/communities/:id/chat/messages/:messageId/pin', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
     try {
@@ -3450,8 +3450,14 @@ export function addCommunitiesRoutes(app: Express) {
         return res.status(403).json({ ok: false, error: 'Not a member of this community' });
       }
 
-      if (membership.role !== 'owner') {
-        return res.status(403).json({ ok: false, error: 'Only owners can pin messages' });
+      // Allow owners and moderators to pin
+      if (membership.role !== 'owner' && membership.role !== 'moderator') {
+        return res.status(403).json({ ok: false, error: 'Only owners and moderators can pin messages' });
+      }
+
+      // If pinning a new message, auto-unpin all others
+      if (isPinned) {
+        await communitiesStorage.unpinAllMessages(communityId);
       }
 
       await communitiesStorage.pinChatMessage(messageId, !!isPinned);

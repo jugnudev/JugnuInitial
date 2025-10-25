@@ -1797,6 +1797,17 @@ export class CommunitiesSupabaseDB {
     return true;
   }
 
+  async unpinAllMessages(communityId: string): Promise<boolean> {
+    const { data, error } = await this.client
+      .from('community_chat_messages')
+      .update({ is_pinned: false })
+      .eq('community_id', communityId)
+      .eq('is_pinned', true);
+
+    if (error) throw error;
+    return true;
+  }
+
   async getPinnedMessages(communityId: string): Promise<any[]> {
     const { data, error } = await this.client
       .from('community_chat_messages')
