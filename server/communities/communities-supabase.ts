@@ -3223,17 +3223,10 @@ export class CommunitiesSupabaseDB {
       .from('communities')
       .select(`
         *,
-        organizers!inner (
+        organizers (
           id,
           user_id,
-          business_name,
-          users!community_organizers_user_id_fkey (
-            id,
-            email,
-            first_name,
-            last_name,
-            created_at
-          )
+          business_name
         ),
         community_subscriptions (
           id,
@@ -3242,10 +3235,6 @@ export class CommunitiesSupabaseDB {
           current_period_start,
           current_period_end,
           stripe_subscription_id
-        ),
-        community_memberships!inner (
-          id,
-          status
         )
       `, { count: 'exact' });
     
@@ -3273,22 +3262,50 @@ export class CommunitiesSupabaseDB {
     const { data, error, count } = await query;
     if (error) throw error;
     
-    // Process the data to calculate member counts
-    const communities = data?.map(community => ({
-      ...this.mapCommunityFromDb(community),
-      owner: community.organizers ? {
-        id: community.organizers.id,
-        userId: community.organizers.user_id,
-        businessName: community.organizers.business_name,
-        email: community.organizers.users?.email,
-        fullName: community.organizers.users 
-          ? `${community.organizers.users.first_name || ''} ${community.organizers.users.last_name || ''}`.trim()
-          : null
-      } : null,
-      subscription: community.community_subscriptions?.[0] || null,
-      memberCount: community.community_memberships?.filter((m: any) => m.status === 'active').length || 0,
-      lastActivity: community.updated_at
-    })) || [];
+    // Get user details for all organizers
+    const userIds = data?.map(c => c.organizers?.user_id).filter(Boolean) || [];
+    const { data: users } = await this.client
+      .from('users')
+      .select('id, email, first_name, last_name')
+      .in('id', userIds);
+    
+    const usersById = (users || []).reduce((acc: any, user: any) => {
+      acc[user.id] = user;
+      return acc;
+    }, {});
+    
+    // Get membership counts
+    const communityIds = data?.map(c => c.id).filter(Boolean) || [];
+    const { data: memberships } = await this.client
+      .from('community_memberships')
+      .select('community_id, status')
+      .in('community_id', communityIds);
+    
+    const memberCountByCommunity = (memberships || []).reduce((acc: any, m: any) => {
+      if (m.status === 'approved') {
+        acc[m.community_id] = (acc[m.community_id] || 0) + 1;
+      }
+      return acc;
+    }, {});
+    
+    // Process the data
+    const communities = data?.map(community => {
+      const user = community.organizers?.user_id ? usersById[community.organizers.user_id] : null;
+      
+      return {
+        ...this.mapCommunityFromDb(community),
+        owner: community.organizers ? {
+          id: community.organizers.id,
+          userId: community.organizers.user_id,
+          businessName: community.organizers.business_name,
+          email: user?.email || null,
+          fullName: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : null
+        } : null,
+        subscription: community.community_subscriptions?.[0] || null,
+        memberCount: memberCountByCommunity[community.id] || 0,
+        lastActivity: community.updated_at
+      };
+    }) || [];
     
     return {
       communities,
