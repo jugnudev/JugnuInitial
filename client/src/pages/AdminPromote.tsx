@@ -45,6 +45,7 @@ import { toast } from '@/hooks/use-toast';
 import { ENDPOINTS, adminFetch } from '@/lib/endpoints';
 import AdminDeals from '@/pages/AdminDeals';
 import AdminPromoCodes from '@/pages/AdminPromoCodes';
+import AdminNav from '@/components/AdminNav';
 
 interface Campaign {
   id: string;
@@ -735,6 +736,7 @@ export default function AdminPromote() {
 
   return (
     <div className="min-h-screen bg-bg">
+      <AdminNav />
       {/* Header */}
       <header className="border-b border-white/10 bg-white/5 sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">

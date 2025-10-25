@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import AdminLeadsList from '@/components/AdminLeadsList';
 import { Shield, Users, DollarSign, TrendingUp, RefreshCcw } from 'lucide-react';
+import AdminNav from '@/components/AdminNav';
 
 export default function AdminLeads() {
   const [refreshingEvents, setRefreshingEvents] = useState(false);
@@ -128,6 +129,7 @@ export default function AdminLeads() {
   
   return (
     <div className="min-h-screen bg-black">
+      <AdminNav />
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="mb-8">
