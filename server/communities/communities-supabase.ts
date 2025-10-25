@@ -3352,10 +3352,6 @@ export class CommunitiesSupabaseDB {
           created_at,
           post_type,
           status
-        ),
-        community_comments (
-          id,
-          created_at
         )
       `)
       .eq('id', communityId)
@@ -3412,7 +3408,7 @@ export class CommunitiesSupabaseDB {
       },
       activityStats: {
         totalPosts: community.community_posts?.length || 0,
-        totalComments: community.community_comments?.length || 0,
+        totalComments: 0, // Removed community_comments query since table doesn't exist
         lastPostDate: community.community_posts?.[0]?.created_at || null,
         postsThisMonth: community.community_posts?.filter((p: any) => {
           const postDate = new Date(p.created_at);
