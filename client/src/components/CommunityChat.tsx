@@ -349,34 +349,57 @@ export default function CommunityChat({
 
         {/* Pinned Messages Banner */}
         {pinnedMessages && pinnedMessages.messages?.length > 0 && (
-          <div className="border-b border-accent/20 p-4 backdrop-blur-sm">
+          <div className="border-b-2 border-accent/30 bg-gradient-to-br from-accent/10 via-yellow-500/5 to-orange-500/5 dark:from-accent/15 dark:via-yellow-500/10 dark:to-orange-500/10 p-4 shadow-lg backdrop-blur-sm">
             <div className="flex items-center gap-2 mb-3">
-              <div className="flex items-center justify-center w-6 h-6 rounded-full bg-accent/10">
-                <Pin className="w-3.5 h-3.5 text-accent" />
+              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-accent to-yellow-600 shadow-md">
+                <Pin className="w-4 h-4 text-white fill-white" />
               </div>
-              <span className="text-sm font-semibold text-foreground">Pinned Messages</span>
+              <span className="text-sm font-bold text-foreground tracking-wide">Pinned Messages</span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {pinnedMessages.messages.slice(0, 2).map((msg: any) => (
-                <div key={`pinned-${msg.id}`} className="flex items-start justify-between gap-3 p-3 rounded-lg border border-accent/10 bg-accent/5 hover:bg-accent/10 transition-colors">
-                  <p className="text-sm text-foreground/90 flex-1 line-clamp-2">
-                    {msg.content}
-                  </p>
-                  {(currentMember.role === 'owner' || currentMember.role === 'moderator') && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs shrink-0 hover:bg-accent/20"
-                      onClick={() => pinMessageMutation.mutate({
-                        messageId: msg.id,
-                        isPinned: false
-                      })}
-                      data-testid={`unpin-banner-message-${msg.id}`}
-                    >
-                      <Pin className="w-3 h-3 mr-1" />
-                      Unpin
-                    </Button>
-                  )}
+                <div key={`pinned-${msg.id}`} className="rounded-xl border-2 border-accent/20 bg-background/90 shadow-md hover:shadow-lg transition-all duration-200">
+                  <div className="p-4">
+                    <div className="flex items-start gap-3 mb-2">
+                      <Avatar className="w-9 h-9 border-2 border-accent/30">
+                        <AvatarImage src={msg.author?.profile_image_url} />
+                        <AvatarFallback className="bg-gradient-to-br from-accent/20 to-accent/10 text-xs">
+                          {msg.author?.first_name?.[0]}{msg.author?.last_name?.[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-sm text-foreground">
+                            {msg.author?.first_name} {msg.author?.last_name}
+                          </span>
+                          {renderRoleBadge(
+                            onlineUsers.find(u => u.userId === msg.author_id)?.userRole || 'member'
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-foreground/90 whitespace-pre-wrap break-words">
+                          {msg.content}
+                        </p>
+                      </div>
+                      {(currentMember.role === 'owner' || currentMember.role === 'moderator') && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-3 text-xs shrink-0 hover:bg-accent/20 border border-transparent hover:border-accent/30 transition-all"
+                          onClick={() => pinMessageMutation.mutate({
+                            messageId: msg.id,
+                            isPinned: false
+                          })}
+                          data-testid={`unpin-banner-message-${msg.id}`}
+                        >
+                          <Pin className="w-3.5 h-3.5 mr-1.5 text-accent" />
+                          Unpin
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
