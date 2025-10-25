@@ -3288,9 +3288,21 @@ export class CommunitiesSupabaseDB {
       return acc;
     }, {});
     
+    // Calculate monthly revenue based on subscription plan
+    const getMonthlyRevenue = (subscription: any) => {
+      if (!subscription || subscription.status !== 'active') return 0;
+      
+      // Assuming monthly plan is $20 and yearly is $200 (comes out to ~$16.67/month)
+      if (subscription.plan === 'monthly') return 20;
+      if (subscription.plan === 'yearly') return 200 / 12; // Amortize yearly to monthly
+      
+      return 0;
+    };
+
     // Process the data
     const communities = data?.map(community => {
       const user = community.organizers?.user_id ? usersById[community.organizers.user_id] : null;
+      const subscription = community.community_subscriptions?.[0] || null;
       
       return {
         ...this.mapCommunityFromDb(community),
@@ -3301,8 +3313,9 @@ export class CommunitiesSupabaseDB {
           email: user?.email || null,
           fullName: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : null
         } : null,
-        subscription: community.community_subscriptions?.[0] || null,
+        subscription,
         memberCount: memberCountByCommunity[community.id] || 0,
+        monthlyRevenue: getMonthlyRevenue(subscription),
         lastActivity: community.updated_at
       };
     }) || [];
@@ -3315,21 +3328,15 @@ export class CommunitiesSupabaseDB {
   
   // Get detailed stats for a specific community
   async getCommunityStats(communityId: string): Promise<any> {
+    // Simplified query without nested relationships
     const { data: community, error: communityError } = await this.client
       .from('communities')
       .select(`
         *,
-        organizers!inner (
+        organizers (
           id,
           user_id,
-          business_name,
-          users!inner (
-            id,
-            email,
-            first_name,
-            last_name,
-            created_at
-          )
+          business_name
         ),
         community_subscriptions (
           id,
@@ -3339,19 +3346,6 @@ export class CommunitiesSupabaseDB {
           current_period_end,
           stripe_subscription_id,
           created_at
-        ),
-        community_memberships!inner (
-          id,
-          status,
-          created_at,
-          approved_at,
-          users!inner (
-            id,
-            email,
-            first_name,
-            last_name,
-            created_at
-          )
         ),
         community_posts (
           id,
@@ -3368,6 +3362,34 @@ export class CommunitiesSupabaseDB {
       .single();
     
     if (communityError) throw communityError;
+
+    // Get organizer user details separately
+    const { data: organizerUser } = community.organizers?.user_id 
+      ? await this.client
+          .from('users')
+          .select('id, email, first_name, last_name, created_at')
+          .eq('id', community.organizers.user_id)
+          .single()
+      : { data: null };
+
+    // Get memberships with user details separately
+    const { data: memberships } = await this.client
+      .from('community_memberships')
+      .select('id, user_id, status, created_at, approved_at')
+      .eq('community_id', communityId);
+
+    const memberUserIds = memberships?.map(m => m.user_id).filter(Boolean) || [];
+    const { data: memberUsers } = memberUserIds.length > 0
+      ? await this.client
+          .from('users')
+          .select('id, email, first_name, last_name, created_at')
+          .in('id', memberUserIds)
+      : { data: [] };
+
+    const memberUsersById = (memberUsers || []).reduce((acc: any, user: any) => {
+      acc[user.id] = user;
+      return acc;
+    }, {});
     
     // Calculate various stats
     const stats = {
@@ -3376,17 +3398,17 @@ export class CommunitiesSupabaseDB {
         id: community.organizers.id,
         userId: community.organizers.user_id,
         businessName: community.organizers.business_name,
-        email: community.organizers.users?.email,
-        fullName: community.organizers.users 
-          ? `${community.organizers.users.first_name || ''} ${community.organizers.users.last_name || ''}`.trim()
+        email: organizerUser?.email || null,
+        fullName: organizerUser 
+          ? `${organizerUser.first_name || ''} ${organizerUser.last_name || ''}`.trim()
           : null
       } : null,
       subscription: community.community_subscriptions?.[0] || null,
       memberStats: {
-        total: community.community_memberships?.length || 0,
-        active: community.community_memberships?.filter((m: any) => m.status === 'active').length || 0,
-        pending: community.community_memberships?.filter((m: any) => m.status === 'pending').length || 0,
-        banned: community.community_memberships?.filter((m: any) => m.status === 'banned').length || 0
+        total: memberships?.length || 0,
+        active: memberships?.filter((m: any) => m.status === 'approved').length || 0,
+        pending: memberships?.filter((m: any) => m.status === 'pending').length || 0,
+        banned: memberships?.filter((m: any) => m.status === 'banned').length || 0
       },
       activityStats: {
         totalPosts: community.community_posts?.length || 0,
@@ -3398,17 +3420,20 @@ export class CommunitiesSupabaseDB {
           return postDate.getMonth() === now.getMonth() && postDate.getFullYear() === now.getFullYear();
         }).length || 0
       },
-      members: community.community_memberships?.map((m: any) => ({
-        id: m.id,
-        status: m.status,
-        joinedAt: m.created_at,
-        approvedAt: m.approved_at,
-        user: {
-          id: m.users.id,
-          email: m.users.email,
-          fullName: `${m.users.first_name || ''} ${m.users.last_name || ''}`.trim()
-        }
-      })) || []
+      members: memberships?.map((m: any) => {
+        const user = memberUsersById[m.user_id];
+        return {
+          id: m.id,
+          status: m.status,
+          joinedAt: m.created_at,
+          approvedAt: m.approved_at,
+          user: user ? {
+            id: user.id,
+            email: user.email,
+            fullName: `${user.first_name || ''} ${user.last_name || ''}`.trim()
+          } : null
+        };
+      }) || []
     };
     
     return stats;
@@ -3918,23 +3943,17 @@ export class CommunitiesSupabaseDB {
       .from('communities')
       .select(`
         *,
-        owner:users!communities_owner_id_fkey(
+        organizers (
           id,
-          email,
-          first_name,
-          last_name
+          user_id,
+          business_name
         ),
         community_memberships(
           id,
           user_id,
           role,
           status,
-          joined_at,
-          user:users(
-            email,
-            first_name,
-            last_name
-          )
+          joined_at
         ),
         community_posts(
           id,
@@ -3960,9 +3979,43 @@ export class CommunitiesSupabaseDB {
 
     if (error) throw error;
 
+    // Get owner user details separately
+    const { data: ownerUser } = data.organizers?.user_id
+      ? await this.client
+          .from('users')
+          .select('id, email, first_name, last_name')
+          .eq('id', data.organizers.user_id)
+          .single()
+      : { data: null };
+
+    // Get membership users separately
+    const memberUserIds = data.community_memberships?.map((m: any) => m.user_id).filter(Boolean) || [];
+    const { data: memberUsers } = memberUserIds.length > 0
+      ? await this.client
+          .from('users')
+          .select('id, email, first_name, last_name')
+          .in('id', memberUserIds)
+      : { data: [] };
+
+    const memberUsersById = (memberUsers || []).reduce((acc: any, user: any) => {
+      acc[user.id] = user;
+      return acc;
+    }, {});
+
+    // Process memberships with user data
+    const processedMemberships = data.community_memberships?.map((m: any) => {
+      const user = memberUsersById[m.user_id];
+      return {
+        ...m,
+        user: user || null
+      };
+    }) || [];
+
     // Process and return detailed information
     return {
       ...data,
+      owner: ownerUser,
+      community_memberships: processedMemberships,
       memberCount: data.community_memberships?.length || 0,
       postCount: data.community_posts?.length || 0,
       subscription: data.community_subscriptions?.[0] || null,
