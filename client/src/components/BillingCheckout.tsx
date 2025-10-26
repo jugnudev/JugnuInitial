@@ -379,7 +379,7 @@ export default function BillingCheckout({
       <Alert>
         <Info className="h-4 w-4" />
         <AlertDescription>
-          <strong>Questions?</strong> Contact our support team at support@jugnu.app or check our{' '}
+          <strong>Questions?</strong> Contact our support team at relations@jugnucanada.com or check our{' '}
           <a href="/help/billing" className="underline">
             billing FAQ
           </a>

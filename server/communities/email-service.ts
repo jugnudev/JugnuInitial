@@ -346,7 +346,7 @@ export class CommunityEmailService {
       // Send the email
       const msg = {
         to: recipient.email,
-        from: process.env.SENDGRID_FROM_EMAIL || 'noreply@jugnu.com',
+        from: process.env.SENDGRID_FROM_EMAIL || 'relations@jugnucanada.com',
         subject: template.subject(community?.name || 'Community'),
         html: template.html(emailData),
       };

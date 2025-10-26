@@ -184,7 +184,7 @@ class EmailQueueWorker {
 
       const msg = {
         to: firstEmail.recipientEmail,
-        from: process.env.SENDGRID_FROM_EMAIL || 'noreply@jugnu.com',
+        from: process.env.SENDGRID_FROM_EMAIL || 'relations@jugnucanada.com',
         subject: `${emails.length} new notifications`,
         html
       };
@@ -267,7 +267,7 @@ class EmailQueueWorker {
 
       const msg = {
         to: email.recipientEmail,
-        from: process.env.SENDGRID_FROM_EMAIL || 'noreply@jugnu.com',
+        from: process.env.SENDGRID_FROM_EMAIL || 'relations@jugnucanada.com',
         subject: email.subject,
         html
       };

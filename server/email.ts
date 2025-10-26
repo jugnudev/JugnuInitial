@@ -168,7 +168,7 @@ Please review this request and respond within 2-3 business days.
   try {
     const msg = {
       to: adminEmail,
-      from: process.env.SENDGRID_FROM_EMAIL || 'noreply@jugnu.app',
+      from: process.env.SENDGRID_FROM_EMAIL || 'relations@jugnucanada.com',
       subject: `New Featured Event Request: ${data.title}`,
       text: emailText,
       html: emailHtml,
