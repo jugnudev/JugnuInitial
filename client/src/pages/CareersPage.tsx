@@ -23,7 +23,9 @@ import {
   Upload,
   FileText,
   X,
-  Loader2
+  Loader2,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 interface JobPosting {
@@ -368,30 +370,11 @@ export default function CareersPage() {
                               </div>
                             </div>
 
-                            {/* Description with See More */}
+                            {/* Description */}
                             <div className="mb-4">
-                              <p className={`text-muted-foreground ${!expandedJobs.has(posting.id) && posting.description.length > 200 ? 'line-clamp-2' : ''}`}>
+                              <p className={`text-muted-foreground ${!expandedJobs.has(posting.id) ? 'line-clamp-2' : ''}`}>
                                 {posting.description}
                               </p>
-                              {posting.description.length > 200 && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setExpandedJobs(prev => {
-                                      const newSet = new Set(prev);
-                                      if (newSet.has(posting.id)) {
-                                        newSet.delete(posting.id);
-                                      } else {
-                                        newSet.add(posting.id);
-                                      }
-                                      return newSet;
-                                    });
-                                  }}
-                                  className="text-orange-500 hover:text-orange-600 text-sm font-medium mt-1 inline-flex items-center"
-                                >
-                                  {expandedJobs.has(posting.id) ? 'See less' : 'See more...'}
-                                </button>
-                              )}
                             </div>
 
                             {/* Responsibilities, Qualifications, Benefits */}
@@ -447,7 +430,7 @@ export default function CareersPage() {
                               </div>
                             )}
 
-                            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-3">
                               <div className="flex items-center gap-1.5">
                                 <MapPin className="w-4 h-4" />
                                 {posting.location}
@@ -459,11 +442,41 @@ export default function CareersPage() {
                                 </div>
                               )}
                             </div>
+
+                            {/* View Details Button */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedJobs(prev => {
+                                  const newSet = new Set(prev);
+                                  if (newSet.has(posting.id)) {
+                                    newSet.delete(posting.id);
+                                  } else {
+                                    newSet.add(posting.id);
+                                  }
+                                  return newSet;
+                                });
+                              }}
+                              className="text-orange-500 hover:text-orange-600 font-medium text-sm inline-flex items-center gap-1"
+                              data-testid={`button-view-details-${posting.slug}`}
+                            >
+                              {expandedJobs.has(posting.id) ? (
+                                <>
+                                  Hide Details
+                                  <ChevronUp className="w-4 h-4" />
+                                </>
+                              ) : (
+                                <>
+                                  View Details
+                                  <ChevronDown className="w-4 h-4" />
+                                </>
+                              )}
+                            </button>
                           </div>
 
                           <div className="flex sm:flex-col items-start sm:items-end justify-between sm:justify-start gap-2">
                             <Button 
-                              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg group-hover:shadow-xl transition-all"
+                              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg group-hover:shadow-xl transition-all w-full sm:w-auto"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 openApplicationDialog(posting);
@@ -511,17 +524,17 @@ export default function CareersPage() {
 
       {/* Application Dialog */}
       <Dialog open={isApplicationDialogOpen} onOpenChange={setIsApplicationDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto sm:max-w-[95vw] sm:max-h-[95vh]">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Apply for {selectedJob?.title}</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl sm:text-2xl">Apply for {selectedJob?.title}</DialogTitle>
+            <DialogDescription className="text-sm sm:text-base">
               Fill out the form below to submit your application. Fields marked with * are required.
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmitApplication} className="space-y-6">
+          <form onSubmit={handleSubmitApplication} className="space-y-4 sm:space-y-6">
             {/* Personal Information */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="first_name">First Name *</Label>
                 <Input
@@ -706,18 +719,19 @@ export default function CareersPage() {
               />
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setIsApplicationDialogOpen(false)}
+                className="w-full sm:w-auto"
                 data-testid="button-cancel"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 w-full sm:w-auto"
                 disabled={submitApplication.isPending}
                 data-testid="button-submit-application"
               >
