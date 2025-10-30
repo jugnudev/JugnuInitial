@@ -28,7 +28,7 @@ export default function PartnerWithUs() {
           </h2>
           
           <p className="text-lg text-muted mb-8">
-            We've proudly worked with Canada.s leading South Asian businesses and cultural organizations
+            We've proudly worked with Canada's leading South Asian businesses and cultural organizations
           </p>
           
           {/* Partner Types */}
@@ -48,7 +48,7 @@ export default function PartnerWithUs() {
           </div>
           
           <p className="text-muted mb-10 max-w-2xl mx-auto">
-            Connect with Canada.s most engaged cultural community through exclusive sponsorship opportunities. 
+            Connect with Canada's most engaged cultural community through exclusive sponsorship opportunities. 
             Premium placements starting from $60/week.
           </p>
           

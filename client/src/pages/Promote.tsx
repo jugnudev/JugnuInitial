@@ -830,7 +830,7 @@ export default function Promote() {
     <div className="min-h-screen bg-bg">
       {/* SEO Meta Tags */}
       <link rel="canonical" href="https://thehouseofjugnu.com/promote" />
-      <meta name="description" content="Promote your business to Canada.s South Asian community. Reach passionate culture enthusiasts with premium sponsorship packages starting at CA$50/week. Events page placements, homepage heroes, and full feature campaigns available." />
+      <meta name="description" content="Promote your business to Canada's South Asian community. Reach passionate culture enthusiasts with premium sponsorship packages starting at CA$50/week. Events page placements, homepage heroes, and full feature campaigns available." />
       <meta name="keywords" content="Canada South Asian advertising, Canada-wide sponsorship, cultural events marketing, South Asian audience, Jugnu sponsorship packages, Canada event promotion" />
       
       {/* Organization Schema */}
@@ -943,7 +943,7 @@ export default function Promote() {
             "@context": "https://schema.org",
             "@type": "Product",
             "name": "Full Feature Campaign - Canada South Asian Community",
-            "description": "Complete campaign package with landing page and Instagram carousel targeting Canada.s South Asian cultural community",
+            "description": "Complete campaign package with landing page and Instagram carousel targeting Canada's South Asian cultural community",
             "brand": {
               "@type": "Brand",
               "name": "Jugnu"
@@ -1008,7 +1008,7 @@ export default function Promote() {
             "@context": "https://schema.org",
             "@type": "Organization",
             "name": "Jugnu",
-            "description": "Canada.s premier South Asian cultural events platform",
+            "description": "Canada's premier South Asian cultural events platform",
             "url": "https://jugnu.ca",
             "makesOffer": [
               {
@@ -1173,7 +1173,7 @@ export default function Promote() {
               Why Jugnu Works for Canadian Businesses
             </h2>
             <p className="text-muted text-lg max-w-2xl mx-auto">
-              Connect with Canada.s most engaged South Asian cultural community through strategic, measurable placements.
+              Connect with Canada's most engaged South Asian cultural community through strategic, measurable placements.
             </p>
           </motion.div>
 
@@ -2922,7 +2922,7 @@ export default function Promote() {
             className="max-w-3xl mx-auto"
           >
             <h2 className="font-fraunces text-3xl sm:text-4xl font-bold text-white mb-6">
-              Ready to Connect with Canada.s South Asian Community?
+              Ready to Connect with Canada's South Asian Community?
             </h2>
             <p className="text-muted text-lg mb-8">
               Join brands that trust Jugnu to reach an engaged, culturally-focused audience through premium placements and transparent analytics.

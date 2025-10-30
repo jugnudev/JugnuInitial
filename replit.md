@@ -1,7 +1,7 @@
 # Replit.md
 
 ## Overview
-Jugnu is a cultural events and communities platform for South Asian and global music experiences in Vancouver. It offers exclusive member spaces, event discovery, ticketing, and sponsorship opportunities. The platform prioritizes performance, security, and growth, featuring caching, rate limiting, invite systems, and analytics.
+Jugnu is a cultural events and communities platform for South Asian and global music experiences across Canada. It offers exclusive member spaces, event discovery, ticketing, and sponsorship opportunities. The platform prioritizes performance, security, and growth, featuring caching, rate limiting, invite systems, and analytics.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.

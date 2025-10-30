@@ -14,8 +14,8 @@ export default function Home() {
     <>
       {/* Enhanced SEO Meta Tags */}
       <link rel="canonical" href="https://thehouseofjugnu.com" />
-      <meta name="description" content="Discover South Asian culture in Canada. Find concerts, festivals, cultural performances & community events. Join Canada.s premier cultural platform for South Asian experiences." />
-      <meta name="keywords" content="South Asian events Canada, Indian events Vancouver, Pakistani events Vancouver, cultural events Vancouver, Jugnu events, Canadian concerts, South Asian community Canada" />
+      <meta name="description" content="Discover South Asian culture in Canada. Find concerts, festivals, cultural performances & community events. Join Canada's premier cultural platform for South Asian experiences." />
+      <meta name="keywords" content="South Asian events Canada, Indian events Canada, Pakistani events Canada, cultural events Canada, Jugnu events, Canadian concerts, South Asian community Canada" />
       
       {/* Open Graph Tags */}
       <meta property="og:title" content="Jugnu - Find Your Frequency | South Asian Culture in Canada" />
@@ -28,7 +28,7 @@ export default function Home() {
       {/* Twitter Card Tags */}
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content="Jugnu - South Asian Culture in Canada" />
-      <meta name="twitter:description" content="Discover concerts, festivals & cultural events. Join Canada.s premier South Asian cultural platform." />
+      <meta name="twitter:description" content="Discover concerts, festivals & cultural events. Join Canada's premier South Asian cultural platform." />
       <meta name="twitter:image" content="https://thehouseofjugnu.com/twitter-card.jpg" />
       
       {/* Enhanced JSON-LD Structured Data */}

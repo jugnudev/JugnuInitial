@@ -46,8 +46,8 @@ export const getPageTitle = (path: string): string => {
     '/': `${baseBrand} - Find Your Frequency | South Asian Cultural Events Canada`,
     '/events': `Events - ${baseBrand} | Canada South Asian Cultural Events`,
     '/deals': `Deals - ${baseBrand} | Special Offers & Discounts`,
-    '/promote': `Promote Your Event - ${baseBrand} | Event Marketing Vancouver`,
-    '/story': `Our Story - ${baseBrand} | About Vancouver's Premier Cultural Events`,
+    '/promote': `Promote Your Event - ${baseBrand} | Event Marketing Canada`,
+    '/story': `Our Story - ${baseBrand} | About Canada's Premier Cultural Events`,
     '/saved': `Saved Events - ${baseBrand} | Your Bookmarked Events`,
     '/waitlist': `Join Waitlist - ${baseBrand} | Be First to Know About Events`,
     '/thank-you': `Thank You - ${baseBrand} | Registration Confirmed`,
@@ -57,7 +57,7 @@ export const getPageTitle = (path: string): string => {
     '/admin/leads': `Admin Portal - ${baseBrand} | Leads Management`, 
     '/admin/analytics': `Admin Portal - ${baseBrand} | Analytics Dashboard`,
     // Communities SEO-optimized titles for conversion funnel
-    '/communities': `Communities - ${baseBrand} | Create Create & Join Cultural Communities Vancouver Join Cultural Communities Canada`,
+    '/communities': `Communities - ${baseBrand} | Create & Join Cultural Communities Canada`,
     '/account/signin': `Sign In - ${baseBrand} | Access Your Community Account`,
     '/account/signup': `Join ${baseBrand} - Create Your Community Account`,
     '/account/profile': `My Profile - ${baseBrand} | Account Settings & Community Management`,
@@ -77,7 +77,7 @@ export const getPageTitle = (path: string): string => {
   }
 
   // Return matched title or default
-  return routeTitles[path] || `${baseBrand} - Find Your Frequency | Vancouver South Asian Events`;
+  return routeTitles[path] || `${baseBrand} - Find Your Frequency | Canada South Asian Events`;
 };
 
 // Track page views - useful for single-page applications
