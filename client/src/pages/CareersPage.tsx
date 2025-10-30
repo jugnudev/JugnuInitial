@@ -389,11 +389,11 @@ export default function CareersPage() {
                                       </div>
                                       <h4 className="font-bold text-base">What You'll Do</h4>
                                     </div>
-                                    <div className="grid grid-cols-1 gap-2.5 pl-10">
+                                    <div className="grid grid-cols-1 gap-3 pl-10">
                                       {posting.responsibilities.map((item, idx) => (
                                         <div 
                                           key={idx}
-                                          className="group relative flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/20 dark:to-transparent border border-orange-200/30 dark:border-orange-800/30 hover:border-orange-400/50 dark:hover:border-orange-600/50 transition-all duration-200 hover:shadow-sm"
+                                          className="group relative flex items-start gap-3 p-4 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/50 hover:border-orange-400 dark:hover:border-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all duration-200 hover:shadow-lg"
                                         >
                                           <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0"></div>
                                           <p className="text-sm leading-relaxed flex-1">{item}</p>
@@ -436,11 +436,11 @@ export default function CareersPage() {
                                       </div>
                                       <h4 className="font-bold text-base">What You'll Gain</h4>
                                     </div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-10">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 pl-10">
                                       {posting.benefits.map((item, idx) => (
                                         <div 
                                           key={idx}
-                                          className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200/50 dark:border-purple-800/50 hover:shadow-md hover:scale-[1.02] transition-all duration-200"
+                                          className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200/50 dark:border-purple-800/50 hover:shadow-lg transition-all duration-200"
                                         >
                                           <Sparkles className="w-4 h-4 text-purple-500 flex-shrink-0" />
                                           <p className="text-sm font-medium leading-snug">{item}</p>
