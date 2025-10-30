@@ -40,6 +40,13 @@ export default function Footer() {
             <span>&copy; 2025 Jugnu</span>
             
             <Link 
+              href="/careers" 
+              className="hover:text-accent transition-colors duration-200"
+              data-testid="link-careers"
+            >
+              Join the Team
+            </Link>
+            <Link 
               href="/privacy" 
               className="hover:text-accent transition-colors duration-200"
               data-testid="link-privacy"

@@ -4330,6 +4330,248 @@ Disallow: /account/*`;
     });
   }
 
+  // ===== Job Postings / Careers Routes =====
+  
+  // Get all active job postings (public)
+  app.get('/api/careers/postings', async (req, res) => {
+    try {
+      const supabase = getSupabaseAdmin();
+      const { data: postings, error } = await supabase
+        .from('job_postings')
+        .select('*')
+        .eq('is_active', true)
+        .order('featured', { ascending: false })
+        .order('sort_order', { ascending: true })
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      res.json({ ok: true, postings: postings || [] });
+    } catch (error) {
+      console.error('Error fetching job postings:', error);
+      res.status(500).json({ ok: false, error: 'Failed to fetch job postings' });
+    }
+  });
+
+  // Get single job posting by slug (public)
+  app.get('/api/careers/postings/:slug', async (req, res) => {
+    try {
+      const { slug } = req.params;
+      const supabase = getSupabaseAdmin();
+      const { data: posting, error } = await supabase
+        .from('job_postings')
+        .select('*')
+        .eq('slug', slug)
+        .single();
+
+      if (error && error.code === 'PGRST116') {
+        return res.status(404).json({ ok: false, error: 'Job posting not found' });
+      }
+      if (error) throw error;
+
+      res.json({ ok: true, posting });
+    } catch (error) {
+      console.error('Error fetching job posting:', error);
+      res.status(500).json({ ok: false, error: 'Failed to fetch job posting' });
+    }
+  });
+
+  // Submit job application (public)
+  app.post('/api/careers/apply', async (req, res) => {
+    try {
+      const { insertJobApplicationSchema } = await import('@shared/schema');
+      const { z } = await import('zod');
+      
+      const applicationData = insertJobApplicationSchema.parse(req.body);
+      
+      const supabase = getSupabaseAdmin();
+      const { data: application, error } = await supabase
+        .from('job_applications')
+        .insert(applicationData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json({ ok: true, application });
+    } catch (error: any) {
+      console.error('Error submitting application:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ ok: false, error: 'Invalid application data', details: error.errors });
+      }
+      res.status(500).json({ ok: false, error: 'Failed to submit application' });
+    }
+  });
+
+  // ===== Admin Routes for Job Postings =====
+
+  // Get all job postings (admin)
+  app.get('/api/admin/careers/postings', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      }
+
+      const supabase = getSupabaseAdmin();
+      const { data: postings, error } = await supabase
+        .from('job_postings')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      res.json({ ok: true, postings: postings || [] });
+    } catch (error) {
+      console.error('Error fetching all job postings:', error);
+      res.status(500).json({ ok: false, error: 'Failed to fetch job postings' });
+    }
+  });
+
+  // Create job posting (admin)
+  app.post('/api/admin/careers/postings', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      }
+
+      const { insertJobPostingSchema } = await import('@shared/schema');
+      const { z } = await import('zod');
+      
+      const postingData = insertJobPostingSchema.parse(req.body);
+      
+      const supabase = getSupabaseAdmin();
+      const { data: posting, error } = await supabase
+        .from('job_postings')
+        .insert(postingData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      res.json({ ok: true, posting });
+    } catch (error: any) {
+      console.error('Error creating job posting:', error);
+      if (error.name === 'ZodError') {
+        return res.status(400).json({ ok: false, error: 'Invalid posting data', details: error.errors });
+      }
+      res.status(500).json({ ok: false, error: 'Failed to create job posting' });
+    }
+  });
+
+  // Update job posting (admin)
+  app.patch('/api/admin/careers/postings/:id', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      }
+
+      const { id } = req.params;
+      const updates = { ...req.body, updated_at: new Date().toISOString() };
+
+      const supabase = getSupabaseAdmin();
+      const { data: posting, error } = await supabase
+        .from('job_postings')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error && error.code === 'PGRST116') {
+        return res.status(404).json({ ok: false, error: 'Job posting not found' });
+      }
+      if (error) throw error;
+
+      res.json({ ok: true, posting });
+    } catch (error) {
+      console.error('Error updating job posting:', error);
+      res.status(500).json({ ok: false, error: 'Failed to update job posting' });
+    }
+  });
+
+  // Delete job posting (admin)
+  app.delete('/api/admin/careers/postings/:id', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      }
+
+      const { id } = req.params;
+      const supabase = getSupabaseAdmin();
+      const { error } = await supabase
+        .from('job_postings')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      res.json({ ok: true });
+    } catch (error) {
+      console.error('Error deleting job posting:', error);
+      res.status(500).json({ ok: false, error: 'Failed to delete job posting' });
+    }
+  });
+
+  // Get all applications (admin)
+  app.get('/api/admin/careers/applications', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      }
+
+      const { jobPostingId, status } = req.query;
+      const supabase = getSupabaseAdmin();
+      
+      let query = supabase.from('job_applications').select('*');
+      
+      if (jobPostingId && typeof jobPostingId === 'string') {
+        query = query.eq('job_posting_id', jobPostingId);
+      }
+      
+      if (status && typeof status === 'string') {
+        query = query.eq('status', status);
+      }
+
+      const { data: applications, error } = await query.order('created_at', { ascending: false });
+
+      if (error) throw error;
+      res.json({ ok: true, applications: applications || [] });
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+      res.status(500).json({ ok: false, error: 'Failed to fetch applications' });
+    }
+  });
+
+  // Update application status (admin)
+  app.patch('/api/admin/careers/applications/:id', async (req, res) => {
+    try {
+      const adminKey = req.headers['x-admin-key'];
+      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+      }
+
+      const { id } = req.params;
+      const { status, notes } = req.body;
+
+      const supabase = getSupabaseAdmin();
+      const { data: application, error } = await supabase
+        .from('job_applications')
+        .update({ status, notes, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error && error.code === 'PGRST116') {
+        return res.status(404).json({ ok: false, error: 'Application not found' });
+      }
+      if (error) throw error;
+
+      res.json({ ok: true, application });
+    } catch (error) {
+      console.error('Error updating application:', error);
+      res.status(500).json({ ok: false, error: 'Failed to update application' });
+    }
+  });
+
   // use storage to perform CRUD operations on the storage interface
   // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
 

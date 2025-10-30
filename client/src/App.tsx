@@ -51,6 +51,8 @@ import EnhancedCommunityDetailPage from "@/pages/EnhancedCommunityDetailPage";
 import AdminOrganizers from "@/pages/AdminOrganizers";
 import AdminCommunitiesPage from "@/pages/AdminCommunitiesPage";
 import NotificationCenter from "@/pages/NotificationCenter";
+import AdminCareersPage from "@/pages/AdminCareersPage";
+import CareersPage from "@/pages/CareersPage";
 
 function Router() {
   // Track page views when routes change - Google Analytics integration
@@ -82,6 +84,8 @@ function Router() {
         <Route path="/admin/promote" component={AdminPromote} />
         <Route path="/admin/leads" component={AdminLeads} />
         <Route path="/admin/analytics" component={AdminAnalytics} />
+        <Route path="/admin/careers" component={AdminCareersPage} />
+        <Route path="/careers" component={CareersPage} />
         <Route path="/places" component={() => { window.location.href = '/events'; return null; }} />
         <Route path="/places/submit" component={() => { window.location.href = '/events'; return null; }} />
         <Route path="/saved" component={Saved} />

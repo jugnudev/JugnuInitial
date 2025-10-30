@@ -1528,3 +1528,61 @@ export type CommunityGiveawayTaskCompletion = typeof communityGiveawayTaskComple
 export type InsertCommunityGiveawayTaskCompletion = z.infer<typeof insertCommunityGiveawayTaskCompletionSchema>;
 export type CommunityGiveawayAuditLog = typeof communityGiveawayAuditLog.$inferSelect;
 export type InsertCommunityGiveawayAuditLog = z.infer<typeof insertCommunityGiveawayAuditLogSchema>;
+
+// Job Postings / Careers
+export const jobPostings = pgTable("job_postings", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  department: text("department").notNull(), // e.g., "Marketing", "Events", "Community", "Tech"
+  type: text("type").notNull().default("volunteer"), // volunteer | part-time | full-time | contract
+  location: text("location").notNull().default("Remote"), // Remote | Vancouver | Hybrid
+  description: text("description").notNull(),
+  responsibilities: text("responsibilities").array().notNull().default(sql`'{}'`),
+  qualifications: text("qualifications").array().notNull().default(sql`'{}'`),
+  benefits: text("benefits").array().default(sql`'{}'`), // What they get in return
+  time_commitment: text("time_commitment"), // e.g., "5-10 hours/week"
+  is_active: boolean("is_active").notNull().default(true),
+  featured: boolean("featured").notNull().default(false),
+  sort_order: integer("sort_order").notNull().default(0),
+});
+
+export const jobApplications = pgTable("job_applications", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  created_at: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updated_at: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  job_posting_id: uuid("job_posting_id").references(() => jobPostings.id, { onDelete: 'cascade' }).notNull(),
+  first_name: text("first_name").notNull(),
+  last_name: text("last_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  resume_url: text("resume_url"), // Link to uploaded resume
+  portfolio_url: text("portfolio_url"),
+  linkedin_url: text("linkedin_url"),
+  cover_letter: text("cover_letter"),
+  why_join: text("why_join"), // Why do you want to join Jugnu?
+  availability: text("availability"), // When can you start?
+  status: text("status").notNull().default("pending"), // pending | reviewing | interviewed | accepted | rejected
+  notes: text("notes"), // Admin notes
+});
+
+export const insertJobPostingSchema = createInsertSchema(jobPostings).omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
+
+export const insertJobApplicationSchema = createInsertSchema(jobApplications).omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+  status: true,
+  notes: true,
+});
+
+export type JobPosting = typeof jobPostings.$inferSelect;
+export type InsertJobPosting = z.infer<typeof insertJobPostingSchema>;
+export type JobApplication = typeof jobApplications.$inferSelect;
+export type InsertJobApplication = z.infer<typeof insertJobApplicationSchema>;
