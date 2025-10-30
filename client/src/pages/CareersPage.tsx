@@ -377,54 +377,76 @@ export default function CareersPage() {
                               </p>
                             </div>
 
-                            {/* Responsibilities, Qualifications, Benefits */}
+                            {/* Responsibilities, Qualifications, Benefits - Premium Design */}
                             {expandedJobs.has(posting.id) && (
-                              <div className="space-y-3 mb-4 border-t pt-4">
+                              <div className="mt-6 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                                {/* Responsibilities */}
                                 {posting.responsibilities?.length > 0 && (
-                                  <div>
-                                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
-                                      <CheckCircle2 className="w-4 h-4 text-orange-500" />
-                                      Responsibilities
-                                    </h4>
-                                    <ul className="space-y-1 ml-5">
+                                  <div className="relative">
+                                    <div className="flex items-center gap-2 mb-4">
+                                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-md shadow-orange-500/20">
+                                        <CheckCircle2 className="w-4 h-4 text-white" />
+                                      </div>
+                                      <h4 className="font-bold text-base">What You'll Do</h4>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-2.5 pl-10">
                                       {posting.responsibilities.map((item, idx) => (
-                                        <li key={idx} className="text-sm text-muted-foreground list-disc">
-                                          {item}
-                                        </li>
+                                        <div 
+                                          key={idx}
+                                          className="group relative flex items-start gap-3 p-3 rounded-xl bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/20 dark:to-transparent border border-orange-200/30 dark:border-orange-800/30 hover:border-orange-400/50 dark:hover:border-orange-600/50 transition-all duration-200 hover:shadow-sm"
+                                        >
+                                          <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0"></div>
+                                          <p className="text-sm leading-relaxed flex-1">{item}</p>
+                                        </div>
                                       ))}
-                                    </ul>
+                                    </div>
                                   </div>
                                 )}
 
+                                {/* Qualifications */}
                                 {posting.qualifications?.length > 0 && (
-                                  <div>
-                                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
-                                      <TrendingUp className="w-4 h-4 text-orange-500" />
-                                      Qualifications
-                                    </h4>
-                                    <ul className="space-y-1 ml-5">
+                                  <div className="relative">
+                                    <div className="flex items-center gap-2 mb-4">
+                                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20">
+                                        <TrendingUp className="w-4 h-4 text-white" />
+                                      </div>
+                                      <h4 className="font-bold text-base">What We're Looking For</h4>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2 pl-10">
                                       {posting.qualifications.map((item, idx) => (
-                                        <li key={idx} className="text-sm text-muted-foreground list-disc">
+                                        <Badge 
+                                          key={idx}
+                                          variant="outline"
+                                          className="px-4 py-2 text-sm border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-200 cursor-default"
+                                        >
+                                          <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-blue-500" />
                                           {item}
-                                        </li>
+                                        </Badge>
                                       ))}
-                                    </ul>
+                                    </div>
                                   </div>
                                 )}
 
+                                {/* Benefits */}
                                 {posting.benefits?.length > 0 && (
-                                  <div>
-                                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
-                                      <Heart className="w-4 h-4 text-orange-500" />
-                                      Benefits
-                                    </h4>
-                                    <ul className="space-y-1 ml-5">
+                                  <div className="relative">
+                                    <div className="flex items-center gap-2 mb-4">
+                                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-md shadow-purple-500/20">
+                                        <Heart className="w-4 h-4 text-white" />
+                                      </div>
+                                      <h4 className="font-bold text-base">What You'll Gain</h4>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-10">
                                       {posting.benefits.map((item, idx) => (
-                                        <li key={idx} className="text-sm text-muted-foreground list-disc">
-                                          {item}
-                                        </li>
+                                        <div 
+                                          key={idx}
+                                          className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200/50 dark:border-purple-800/50 hover:shadow-md hover:scale-[1.02] transition-all duration-200"
+                                        >
+                                          <Sparkles className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                                          <p className="text-sm font-medium leading-snug">{item}</p>
+                                        </div>
                                       ))}
-                                    </ul>
+                                    </div>
                                   </div>
                                 )}
                               </div>
