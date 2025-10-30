@@ -4432,7 +4432,8 @@ Disallow: /account/*`;
   app.get('/api/admin/careers/postings', async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
+      if (!adminKey || adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });
       }
 
@@ -4454,7 +4455,8 @@ Disallow: /account/*`;
   app.post('/api/admin/careers/postings', async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
+      if (!adminKey || adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });
       }
 
@@ -4485,7 +4487,8 @@ Disallow: /account/*`;
   app.patch('/api/admin/careers/postings/:id', async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
+      if (!adminKey || adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });
       }
 
@@ -4516,7 +4519,8 @@ Disallow: /account/*`;
   app.delete('/api/admin/careers/postings/:id', async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
+      if (!adminKey || adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });
       }
 
@@ -4539,7 +4543,8 @@ Disallow: /account/*`;
   app.get('/api/admin/careers/applications', async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
+      if (!adminKey || adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });
       }
 
@@ -4570,7 +4575,8 @@ Disallow: /account/*`;
   app.patch('/api/admin/careers/applications/:id', async (req, res) => {
     try {
       const adminKey = req.headers['x-admin-key'];
-      if (!adminKey || adminKey !== process.env.EXPORT_ADMIN_KEY) {
+      const expectedKey = process.env.ADMIN_PASSWORD || process.env.ADMIN_KEY || process.env.EXPORT_ADMIN_KEY;
+      if (!adminKey || adminKey !== expectedKey) {
         return res.status(401).json({ ok: false, error: 'Unauthorized' });
       }
 
