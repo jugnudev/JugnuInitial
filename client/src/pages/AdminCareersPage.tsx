@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import AdminNav from '@/components/AdminNav';
 import { 
@@ -115,15 +116,13 @@ export default function AdminCareersPage() {
     sort_order: 0
   });
 
-  // Check authentication
-  const { data: authCheck, isError: authError, refetch: checkAuth, isLoading: isCheckingAuth } = useQuery({
+  // Check if admin key is valid
+  const { data: authCheck, error: authError, refetch: checkAuth } = useQuery({
     queryKey: ['admin-careers-auth', adminKey],
     queryFn: async () => {
-      if (!adminKey.trim()) {
-        throw new Error('Admin key is required');
-      }
+      if (!adminKey.trim()) return null;
       
-      const response = await fetch('/api/admin/careers/postings', {
+      const response = await fetch('/api/admin/careers/postings?limit=1', {
         headers: { 'x-admin-key': adminKey.trim() }
       });
       
@@ -134,34 +133,19 @@ export default function AdminCareersPage() {
       return true;
     },
     enabled: false,
-    retry: false,
-    onError: (error: Error) => {
-      toast({
-        title: 'Authentication Failed',
-        description: error.message || 'Please check your admin key and try again',
-        variant: 'destructive'
-      });
-      setIsAuthenticated(false);
-    },
-    onSuccess: () => {
+    retry: false
+  });
+
+  useEffect(() => {
+    if (authCheck) {
       try {
         localStorage.setItem('adminKey', adminKey);
       } catch (e) {
         console.warn('Failed to save admin key to localStorage:', e);
       }
       setIsAuthenticated(true);
-      toast({
-        title: 'Success',
-        description: 'Successfully authenticated'
-      });
     }
-  });
-
-  useEffect(() => {
-    if (adminKey.trim()) {
-      checkAuth();
-    }
-  }, []);
+  }, [authCheck, adminKey]);
 
   // Fetch job postings
   const { data: postingsData, isLoading } = useQuery({
@@ -380,47 +364,51 @@ export default function AdminCareersPage() {
   // Login form
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-black/60 border-copper-500/20">
-          <CardHeader className="text-center">
-            <Briefcase className="w-12 h-12 text-copper-500 mx-auto mb-4" />
-            <CardTitle className="text-2xl text-white">Admin Login</CardTitle>
-            <CardDescription className="text-white/70">
-              Enter your admin key to access the Careers management panel
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={(e) => { e.preventDefault(); checkAuth(); }} className="space-y-4">
-              <div>
-                <Label htmlFor="adminKey" className="text-white">Admin Key</Label>
-                <Input
-                  id="adminKey"
-                  type="password"
-                  value={adminKey}
-                  onChange={(e) => setAdminKey(e.target.value)}
-                  placeholder="Enter admin key"
-                  className="bg-white/10 border-white/20 text-white"
-                  data-testid="input-admin-key"
-                />
+      <div className="min-h-screen bg-black p-6">
+        <div className="max-w-md mx-auto mt-20">
+          <Card className="border border-gray-800 bg-gray-900/50 backdrop-blur shadow-2xl">
+            <CardHeader className="text-center pb-8">
+              <div className="mx-auto mb-6 w-20 h-20 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center shadow-lg">
+                <Briefcase className="h-10 w-10 text-white" />
               </div>
-              <Button 
-                type="submit" 
-                className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold"
-                disabled={isCheckingAuth || !adminKey.trim()}
+              <CardTitle className="text-3xl font-bold bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">Admin Access</CardTitle>
+              <p className="text-gray-300 mt-2">Enter admin key to access careers management</p>
+            </CardHeader>
+            <CardContent className="space-y-6 pt-4">
+              <Input
+                type="password"
+                placeholder="Admin key"
+                value={adminKey}
+                onChange={(e) => setAdminKey(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && adminKey.trim() && checkAuth()}
+                className="h-12 text-center text-lg border-2 border-gray-700 bg-gray-800 text-white placeholder:text-gray-400 focus:border-orange-500"
+                autoComplete="new-password"
+                data-testid="input-admin-key"
+              />
+              
+              {authError && (
+                <Alert variant="destructive" className="border-red-600 bg-red-900/50">
+                  <AlertDescription className="text-red-200">
+                    Invalid admin key. Please check and try again.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
+              <Button
+                onClick={async () => {
+                  if (adminKey.trim()) {
+                    checkAuth();
+                  }
+                }}
+                className="w-full h-12 text-lg bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg text-white"
+                disabled={!adminKey.trim()}
                 data-testid="button-login"
               >
-                {isCheckingAuth ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Authenticating...
-                  </>
-                ) : (
-                  'Login'
-                )}
+                Access Admin Panel
               </Button>
-            </form>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }
