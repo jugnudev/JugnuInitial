@@ -116,10 +116,12 @@ export default function AdminCareersPage() {
   });
 
   // Check authentication
-  const { data: authCheck, refetch: checkAuth } = useQuery({
+  const { data: authCheck, isError: authError, refetch: checkAuth, isLoading: isCheckingAuth } = useQuery({
     queryKey: ['admin-careers-auth', adminKey],
     queryFn: async () => {
-      if (!adminKey.trim()) return null;
+      if (!adminKey.trim()) {
+        throw new Error('Admin key is required');
+      }
       
       const response = await fetch('/api/admin/careers/postings', {
         headers: { 'x-admin-key': adminKey.trim() }
@@ -132,19 +134,28 @@ export default function AdminCareersPage() {
       return true;
     },
     enabled: false,
-    retry: false
-  });
-
-  useEffect(() => {
-    if (authCheck) {
+    retry: false,
+    onError: (error: Error) => {
+      toast({
+        title: 'Authentication Failed',
+        description: error.message || 'Please check your admin key and try again',
+        variant: 'destructive'
+      });
+      setIsAuthenticated(false);
+    },
+    onSuccess: () => {
       try {
         localStorage.setItem('adminKey', adminKey);
       } catch (e) {
         console.warn('Failed to save admin key to localStorage:', e);
       }
       setIsAuthenticated(true);
+      toast({
+        title: 'Success',
+        description: 'Successfully authenticated'
+      });
     }
-  }, [authCheck, adminKey]);
+  });
 
   useEffect(() => {
     if (adminKey.trim()) {
@@ -395,9 +406,17 @@ export default function AdminCareersPage() {
               <Button 
                 type="submit" 
                 className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold"
+                disabled={isCheckingAuth || !adminKey.trim()}
                 data-testid="button-login"
               >
-                Login
+                {isCheckingAuth ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Authenticating...
+                  </>
+                ) : (
+                  'Login'
+                )}
               </Button>
             </form>
           </CardContent>
