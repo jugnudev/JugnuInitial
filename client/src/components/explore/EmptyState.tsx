@@ -37,7 +37,7 @@ export default function EmptyState({ type, hasFilters = false, showSavedOnly = f
     title: hasFilters ? "No events found" : "Nothing here yet",
     subtitle: hasFilters 
       ? "Try adjusting your filters or time range" 
-      : "Be the first to add a South Asian event in Vancouver",
+      : "Be the first to add a South Asian event in Canada",
     actionText: "Add Event",
     actionHref: "/community/feature",
     icon: Search
@@ -45,7 +45,7 @@ export default function EmptyState({ type, hasFilters = false, showSavedOnly = f
     title: hasFilters ? "No places found" : "Nothing here yet", 
     subtitle: hasFilters
       ? "Try different filters or search terms"
-      : "Be the first to list a South Asian business in Vancouver",
+      : "Be the first to list a South Asian business in Canada",
     actionText: "List Your Place",
     actionHref: "/places/submit",
     icon: Search

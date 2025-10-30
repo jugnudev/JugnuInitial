@@ -14,12 +14,12 @@ export default function Home() {
     <>
       {/* Enhanced SEO Meta Tags */}
       <link rel="canonical" href="https://thehouseofjugnu.com" />
-      <meta name="description" content="Discover South Asian culture in Vancouver. Find concerts, festivals, cultural performances & community events. Join Vancouver's premier cultural platform for South Asian experiences." />
-      <meta name="keywords" content="South Asian events Vancouver, Indian events Vancouver, Pakistani events Vancouver, cultural events Vancouver, Jugnu events, Metro Vancouver concerts, South Asian community Vancouver" />
+      <meta name="description" content="Discover South Asian culture in Canada. Find concerts, festivals, cultural performances & community events. Join Canada.s premier cultural platform for South Asian experiences." />
+      <meta name="keywords" content="South Asian events Canada, Indian events Vancouver, Pakistani events Vancouver, cultural events Vancouver, Jugnu events, Canadian concerts, South Asian community Canada" />
       
       {/* Open Graph Tags */}
-      <meta property="og:title" content="Jugnu - Find Your Frequency | South Asian Culture in Vancouver" />
-      <meta property="og:description" content="Curated South Asian & global culture—nights, pop-ups, and experiences in Vancouver. Discover events, join the community." />
+      <meta property="og:title" content="Jugnu - Find Your Frequency | South Asian Culture in Canada" />
+      <meta property="og:description" content="Curated South Asian & global culture—nights, pop-ups, and experiences across Canada. Discover events, join the community." />
       <meta property="og:type" content="website" />
       <meta property="og:url" content="https://thehouseofjugnu.com" />
       <meta property="og:image" content="https://thehouseofjugnu.com/og-image.jpg" />
@@ -27,8 +27,8 @@ export default function Home() {
       
       {/* Twitter Card Tags */}
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content="Jugnu - South Asian Culture in Vancouver" />
-      <meta name="twitter:description" content="Discover concerts, festivals & cultural events. Join Vancouver's premier South Asian cultural platform." />
+      <meta name="twitter:title" content="Jugnu - South Asian Culture in Canada" />
+      <meta name="twitter:description" content="Discover concerts, festivals & cultural events. Join Canada.s premier South Asian cultural platform." />
       <meta name="twitter:image" content="https://thehouseofjugnu.com/twitter-card.jpg" />
       
       {/* Enhanced JSON-LD Structured Data */}
@@ -42,7 +42,7 @@ export default function Home() {
             alternateName: "The House of Jugnu",
             url: "https://thehouseofjugnu.com",
             logo: "https://thehouseofjugnu.com/logo.svg",
-            description: "Curated South Asian & global culture—nights, pop-ups, and experiences in Vancouver.",
+            description: "Curated South Asian & global culture—nights, pop-ups, and experiences across Canada.",
             sameAs: [
               "https://instagram.com/thehouseofjugnu",
               "https://facebook.com/thehouseofjugnu"
@@ -50,7 +50,7 @@ export default function Home() {
             contactPoint: {
               "@type": "ContactPoint",
               contactType: "Customer Service",
-              areaServed: "Vancouver, BC",
+              areaServed: "Canada",
               availableLanguage: ["English", "Hindi", "Punjabi", "Urdu"]
             },
             address: {

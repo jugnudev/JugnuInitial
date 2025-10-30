@@ -60,7 +60,7 @@ export default function Hero() {
           </h2>
           
           {/* Description */}
-          <p className="text-lg sm:text-xl text-muted max-w-2xl mx-auto mb-12 leading-relaxed">Metro Vancouver’s South Asian Hub — Discover Events, Exclusive Deals, Community News & More</p>
+          <p className="text-lg sm:text-xl text-muted max-w-2xl mx-auto mb-12 leading-relaxed">Canada's South Asian Hub — Discover Events, Exclusive Deals, Community News & More</p>
 
           {/* Dual CTA */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">

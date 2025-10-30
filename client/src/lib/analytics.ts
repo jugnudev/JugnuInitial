@@ -43,8 +43,8 @@ export const getPageTitle = (path: string): string => {
   
   // Route to title mapping
   const routeTitles: { [key: string]: string } = {
-    '/': `${baseBrand} - Find Your Frequency | South Asian Cultural Events Vancouver`,
-    '/events': `Events - ${baseBrand} | Vancouver South Asian Cultural Events`,
+    '/': `${baseBrand} - Find Your Frequency | South Asian Cultural Events Canada`,
+    '/events': `Events - ${baseBrand} | Canada South Asian Cultural Events`,
     '/deals': `Deals - ${baseBrand} | Special Offers & Discounts`,
     '/promote': `Promote Your Event - ${baseBrand} | Event Marketing Vancouver`,
     '/story': `Our Story - ${baseBrand} | About Vancouver's Premier Cultural Events`,
@@ -57,7 +57,7 @@ export const getPageTitle = (path: string): string => {
     '/admin/leads': `Admin Portal - ${baseBrand} | Leads Management`, 
     '/admin/analytics': `Admin Portal - ${baseBrand} | Analytics Dashboard`,
     // Communities SEO-optimized titles for conversion funnel
-    '/communities': `Communities - ${baseBrand} | Create & Join Cultural Communities Vancouver`,
+    '/communities': `Communities - ${baseBrand} | Create Create & Join Cultural Communities Vancouver Join Cultural Communities Canada`,
     '/account/signin': `Sign In - ${baseBrand} | Access Your Community Account`,
     '/account/signup': `Join ${baseBrand} - Create Your Community Account`,
     '/account/profile': `My Profile - ${baseBrand} | Account Settings & Community Management`,

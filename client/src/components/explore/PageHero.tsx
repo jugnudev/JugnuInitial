@@ -39,7 +39,7 @@ export default function PageHero({ title, subtitle, pill, actions }: PageHeroPro
           </h1>
           
           <p className="text-xl md:text-2xl text-muted max-w-prose mx-auto leading-relaxed mb-8">
-            Discover concerts, festivals, cultural performances & community gatherings in Metro Vancouver.
+            Discover concerts, festivals, cultural performances & community gatherings across Canada.
           </p>
 
           {actions && (

@@ -184,7 +184,7 @@ export default function CareersPage() {
     <>
       <SEOMetaTags
         title="Join the Team - Careers at Jugnu"
-        description="Join Jugnu and help build Vancouver's premier South Asian cultural hub. Volunteer opportunities in marketing, events, community, tech, and more. Make an impact while growing your skills."
+        description="Join Jugnu and help build Canada's premier South Asian cultural hub. Volunteer opportunities in marketing, events, community, tech, and more. Make an impact while growing your skills."
         url="https://thehouseofjugnu.com/careers"
         type="website"
       />
@@ -205,11 +205,11 @@ export default function CareersPage() {
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-orange-200 bg-clip-text text-transparent">
-                Build Vancouver's Cultural Future
+                Build Canada's Cultural Future
               </h1>
 
               <p className="text-xl sm:text-2xl text-gray-300 mb-12 leading-relaxed max-w-3xl mx-auto">
-                Help us create connections, celebrate culture, and empower Vancouver's South Asian community. 
+                Help us create connections, celebrate culture, and empower Canada's South Asian community. 
                 Join Jugnu and make a real impact.
               </p>
 
@@ -236,7 +236,7 @@ export default function CareersPage() {
             <div className="text-center mb-16">
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">Why Join Jugnu?</h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Be part of something bigger. Make connections, build skills, and shape Vancouver's cultural landscape.
+                Be part of something bigger. Make connections, build skills, and shape Canada's cultural landscape.
               </p>
             </div>
 
@@ -248,7 +248,7 @@ export default function CareersPage() {
                   </div>
                   <h3 className="font-semibold text-lg mb-2">Make an Impact</h3>
                   <p className="text-sm text-muted-foreground">
-                    Help build Vancouver's premier South Asian cultural hub and connect thousands in our community
+                    Help build Canada's premier South Asian cultural hub and connect thousands in our community
                   </p>
                 </CardContent>
               </Card>

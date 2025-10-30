@@ -133,7 +133,7 @@ export function TicketsEventListPage() {
             </span>
           </h1>
           <p className="text-lg md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed mobile-hero-subtitle">
-            Discover and purchase tickets for the finest cultural experiences in Metro Vancouver
+            Discover and purchase tickets for the finest cultural experiences across Canada
           </p>
         </div>
 

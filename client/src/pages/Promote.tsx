@@ -41,7 +41,7 @@ const FAQ_ITEMS = [
   },
   {
     question: "Can I target specific demographics?",
-    answer: "Our audience is primarily 18-35 year olds interested in South Asian culture in Metro Vancouver. All placements reach this core demographic automatically."
+    answer: "Our audience is primarily 18-35 year olds interested in South Asian culture across Canada. All placements reach this core demographic automatically."
   },
   {
     question: "How do I track my campaign performance?",
@@ -830,8 +830,8 @@ export default function Promote() {
     <div className="min-h-screen bg-bg">
       {/* SEO Meta Tags */}
       <link rel="canonical" href="https://thehouseofjugnu.com/promote" />
-      <meta name="description" content="Promote your business to Vancouver's South Asian community. Reach passionate culture enthusiasts with premium sponsorship packages starting at CA$50/week. Events page placements, homepage heroes, and full feature campaigns available." />
-      <meta name="keywords" content="Vancouver South Asian advertising, Metro Vancouver sponsorship, cultural events marketing, South Asian audience, Jugnu sponsorship packages, Vancouver event promotion" />
+      <meta name="description" content="Promote your business to Canada.s South Asian community. Reach passionate culture enthusiasts with premium sponsorship packages starting at CA$50/week. Events page placements, homepage heroes, and full feature campaigns available." />
+      <meta name="keywords" content="Canada South Asian advertising, Canada-wide sponsorship, cultural events marketing, South Asian audience, Jugnu sponsorship packages, Canada event promotion" />
       
       {/* Organization Schema */}
       <script
@@ -843,7 +843,7 @@ export default function Promote() {
             "name": "Jugnu",
             "url": "https://thehouseofjugnu.com",
             "logo": "https://thehouseofjugnu.com/logo.svg",
-            "description": "Promote your business to South Asian culture enthusiasts in Vancouver",
+            "description": "Promote your business to South Asian culture enthusiasts across Canada",
             "sameAs": ["https://instagram.com/thehouseofjugnu"],
             "address": {
               "@type": "PostalAddress",
@@ -862,8 +862,8 @@ export default function Promote() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Product",
-            "name": "Spotlight Banner - Vancouver South Asian Audience",
-            "description": "Prime inline placement on events page targeting South Asian culture enthusiasts in Metro Vancouver with comprehensive tracking",
+            "name": "Spotlight Banner - Canada South Asian Audience",
+            "description": "Prime inline placement on events page targeting South Asian culture enthusiasts across Canada with comprehensive tracking",
             "brand": {
               "@type": "Brand",
               "name": "Jugnu"
@@ -888,7 +888,7 @@ export default function Promote() {
               "@type": "Audience",
               "geographicArea": {
                 "@type": "Place",
-                "name": "Metro Vancouver, BC"
+                "name": "Canada"
               }
             }
           })
@@ -902,8 +902,8 @@ export default function Promote() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Product",
-            "name": "Homepage Hero - Vancouver Cultural Events",
-            "description": "High-impact below-the-fold hero placement reaching South Asian audience in Vancouver with premium visibility",
+            "name": "Homepage Hero - Canadian Cultural Events",
+            "description": "High-impact below-the-fold hero placement reaching South Asian audience across Canada with premium visibility",
             "brand": {
               "@type": "Brand",
               "name": "Jugnu"
@@ -928,7 +928,7 @@ export default function Promote() {
               "@type": "Audience",
               "geographicArea": {
                 "@type": "Place",
-                "name": "Metro Vancouver, BC"
+                "name": "Canada"
               }
             }
           })
@@ -942,8 +942,8 @@ export default function Promote() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Product",
-            "name": "Full Feature Campaign - Vancouver South Asian Community",
-            "description": "Complete campaign package with landing page and Instagram carousel targeting Vancouver's South Asian cultural community",
+            "name": "Full Feature Campaign - Canada South Asian Community",
+            "description": "Complete campaign package with landing page and Instagram carousel targeting Canada.s South Asian cultural community",
             "brand": {
               "@type": "Brand",
               "name": "Jugnu"
@@ -968,7 +968,7 @@ export default function Promote() {
               "@type": "Audience",
               "geographicArea": {
                 "@type": "Place",
-                "name": "Metro Vancouver, BC"
+                "name": "Canada"
               }
             }
           })
@@ -1008,7 +1008,7 @@ export default function Promote() {
             "@context": "https://schema.org",
             "@type": "Organization",
             "name": "Jugnu",
-            "description": "Vancouver's premier South Asian cultural events platform",
+            "description": "Canada.s premier South Asian cultural events platform",
             "url": "https://jugnu.ca",
             "makesOffer": [
               {
@@ -1112,7 +1112,7 @@ export default function Promote() {
               </h1>
               
               <p className="text-xl sm:text-2xl text-muted max-w-3xl mx-auto mb-12 leading-relaxed">
-                Reach passionate South Asian culture enthusiasts across Metro Vancouver with premium, measurable placements.
+                Reach passionate South Asian culture enthusiasts across Canada with premium, measurable placements.
               </p>
 
               <Button
@@ -1170,10 +1170,10 @@ export default function Promote() {
             className="text-center mb-16"
           >
             <h2 className="font-fraunces text-3xl sm:text-4xl font-bold text-white mb-4">
-              Why Jugnu Works for Vancouver Businesses
+              Why Jugnu Works for Canadian Businesses
             </h2>
             <p className="text-muted text-lg max-w-2xl mx-auto">
-              Connect with Metro Vancouver's most engaged South Asian cultural community through strategic, measurable placements.
+              Connect with Canada.s most engaged South Asian cultural community through strategic, measurable placements.
             </p>
           </motion.div>
 
@@ -1188,7 +1188,7 @@ export default function Promote() {
                 <Target className="w-12 h-12 text-copper-500 mb-6" />
                 <h3 className="font-fraunces text-xl font-bold text-white mb-4">Targeted Audience</h3>
                 <p className="text-muted">
-                  18-35 year olds passionate about South Asian culture, events, and community experiences in Metro Vancouver.
+                  18-35 year olds passionate about South Asian culture, events, and community experiences across Canada.
                 </p>
               </Card>
             </motion.div>
@@ -1268,10 +1268,10 @@ export default function Promote() {
             className="text-center mb-16"
           >
             <h2 className="font-fraunces text-3xl sm:text-4xl font-bold text-white mb-4">
-              Vancouver South Asian Audience Sponsorship Packages
+              Canada South Asian Audience Sponsorship Packages
             </h2>
             <p className="text-muted text-lg max-w-2xl mx-auto mb-8">
-              Choose the Metro Vancouver placement that best fits your campaign goals and budget.
+              Choose the Canada-wide placement that best fits your campaign goals and budget.
             </p>
 
             {/* Duration Toggle */}
@@ -1651,10 +1651,10 @@ export default function Promote() {
             >
               <div className="text-center mb-12">
                 <h2 className="font-fraunces text-3xl sm:text-4xl font-bold text-white mb-4">
-                  Customize Your Vancouver Campaign
+                  Customize Your Canada Campaign
                 </h2>
                 <p className="text-muted text-lg">
-                  Configure duration and add-ons for your Metro Vancouver South Asian audience campaign
+                  Configure duration and add-ons for your Metro Canada South Asian audience campaign
                 </p>
               </div>
 
@@ -2922,7 +2922,7 @@ export default function Promote() {
             className="max-w-3xl mx-auto"
           >
             <h2 className="font-fraunces text-3xl sm:text-4xl font-bold text-white mb-6">
-              Ready to Connect with Vancouver's South Asian Community?
+              Ready to Connect with Canada.s South Asian Community?
             </h2>
             <p className="text-muted text-lg mb-8">
               Join brands that trust Jugnu to reach an engaged, culturally-focused audience through premium placements and transparent analytics.
