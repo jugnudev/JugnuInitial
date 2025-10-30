@@ -49,6 +49,8 @@ export default function CareersPage() {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   
+  const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
+  
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -56,7 +58,6 @@ export default function CareersPage() {
     phone: '',
     portfolio_url: '',
     linkedin_url: '',
-    cover_letter: '',
     why_join: '',
     availability: ''
   });
@@ -145,7 +146,6 @@ export default function CareersPage() {
         phone: '',
         portfolio_url: '',
         linkedin_url: '',
-        cover_letter: '',
         why_join: '',
         availability: ''
       });
@@ -368,9 +368,84 @@ export default function CareersPage() {
                               </div>
                             </div>
 
-                            <p className="text-muted-foreground mb-4 line-clamp-2">
-                              {posting.description}
-                            </p>
+                            {/* Description with See More */}
+                            <div className="mb-4">
+                              <p className={`text-muted-foreground ${!expandedJobs.has(posting.id) && posting.description.length > 200 ? 'line-clamp-2' : ''}`}>
+                                {posting.description}
+                              </p>
+                              {posting.description.length > 200 && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setExpandedJobs(prev => {
+                                      const newSet = new Set(prev);
+                                      if (newSet.has(posting.id)) {
+                                        newSet.delete(posting.id);
+                                      } else {
+                                        newSet.add(posting.id);
+                                      }
+                                      return newSet;
+                                    });
+                                  }}
+                                  className="text-orange-500 hover:text-orange-600 text-sm font-medium mt-1 inline-flex items-center"
+                                >
+                                  {expandedJobs.has(posting.id) ? 'See less' : 'See more...'}
+                                </button>
+                              )}
+                            </div>
+
+                            {/* Responsibilities, Qualifications, Benefits */}
+                            {expandedJobs.has(posting.id) && (
+                              <div className="space-y-3 mb-4 border-t pt-4">
+                                {posting.responsibilities?.length > 0 && (
+                                  <div>
+                                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
+                                      <CheckCircle2 className="w-4 h-4 text-orange-500" />
+                                      Responsibilities
+                                    </h4>
+                                    <ul className="space-y-1 ml-5">
+                                      {posting.responsibilities.map((item, idx) => (
+                                        <li key={idx} className="text-sm text-muted-foreground list-disc">
+                                          {item}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {posting.qualifications?.length > 0 && (
+                                  <div>
+                                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
+                                      <TrendingUp className="w-4 h-4 text-orange-500" />
+                                      Qualifications
+                                    </h4>
+                                    <ul className="space-y-1 ml-5">
+                                      {posting.qualifications.map((item, idx) => (
+                                        <li key={idx} className="text-sm text-muted-foreground list-disc">
+                                          {item}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+
+                                {posting.benefits?.length > 0 && (
+                                  <div>
+                                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-1.5">
+                                      <Heart className="w-4 h-4 text-orange-500" />
+                                      Benefits
+                                    </h4>
+                                    <ul className="space-y-1 ml-5">
+                                      {posting.benefits.map((item, idx) => (
+                                        <li key={idx} className="text-sm text-muted-foreground list-disc">
+                                          {item}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            )}
 
                             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                               <div className="flex items-center gap-1.5">
@@ -606,18 +681,6 @@ export default function CareersPage() {
             </div>
 
             {/* Text Areas */}
-            <div className="space-y-2">
-              <Label htmlFor="cover_letter">Cover Letter</Label>
-              <Textarea
-                id="cover_letter"
-                value={formData.cover_letter}
-                onChange={(e) => setFormData({ ...formData, cover_letter: e.target.value })}
-                placeholder="Tell us about yourself and your experience..."
-                rows={4}
-                data-testid="textarea-cover-letter"
-              />
-            </div>
-
             <div className="space-y-2">
               <Label htmlFor="why_join">Why do you want to join Jugnu? *</Label>
               <Textarea
