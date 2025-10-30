@@ -27,12 +27,13 @@ Preferred communication style: Simple, everyday language.
 - **API**: RESTful with comprehensive error handling.
 - **Security**: Rate limiting, input sanitization, CSRF protection, IP blocking, and environment variables for sensitive data.
 - **Performance**: In-memory caching with TTL, query optimization, code splitting, lazy/progressive image loading, and React memoization.
-- **SEO**: Meta tags, Open Graph, Twitter Cards, and JSON-LD.
+- **SEO**: Meta tags, Open Graph, Twitter Cards, and JSON-LD via react-helmet-async (wrapped with HelmetProvider in App.tsx).
 - **Data Management**: Static data from local JSON, automated import and bidirectional sync of community events from Google Calendar ICS feeds, and automated cleanup jobs.
 
 ### Feature Specifications
 - **Admin & Sponsorship Systems**: Key-based Admin API, portal token system (UUID-based), lead management (CRUD), multi-part onboarding for campaigns, creative upload (banners), sponsor portal with real-time analytics and CSV export, and health monitoring endpoints.
 - **Business Signup Flow**: Streamlined single-page signup combining user registration and organizer application submission. Includes CTAs in hero section and regular signup page. Form validation handles optional numeric fields (NaN → undefined). Backend conditionally inserts optional Supabase fields to prevent schema mismatch errors. Supports "0 years" experience properly using typeof checks.
+- **Careers System**: "Join the Team" recruitment platform for volunteer opportunities. Public-facing careers page (/careers) with premium dark gradient hero, SEO optimization, department filtering, and job details. Admin management page (/admin/careers) with full CRUD for job postings and application tracking. Database uses snake_case field names to match Supabase conventions. Application data stored with status workflow (pending → reviewing → interviewed → accepted/rejected).
 - **Communities Platform**:
     - **Notification Preferences**: Email frequency settings (immediate/daily/weekly), digest time scheduling, timezone configuration. UI integrated in Account Settings > Schedule tab. Requires manual Supabase table setup (see SETUP_NOTIFICATION_PREFS.md).
     - **Growth Features**: Invite links with copy functionality for owners/moderators, member referrals, community discovery, social sharing.

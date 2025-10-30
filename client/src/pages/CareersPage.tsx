@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Helmet } from 'react-helmet-async';
+import { SEOMetaTags } from '@/components/community/SEOMetaTags';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,16 +54,12 @@ export default function CareersPage() {
 
   return (
     <>
-      <Helmet>
-        <title>Join the Team - Careers at Jugnu | Vancouver's South Asian Hub</title>
-        <meta 
-          name="description" 
-          content="Join Jugnu and help build Vancouver's premier South Asian cultural hub. Volunteer opportunities in marketing, events, community, tech, and more. Make an impact while growing your skills." 
-        />
-        <meta property="og:title" content="Join the Team - Careers at Jugnu" />
-        <meta property="og:description" content="Be part of Vancouver's South Asian cultural movement. Find volunteer opportunities and help build community connections." />
-        <meta property="og:type" content="website" />
-      </Helmet>
+      <SEOMetaTags
+        title="Join the Team - Careers at Jugnu"
+        description="Join Jugnu and help build Vancouver's premier South Asian cultural hub. Volunteer opportunities in marketing, events, community, tech, and more. Make an impact while growing your skills."
+        url="https://thehouseofjugnu.com/careers"
+        type="website"
+      />
 
       <div className="min-h-screen bg-gradient-to-br from-background via-background to-orange-50/10 dark:to-orange-950/10">
         {/* Hero Section */}
