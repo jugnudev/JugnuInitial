@@ -377,51 +377,45 @@ export default function CareersPage() {
                               </p>
                             </div>
 
-                            {/* Responsibilities, Qualifications, Benefits - Premium Design */}
+                            {/* Responsibilities, Qualifications, Benefits - Sleek Minimal Design */}
                             {expandedJobs.has(posting.id) && (
-                              <div className="mt-6 space-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                              <div className="mt-5 space-y-5 animate-in fade-in slide-in-from-top-2 duration-300 border-t border-border/50 pt-5">
                                 {/* Responsibilities */}
                                 {posting.responsibilities?.length > 0 && (
-                                  <div className="relative">
-                                    <div className="flex items-center gap-2 mb-4">
-                                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-md shadow-orange-500/20">
-                                        <CheckCircle2 className="w-4 h-4 text-white" />
-                                      </div>
-                                      <h4 className="font-bold text-base">What You'll Do</h4>
-                                    </div>
-                                    <div className="grid grid-cols-1 gap-3 pl-10">
+                                  <div>
+                                    <h4 className="text-sm font-semibold text-orange-500 mb-3 flex items-center gap-2">
+                                      <CheckCircle2 className="w-4 h-4" />
+                                      What You'll Do
+                                    </h4>
+                                    <ul className="space-y-2">
                                       {posting.responsibilities.map((item, idx) => (
-                                        <div 
+                                        <li 
                                           key={idx}
-                                          className="group relative flex items-start gap-3 p-4 rounded-xl bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800/50 hover:border-orange-400 dark:hover:border-orange-600 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all duration-200 hover:shadow-lg"
+                                          className="flex items-start gap-2.5 text-sm text-foreground/90 leading-relaxed"
                                         >
-                                          <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0"></div>
-                                          <p className="text-sm leading-relaxed flex-1">{item}</p>
-                                        </div>
+                                          <span className="text-orange-500 mt-1.5 flex-shrink-0">•</span>
+                                          <span>{item}</span>
+                                        </li>
                                       ))}
-                                    </div>
+                                    </ul>
                                   </div>
                                 )}
 
                                 {/* Qualifications */}
                                 {posting.qualifications?.length > 0 && (
-                                  <div className="relative">
-                                    <div className="flex items-center gap-2 mb-4">
-                                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20">
-                                        <TrendingUp className="w-4 h-4 text-white" />
-                                      </div>
-                                      <h4 className="font-bold text-base">What We're Looking For</h4>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2 pl-10">
+                                  <div>
+                                    <h4 className="text-sm font-semibold text-blue-500 mb-3 flex items-center gap-2">
+                                      <TrendingUp className="w-4 h-4" />
+                                      What We're Looking For
+                                    </h4>
+                                    <div className="flex flex-wrap gap-2">
                                       {posting.qualifications.map((item, idx) => (
-                                        <Badge 
+                                        <span 
                                           key={idx}
-                                          variant="outline"
-                                          className="px-4 py-2 text-sm border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:border-blue-300 dark:hover:border-blue-700 transition-all duration-200 cursor-default"
+                                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 text-xs font-medium text-foreground/80 border border-border/50"
                                         >
-                                          <CheckCircle2 className="w-3.5 h-3.5 mr-1.5 text-blue-500" />
                                           {item}
-                                        </Badge>
+                                        </span>
                                       ))}
                                     </div>
                                   </div>
@@ -429,24 +423,22 @@ export default function CareersPage() {
 
                                 {/* Benefits */}
                                 {posting.benefits?.length > 0 && (
-                                  <div className="relative">
-                                    <div className="flex items-center gap-2 mb-4">
-                                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-md shadow-purple-500/20">
-                                        <Heart className="w-4 h-4 text-white" />
-                                      </div>
-                                      <h4 className="font-bold text-base">What You'll Gain</h4>
-                                    </div>
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 pl-10">
+                                  <div>
+                                    <h4 className="text-sm font-semibold text-purple-500 mb-3 flex items-center gap-2">
+                                      <Sparkles className="w-4 h-4" />
+                                      What You'll Gain
+                                    </h4>
+                                    <ul className="space-y-2">
                                       {posting.benefits.map((item, idx) => (
-                                        <div 
+                                        <li 
                                           key={idx}
-                                          className="flex items-center gap-3 p-3.5 rounded-xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200/50 dark:border-purple-800/50 hover:shadow-lg transition-all duration-200"
+                                          className="flex items-start gap-2.5 text-sm text-foreground/90 leading-relaxed"
                                         >
-                                          <Sparkles className="w-4 h-4 text-purple-500 flex-shrink-0" />
-                                          <p className="text-sm font-medium leading-snug">{item}</p>
-                                        </div>
+                                          <span className="text-purple-500 mt-1.5 flex-shrink-0">•</span>
+                                          <span>{item}</span>
+                                        </li>
                                       ))}
-                                    </div>
+                                    </ul>
                                   </div>
                                 )}
                               </div>
