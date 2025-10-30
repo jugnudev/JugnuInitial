@@ -4375,18 +4375,43 @@ Disallow: /account/*`;
     }
   });
 
-  // Submit job application (public)
-  app.post('/api/careers/apply', async (req, res) => {
+  // Submit job application with optional resume upload (public, rate-limited)
+  const applicationUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: (req, file, cb) => {
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      ];
+      if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Invalid file type. Only PDF, DOC, and DOCX files are allowed.'));
+      }
+    }
+  });
+
+  app.post('/api/careers/apply', applicationUpload.single('resume'), async (req, res) => {
     try {
       const { insertJobApplicationSchema } = await import('@shared/schema');
       const { z } = await import('zod');
       
-      const applicationData = insertJobApplicationSchema.parse(req.body);
+      // Parse application data from form fields
+      const applicationData = insertJobApplicationSchema.parse(JSON.parse(req.body.data || '{}'));
+      
+      // Upload resume if provided
+      let resumeUrl = undefined;
+      if (req.file) {
+        const { uploadResume } = await import('./services/storageService.js');
+        resumeUrl = await uploadResume(req.file);
+      }
       
       const supabase = getSupabaseAdmin();
       const { data: application, error } = await supabase
         .from('job_applications')
-        .insert(applicationData)
+        .insert({ ...applicationData, resume_url: resumeUrl })
         .select()
         .single();
 

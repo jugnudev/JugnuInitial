@@ -425,3 +425,66 @@ export async function getSignedUrl(path: string, expiresIn: number = 300): Promi
   
   return data.signedUrl;
 }
+
+// Upload resume for job application
+export async function uploadResume(
+  file: Express.Multer.File
+): Promise<string> {
+  const supabase = getStorageClient();
+  const bucketName = 'resumes';
+  
+  // Validate file type - support PDF, DOC, DOCX
+  const allowedTypes = [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ];
+  if (!allowedTypes.includes(file.mimetype)) {
+    throw new Error(`Invalid file type: ${file.mimetype}. Only PDF, DOC, and DOCX files are allowed.`);
+  }
+  
+  // Validate file size (max 5MB)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxSize) {
+    throw new Error('Resume file size must be less than 5MB');
+  }
+  
+  // Generate unique path
+  const timestamp = Date.now();
+  const safeFilename = slugify(file.originalname, { lower: true, strict: true });
+  const path = `${timestamp}-${safeFilename}`;
+  
+  // Create bucket if it doesn't exist
+  const { error: bucketError } = await supabase.storage.getBucket(bucketName);
+  if (bucketError && bucketError.message.includes('not found')) {
+    const { error: createError } = await supabase.storage.createBucket(bucketName, {
+      public: true, // Public so applicants can share the link
+      fileSizeLimit: maxSize,
+      allowedMimeTypes: allowedTypes
+    });
+    if (createError) {
+      console.error('Failed to create resumes bucket:', createError);
+      throw new Error(`Failed to create storage bucket: ${createError.message}`);
+    }
+  }
+  
+  // Upload to Supabase Storage
+  const { data, error } = await supabase.storage
+    .from(bucketName)
+    .upload(path, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false
+    });
+  
+  if (error) {
+    console.error('Resume upload error:', error);
+    throw new Error(`Failed to upload resume: ${error.message}`);
+  }
+  
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from(bucketName)
+    .getPublicUrl(data.path);
+  
+  return urlData.publicUrl;
+}

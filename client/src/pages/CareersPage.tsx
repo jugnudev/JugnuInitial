@@ -1,10 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { SEOMetaTags } from '@/components/community/SEOMetaTags';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { toast } from '@/hooks/use-toast';
 import { 
   Briefcase, 
   MapPin, 
@@ -14,7 +19,11 @@ import {
   Heart, 
   Sparkles,
   CheckCircle2,
-  ArrowRight
+  ArrowRight,
+  Upload,
+  FileText,
+  X,
+  Loader2
 } from 'lucide-react';
 
 interface JobPosting {
@@ -35,6 +44,22 @@ interface JobPosting {
 
 export default function CareersPage() {
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
+  const [selectedJob, setSelectedJob] = useState<JobPosting | null>(null);
+  const [isApplicationDialogOpen, setIsApplicationDialogOpen] = useState(false);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  
+  const [formData, setFormData] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    portfolio_url: '',
+    linkedin_url: '',
+    cover_letter: '',
+    why_join: '',
+    availability: ''
+  });
 
   // Fetch active job postings
   const { data: postingsData, isLoading } = useQuery({
@@ -51,6 +76,107 @@ export default function CareersPage() {
   const filteredPostings = selectedDepartment === 'all' 
     ? postings 
     : postings.filter(p => p.department === selectedDepartment);
+
+  // File selection handler with validation
+  const handleFileSelect = (file: File) => {
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Only PDF, DOC, and DOCX files are allowed',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Resume must be less than 5MB',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setResumeFile(file);
+  };
+
+  // Submit application mutation
+  const submitApplication = useMutation({
+    mutationFn: async () => {
+      if (!selectedJob) throw new Error('No job selected');
+
+      const formPayload = new FormData();
+      formPayload.append('data', JSON.stringify({
+        job_posting_id: selectedJob.id,
+        ...formData
+      }));
+
+      if (resumeFile) {
+        formPayload.append('resume', resumeFile);
+      }
+
+      const response = await fetch('/api/careers/apply', {
+        method: 'POST',
+        body: formPayload
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to submit application');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Application Submitted!',
+        description: 'We\'ll review your application and get back to you soon.'
+      });
+      setIsApplicationDialogOpen(false);
+      // Reset form
+      setFormData({
+        first_name: '',
+        last_name: '',
+        email: '',
+        phone: '',
+        portfolio_url: '',
+        linkedin_url: '',
+        cover_letter: '',
+        why_join: '',
+        availability: ''
+      });
+      setResumeFile(null);
+      setSelectedJob(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Submission failed',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  });
+
+  const handleSubmitApplication = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitApplication.mutate();
+  };
+
+  const openApplicationDialog = (job: JobPosting) => {
+    setSelectedJob(job);
+    setIsApplicationDialogOpen(true);
+  };
+
+  // Reset drag state when dialog closes
+  useEffect(() => {
+    if (!isApplicationDialogOpen) {
+      setDragActive(false);
+    }
+  }, [isApplicationDialogOpen]);
 
   return (
     <>
@@ -215,8 +341,7 @@ export default function CareersPage() {
                   {filteredPostings.map((posting: JobPosting) => (
                     <Card 
                       key={posting.id} 
-                      className="border-2 hover:border-orange-500/50 transition-all duration-300 hover:shadow-xl cursor-pointer group"
-                      onClick={() => window.location.href = `/careers/${posting.slug}`}
+                      className="border-2 hover:border-orange-500/50 transition-all duration-300 hover:shadow-xl group"
                       data-testid={`card-job-${posting.slug}`}
                     >
                       <CardContent className="p-6 sm:p-8">
@@ -264,6 +389,10 @@ export default function CareersPage() {
                           <div className="flex sm:flex-col items-start sm:items-end justify-between sm:justify-start gap-2">
                             <Button 
                               className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 shadow-lg group-hover:shadow-xl transition-all"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openApplicationDialog(posting);
+                              }}
                               data-testid={`button-apply-${posting.slug}`}
                             >
                               Apply Now
@@ -304,6 +433,244 @@ export default function CareersPage() {
           </div>
         </section>
       </div>
+
+      {/* Application Dialog */}
+      <Dialog open={isApplicationDialogOpen} onOpenChange={setIsApplicationDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Apply for {selectedJob?.title}</DialogTitle>
+            <DialogDescription>
+              Fill out the form below to submit your application. Fields marked with * are required.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmitApplication} className="space-y-6">
+            {/* Personal Information */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="first_name">First Name *</Label>
+                <Input
+                  id="first_name"
+                  value={formData.first_name}
+                  onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                  required
+                  data-testid="input-first-name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="last_name">Last Name *</Label>
+                <Input
+                  id="last_name"
+                  value={formData.last_name}
+                  onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                  required
+                  data-testid="input-last-name"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                required
+                data-testid="input-email"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone *</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                required
+                data-testid="input-phone"
+              />
+            </div>
+
+            {/* Resume Upload */}
+            <div className="space-y-2">
+              <Label htmlFor="resume">Resume (Optional)</Label>
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  dragActive
+                    ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/20'
+                    : 'border-gray-300 dark:border-gray-700'
+                }`}
+                onDragEnter={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragActive(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragActive(false);
+                }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setDragActive(false);
+                  if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    handleFileSelect(e.dataTransfer.files[0]);
+                  }
+                }}
+              >
+                {resumeFile ? (
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2">
+                      <FileText className="w-6 h-6 text-orange-500" />
+                      <span className="font-medium">{resumeFile.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        ({(resumeFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setResumeFile(null)}
+                      data-testid="button-remove-resume"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Upload className="w-12 h-12 mx-auto text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Drag and drop your resume here</p>
+                      <p className="text-sm text-muted-foreground">or</p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => document.getElementById('resume-upload')?.click()}
+                        data-testid="button-choose-file"
+                      >
+                        Choose File
+                      </Button>
+                      <Input
+                        id="resume-upload"
+                        type="file"
+                        accept=".pdf,.doc,.docx"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleFileSelect(e.target.files[0]);
+                          }
+                        }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      PDF, DOC, or DOCX (max 5MB)
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Optional Links */}
+            <div className="space-y-2">
+              <Label htmlFor="portfolio_url">Portfolio URL</Label>
+              <Input
+                id="portfolio_url"
+                type="url"
+                value={formData.portfolio_url}
+                onChange={(e) => setFormData({ ...formData, portfolio_url: e.target.value })}
+                placeholder="https://..."
+                data-testid="input-portfolio"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="linkedin_url">LinkedIn URL</Label>
+              <Input
+                id="linkedin_url"
+                type="url"
+                value={formData.linkedin_url}
+                onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
+                placeholder="https://linkedin.com/in/..."
+                data-testid="input-linkedin"
+              />
+            </div>
+
+            {/* Text Areas */}
+            <div className="space-y-2">
+              <Label htmlFor="cover_letter">Cover Letter</Label>
+              <Textarea
+                id="cover_letter"
+                value={formData.cover_letter}
+                onChange={(e) => setFormData({ ...formData, cover_letter: e.target.value })}
+                placeholder="Tell us about yourself and your experience..."
+                rows={4}
+                data-testid="textarea-cover-letter"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="why_join">Why do you want to join Jugnu? *</Label>
+              <Textarea
+                id="why_join"
+                value={formData.why_join}
+                onChange={(e) => setFormData({ ...formData, why_join: e.target.value })}
+                placeholder="What excites you about this opportunity?"
+                rows={3}
+                required
+                data-testid="textarea-why-join"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="availability">Availability *</Label>
+              <Input
+                id="availability"
+                value={formData.availability}
+                onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
+                placeholder="e.g., 10-15 hours/week, Evenings and weekends"
+                required
+                data-testid="input-availability"
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsApplicationDialogOpen(false)}
+                data-testid="button-cancel"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
+                disabled={submitApplication.isPending}
+                data-testid="button-submit-application"
+              >
+                {submitApplication.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  'Submit Application'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
