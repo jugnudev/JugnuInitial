@@ -77,6 +77,13 @@ export interface TicketEmailData {
   refundPolicy?: string;
 }
 
+export interface WelcomeEmailData {
+  recipientEmail: string;
+  userName: string;
+  accountType: 'user' | 'business';
+  businessName?: string;
+}
+
 export async function sendVerificationEmail(data: VerificationEmailData): Promise<void> {
   if (!SENDGRID_API_KEY) {
     console.log(`📧 [DEV] Would send ${data.purpose} email to ${data.recipientEmail} with code: ${data.verificationCode}`);
@@ -101,82 +108,187 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
               line-height: 1.6;
-              color: #333;
+              color: #1f2937;
+              background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+              padding: 40px 20px;
+            }
+            .email-container {
               max-width: 600px;
               margin: 0 auto;
-              padding: 20px;
-              background-color: #f9fafb;
+              background: #ffffff;
+              border-radius: 16px;
+              overflow: hidden;
+              box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             }
             .header {
-              text-align: center;
-              padding: 30px 0;
               background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-              color: white;
-              border-radius: 12px 12px 0 0;
-              margin-bottom: 0;
+              padding: 48px 40px;
+              text-align: center;
+              position: relative;
+            }
+            .header::after {
+              content: '';
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              height: 4px;
+              background: linear-gradient(90deg, #fbbf24, #f59e0b, #ea580c);
+            }
+            .logo {
+              font-size: 42px;
+              margin-bottom: 12px;
+              filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+            }
+            .header h1 {
+              color: #ffffff;
+              font-size: 32px;
+              font-weight: 700;
+              margin: 0;
+              text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .header p {
+              color: rgba(255, 255, 255, 0.95);
+              font-size: 16px;
+              margin-top: 8px;
+              font-weight: 500;
             }
             .content {
-              background: white;
-              padding: 30px;
-              border-radius: 0 0 12px 12px;
-              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+              padding: 48px 40px;
+              background: #ffffff;
+            }
+            .greeting {
+              font-size: 18px;
+              color: #111827;
+              margin-bottom: 24px;
+              font-weight: 600;
+            }
+            .message {
+              font-size: 16px;
+              color: #4b5563;
+              margin-bottom: 32px;
+              line-height: 1.7;
             }
             .code-box {
-              background: #f8fafc;
-              border: 2px solid #f97316;
-              padding: 20px;
-              border-radius: 8px;
+              background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+              border: 3px solid #f97316;
+              padding: 32px 24px;
+              border-radius: 12px;
               text-align: center;
-              margin: 25px 0;
+              margin: 32px 0;
+              box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15);
+            }
+            .code-label {
+              font-size: 13px;
+              color: #92400e;
+              text-transform: uppercase;
+              letter-spacing: 1.5px;
+              font-weight: 700;
+              margin-bottom: 16px;
             }
             .verification-code {
-              font-size: 32px;
-              font-weight: bold;
-              color: #f97316;
-              letter-spacing: 4px;
-              font-family: monospace;
+              font-size: 40px;
+              font-weight: 800;
+              color: #ea580c;
+              letter-spacing: 8px;
+              font-family: 'Courier New', monospace;
+              text-shadow: 0 2px 4px rgba(234, 88, 12, 0.15);
+            }
+            .code-hint {
+              font-size: 14px;
+              color: #78350f;
+              margin-top: 16px;
+              font-weight: 500;
+            }
+            .security-note {
+              background: #f3f4f6;
+              border-left: 4px solid #6b7280;
+              padding: 16px 20px;
+              border-radius: 8px;
+              margin: 32px 0;
+            }
+            .security-note p {
+              font-size: 14px;
+              color: #374151;
+              margin: 0;
+              line-height: 1.6;
+            }
+            .security-note strong {
+              color: #1f2937;
             }
             .footer {
-              margin-top: 30px;
-              padding-top: 20px;
+              background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+              padding: 32px 40px;
+              text-align: center;
               border-top: 1px solid #e5e7eb;
+            }
+            .footer-link {
+              color: #f97316;
+              text-decoration: none;
+              font-weight: 600;
+            }
+            .footer-link:hover {
+              color: #ea580c;
+            }
+            .brand {
+              margin-top: 24px;
+              padding-top: 24px;
+              border-top: 1px solid #d1d5db;
+            }
+            .brand-name {
+              font-size: 18px;
+              font-weight: 700;
+              color: #111827;
+              margin-bottom: 4px;
+            }
+            .brand-tagline {
               font-size: 14px;
               color: #6b7280;
+              font-weight: 500;
             }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1 style="margin: 0; font-size: 28px;">🎭 Jugnu</h1>
-            <p style="margin: 10px 0 0 0; opacity: 0.9;">Your verification code</p>
-          </div>
-          
-          <div class="content">
-            <p>${greeting},</p>
-            
-            ${isSignup ? 
-              '<p>Welcome to <strong>Jugnu</strong>! To complete your account setup, please verify your email address with the code below:</p>' :
-              '<p>To sign in to your <strong>Jugnu</strong> account, please use the verification code below:</p>'
-            }
-            
-            <div class="code-box">
-              <div class="verification-code">${data.verificationCode}</div>
-              <p style="margin: 10px 0 0 0; color: #6b7280; font-size: 14px;">Enter this code in the verification form</p>
+          <div class="email-container">
+            <div class="header">
+              <div class="logo">🎭</div>
+              <h1>Jugnu</h1>
+              <p>Verification Required</p>
             </div>
             
-            <p style="color: #6b7280; font-size: 14px;">
-              <strong>Security note:</strong> This code expires in 10 minutes. If you didn't request this email, please ignore it.
-            </p>
+            <div class="content">
+              <div class="greeting">${greeting},</div>
+              
+              <div class="message">
+                ${isSignup ? 
+                  'Welcome to <strong>Jugnu</strong> — Canada\'s premier cultural events platform! To complete your account setup and start exploring events, please verify your email address using the code below.' :
+                  'To securely sign in to your <strong>Jugnu</strong> account, please enter the verification code below.'
+                }
+              </div>
+              
+              <div class="code-box">
+                <div class="code-label">Your Verification Code</div>
+                <div class="verification-code">${data.verificationCode}</div>
+                <div class="code-hint">Enter this code to continue</div>
+              </div>
+              
+              <div class="security-note">
+                <p><strong>🔒 Security Note:</strong> This code expires in 10 minutes. If you didn't request this email, you can safely ignore it.</p>
+              </div>
+            </div>
             
             <div class="footer">
-              <p>Need help? Contact us at <a href="mailto:${EMAIL_FROM_ADDRESS}" style="color: #f97316;">${EMAIL_FROM_ADDRESS}</a></p>
-              <p style="margin-top: 15px;">
-                <strong>Jugnu</strong><br>
-                Canada's South Asian Cultural Hub
+              <p style="font-size: 14px; color: #6b7280; margin-bottom: 12px;">
+                Need help? Contact us at <a href="mailto:${EMAIL_FROM_ADDRESS}" class="footer-link">${EMAIL_FROM_ADDRESS}</a>
               </p>
+              <div class="brand">
+                <div class="brand-name">Jugnu</div>
+                <div class="brand-tagline">Canada's South Asian Cultural Hub</div>
+              </div>
             </div>
           </div>
         </body>
@@ -210,6 +322,328 @@ Canada's South Asian Cultural Hub
   } catch (error) {
     console.error('Error sending verification email:', error);
     throw new Error('Failed to send verification email');
+  }
+}
+
+export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
+  if (!SENDGRID_API_KEY) {
+    console.log(`📧 [DEV] Would send welcome email to ${data.recipientEmail}`);
+    return;
+  }
+
+  const isBusinessAccount = data.accountType === 'business';
+  const greeting = `Hi ${data.userName}`;
+  const subject = isBusinessAccount ? 
+    `Welcome to Jugnu, ${data.businessName || data.userName}! 🎉` : 
+    `Welcome to Jugnu, ${data.userName}! 🎉`;
+  
+  const msg = {
+    to: data.recipientEmail,
+    from: {
+      email: EMAIL_FROM_ADDRESS,
+      name: EMAIL_FROM_NAME
+    },
+    subject,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body {
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+              line-height: 1.6;
+              color: #1f2937;
+              background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+              padding: 40px 20px;
+            }
+            .email-container {
+              max-width: 600px;
+              margin: 0 auto;
+              background: #ffffff;
+              border-radius: 16px;
+              overflow: hidden;
+              box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            }
+            .header {
+              background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+              padding: 56px 40px;
+              text-align: center;
+              position: relative;
+            }
+            .header::after {
+              content: '';
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              height: 4px;
+              background: linear-gradient(90deg, #fbbf24, #f59e0b, #ea580c);
+            }
+            .logo {
+              font-size: 56px;
+              margin-bottom: 16px;
+              filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+            }
+            .header h1 {
+              color: #ffffff;
+              font-size: 36px;
+              font-weight: 800;
+              margin: 0;
+              text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            }
+            .header p {
+              color: rgba(255, 255, 255, 0.95);
+              font-size: 18px;
+              margin-top: 12px;
+              font-weight: 500;
+            }
+            .content {
+              padding: 48px 40px;
+              background: #ffffff;
+            }
+            .greeting {
+              font-size: 24px;
+              color: #111827;
+              margin-bottom: 24px;
+              font-weight: 700;
+            }
+            .intro {
+              font-size: 17px;
+              color: #4b5563;
+              margin-bottom: 32px;
+              line-height: 1.7;
+            }
+            .features {
+              margin: 32px 0;
+            }
+            .feature {
+              display: flex;
+              align-items: flex-start;
+              margin-bottom: 24px;
+              padding: 20px;
+              background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+              border-left: 4px solid #f97316;
+              border-radius: 8px;
+            }
+            .feature-icon {
+              font-size: 32px;
+              margin-right: 16px;
+              flex-shrink: 0;
+            }
+            .feature-content h3 {
+              font-size: 16px;
+              font-weight: 700;
+              color: #111827;
+              margin-bottom: 6px;
+            }
+            .feature-content p {
+              font-size: 14px;
+              color: #6b7280;
+              line-height: 1.6;
+            }
+            .cta {
+              text-align: center;
+              margin: 40px 0 32px;
+            }
+            .cta-button {
+              display: inline-block;
+              background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+              color: #ffffff;
+              padding: 16px 40px;
+              text-decoration: none;
+              border-radius: 12px;
+              font-weight: 700;
+              font-size: 16px;
+              box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+            }
+            .footer {
+              background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+              padding: 32px 40px;
+              text-align: center;
+              border-top: 1px solid #e5e7eb;
+            }
+            .footer-link {
+              color: #f97316;
+              text-decoration: none;
+              font-weight: 600;
+            }
+            .brand {
+              margin-top: 24px;
+              padding-top: 24px;
+              border-top: 1px solid #d1d5db;
+            }
+            .brand-name {
+              font-size: 18px;
+              font-weight: 700;
+              color: #111827;
+              margin-bottom: 4px;
+            }
+            .brand-tagline {
+              font-size: 14px;
+              color: #6b7280;
+              font-weight: 500;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="email-container">
+            <div class="header">
+              <div class="logo">🎉</div>
+              <h1>Welcome to Jugnu!</h1>
+              <p>${isBusinessAccount ? 'Your business account is ready' : 'Your account is ready'}</p>
+            </div>
+            
+            <div class="content">
+              <div class="greeting">${greeting},</div>
+              
+              <div class="intro">
+                ${isBusinessAccount ? 
+                  `We're thrilled to have <strong>${data.businessName || 'your business'}</strong> join Canada's premier South Asian cultural events platform! Your account is now active and ready to help you grow your audience and connect with thousands of engaged community members across Canada.` :
+                  `We're excited to welcome you to Canada's premier South Asian cultural events platform! Your account is now active and you're ready to discover amazing events, connect with your community, and never miss out on the experiences that matter to you.`
+                }
+              </div>
+              
+              <div class="features">
+                ${isBusinessAccount ? `
+                  <div class="feature">
+                    <div class="feature-icon">📢</div>
+                    <div class="feature-content">
+                      <h3>Promote Your Events</h3>
+                      <p>Reach thousands of engaged community members across Canada and grow your audience with our powerful event promotion tools.</p>
+                    </div>
+                  </div>
+                  <div class="feature">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-content">
+                      <h3>Analytics & Insights</h3>
+                      <p>Track your event performance, understand your audience, and make data-driven decisions to maximize your impact.</p>
+                    </div>
+                  </div>
+                  <div class="feature">
+                    <div class="feature-icon">💬</div>
+                    <div class="feature-content">
+                      <h3>Community Building</h3>
+                      <p>Create your own community space, engage with attendees, and build lasting relationships with your audience.</p>
+                    </div>
+                  </div>
+                  <div class="feature">
+                    <div class="feature-icon">🎟️</div>
+                    <div class="feature-content">
+                      <h3>Integrated Ticketing</h3>
+                      <p>Sell tickets directly through our platform with seamless payment processing and instant delivery.</p>
+                    </div>
+                  </div>
+                ` : `
+                  <div class="feature">
+                    <div class="feature-icon">🎭</div>
+                    <div class="feature-content">
+                      <h3>Discover Events</h3>
+                      <p>Explore concerts, festivals, cultural celebrations, and community gatherings happening across Canada.</p>
+                    </div>
+                  </div>
+                  <div class="feature">
+                    <div class="feature-icon">🎟️</div>
+                    <div class="feature-content">
+                      <h3>Easy Ticketing</h3>
+                      <p>Purchase tickets seamlessly and get instant digital delivery — your tickets are always in your account.</p>
+                    </div>
+                  </div>
+                  <div class="feature">
+                    <div class="feature-icon">💬</div>
+                    <div class="feature-content">
+                      <h3>Join Communities</h3>
+                      <p>Connect with like-minded people, join exclusive groups, and stay updated on events that interest you.</p>
+                    </div>
+                  </div>
+                  <div class="feature">
+                    <div class="feature-icon">🔔</div>
+                    <div class="feature-content">
+                      <h3>Never Miss Out</h3>
+                      <p>Get personalized notifications about upcoming events and never miss the experiences you love.</p>
+                    </div>
+                  </div>
+                `}
+              </div>
+              
+              <div class="cta">
+                <a href="${APP_BASE_URL}" class="cta-button">
+                  ${isBusinessAccount ? 'Access Your Dashboard' : 'Start Exploring Events'}
+                </a>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <p style="font-size: 14px; color: #6b7280; margin-bottom: 12px;">
+                Questions? We're here to help at <a href="mailto:${EMAIL_FROM_ADDRESS}" class="footer-link">${EMAIL_FROM_ADDRESS}</a>
+              </p>
+              <div class="brand">
+                <div class="brand-name">Jugnu</div>
+                <div class="brand-tagline">Canada's South Asian Cultural Hub</div>
+              </div>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+    text: `
+${greeting},
+
+${isBusinessAccount ? 
+  `We're thrilled to have ${data.businessName || 'your business'} join Canada's premier South Asian cultural events platform! Your account is now active and ready to help you grow your audience and connect with thousands of engaged community members across Canada.` :
+  `We're excited to welcome you to Canada's premier South Asian cultural events platform! Your account is now active and you're ready to discover amazing events, connect with your community, and never miss out on the experiences that matter to you.`
+}
+
+${isBusinessAccount ? `
+What you can do with Jugnu:
+
+📢 Promote Your Events
+Reach thousands of engaged community members across Canada and grow your audience.
+
+📊 Analytics & Insights
+Track your event performance and make data-driven decisions.
+
+💬 Community Building
+Create your own community space and build lasting relationships.
+
+🎟️ Integrated Ticketing
+Sell tickets directly through our platform with seamless payment processing.
+
+Get started: ${APP_BASE_URL}
+` : `
+What you can do with Jugnu:
+
+🎭 Discover Events
+Explore concerts, festivals, and cultural celebrations across Canada.
+
+🎟️ Easy Ticketing
+Purchase tickets seamlessly with instant digital delivery.
+
+💬 Join Communities
+Connect with like-minded people and stay updated.
+
+🔔 Never Miss Out
+Get personalized notifications about upcoming events.
+
+Start exploring: ${APP_BASE_URL}
+`}
+
+Questions? We're here to help at ${EMAIL_FROM_ADDRESS}
+
+---
+Jugnu
+Canada's South Asian Cultural Hub
+    `.trim()
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log(`Welcome email sent to ${data.recipientEmail} (${data.accountType})`);
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    throw new Error('Failed to send welcome email');
   }
 }
 

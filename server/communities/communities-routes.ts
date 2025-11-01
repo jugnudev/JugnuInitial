@@ -286,7 +286,7 @@ const updateProfileSchema = z.object({
 });
 
 // Import the email service
-import { sendVerificationEmail } from '../services/emailService.js';
+import { sendVerificationEmail, sendWelcomeEmail } from '../services/emailService.js';
 
 // Start cleanup jobs in production
 if (process.env.NODE_ENV === 'production') {
@@ -594,11 +594,13 @@ export function addCommunitiesRoutes(app: Express) {
       await communitiesStorage.markAuthCodeUsed(authCode.id);
 
       // If this was a signup verification, activate the account
+      let isNewAccountActivation = false;
       if (authCode.purpose === 'signup' && user.status === 'pending_verification') {
         await communitiesStorage.updateUser(user.id, {
           status: 'active',
           emailVerified: true
         });
+        isNewAccountActivation = true;
       } else {
         // For existing users with 'signin' or 'login' verification, ensure they're active
         if ((authCode.purpose === 'signin' || authCode.purpose === 'login') && user.status !== 'active') {
@@ -606,6 +608,30 @@ export function addCommunitiesRoutes(app: Express) {
             status: 'active',
             emailVerified: true
           });
+        }
+      }
+
+      // Send welcome email for new account activations
+      if (isNewAccountActivation) {
+        try {
+          // Check if this is a business account by looking for organizer application
+          const supabase = getSupabaseAdmin();
+          const { data: organizerApp } = await supabase
+            .from('organizer_applications')
+            .select('business_name')
+            .eq('user_id', user.id)
+            .single();
+
+          await sendWelcomeEmail({
+            recipientEmail: user.email,
+            userName: user.firstName || user.displayName || 'there',
+            accountType: organizerApp ? 'business' : 'user',
+            businessName: organizerApp?.business_name
+          });
+          console.log(`Welcome email sent to ${user.email} (${organizerApp ? 'business' : 'user'})`);
+        } catch (emailError) {
+          // Log error but don't fail the verification
+          console.error('Failed to send welcome email:', emailError);
         }
       }
 
