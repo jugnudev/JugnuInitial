@@ -28,7 +28,16 @@ const businessSignupSchema = z.object({
   }),
   
   // Business Information (Optional)
-  businessWebsite: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  businessWebsite: z.string()
+    .transform((val) => {
+      if (!val || val === '') return '';
+      // If user didn't include protocol, add https://
+      if (!val.startsWith('http://') && !val.startsWith('https://')) {
+        return `https://${val}`;
+      }
+      return val;
+    })
+    .pipe(z.string().url('Must be a valid URL').optional().or(z.literal(''))),
   businessPhone: z.string().optional(),
   businessAddress: z.string().optional(),
   yearsExperience: z.number().min(0).max(50).optional().or(z.nan().transform(() => undefined)),
@@ -415,8 +424,8 @@ export function BusinessSignupPage() {
                     <Input
                       id="businessWebsite"
                       data-testid="input-businessWebsite"
-                      type="url"
-                      placeholder="https://acmeevents.com"
+                      type="text"
+                      placeholder="acmeevents.com or https://acmeevents.com"
                       {...form.register('businessWebsite')}
                     />
                     {form.formState.errors.businessWebsite && (
