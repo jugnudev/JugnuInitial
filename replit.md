@@ -29,6 +29,7 @@ Preferred communication style: Simple, everyday language.
 - **Performance**: In-memory caching with TTL, query optimization, code splitting, lazy/progressive image loading, and React memoization.
 - **SEO**: Meta tags, Open Graph, Twitter Cards, and JSON-LD via react-helmet-async (wrapped with HelmetProvider in App.tsx).
 - **Data Management**: Static data from local JSON, automated import and bidirectional sync of community events from Google Calendar ICS feeds, and automated cleanup jobs.
+- **Email System**: SendGrid integration with premium-designed templates for verification codes, welcome emails (separate for user/business accounts), and notifications. Sender address is relations@jugnucanada.com with environment variable precedence: EMAIL_FROM_ADDRESS → SENDGRID_FROM_EMAIL → default. Welcome emails automatically sent after first account verification. All emails feature modern gradients, accessible design, and Canada-wide branding.
 
 ### Feature Specifications
 - **Admin & Sponsorship Systems**: Key-based Admin API, portal token system (UUID-based), lead management (CRUD), multi-part onboarding for campaigns, creative upload (banners), sponsor portal with real-time analytics and CSV export, and health monitoring endpoints.
