@@ -227,6 +227,32 @@ Disallow: /account/*`;
     }
   });
 
+  // Test email endpoint - send test email to verify SendGrid domain configuration
+  app.post("/api/test-email", async (req, res) => {
+    try {
+      const { sendVerificationEmail } = await import('./services/emailService');
+      
+      await sendVerificationEmail({
+        recipientEmail: 'relations@jugnucanada.com',
+        verificationCode: '123456',
+        purpose: 'signup',
+        userName: 'Test User'
+      });
+
+      res.json({
+        ok: true,
+        message: 'Test email sent to relations@jugnucanada.com',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      console.error('Test email error:', error);
+      res.status(500).json({
+        ok: false,
+        error: error.message || 'Failed to send test email'
+      });
+    }
+  });
+
   // Waitlist form submission endpoint
   app.post("/api/waitlist", async (req, res) => {
     try {
