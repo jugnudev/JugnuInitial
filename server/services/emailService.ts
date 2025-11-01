@@ -1,8 +1,8 @@
 import sgMail from '@sendgrid/mail';
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-const APP_BASE_URL = process.env.APP_BASE_URL || 'https://thehouseofjugnu.com';
-const EMAIL_FROM_ADDRESS = process.env.EMAIL_FROM_ADDRESS || 'relations@thehouseofjugnu.com';
+const APP_BASE_URL = process.env.APP_BASE_URL || 'https://jugnucanada.com';
+const EMAIL_FROM_ADDRESS = process.env.EMAIL_FROM_ADDRESS || 'relations@jugnucanada.com';
 const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Jugnu';
 
 if (SENDGRID_API_KEY) {
@@ -175,7 +175,7 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
               <p>Need help? Contact us at <a href="mailto:${EMAIL_FROM_ADDRESS}" style="color: #f97316;">${EMAIL_FROM_ADDRESS}</a></p>
               <p style="margin-top: 15px;">
                 <strong>Jugnu</strong><br>
-                Vancouver's South Asian Cultural Hub
+                Canada's South Asian Cultural Hub
               </p>
             </div>
           </div>
@@ -200,7 +200,7 @@ Need help? Contact us at ${EMAIL_FROM_ADDRESS}
 
 ---
 Jugnu
-Vancouver's South Asian Cultural Hub
+Canada's South Asian Cultural Hub
     `.trim()
   };
 
