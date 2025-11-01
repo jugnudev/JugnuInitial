@@ -125,8 +125,8 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
               box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             }
             .header {
-              background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-              padding: 48px 40px;
+              background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+              padding: 56px 40px;
               text-align: center;
               position: relative;
             }
@@ -140,22 +140,19 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
               background: linear-gradient(90deg, #fbbf24, #f59e0b, #ea580c);
             }
             .logo {
-              font-size: 42px;
-              margin-bottom: 12px;
-              filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-            }
-            .header h1 {
-              color: #ffffff;
-              font-size: 32px;
-              font-weight: 700;
-              margin: 0;
-              text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              max-width: 180px;
+              height: auto;
+              margin: 0 auto 24px;
+              display: block;
+              filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
             }
             .header p {
-              color: rgba(255, 255, 255, 0.95);
+              color: rgba(255, 255, 255, 0.9);
               font-size: 16px;
-              margin-top: 8px;
+              margin-top: 12px;
               font-weight: 500;
+              text-transform: uppercase;
+              letter-spacing: 1px;
             }
             .content {
               padding: 48px 40px;
@@ -255,8 +252,7 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
         <body>
           <div class="email-container">
             <div class="header">
-              <div class="logo">🎭</div>
-              <h1>Jugnu</h1>
+              <img src="${APP_BASE_URL}/images/jugnu-logo.png" alt="Jugnu" class="logo" />
               <p>Verification Required</p>
             </div>
             
@@ -368,7 +364,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
               box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             }
             .header {
-              background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+              background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
               padding: 56px 40px;
               text-align: center;
               position: relative;
@@ -383,22 +379,19 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
               background: linear-gradient(90deg, #fbbf24, #f59e0b, #ea580c);
             }
             .logo {
-              font-size: 56px;
-              margin-bottom: 16px;
-              filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-            }
-            .header h1 {
-              color: #ffffff;
-              font-size: 36px;
-              font-weight: 800;
-              margin: 0;
-              text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+              max-width: 180px;
+              height: auto;
+              margin: 0 auto 24px;
+              display: block;
+              filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
             }
             .header p {
-              color: rgba(255, 255, 255, 0.95);
+              color: rgba(255, 255, 255, 0.9);
               font-size: 18px;
               margin-top: 12px;
               font-weight: 500;
+              text-transform: uppercase;
+              letter-spacing: 1px;
             }
             .content {
               padding: 48px 40px;
@@ -491,9 +484,8 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
         <body>
           <div class="email-container">
             <div class="header">
-              <div class="logo">🎉</div>
-              <h1>Welcome to Jugnu!</h1>
-              <p>${isBusinessAccount ? 'Your business account is ready' : 'Your account is ready'}</p>
+              <img src="${APP_BASE_URL}/images/jugnu-logo.png" alt="Jugnu" class="logo" />
+              <p>${isBusinessAccount ? 'Your business account is ready' : 'Welcome to Jugnu'}</p>
             </div>
             
             <div class="content">
@@ -667,52 +659,110 @@ export async function sendOnboardingEmail(data: OnboardingEmailData): Promise<vo
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
               line-height: 1.6;
-              color: #333;
+              color: #1f2937;
+              background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+              padding: 40px 20px;
+            }
+            .email-container {
               max-width: 600px;
               margin: 0 auto;
-              padding: 20px;
+              background: #ffffff;
+              border-radius: 16px;
+              overflow: hidden;
+              box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             }
             .header {
+              background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+              padding: 56px 40px;
               text-align: center;
-              padding: 30px 0;
-              border-bottom: 2px solid #f0f0f0;
+              position: relative;
+            }
+            .header::after {
+              content: '';
+              position: absolute;
+              bottom: 0;
+              left: 0;
+              right: 0;
+              height: 4px;
+              background: linear-gradient(90deg, #fbbf24, #f59e0b, #ea580c);
+            }
+            .logo {
+              max-width: 180px;
+              height: auto;
+              margin: 0 auto 24px;
+              display: block;
+              filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+            }
+            .header p {
+              color: rgba(255, 255, 255, 0.9);
+              font-size: 18px;
+              margin-top: 12px;
+              font-weight: 500;
+              text-transform: uppercase;
+              letter-spacing: 1px;
             }
             .content {
-              padding: 30px 0;
+              padding: 48px 40px;
+              background: #ffffff;
             }
             .button {
               display: inline-block;
-              background-color: #7c3aed;
+              background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
               color: white;
-              padding: 14px 28px;
+              padding: 16px 40px;
               text-decoration: none;
-              border-radius: 8px;
-              font-weight: 600;
+              border-radius: 12px;
+              font-weight: 700;
+              font-size: 16px;
+              box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
               margin: 20px 0;
             }
             .highlight {
-              background-color: #fef3c7;
-              padding: 2px 6px;
-              border-radius: 4px;
-              font-weight: 600;
+              background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+              padding: 4px 12px;
+              border-radius: 6px;
+              font-weight: 700;
+              color: #92400e;
             }
             .footer {
-              margin-top: 40px;
-              padding-top: 20px;
-              border-top: 1px solid #f0f0f0;
+              background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
+              padding: 32px 40px;
+              text-align: center;
+              border-top: 1px solid #e5e7eb;
+            }
+            .footer-link {
+              color: #f97316;
+              text-decoration: none;
+              font-weight: 600;
+            }
+            .brand {
+              margin-top: 24px;
+              padding-top: 24px;
+              border-top: 1px solid #d1d5db;
+            }
+            .brand-name {
+              font-size: 18px;
+              font-weight: 700;
+              color: #111827;
+              margin-bottom: 4px;
+            }
+            .brand-tagline {
               font-size: 14px;
-              color: #666;
+              color: #6b7280;
+              font-weight: 500;
             }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1 style="color: #7c3aed; margin: 0;">🎉 You're Approved!</h1>
-            <p style="color: #666; margin-top: 10px;">Complete your campaign setup to go live on Jugnu</p>
-          </div>
+          <div class="email-container">
+            <div class="header">
+              <img src="${APP_BASE_URL}/images/jugnu-logo.png" alt="Jugnu" class="logo" />
+              <p>You're Approved!</p>
+            </div>
           
           <div class="content">
             <p>Hi ${data.contactName},</p>
@@ -742,12 +792,15 @@ export async function sendOnboardingEmail(data: OnboardingEmailData): Promise<vo
           </div>
           
           <div class="footer">
-            <p>Need help? Reply to this email or contact us at <a href="mailto:${EMAIL_FROM_ADDRESS}">${EMAIL_FROM_ADDRESS}</a></p>
-            <p style="color: #999; font-size: 12px;">
-              ${APP_BASE_URL}<br>
-              Vancouver's Cultural Events Platform
+            <p style="font-size: 14px; color: #6b7280; margin-bottom: 12px;">
+              Need help? Contact us at <a href="mailto:${EMAIL_FROM_ADDRESS}" class="footer-link">${EMAIL_FROM_ADDRESS}</a>
             </p>
+            <div class="brand">
+              <div class="brand-name">Jugnu</div>
+              <div class="brand-tagline">Canada's South Asian Cultural Hub</div>
+            </div>
           </div>
+        </div>
         </body>
       </html>
     `,
@@ -772,8 +825,8 @@ Once you complete the setup, we'll provide you with a private analytics portal t
 Need help? Reply to this email or contact us at ${EMAIL_FROM_ADDRESS}
 
 ---
-Jugnu - Vancouver's Cultural Events Platform
-${APP_BASE_URL}
+Jugnu
+Canada's South Asian Cultural Hub
     `.trim()
   };
 
