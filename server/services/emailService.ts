@@ -2,7 +2,7 @@ import sgMail from '@sendgrid/mail';
 
 const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 const APP_BASE_URL = process.env.APP_BASE_URL || 'https://jugnucanada.com';
-const EMAIL_FROM_ADDRESS = process.env.EMAIL_FROM_ADDRESS || 'relations@jugnucanada.com';
+const EMAIL_FROM_ADDRESS = process.env.EMAIL_FROM_ADDRESS || process.env.SENDGRID_FROM_EMAIL || 'relations@jugnucanada.com';
 const EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Jugnu';
 
 if (SENDGRID_API_KEY) {
