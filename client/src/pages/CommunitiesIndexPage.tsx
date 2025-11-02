@@ -238,11 +238,15 @@ export default function CommunitiesIndexPage() {
           <meta property="og:description" content="Join exclusive communities with live chat, giveaways, polls, and members-only experiences. Free beta access available for businesses and members." />
           <meta property="og:type" content="website" />
           <meta property="og:url" content="https://thehouseofjugnu.com/communities" />
+          <meta property="og:image" content="https://thehouseofjugnu.com/og.png" />
+          <meta property="og:image:width" content="1200" />
+          <meta property="og:image:height" content="630" />
           
           {/* Twitter */}
           <meta name="twitter:card" content="summary_large_image" />
           <meta name="twitter:title" content="Communities - Premium Cultural Communities Platform" />
           <meta name="twitter:description" content="Join exclusive communities with live chat, giveaways, polls, and members-only experiences." />
+          <meta name="twitter:image" content="https://thehouseofjugnu.com/og.png" />
         </Helmet>
 
         {/* Ambient effects */}
