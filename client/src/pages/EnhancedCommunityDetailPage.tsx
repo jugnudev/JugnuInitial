@@ -2250,24 +2250,57 @@ export default function EnhancedCommunityDetailPage() {
             </TabsContent>
           </Tabs>
         ) : (
-          // Member view - Posts and Chat with Tabs
+          // Member view - Posts, Chat, Polls, Giveaways, and Settings
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2 bg-premium-surface border border-premium-border">
-              <TabsTrigger 
-                value="announcements"
-                data-testid="member-posts-tab"
-              >
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Posts
-              </TabsTrigger>
-              <TabsTrigger 
-                value="chat"
-                data-testid="member-chat-tab"
-              >
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Chat
-              </TabsTrigger>
-            </TabsList>
+            <div className="w-full overflow-x-auto scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
+              <TabsList className="inline-flex md:grid w-full md:max-w-2xl md:grid-cols-5 bg-premium-surface border border-premium-border min-w-max md:min-w-0">
+                <TabsTrigger 
+                  value="announcements"
+                  data-testid="member-posts-tab"
+                  className="flex-shrink-0"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Posts</span>
+                  <span className="sm:hidden">Posts</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="chat"
+                  data-testid="member-chat-tab"
+                  className="flex-shrink-0"
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Chat</span>
+                  <span className="sm:hidden">Chat</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="polls"
+                  data-testid="member-polls-tab"
+                  className="flex-shrink-0"
+                >
+                  <Vote className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Polls</span>
+                  <span className="sm:hidden">Polls</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="giveaways"
+                  data-testid="member-giveaways-tab"
+                  className="flex-shrink-0"
+                >
+                  <Gift className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Giveaways</span>
+                  <span className="sm:hidden">Giveaways</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="settings"
+                  data-testid="member-settings-tab"
+                  className="flex-shrink-0"
+                >
+                  <Settings className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Settings</span>
+                  <span className="sm:hidden">Settings</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             {/* Posts Tab */}
             <TabsContent value="announcements" className="space-y-6">
@@ -2336,6 +2369,107 @@ export default function EnhancedCommunityDetailPage() {
                 />
               </TabsContent>
             )}
+
+            {/* Polls Tab */}
+            <TabsContent value="polls" className="space-y-6">
+              <CommunityPolls 
+                communityId={community.id}
+                currentMember={currentMember && currentMember.status === 'approved' ? {
+                  role: currentMember.role as 'member' | 'moderator' | 'owner',
+                  userId: user?.id || ''
+                } : undefined}
+              />
+            </TabsContent>
+
+            {/* Giveaways Tab */}
+            <TabsContent value="giveaways" className="space-y-6">
+              <CommunityGiveaways 
+                communityId={community.id}
+                currentMember={currentMember && currentMember.status === 'approved' ? {
+                  role: currentMember.role as 'member' | 'moderator' | 'owner',
+                  userId: user?.id || ''
+                } : undefined}
+              />
+            </TabsContent>
+
+            {/* Settings Tab - Member notification preferences */}
+            <TabsContent value="settings" className="space-y-6">
+              <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                <CardHeader>
+                  <CardTitle className="text-base md:text-lg">Notification Preferences</CardTitle>
+                  <CardDescription className="text-xs md:text-sm">
+                    Manage how you receive updates from this community
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4 md:space-y-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="notifications" className="text-sm md:text-base font-medium">
+                        Community Notifications
+                      </Label>
+                      <p className="text-xs md:text-sm text-premium-text-muted">
+                        Get notified about new posts, announcements, and events
+                      </p>
+                    </div>
+                    <Switch
+                      id="notifications"
+                      defaultChecked={true}
+                    />
+                  </div>
+                  
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="chat-notifications" className="text-sm md:text-base font-medium">
+                        Chat Notifications
+                      </Label>
+                      <p className="text-xs md:text-sm text-premium-text-muted">
+                        Receive alerts for new chat messages
+                      </p>
+                    </div>
+                    <Switch
+                      id="chat-notifications"
+                      defaultChecked={true}
+                    />
+                  </div>
+
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="giveaway-notifications" className="text-sm md:text-base font-medium">
+                        Giveaway Notifications
+                      </Label>
+                      <p className="text-xs md:text-sm text-premium-text-muted">
+                        Be notified about new giveaways and winners
+                      </p>
+                    </div>
+                    <Switch
+                      id="giveaway-notifications"
+                      defaultChecked={true}
+                    />
+                  </div>
+
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <Label htmlFor="poll-notifications" className="text-sm md:text-base font-medium">
+                        Poll Notifications
+                      </Label>
+                      <p className="text-xs md:text-sm text-premium-text-muted">
+                        Get notified when new polls are created
+                      </p>
+                    </div>
+                    <Switch
+                      id="poll-notifications"
+                      defaultChecked={true}
+                    />
+                  </div>
+
+                  <div className="pt-4 border-t border-premium-border">
+                    <p className="text-xs text-premium-text-muted">
+                      Note: These notification preferences are coming soon. You can currently manage global notification settings in your Account Settings.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         )}
       </div>
