@@ -88,7 +88,7 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
   const { toast } = useToast();
 
   // Fetch user's communities
-  const { data: communitiesData } = useQuery({
+  const { data: communitiesData } = useQuery<{ ok: boolean; communities: Community[] }>({
     queryKey: ['/api/communities/my'],
     enabled: !communityId,
   });
