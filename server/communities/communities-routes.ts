@@ -1618,9 +1618,22 @@ export function addCommunitiesRoutes(app: Express) {
 
       const { communities, total } = await communitiesStorage.getAllCommunities(limit, offset);
 
+      // Count actual approved members for each community
+      const communitiesWithCounts = await Promise.all(
+        communities.map(async (community) => {
+          const memberships = await communitiesStorage.getMembershipsByCommunityId(community.id);
+          const approvedMembersCount = memberships.filter((m: any) => m.status === 'approved').length;
+          
+          return {
+            ...community,
+            total_members: approvedMembersCount // Override stale database value with real count
+          };
+        })
+      );
+
       res.json({
         ok: true,
-        communities,
+        communities: communitiesWithCounts,
         total,
         limit,
         offset,
