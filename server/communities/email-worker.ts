@@ -494,21 +494,3 @@ class EmailQueueWorker {
 
 // Export singleton instance
 export const emailWorker = new EmailQueueWorker();
-
-// Auto-start if this is the main module
-if (require.main === module) {
-  emailWorker.start();
-  
-  // Handle graceful shutdown
-  process.on('SIGINT', () => {
-    console.log('[Email Worker] Received SIGINT, shutting down...');
-    emailWorker.stop();
-    process.exit(0);
-  });
-  
-  process.on('SIGTERM', () => {
-    console.log('[Email Worker] Received SIGTERM, shutting down...');
-    emailWorker.stop();
-    process.exit(0);
-  });
-}

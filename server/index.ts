@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { startChatServer } from "./communities/chat-server";
+import { emailWorker } from "./communities/email-worker";
 
 const app = express();
 app.use(express.json());
@@ -149,5 +150,15 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Start email worker for communities notification emails
+    if (process.env.ENABLE_COMMUNITIES === 'true') {
+      try {
+        emailWorker.start();
+        log(`✅ Email worker started for notification digest processing`);
+      } catch (error) {
+        console.error('❌ Failed to start email worker:', error);
+      }
+    }
   });
 })();
