@@ -73,7 +73,7 @@ export function BusinessSignupPage() {
       businessName: '',
       businessEmail: '',
       businessDescription: '',
-      businessWebsite: '',
+      businessWebsite: 'https://',
       businessPhone: '',
       businessAddress: '',
       sampleEvents: '',
@@ -425,8 +425,19 @@ export function BusinessSignupPage() {
                       id="businessWebsite"
                       data-testid="input-businessWebsite"
                       type="text"
-                      placeholder="acmeevents.com or https://acmeevents.com"
-                      {...form.register('businessWebsite')}
+                      placeholder="acmeevents.com"
+                      {...form.register('businessWebsite', {
+                        onChange: (e) => {
+                          const value = e.target.value;
+                          // Ensure https:// is always present
+                          if (!value.startsWith('https://') && !value.startsWith('http://')) {
+                            if (value.length < 8) {
+                              // If user tries to delete "https://", reset it
+                              e.target.value = 'https://';
+                            }
+                          }
+                        }
+                      })}
                     />
                     {form.formState.errors.businessWebsite && (
                       <p className="text-sm text-destructive">{form.formState.errors.businessWebsite.message}</p>
