@@ -485,7 +485,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
           <div class="email-container">
             <div class="header">
               <img src="${APP_BASE_URL}/images/jugnu-logo.png" alt="Jugnu" class="logo" />
-              <p>${isBusinessAccount ? 'Your business account is ready' : 'Welcome to Jugnu'}</p>
+              <p>${isBusinessAccount ? 'Your business account is ready' : 'Your account is ready'}</p>
             </div>
             
             <div class="content">
