@@ -20,6 +20,7 @@ Preferred communication style: Simple, everyday language.
 ### Technical Implementations
 - **Backend Framework**: Express.js with TypeScript.
 - **Middleware**: cookie-parser for cookie handling (required for community auth tokens), express-session for platform sessions.
+- **Authentication**: Hybrid middleware (`requireAuthOrSession`) supports both community auth tokens (Bearer/cookie) and platform sessions for seamless user experience across community portals and main platform.
 - **Database ORM**: Drizzle ORM for PostgreSQL.
 - **State Management**: TanStack Query for server state, React hooks for local state.
 - **Routing**: Wouter for client-side navigation.
