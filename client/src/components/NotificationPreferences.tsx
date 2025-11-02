@@ -36,7 +36,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { CommunityNotificationPreferences, Community } from '@shared/schema';
@@ -313,10 +312,9 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
                           <FormLabel className="flex items-center gap-2 text-sm sm:text-base">
                             <Smartphone className="h-4 w-4" />
                             Push Notifications
-                            <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
                           </FormLabel>
                           <FormDescription className="text-xs sm:text-sm">
-                            Push notifications on your device
+                            Browser push notifications (requires permission)
                           </FormDescription>
                         </div>
                         <FormControl>

@@ -94,6 +94,7 @@ import CommunityGiveaways from "@/components/CommunityGiveaways";
 import CommunityBilling from "@/components/CommunityBilling";
 import BillingCheckout from "@/components/BillingCheckout";
 import { BetaBadge } from "@/components/BetaBadge";
+import { NotificationPreferences } from "@/components/NotificationPreferences";
 import {
   Dialog,
   DialogContent,
@@ -2394,81 +2395,10 @@ export default function EnhancedCommunityDetailPage() {
 
             {/* Settings Tab - Member notification preferences */}
             <TabsContent value="settings" className="space-y-6">
-              <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
-                <CardHeader>
-                  <CardTitle className="text-base md:text-lg">Notification Preferences</CardTitle>
-                  <CardDescription className="text-xs md:text-sm">
-                    Manage how you receive updates from this community
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 md:space-y-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <Label htmlFor="notifications" className="text-sm md:text-base font-medium">
-                        Community Notifications
-                      </Label>
-                      <p className="text-xs md:text-sm text-premium-text-muted">
-                        Get notified about new posts, announcements, and events
-                      </p>
-                    </div>
-                    <Switch
-                      id="notifications"
-                      defaultChecked={true}
-                    />
-                  </div>
-                  
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <Label htmlFor="chat-notifications" className="text-sm md:text-base font-medium">
-                        Chat Notifications
-                      </Label>
-                      <p className="text-xs md:text-sm text-premium-text-muted">
-                        Receive alerts for new chat messages
-                      </p>
-                    </div>
-                    <Switch
-                      id="chat-notifications"
-                      defaultChecked={true}
-                    />
-                  </div>
-
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <Label htmlFor="giveaway-notifications" className="text-sm md:text-base font-medium">
-                        Giveaway Notifications
-                      </Label>
-                      <p className="text-xs md:text-sm text-premium-text-muted">
-                        Be notified about new giveaways and winners
-                      </p>
-                    </div>
-                    <Switch
-                      id="giveaway-notifications"
-                      defaultChecked={true}
-                    />
-                  </div>
-
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <Label htmlFor="poll-notifications" className="text-sm md:text-base font-medium">
-                        Poll Notifications
-                      </Label>
-                      <p className="text-xs md:text-sm text-premium-text-muted">
-                        Get notified when new polls are created
-                      </p>
-                    </div>
-                    <Switch
-                      id="poll-notifications"
-                      defaultChecked={true}
-                    />
-                  </div>
-
-                  <div className="pt-4 border-t border-premium-border">
-                    <p className="text-xs text-premium-text-muted">
-                      Note: These notification preferences are coming soon. You can currently manage global notification settings in your Account Settings.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              <NotificationPreferences 
+                communityId={community.id}
+                embedded={true}
+              />
             </TabsContent>
           </Tabs>
         )}
