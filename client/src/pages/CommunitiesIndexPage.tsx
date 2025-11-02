@@ -45,6 +45,7 @@ import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CommunityCard } from "@/components/CommunityCard";
+import { BetaBadge } from "@/components/BetaBadge";
 
 interface Community {
   id: string;
@@ -245,13 +246,16 @@ export default function CommunitiesIndexPage() {
               Premium Communities Platform
             </Badge>
             
-            <h1 className="font-fraunces text-5xl md:text-7xl font-bold mb-8 leading-tight">
-              <span className="text-text">Where Culture</span>
-              <br />
-              <span className="bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">
-                Comes Together
-              </span>
-            </h1>
+            <div className="flex flex-col items-center gap-4 mb-8">
+              <h1 className="font-fraunces text-5xl md:text-7xl font-bold leading-tight">
+                <span className="text-text">Where Culture</span>
+                <br />
+                <span className="bg-gradient-to-r from-copper-500 via-accent to-glow bg-clip-text text-transparent">
+                  Comes Together
+                </span>
+              </h1>
+              <BetaBadge size="lg" variant="prominent" />
+            </div>
             
             <p className="text-xl md:text-2xl text-muted max-w-3xl mx-auto">
               Join exclusive communities hosted by Vancouver's premier cultural businesses.

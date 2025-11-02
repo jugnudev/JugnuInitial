@@ -93,6 +93,7 @@ import CommunityPolls from "@/components/CommunityPolls";
 import CommunityGiveaways from "@/components/CommunityGiveaways";
 import CommunityBilling from "@/components/CommunityBilling";
 import BillingCheckout from "@/components/BillingCheckout";
+import { BetaBadge } from "@/components/BetaBadge";
 import {
   Dialog,
   DialogContent,
@@ -1111,9 +1112,12 @@ export default function EnhancedCommunityDetailPage() {
                 </Avatar>
                 
                 <div className="flex-1 w-full sm:mb-2">
-                  <h1 className="font-fraunces text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 break-words">
-                    {community.name}
-                  </h1>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-3">
+                    <h1 className="font-fraunces text-2xl sm:text-3xl md:text-4xl font-bold text-white break-words">
+                      {community.name}
+                    </h1>
+                    <BetaBadge size="md" variant="prominent" />
+                  </div>
                   <p className="text-white/90 text-sm sm:text-base leading-relaxed">
                     {community.description}
                   </p>
@@ -1229,9 +1233,12 @@ export default function EnhancedCommunityDetailPage() {
                 </Avatar>
                 
                 <div className="flex-1 min-w-0">
-                  <h1 className="font-fraunces text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-2 break-words leading-tight">
-                    {community.name}
-                  </h1>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-2">
+                    <h1 className="font-fraunces text-2xl sm:text-3xl md:text-4xl font-bold text-white break-words leading-tight">
+                      {community.name}
+                    </h1>
+                    <BetaBadge size="md" variant="prominent" />
+                  </div>
                   <div className="flex flex-wrap items-center gap-2">
                     {isOwner && (
                       <Badge className="bg-amber-500/20 text-yellow-400 border-yellow-500/30 text-xs">
