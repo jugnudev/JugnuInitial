@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/NotificationBell";
+import { BetaBadge } from "@/components/BetaBadge";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -134,17 +135,20 @@ export default function Navigation() {
                 Deals
               </Link>
               {showCommunities && (
-                <Link
-                  href="/communities"
-                  className={`transition-colors duration-200 font-medium ${
-                    location === '/communities' || location.startsWith('/communities/')
-                      ? 'text-accent' 
-                      : 'text-text hover:text-accent'
-                  }`}
-                  data-testid="nav-communities"
-                >
-                  Communities
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/communities"
+                    className={`transition-colors duration-200 font-medium ${
+                      location === '/communities' || location.startsWith('/communities/')
+                        ? 'text-accent' 
+                        : 'text-text hover:text-accent'
+                    }`}
+                    data-testid="nav-communities"
+                  >
+                    Communities
+                  </Link>
+                  <BetaBadge size="sm" variant="subtle" showIcon={false} />
+                </div>
               )}
               <Link
                 href="/promote"
@@ -334,7 +338,7 @@ export default function Navigation() {
               {showCommunities && (
                 <Link
                   href="/communities"
-                  className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
+                  className={`flex items-center gap-2 px-3 py-2 transition-colors duration-200 font-medium ${
                     location === '/communities' || location.startsWith('/communities/')
                       ? 'text-accent' 
                       : 'text-text hover:text-accent'
@@ -343,6 +347,7 @@ export default function Navigation() {
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Communities
+                  <BetaBadge size="sm" variant="subtle" showIcon={false} />
                 </Link>
               )}
               <Link
