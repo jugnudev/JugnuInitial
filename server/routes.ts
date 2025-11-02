@@ -42,7 +42,8 @@ function createCanonicalKey(title: string, startAt: Date, venue: string | null, 
 import { insertCommunityEventSchema, updateCommunityEventSchema, visitorAnalytics, insertVisitorAnalyticsSchema } from "@shared/schema";
 import { addTicketsRoutes } from "./tickets/tickets-routes";
 import { addCommunitiesRoutes } from "./communities/communities-routes";
-import billingRoutes from "./communities/billing-routes";
+// DISABLED: Communities billing routes - Communities are FREE for all business accounts
+// import billingRoutes from "./communities/billing-routes";
 import webhookRoutes from "./communities/webhook-routes";
 import { importFromGoogle, importFromYelp, reverifyAllPlaces } from "./lib/places-sync.js";
 import { matchAndEnrichPlaces, inactivateUnmatchedPlaces, getPlaceMatchingStats } from "./lib/place-matcher.js";
@@ -4320,8 +4321,8 @@ Disallow: /account/*`;
   // Add platform-wide authentication routes (always available)
   addCommunitiesRoutes(app);
   
-  // Add billing routes for communities
-  app.use('/api/billing', billingRoutes);
+  // DISABLED: Communities billing routes - Communities are FREE for all business accounts
+  // app.use('/api/billing', billingRoutes);
   
   // Add webhook routes
   app.use('/api/webhooks', webhookRoutes);

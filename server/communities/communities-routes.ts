@@ -1,7 +1,8 @@
 import { Express, Request, Response } from 'express';
 import { z } from 'zod';
 import multer from 'multer';
-import Stripe from 'stripe';
+// Stripe import commented out - Communities are FREE for all business accounts
+// import Stripe from 'stripe';
 import { communitiesStorage } from './communities-supabase';
 import { insertUserSchema } from '@shared/schema';
 import { uploadCommunityPostImage, uploadCommunityCoverImage, uploadCommunityProfileImage, uploadUserProfileImage } from '../services/storageService';
@@ -11,110 +12,25 @@ import { inviteSystem } from './invite-system';
 import { queryCache, cacheKeys, cacheTTL } from './cache';
 import { cleanupJobs } from './cleanup-jobs';
 
-// Initialize Stripe
+// COMMUNITIES ARE FREE - No Stripe initialization needed
+// Communities are free for all business accounts indefinitely (not a trial)
+// All billing-related code has been disabled
+
+/*
+// DISABLED: Stripe initialization (communities are free)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-11-20.acacia',
 });
 
-// Stripe Price IDs - will be populated dynamically
 let STRIPE_PRICES = {
-  monthly: '', // $19.99 CAD per month
-  yearly: '', // $199 CAD per year (save $40!)
+  monthly: '',
+  yearly: '',
 };
 
-// Initialize Stripe products and prices on startup
 async function initializeStripeProducts() {
-  try {
-    // Check if product exists
-    let product: Stripe.Product;
-    try {
-      const products = await stripe.products.list({ limit: 100 });
-      const existingProduct = products.data.find(p => p.metadata.product_code === 'community_membership');
-      
-      if (existingProduct) {
-        product = existingProduct;
-      } else {
-        // Create product
-        product = await stripe.products.create({
-          name: 'Community Membership',
-          description: 'Premium community features including unlimited members, advanced analytics, and priority support',
-          metadata: {
-            product_code: 'community_membership'
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error checking/creating Stripe product:', error);
-      throw error;
-    }
-
-    // Find or create monthly price
-    const prices = await stripe.prices.list({ 
-      product: product.id,
-      active: true,
-      limit: 100 
-    });
-    
-    let monthlyPrice = prices.data.find(p => 
-      p.recurring?.interval === 'month' && 
-      p.unit_amount === 2000 && 
-      p.currency === 'cad'
-    );
-    
-    if (!monthlyPrice) {
-      monthlyPrice = await stripe.prices.create({
-        product: product.id,
-        unit_amount: 2000, // $20 CAD
-        currency: 'cad',
-        recurring: {
-          interval: 'month',
-          trial_period_days: 7
-        },
-        metadata: {
-          plan_type: 'monthly'
-        }
-      });
-      console.log('Created new monthly price:', monthlyPrice.id);
-    }
-    STRIPE_PRICES.monthly = monthlyPrice.id;
-
-    // Find or create yearly price
-    let yearlyPrice = prices.data.find(p => 
-      p.recurring?.interval === 'year' && 
-      p.unit_amount === 20000 && 
-      p.currency === 'cad'
-    );
-    
-    if (!yearlyPrice) {
-      yearlyPrice = await stripe.prices.create({
-        product: product.id,
-        unit_amount: 20000, // $200 CAD
-        currency: 'cad',
-        recurring: {
-          interval: 'year',
-          trial_period_days: 7
-        },
-        metadata: {
-          plan_type: 'yearly',
-          savings: '40' // Save $40 compared to monthly
-        }
-      });
-      console.log('Created new yearly price:', yearlyPrice.id);
-    }
-    STRIPE_PRICES.yearly = yearlyPrice.id;
-
-    console.log('✅ Stripe products and prices initialized:', {
-      monthly: STRIPE_PRICES.monthly,
-      yearly: STRIPE_PRICES.yearly
-    });
-  } catch (error) {
-    console.error('Failed to initialize Stripe products:', error);
-    // Continue running even if Stripe setup fails
-  }
+  // DISABLED - Communities are free
 }
-
-// Call on server startup
-initializeStripeProducts();
+*/
 
 // Admin authentication middleware
 const requireAdmin = async (req: Request, res: Response, next: any) => {
@@ -5851,5 +5767,5 @@ export function addCommunitiesRoutes(app: Express) {
     }
   });
 
-  console.log('✅ Platform authentication (/api/auth/*), organizer (/api/organizers/*), admin (/api/admin/organizers/*), communities (/api/communities/*), and billing routes added');
+  console.log('✅ Platform authentication (/api/auth/*), organizer (/api/organizers/*), admin (/api/admin/organizers/*), and communities routes (/api/communities/*) added');
 }
