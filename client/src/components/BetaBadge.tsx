@@ -21,8 +21,8 @@ export function BetaBadge({
   };
 
   const variantClasses = {
-    subtle: 'bg-gradient-to-r from-indigo-500/10 to-purple-500/10 text-indigo-400 border-indigo-500/30',
-    prominent: 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-500/50 shadow-lg shadow-indigo-500/20'
+    subtle: 'bg-gradient-to-r from-amber-950/40 via-yellow-950/30 to-amber-950/40 text-amber-300 border border-amber-500/40 shadow-sm',
+    prominent: 'bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 text-amber-950 border border-amber-300/50 shadow-lg shadow-amber-500/30 font-bold'
   };
 
   const iconSizes = {
