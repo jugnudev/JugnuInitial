@@ -153,10 +153,10 @@ export default function Explore() {
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-fraunces font-bold text-white mb-6 tracking-tight leading-tight">
               Find Your Frequency
               <br />
-              <span className="text-copper-400">in Vancouver</span>
+              <span className="text-copper-400">across Canada</span>
             </h1>
             <p className="text-xl text-muted max-w-3xl mx-auto mb-8 leading-relaxed">
-              Discover the vibrant cultural pulse of Vancouver through curated events and authentic places
+              Discover the vibrant cultural pulse of Canada through curated events and authentic places
               that celebrate South Asian culture and global music experiences.
             </p>
           </motion.div>

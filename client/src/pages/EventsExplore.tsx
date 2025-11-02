@@ -125,8 +125,8 @@ export default function EventsExplore() {
 
   const handleShare = async () => {
     const shareData = {
-      title: 'South Asian Events in Vancouver',
-      text: 'Discover amazing South Asian cultural events happening in Vancouver',
+      title: 'South Asian Events in Canada',
+      text: 'Discover amazing South Asian cultural events happening across Canada',
       url: window.location.origin + '/events'
     };
 

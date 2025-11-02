@@ -55,8 +55,6 @@ export default function Home() {
             },
             address: {
               "@type": "PostalAddress",
-              addressLocality: "Vancouver",
-              addressRegion: "BC",
               addressCountry: "CA"
             },
             foundingDate: "2023",
@@ -118,14 +116,7 @@ export default function Home() {
             telephone: "",
             address: {
               "@type": "PostalAddress",
-              addressLocality: "Vancouver",
-              addressRegion: "BC",
               addressCountry: "CA"
-            },
-            geo: {
-              "@type": "GeoCoordinates",
-              latitude: 49.2827,
-              longitude: -123.1207
             },
             openingHoursSpecification: {
               "@type": "OpeningHoursSpecification",

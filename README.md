@@ -1,10 +1,10 @@
 # Jugnu - Find Your Frequency
 
-A cultural events platform focused on South Asian and global music experiences in Vancouver. Built with React, TypeScript, and Supabase.
+A cultural events platform focused on South Asian and global music experiences across Canada. Built with React, TypeScript, and Supabase.
 
 ## Features
 
-- **Event Discovery**: Curated South Asian & global culture events in Vancouver
+- **Event Discovery**: Curated South Asian & global culture events across Canada
 - **Community Events**: Weekly calendar of upcoming events from community organizers
 - **Waitlist Management**: User registration with comprehensive tracking and analytics
 - **Responsive Design**: Mobile-first experience with smooth navigation

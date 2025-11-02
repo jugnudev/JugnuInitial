@@ -1,7 +1,7 @@
 # Replit.md
 
 ## Overview
-Jugnu is a cultural events and communities platform for South Asian and global music experiences across Canada. It offers exclusive member spaces, event discovery, ticketing, and sponsorship opportunities. The platform prioritizes performance, security, and growth, featuring caching, rate limiting, invite systems, and analytics.
+Jugnu is a cultural events and communities platform for South Asian and global music experiences across Canada. It offers exclusive member spaces, event discovery, ticketing, and sponsorship opportunities. The platform prioritizes performance, security, and growth, featuring caching, rate limiting, invite systems, and analytics. Communities feature is currently in FREE BETA.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -45,7 +45,7 @@ Preferred communication style: Simple, everyday language.
     - **Post Reactions**: Atomic upsert operations with optimistic UI updates.
     - **Media Upload**: Supports images (JPG/PNG/WebP, max 10MB) and MP4 videos (max 50MB) with drag-and-drop.
     - **Post as Business**: Toggle to post announcements as the community/business or as an individual user.
-    - **Free Access**: Communities are FREE for all business accounts indefinitely (not a trial). No billing enforcement, subscription checks, or payment requirements. Billing routes and Stripe initialization disabled.
+    - **Free Beta Access**: Communities are FREE for all business accounts during the beta period. No billing enforcement, subscription checks, or payment requirements. Billing routes and Stripe initialization disabled. Visual beta badges displayed on Communities features.
     - **Giveaway System**: Comprehensive functionality including random draw, first-come-first-serve, task-based, points-based with automated winner selection, prize management, winner display with confetti animation, delete capability, and premium mobile-friendly interface. Authors cannot enter their own giveaways to prevent conflicts of interest.
     - **Notification System**: In-app notifications with email delivery, frequency preferences (immediate/daily/weekly), quiet hours support, and real-time WebSocket updates. Database uses `user_id` column for recipient identification (Supabase queries).
 
