@@ -369,7 +369,7 @@ export default function CommunitiesIndexPage() {
                 {
                   icon: Image,
                   title: "Media Sharing",
-                  description: "Share images and videos with drag-and-drop support up to 50MB",
+                  description: "Share images and videos with easy drag-and-drop support",
                   gradient: "from-teal-500/10 to-cyan-500/10",
                   borderGradient: "from-teal-500/30 to-cyan-500/30",
                   iconColor: "text-teal-400"
