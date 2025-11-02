@@ -4760,56 +4760,19 @@ export function addCommunitiesRoutes(app: Express) {
         return res.status(403).json({ ok: false, error: 'Access denied' });
       }
 
-      // Get subscription
-      const subscription = await communitiesStorage.getSubscriptionByCommunityId(id);
-      
-      // If no subscription exists, create a trial subscription
-      if (!subscription) {
-        // Create trial subscription for new communities
-        const trialEndDate = new Date();
-        trialEndDate.setDate(trialEndDate.getDate() + 7); // 7-day trial
-
-        const newSubscription = await communitiesStorage.createSubscription({
-          communityId: id,
-          organizerId: community.organizerId,
-          plan: 'free',
-          status: 'trialing',
-          trialStart: new Date(),
-          trialEnd: trialEndDate,
-          memberLimit: 100
-        });
-
-        return res.json({
-          ok: true,
-          subscription: {
-            ...newSubscription,
-            trialDaysRemaining: 7,
-            canManage: isOwner
-          }
-        });
-      }
-
-      // Calculate trial days remaining if in trial
-      let trialDaysRemaining = 0;
-      if (subscription.status === 'trialing' && subscription.trialEnd) {
-        const now = new Date();
-        const trialEnd = new Date(subscription.trialEnd);
-        trialDaysRemaining = Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-      }
-
-      // Get payment history if owner
-      let payments = [];
-      if (isOwner) {
-        payments = await communitiesStorage.getPaymentsBySubscriptionId(subscription.id);
-      }
-
+      // Communities are FREE for all business accounts indefinitely
+      // Return free access status without subscription enforcement
       res.json({
         ok: true,
         subscription: {
-          ...subscription,
-          trialDaysRemaining,
+          id: 'free-access',
+          communityId: id,
+          organizerId: community.organizerId,
+          plan: 'free',
+          status: 'active',
+          memberLimit: 999999,
           canManage: isOwner,
-          payments
+          payments: []
         }
       });
     } catch (error: any) {
