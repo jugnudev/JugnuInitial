@@ -137,6 +137,48 @@ const requireSessionAuth = async (req: Request, res: Response, next: any) => {
   }
 };
 
+// Hybrid authentication middleware - supports both community auth tokens AND platform sessions
+const requireAuthOrSession = async (req: Request, res: Response, next: any) => {
+  // Try community auth token first (Authorization header or cookie)
+  const token = req.headers['authorization']?.replace('Bearer ', '') || 
+                req.cookies?.['community_auth_token'];
+  
+  if (token) {
+    // Use community auth token flow
+    try {
+      const session = await communitiesStorage.getSessionByToken(token);
+      if (session) {
+        const user = await communitiesStorage.getUserById(session.userId);
+        if (user && user.status === 'active') {
+          await communitiesStorage.updateSessionLastUsed(token);
+          (req as any).user = user;
+          (req as any).userSession = session;
+          return next();
+        }
+      }
+    } catch (error) {
+      console.error('Token auth attempt failed:', error);
+      // Fall through to session auth
+    }
+  }
+  
+  // Try platform session auth
+  if (req.session?.userId) {
+    try {
+      const user = await communitiesStorage.getUserById(req.session.userId);
+      if (user && user.status === 'active') {
+        (req as any).user = user;
+        return next();
+      }
+    } catch (error) {
+      console.error('Session auth attempt failed:', error);
+    }
+  }
+  
+  // Both auth methods failed
+  return res.status(401).json({ ok: false, error: 'Authentication required' });
+};
+
 // Validation schemas
 const signupSchema = insertUserSchema.extend({
   email: z.string().email('Invalid email address'),
@@ -5184,7 +5226,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X GET http://localhost:5000/api/notifications/preferences \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.get('/api/notifications/preferences', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+  app.get('/api/notifications/preferences', checkCommunitiesFeatureFlag, requireAuthOrSession, async (req: Request, res: Response) => {
     try {
       const user = (req as any).user;
       const { communityId } = req.query;
@@ -5235,9 +5277,15 @@ export function addCommunitiesRoutes(app: Express) {
    *   -H "Content-Type: application/json" \
    *   -d '{"emailEnabled":false,"emailFrequency":"daily"}'
    */
-  app.patch('/api/notifications/preferences', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+  app.patch('/api/notifications/preferences', checkCommunitiesFeatureFlag, requireAuthOrSession, async (req: Request, res: Response) => {
     try {
+      console.log('[PATCH /api/notifications/preferences] Request received');
+      console.log('[PATCH] Session:', req.session?.userId);
+      console.log('[PATCH] Body:', req.body);
+      
       const user = (req as any).user;
+      console.log('[PATCH] User from middleware:', user?.id);
+      
       const { communityId, ...preferences } = req.body;
 
       const updatedPreferences = await communitiesStorage.upsertNotificationPreferences(
@@ -5246,13 +5294,14 @@ export function addCommunitiesRoutes(app: Express) {
         communityId
       );
 
+      console.log('[PATCH] Successfully updated preferences');
       res.json({
         ok: true,
         preferences: updatedPreferences,
         message: 'Notification preferences updated successfully'
       });
     } catch (error: any) {
-      console.error('Update notification preferences error:', error);
+      console.error('[PATCH] Update notification preferences error:', error);
       res.status(500).json({ ok: false, error: error.message || 'Failed to update notification preferences' });
     }
   });

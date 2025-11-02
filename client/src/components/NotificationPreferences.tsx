@@ -114,16 +114,39 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
         ? values 
         : { ...values, communityId: selectedCommunity };
       
-      return apiRequest('/api/notifications/preferences', 'PATCH', data);
+      console.log('[NotificationPrefs] Sending PATCH request:', { data, selectedCommunity });
+      
+      const response = await fetch('/api/notifications/preferences', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      
+      console.log('[NotificationPrefs] PATCH response status:', response.status);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('[NotificationPrefs] PATCH error:', error);
+        throw new Error(error.error || 'Failed to update preferences');
+      }
+      
+      const result = await response.json();
+      console.log('[NotificationPrefs] PATCH success:', result);
+      return result;
     },
     onSuccess: () => {
+      console.log('[NotificationPrefs] Save successful');
       queryClient.invalidateQueries({ queryKey: ['/api/notifications/preferences'] });
       toast({
         title: 'Success',
         description: 'Notification preferences updated successfully',
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error('[NotificationPrefs] Save failed:', error);
       toast({
         title: 'Error',
         description: 'Failed to update notification preferences',
