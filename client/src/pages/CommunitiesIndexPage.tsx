@@ -463,7 +463,7 @@ export default function CommunitiesIndexPage() {
                 {
                   icon: MessageSquare,
                   title: "Live Chat",
-                  description: "Real-time, auto-moderated messaging for community discussions and general chatter",
+                  description: "Real-time messaging with typing indicators, online presence, and threaded conversations",
                   gradient: "from-blue-500/10 to-cyan-500/10",
                   borderGradient: "from-blue-500/30 to-cyan-500/30",
                   iconColor: "text-blue-400"
@@ -471,7 +471,7 @@ export default function CommunitiesIndexPage() {
                 {
                   icon: Megaphone,
                   title: "Announcements",
-                  description: "Broadcast updates that cut through the noise and reach every member instantly",
+                  description: "Share important updates and news with your entire community instantly",
                   gradient: "from-purple-500/10 to-pink-500/10",
                   borderGradient: "from-purple-500/30 to-pink-500/30",
                   iconColor: "text-purple-400"
@@ -479,7 +479,7 @@ export default function CommunitiesIndexPage() {
                 {
                   icon: Gift,
                   title: "Giveaways",
-                  description: "Drive engagement and reward loyalty with automated contests that your members will love",
+                  description: "Run exciting giveaways with random draw, first-come-first-serve, or task-based entry",
                   gradient: "from-green-500/10 to-emerald-500/10",
                   borderGradient: "from-green-500/30 to-emerald-500/30",
                   iconColor: "text-green-400"
@@ -487,7 +487,7 @@ export default function CommunitiesIndexPage() {
                 {
                   icon: BarChart3,
                   title: "Polls & Voting",
-                  description: "Make data-driven decisions by tapping into your community's collective wisdom",
+                  description: "Engage members with interactive polls and collect valuable feedback",
                   gradient: "from-orange-500/10 to-amber-500/10",
                   borderGradient: "from-orange-500/30 to-amber-500/30",
                   iconColor: "text-orange-400"
@@ -495,7 +495,7 @@ export default function CommunitiesIndexPage() {
                 {
                   icon: TrendingUp,
                   title: "Analytics Dashboard",
-                  description: "Understand what's working with actionable insights that help you grow faster",
+                  description: "Track engagement, growth, and member activity with real-time insights",
                   gradient: "from-indigo-500/10 to-violet-500/10",
                   borderGradient: "from-indigo-500/30 to-violet-500/30",
                   iconColor: "text-indigo-400"
@@ -503,7 +503,7 @@ export default function CommunitiesIndexPage() {
                 {
                   icon: Calendar,
                   title: "Events & Tickets",
-                  description: "Turn your community into revenue with seamless event hosting and ticketing",
+                  description: "Create and manage exclusive community events with built-in ticketing",
                   gradient: "from-red-500/10 to-rose-500/10",
                   borderGradient: "from-red-500/30 to-rose-500/30",
                   iconColor: "text-red-400"
@@ -511,7 +511,7 @@ export default function CommunitiesIndexPage() {
                 {
                   icon: Bell,
                   title: "Smart Notifications",
-                  description: "Never let members miss a beat with intelligent notifications they'll actually want to receive",
+                  description: "Keep members engaged with email and in-app notifications",
                   gradient: "from-yellow-500/10 to-amber-500/10",
                   borderGradient: "from-yellow-500/30 to-amber-500/30",
                   iconColor: "text-yellow-400"
@@ -519,7 +519,7 @@ export default function CommunitiesIndexPage() {
                 {
                   icon: Image,
                   title: "Media Sharing",
-                  description: "Bring your community to life with rich media that tells your story",
+                  description: "Share images and videos with easy drag-and-drop support",
                   gradient: "from-teal-500/10 to-cyan-500/10",
                   borderGradient: "from-teal-500/30 to-cyan-500/30",
                   iconColor: "text-teal-400"
@@ -527,7 +527,7 @@ export default function CommunitiesIndexPage() {
                 {
                   icon: Share2,
                   title: "Invite System",
-                  description: "Turn every member into an ambassador with viral growth tools that scale organically",
+                  description: "Grow your community with trackable invite links and referral rewards",
                   gradient: "from-pink-500/10 to-rose-500/10",
                   borderGradient: "from-pink-500/30 to-rose-500/30",
                   iconColor: "text-pink-400"
