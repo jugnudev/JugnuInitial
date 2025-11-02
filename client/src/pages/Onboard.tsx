@@ -378,7 +378,7 @@ export default function Onboard() {
                   <Textarea
                     value={formData.subline}
                     onChange={(e) => setFormData(prev => ({ ...prev, subline: e.target.value }))}
-                    placeholder="e.g., Fresh mithai delivered daily across Metro Vancouver"
+                    placeholder="e.g., Fresh mithai delivered daily across Canada"
                     maxLength={120}
                     rows={2}
                   />

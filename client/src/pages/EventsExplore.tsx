@@ -181,7 +181,7 @@ export default function EventsExplore() {
       {/* Page Hero */}
       <PageHero
         title="Events"
-        subtitle="Discover concerts, festivals, cultural performances & community gatherings in Metro Vancouver."
+        subtitle="Discover concerts, festivals, cultural performances & community gatherings across Canada."
         actions={
           <button
             onClick={() => window.location.href = '/events/feature'}
