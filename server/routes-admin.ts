@@ -1019,6 +1019,165 @@ The Jugnu Team
     }
   });
 
+  // POST /api/admin/test-emails - Send test emails of all types
+  app.post('/api/admin/test-emails', requireAdminKey, async (req: Request, res: Response) => {
+    try {
+      const { recipientEmail } = req.body;
+      
+      if (!recipientEmail) {
+        return res.status(400).json({ ok: false, error: 'recipientEmail is required' });
+      }
+
+      // Import email functions
+      const { 
+        sendVerificationEmail, 
+        sendWelcomeEmail, 
+        sendOnboardingEmail,
+        sendDailyAnalyticsEmail,
+        sendTicketEmail 
+      } = await import('./services/emailService.js');
+
+      const results: any[] = [];
+
+      // 1. Verification Email (Signup)
+      try {
+        await sendVerificationEmail({
+          recipientEmail,
+          verificationCode: '123456',
+          purpose: 'signup',
+          userName: 'Test User'
+        });
+        results.push({ type: 'Verification (Signup)', status: 'sent' });
+      } catch (error: any) {
+        results.push({ type: 'Verification (Signup)', status: 'failed', error: error.message });
+      }
+
+      // 2. Verification Email (Signin)
+      try {
+        await sendVerificationEmail({
+          recipientEmail,
+          verificationCode: '654321',
+          purpose: 'signin',
+          userName: 'Test User'
+        });
+        results.push({ type: 'Verification (Signin)', status: 'sent' });
+      } catch (error: any) {
+        results.push({ type: 'Verification (Signin)', status: 'failed', error: error.message });
+      }
+
+      // 3. Welcome Email (User)
+      try {
+        await sendWelcomeEmail({
+          recipientEmail,
+          userName: 'Alex',
+          accountType: 'user'
+        });
+        results.push({ type: 'Welcome (User)', status: 'sent' });
+      } catch (error: any) {
+        results.push({ type: 'Welcome (User)', status: 'failed', error: error.message });
+      }
+
+      // 4. Welcome Email (Business)
+      try {
+        await sendWelcomeEmail({
+          recipientEmail,
+          userName: 'Sarah',
+          accountType: 'business',
+          businessName: 'Maple Events Co'
+        });
+        results.push({ type: 'Welcome (Business)', status: 'sent' });
+      } catch (error: any) {
+        results.push({ type: 'Welcome (Business)', status: 'failed', error: error.message });
+      }
+
+      // 5. Onboarding Email (Sponsor)
+      try {
+        await sendOnboardingEmail({
+          recipientEmail,
+          contactName: 'Jordan',
+          businessName: 'Test Business',
+          onboardingLink: 'https://jugnucanada.com/onboarding/test-token',
+          expiresInDays: 7
+        });
+        results.push({ type: 'Onboarding (Sponsor)', status: 'sent' });
+      } catch (error: any) {
+        results.push({ type: 'Onboarding (Sponsor)', status: 'failed', error: error.message });
+      }
+
+      // 6. Daily Analytics Email
+      try {
+        await sendDailyAnalyticsEmail({
+          recipientEmail,
+          date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+          todayVisitors: 245,
+          todayPageviews: 892,
+          todayNewVisitors: 178,
+          todayReturningVisitors: 67,
+          todayDeviceBreakdown: { mobile: 150, desktop: 80, tablet: 15 },
+          todayTopPages: [
+            { path: '/events', views: 234 },
+            { path: '/communities', views: 156 },
+            { path: '/', views: 145 }
+          ],
+          yesterdayVisitors: 210,
+          yesterdayPageviews: 750,
+          weeklyAvgVisitors: 220,
+          weeklyAvgPageviews: 800,
+          totalVisitors: 6540,
+          totalPageviews: 24800,
+          avgVisitorsPerDay: 218,
+          avgPageviewsPerDay: 826,
+          topPages: [
+            { path: '/events', views: 5600 },
+            { path: '/communities', views: 4200 },
+            { path: '/', views: 3800 }
+          ],
+          deviceBreakdown: { mobile: 3900, desktop: 2200, tablet: 440 },
+          newVisitors: 4200,
+          returningVisitors: 2340
+        });
+        results.push({ type: 'Daily Analytics', status: 'sent' });
+      } catch (error: any) {
+        results.push({ type: 'Daily Analytics', status: 'failed', error: error.message });
+      }
+
+      // 7. Ticket Email
+      try {
+        await sendTicketEmail({
+          recipientEmail,
+          buyerName: 'Test Buyer',
+          eventTitle: 'Diwali Festival 2025',
+          eventVenue: 'Queen Elizabeth Theatre',
+          eventDate: 'November 15, 2025',
+          eventTime: '7:00 PM PST',
+          orderNumber: 'ORD-TEST-12345',
+          tickets: [
+            {
+              id: 'TKT-1',
+              tierName: 'General Admission',
+              qrToken: 'QR123456',
+              seat: 'A12'
+            }
+          ],
+          totalAmount: '$45.00',
+          refundPolicy: 'Refunds available up to 7 days before the event.'
+        });
+        results.push({ type: 'Ticket Email', status: 'sent' });
+      } catch (error: any) {
+        results.push({ type: 'Ticket Email)', status: 'failed', error: error.message });
+      }
+
+      res.json({ 
+        ok: true, 
+        message: `Test emails sent to ${recipientEmail}`,
+        results 
+      });
+    } catch (error: any) {
+      console.error('Test emails error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to send test emails' });
+    }
+  });
+
   // GET /api/admin/audit-log
   app.get('/api/admin/audit-log', requireAdminSession, async (req: Request, res: Response) => {
     try {
