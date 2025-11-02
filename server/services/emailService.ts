@@ -252,7 +252,7 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
         <body>
           <div class="email-container">
             <div class="header">
-              <img src="${APP_BASE_URL}/images/jugnu-logo.png" alt="Jugnu" class="logo" />
+              <img src="https://jugnucanada.com/images/jugnu-logo.png" alt="Jugnu" class="logo" />
               <p>Verification Required</p>
             </div>
             
@@ -444,7 +444,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
             .cta-button {
               display: inline-block;
               background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-              color: #ffffff;
+              color: #ffffff !important;
               padding: 16px 40px;
               text-decoration: none;
               border-radius: 12px;
@@ -484,7 +484,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
         <body>
           <div class="email-container">
             <div class="header">
-              <img src="${APP_BASE_URL}/images/jugnu-logo.png" alt="Jugnu" class="logo" />
+              <img src="https://jugnucanada.com/images/jugnu-logo.png" alt="Jugnu" class="logo" />
               <p>${isBusinessAccount ? 'Your business account is ready' : 'Your account is ready'}</p>
             </div>
             
@@ -522,10 +522,10 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
                     </div>
                   </div>
                   <div class="feature">
-                    <div class="feature-icon">🎟️</div>
+                    <div class="feature-icon">🎯</div>
                     <div class="feature-content">
-                      <h3>Integrated Ticketing</h3>
-                      <p>Sell tickets directly through our platform with seamless payment processing and instant delivery.</p>
+                      <h3>Sponsorship Opportunities</h3>
+                      <p>Partner with us to reach your target audience through strategic sponsorships and advertising campaigns.</p>
                     </div>
                   </div>
                 ` : `
@@ -537,17 +537,17 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
                     </div>
                   </div>
                   <div class="feature">
-                    <div class="feature-icon">🎟️</div>
-                    <div class="feature-content">
-                      <h3>Easy Ticketing</h3>
-                      <p>Purchase tickets seamlessly and get instant digital delivery — your tickets are always in your account.</p>
-                    </div>
-                  </div>
-                  <div class="feature">
                     <div class="feature-icon">💬</div>
                     <div class="feature-content">
                       <h3>Join Communities</h3>
                       <p>Connect with like-minded people, join exclusive groups, and stay updated on events that interest you.</p>
+                    </div>
+                  </div>
+                  <div class="feature">
+                    <div class="feature-icon">🎨</div>
+                    <div class="feature-content">
+                      <h3>Support Local Artists</h3>
+                      <p>Discover and support talented South Asian artists, musicians, and performers in your area.</p>
                     </div>
                   </div>
                   <div class="feature">
@@ -600,8 +600,8 @@ Track your event performance and make data-driven decisions.
 💬 Community Building
 Create your own community space and build lasting relationships.
 
-🎟️ Integrated Ticketing
-Sell tickets directly through our platform with seamless payment processing.
+🎯 Sponsorship Opportunities
+Partner with us to reach your target audience through strategic sponsorships.
 
 Get started: ${APP_BASE_URL}
 ` : `
@@ -610,11 +610,11 @@ What you can do with Jugnu:
 🎭 Discover Events
 Explore concerts, festivals, and cultural celebrations across Canada.
 
-🎟️ Easy Ticketing
-Purchase tickets seamlessly with instant digital delivery.
-
 💬 Join Communities
 Connect with like-minded people and stay updated.
+
+🎨 Support Local Artists
+Discover and support talented South Asian artists and performers.
 
 🔔 Never Miss Out
 Get personalized notifications about upcoming events.
@@ -712,7 +712,7 @@ export async function sendOnboardingEmail(data: OnboardingEmailData): Promise<vo
             .button {
               display: inline-block;
               background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
-              color: white;
+              color: #ffffff !important;
               padding: 16px 40px;
               text-decoration: none;
               border-radius: 12px;
@@ -760,7 +760,7 @@ export async function sendOnboardingEmail(data: OnboardingEmailData): Promise<vo
         <body>
           <div class="email-container">
             <div class="header">
-              <img src="${APP_BASE_URL}/images/jugnu-logo.png" alt="Jugnu" class="logo" />
+              <img src="https://jugnucanada.com/images/jugnu-logo.png" alt="Jugnu" class="logo" />
               <p>You're Approved!</p>
             </div>
           
