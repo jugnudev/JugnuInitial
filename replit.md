@@ -45,7 +45,7 @@ Preferred communication style: Simple, everyday language.
     - **Post Reactions**: Atomic upsert operations with optimistic UI updates.
     - **Media Upload**: Supports images (JPG/PNG/WebP, max 10MB) and MP4 videos (max 50MB) with drag-and-drop.
     - **Post as Business**: Toggle to post announcements as the community/business or as an individual user.
-    - **Billing System**: Per-community subscriptions with Stripe integration, webhooks, and a 7-day free trial.
+    - **Free Access**: Communities are FREE for all business accounts indefinitely (not a trial). No billing enforcement, subscription checks, or payment requirements. Billing routes and Stripe initialization disabled.
     - **Giveaway System**: Comprehensive functionality including random draw, first-come-first-serve, task-based, points-based with automated winner selection, prize management, winner display with confetti animation, delete capability, and premium mobile-friendly interface. Authors cannot enter their own giveaways to prevent conflicts of interest.
     - **Notification System**: In-app notifications with email delivery, frequency preferences (immediate/daily/weekly), quiet hours support, and real-time WebSocket updates. Database uses `user_id` column for recipient identification (Supabase queries).
 
