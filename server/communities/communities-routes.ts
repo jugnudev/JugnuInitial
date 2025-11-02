@@ -1647,6 +1647,11 @@ export function addCommunitiesRoutes(app: Express) {
         return res.status(404).json({ ok: false, error: 'Community not found' });
       }
 
+      // Count actual members and posts for accurate display
+      const memberships = await communitiesStorage.getMembershipsByCommunityId(community.id);
+      const approvedMembersCount = memberships.filter((m: any) => m.status === 'approved').length;
+      const { total: postsCount } = await communitiesStorage.getPostsByCommunityId(community.id, 1, 0);
+
       // Check if authenticated
       let user = null;
       const token = req.headers['authorization']?.replace('Bearer ', '') || 
@@ -1675,10 +1680,10 @@ export function addCommunitiesRoutes(app: Express) {
             coverUrl: community.coverUrl,
             membershipPolicy: community.membershipPolicy,
             isPrivate: community.isPrivate,
-            totalMembers: community.totalMembers,
-            totalPosts: community.totalPosts,
-            memberCount: community.totalMembers,
-            postCount: community.totalPosts
+            totalMembers: approvedMembersCount,
+            totalPosts: postsCount,
+            memberCount: approvedMembersCount,
+            postCount: postsCount
           },
           canJoin: community.membershipPolicy !== 'closed',
           canManage: false
@@ -1699,7 +1704,6 @@ export function addCommunitiesRoutes(app: Express) {
       // Return different data based on access level
       if (isOwner) {
         // Owner gets full access
-        const members = await communitiesStorage.getMembershipsByCommunityId(community.id);
         const { posts } = await communitiesStorage.getPostsByCommunityId(community.id, 50, 0, user.id);
         const analytics = await communitiesStorage.getCommunityAnalytics(community.id);
         
@@ -1707,29 +1711,32 @@ export function addCommunitiesRoutes(app: Express) {
           ok: true,
           community: {
             ...community,
-            memberCount: community.totalMembers,
-            postCount: community.totalPosts
+            totalMembers: approvedMembersCount,
+            totalPosts: postsCount,
+            memberCount: approvedMembersCount,
+            postCount: postsCount
           },
           membership: { role: 'owner', status: 'approved' },
-          members,
+          members: memberships,
           posts,
           analytics,
           canManage: true
         });
       } else if (isApprovedMember) {
         // Approved members can see posts and members
-        const members = await communitiesStorage.getMembershipsByCommunityId(community.id);
         const { posts } = await communitiesStorage.getPostsByCommunityId(community.id, 50, 0, user.id);
         
         res.json({
           ok: true,
           community: {
             ...community,
-            memberCount: community.totalMembers,
-            postCount: community.totalPosts
+            totalMembers: approvedMembersCount,
+            totalPosts: postsCount,
+            memberCount: approvedMembersCount,
+            postCount: postsCount
           },
           membership,
-          members,
+          members: memberships,
           posts,
           canManage: false
         });
@@ -1746,10 +1753,10 @@ export function addCommunitiesRoutes(app: Express) {
             coverUrl: community.coverUrl,
             membershipPolicy: community.membershipPolicy,
             isPrivate: community.isPrivate,
-            totalMembers: community.totalMembers,
-            totalPosts: community.totalPosts,
-            memberCount: community.totalMembers,
-            postCount: community.totalPosts
+            totalMembers: approvedMembersCount,
+            totalPosts: postsCount,
+            memberCount: approvedMembersCount,
+            postCount: postsCount
           },
           membership: membership || null,
           canJoin: !membership && community.membershipPolicy !== 'closed',

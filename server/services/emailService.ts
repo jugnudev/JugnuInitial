@@ -110,23 +110,23 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-              line-height: 1.6;
-              color: #1f2937;
-              background: linear-gradient(135deg, #0f0a1e 0%, #1e1b4b 25%, #312e81 50%, #1e1b4b 75%, #0f0a1e 100%);
-              padding: 40px 20px;
+              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+              line-height: 1.7;
+              color: #0a0a0a;
+              background: #0a0a0a;
+              padding: 60px 20px;
             }
             .email-container {
-              max-width: 600px;
+              max-width: 580px;
               margin: 0 auto;
               background: #ffffff;
-              border-radius: 20px;
+              border-radius: 24px;
               overflow: hidden;
-              box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.3);
+              box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6), 0 20px 60px rgba(0, 0, 0, 0.4);
             }
             .header {
-              background: linear-gradient(135deg, #0f0a1e 0%, #1e1b4b 25%, #312e81 50%, #1e1b4b 75%, #0f0a1e 100%);
-              padding: 64px 40px;
+              background: linear-gradient(160deg, #0f0f0f 0%, #1a1a2e 50%, #0f0f23 100%);
+              padding: 72px 48px;
               text-align: center;
               position: relative;
               overflow: hidden;
@@ -134,16 +134,13 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
             .header::before {
               content: '';
               position: absolute;
-              top: -50%;
-              left: -50%;
-              width: 200%;
-              height: 200%;
-              background: radial-gradient(circle, rgba(251, 191, 36, 0.1) 0%, transparent 70%);
-              animation: pulse 4s ease-in-out infinite;
-            }
-            @keyframes pulse {
-              0%, 100% { transform: scale(1); opacity: 0.5; }
-              50% { transform: scale(1.1); opacity: 0.8; }
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              width: 300px;
+              height: 300px;
+              background: radial-gradient(circle, rgba(234, 88, 12, 0.15) 0%, transparent 70%);
+              filter: blur(40px);
             }
             .header::after {
               content: '';
@@ -151,137 +148,136 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
               bottom: 0;
               left: 0;
               right: 0;
-              height: 5px;
-              background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 25%, #ea580c 50%, #f59e0b 75%, #fbbf24 100%);
-              box-shadow: 0 2px 8px rgba(251, 191, 36, 0.5);
+              height: 1px;
+              background: linear-gradient(90deg, transparent, rgba(234, 88, 12, 0.6), transparent);
             }
             .logo {
-              max-width: 200px;
+              max-width: 120px;
               height: auto;
-              margin: 0 auto 28px;
+              margin: 0 auto 32px;
               display: block;
-              filter: drop-shadow(0 6px 12px rgba(0,0,0,0.4));
+              filter: brightness(0) invert(1) drop-shadow(0 8px 16px rgba(0,0,0,0.5));
               position: relative;
               z-index: 1;
             }
-            .header p {
-              color: rgba(255, 255, 255, 0.95);
-              font-size: 17px;
-              margin-top: 16px;
-              font-weight: 600;
+            .header-title {
+              color: #ffffff;
+              font-size: 15px;
+              margin: 0;
+              font-weight: 500;
               text-transform: uppercase;
-              letter-spacing: 2px;
+              letter-spacing: 3px;
               position: relative;
               z-index: 1;
-              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+              opacity: 0.9;
             }
             .content {
-              padding: 48px 40px;
+              padding: 56px 48px;
               background: #ffffff;
             }
             .greeting {
-              font-size: 18px;
-              color: #111827;
-              margin-bottom: 24px;
-              font-weight: 600;
+              font-size: 32px;
+              color: #0a0a0a;
+              margin-bottom: 16px;
+              font-weight: 700;
+              letter-spacing: -0.5px;
             }
             .message {
-              font-size: 16px;
-              color: #4b5563;
-              margin-bottom: 32px;
-              line-height: 1.7;
+              font-size: 17px;
+              color: #525252;
+              margin-bottom: 48px;
+              line-height: 1.8;
+            }
+            .message strong {
+              color: #171717;
+              font-weight: 600;
             }
             .code-box {
-              background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fed7aa 100%);
-              border: 4px solid #f97316;
-              padding: 40px 32px;
-              border-radius: 16px;
+              background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+              border: 2px solid #e5e5e5;
+              padding: 48px 40px;
+              border-radius: 20px;
               text-align: center;
-              margin: 40px 0;
-              box-shadow: 0 8px 20px rgba(249, 115, 22, 0.2), 0 2px 8px rgba(249, 115, 22, 0.15);
+              margin: 48px 0;
+              box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
               position: relative;
-              overflow: hidden;
             }
             .code-box::before {
               content: '';
               position: absolute;
-              top: -2px;
-              left: -2px;
-              right: -2px;
-              bottom: -2px;
-              background: linear-gradient(45deg, #fbbf24, #f59e0b, #ea580c, #f59e0b, #fbbf24);
-              border-radius: 16px;
+              inset: -2px;
+              background: linear-gradient(135deg, #ea580c 0%, #f59e0b 100%);
+              border-radius: 20px;
               z-index: -1;
-              opacity: 0.3;
+              opacity: 0.1;
             }
             .code-label {
-              font-size: 14px;
-              color: #92400e;
+              font-size: 12px;
+              color: #737373;
               text-transform: uppercase;
-              letter-spacing: 2px;
-              font-weight: 800;
-              margin-bottom: 20px;
+              letter-spacing: 2.5px;
+              font-weight: 700;
+              margin-bottom: 24px;
             }
             .verification-code {
-              font-size: 48px;
-              font-weight: 900;
+              font-size: 56px;
+              font-weight: 700;
               color: #ea580c;
-              letter-spacing: 12px;
-              font-family: 'Courier New', monospace;
-              text-shadow: 0 3px 6px rgba(234, 88, 12, 0.2);
-              padding: 8px 0;
+              letter-spacing: 16px;
+              font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+              padding: 12px 0;
             }
             .code-hint {
-              font-size: 15px;
-              color: #78350f;
-              margin-top: 20px;
-              font-weight: 600;
+              font-size: 14px;
+              color: #a3a3a3;
+              margin-top: 24px;
+              font-weight: 500;
             }
             .security-note {
-              background: #f3f4f6;
-              border-left: 4px solid #6b7280;
-              padding: 16px 20px;
-              border-radius: 8px;
-              margin: 32px 0;
+              background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+              border-left: 3px solid #a3a3a3;
+              padding: 20px 24px;
+              border-radius: 12px;
+              margin: 48px 0 0 0;
             }
             .security-note p {
               font-size: 14px;
-              color: #374151;
+              color: #525252;
               margin: 0;
-              line-height: 1.6;
-            }
-            .security-note strong {
-              color: #1f2937;
+              line-height: 1.7;
             }
             .footer {
-              background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
-              padding: 32px 40px;
+              background: #fafafa;
+              padding: 40px 48px;
               text-align: center;
-              border-top: 1px solid #e5e7eb;
+            }
+            .footer-text {
+              font-size: 13px;
+              color: #a3a3a3;
+              margin-bottom: 32px;
             }
             .footer-link {
-              color: #f97316;
+              color: #ea580c;
               text-decoration: none;
               font-weight: 600;
-            }
-            .footer-link:hover {
-              color: #ea580c;
+              transition: color 0.2s;
             }
             .brand {
-              margin-top: 24px;
-              padding-top: 24px;
-              border-top: 1px solid #d1d5db;
+              padding-top: 32px;
+              border-top: 1px solid #e5e5e5;
             }
             .brand-name {
-              font-size: 18px;
+              font-size: 20px;
               font-weight: 700;
-              color: #111827;
-              margin-bottom: 4px;
+              color: #0a0a0a;
+              margin-bottom: 6px;
+              letter-spacing: -0.5px;
             }
             .brand-tagline {
-              font-size: 14px;
-              color: #6b7280;
+              font-size: 13px;
+              color: #a3a3a3;
               font-weight: 500;
+              letter-spacing: 0.5px;
             }
           </style>
         </head>
@@ -289,33 +285,33 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
           <div class="email-container">
             <div class="header">
               <img src="https://rayagonwzwwguvybudir.supabase.co/storage/v1/object/public/email-assets/jugnu-logo.png" alt="Jugnu" class="logo" />
-              <p>Verification Required</p>
+              <p class="header-title">Verification Required</p>
             </div>
             
             <div class="content">
-              <div class="greeting">${greeting},</div>
+              <h1 class="greeting">${greeting}</h1>
               
-              <div class="message">
+              <p class="message">
                 ${isSignup ? 
-                  'Welcome to <strong>Jugnu</strong> — Canada\'s South Asian cultural hub! To complete your account setup and explore our vibrant community, please verify your email address using the code below.' :
-                  'To securely sign in to your <strong>Jugnu</strong> account, please enter the verification code below.'
+                  'Welcome to <strong>Jugnu</strong> — Canada\'s South Asian cultural hub. To complete your account setup and explore vibrant cultural experiences, verify your email using the code below.' :
+                  'To securely access your <strong>Jugnu</strong> account, please verify your identity using the code below.'
                 }
-              </div>
+              </p>
               
               <div class="code-box">
-                <div class="code-label">Your Verification Code</div>
+                <div class="code-label">Verification Code</div>
                 <div class="verification-code">${data.verificationCode}</div>
-                <div class="code-hint">Enter this code to continue</div>
+                <div class="code-hint">Expires in 10 minutes</div>
               </div>
               
               <div class="security-note">
-                <p><strong>🔒 Security Note:</strong> This code expires in 10 minutes. If you didn't request this email, you can safely ignore it.</p>
+                <p>If you didn't request this email, you can safely ignore it. This code will expire automatically.</p>
               </div>
             </div>
             
             <div class="footer">
-              <p style="font-size: 14px; color: #6b7280; margin-bottom: 12px;">
-                Need help? Contact us at <a href="mailto:${EMAIL_FROM_ADDRESS}" class="footer-link">${EMAIL_FROM_ADDRESS}</a>
+              <p class="footer-text">
+                Need help? Contact <a href="mailto:${EMAIL_FROM_ADDRESS}" class="footer-link">${EMAIL_FROM_ADDRESS}</a>
               </p>
               <div class="brand">
                 <div class="brand-name">Jugnu</div>
@@ -385,23 +381,23 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
-              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-              line-height: 1.6;
-              color: #1f2937;
-              background: linear-gradient(135deg, #0f0a1e 0%, #1e1b4b 25%, #312e81 50%, #1e1b4b 75%, #0f0a1e 100%);
-              padding: 40px 20px;
+              font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+              line-height: 1.7;
+              color: #0a0a0a;
+              background: #0a0a0a;
+              padding: 60px 20px;
             }
             .email-container {
-              max-width: 600px;
+              max-width: 580px;
               margin: 0 auto;
               background: #ffffff;
-              border-radius: 20px;
+              border-radius: 24px;
               overflow: hidden;
-              box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.3);
+              box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6), 0 20px 60px rgba(0, 0, 0, 0.4);
             }
             .header {
-              background: linear-gradient(135deg, #0f0a1e 0%, #1e1b4b 25%, #312e81 50%, #1e1b4b 75%, #0f0a1e 100%);
-              padding: 64px 40px;
+              background: linear-gradient(160deg, #0f0f0f 0%, #1a1a2e 50%, #0f0f23 100%);
+              padding: 72px 48px;
               text-align: center;
               position: relative;
               overflow: hidden;
@@ -409,16 +405,13 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
             .header::before {
               content: '';
               position: absolute;
-              top: -50%;
-              left: -50%;
-              width: 200%;
-              height: 200%;
-              background: radial-gradient(circle, rgba(251, 191, 36, 0.1) 0%, transparent 70%);
-              animation: pulse 4s ease-in-out infinite;
-            }
-            @keyframes pulse {
-              0%, 100% { transform: scale(1); opacity: 0.5; }
-              50% { transform: scale(1.1); opacity: 0.8; }
+              top: 50%;
+              left: 50%;
+              transform: translate(-50%, -50%);
+              width: 300px;
+              height: 300px;
+              background: radial-gradient(circle, rgba(234, 88, 12, 0.15) 0%, transparent 70%);
+              filter: blur(40px);
             }
             .header::after {
               content: '';
@@ -426,115 +419,124 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
               bottom: 0;
               left: 0;
               right: 0;
-              height: 5px;
-              background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 25%, #ea580c 50%, #f59e0b 75%, #fbbf24 100%);
-              box-shadow: 0 2px 8px rgba(251, 191, 36, 0.5);
+              height: 1px;
+              background: linear-gradient(90deg, transparent, rgba(234, 88, 12, 0.6), transparent);
             }
             .logo {
-              max-width: 200px;
+              max-width: 120px;
               height: auto;
-              margin: 0 auto 28px;
+              margin: 0 auto 32px;
               display: block;
-              filter: drop-shadow(0 6px 12px rgba(0,0,0,0.4));
+              filter: brightness(0) invert(1) drop-shadow(0 8px 16px rgba(0,0,0,0.5));
               position: relative;
               z-index: 1;
             }
-            .header p {
-              color: rgba(255, 255, 255, 0.95);
-              font-size: 19px;
-              margin-top: 16px;
-              font-weight: 600;
+            .header-title {
+              color: #ffffff;
+              font-size: 15px;
+              margin: 0;
+              font-weight: 500;
               text-transform: uppercase;
-              letter-spacing: 2px;
+              letter-spacing: 3px;
               position: relative;
               z-index: 1;
-              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+              opacity: 0.9;
             }
             .content {
-              padding: 48px 40px;
+              padding: 56px 48px;
               background: #ffffff;
             }
             .greeting {
-              font-size: 26px;
-              color: #111827;
-              margin-bottom: 24px;
-              font-weight: 800;
+              font-size: 32px;
+              color: #0a0a0a;
+              margin-bottom: 16px;
+              font-weight: 700;
+              letter-spacing: -0.5px;
             }
             .intro {
               font-size: 17px;
-              color: #4b5563;
-              margin-bottom: 32px;
-              line-height: 1.7;
+              color: #525252;
+              margin-bottom: 48px;
+              line-height: 1.8;
+            }
+            .intro strong {
+              color: #171717;
+              font-weight: 600;
             }
             .features {
-              margin: 32px 0;
+              margin: 48px 0;
             }
             .feature {
-              display: flex;
-              align-items: flex-start;
-              margin-bottom: 24px;
-              padding: 20px;
-              background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-              border-left: 4px solid #f97316;
-              border-radius: 8px;
+              padding: 24px 28px;
+              margin-bottom: 16px;
+              background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+              border-left: 3px solid #ea580c;
+              border-radius: 12px;
             }
             .feature-icon {
-              font-size: 32px;
-              margin-right: 16px;
-              flex-shrink: 0;
+              font-size: 28px;
+              margin-bottom: 12px;
+              display: block;
             }
             .feature-content h3 {
-              font-size: 16px;
+              font-size: 17px;
               font-weight: 700;
-              color: #111827;
+              color: #0a0a0a;
               margin-bottom: 6px;
+              letter-spacing: -0.3px;
             }
             .feature-content p {
               font-size: 14px;
-              color: #6b7280;
-              line-height: 1.6;
+              color: #737373;
+              line-height: 1.7;
             }
             .cta {
               text-align: center;
-              margin: 40px 0 32px;
+              margin: 48px 0 0;
             }
             .cta-button {
               display: inline-block;
-              background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+              background: #ea580c;
               color: #ffffff !important;
-              padding: 16px 40px;
+              padding: 18px 48px;
               text-decoration: none;
               border-radius: 12px;
               font-weight: 700;
               font-size: 16px;
-              box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+              letter-spacing: 0.3px;
+              box-shadow: 0 8px 24px rgba(234, 88, 12, 0.25);
             }
             .footer {
-              background: linear-gradient(to bottom, #f9fafb, #f3f4f6);
-              padding: 32px 40px;
+              background: #fafafa;
+              padding: 40px 48px;
               text-align: center;
-              border-top: 1px solid #e5e7eb;
+            }
+            .footer-text {
+              font-size: 13px;
+              color: #a3a3a3;
+              margin-bottom: 32px;
             }
             .footer-link {
-              color: #f97316;
+              color: #ea580c;
               text-decoration: none;
               font-weight: 600;
             }
             .brand {
-              margin-top: 24px;
-              padding-top: 24px;
-              border-top: 1px solid #d1d5db;
+              padding-top: 32px;
+              border-top: 1px solid #e5e5e5;
             }
             .brand-name {
-              font-size: 18px;
+              font-size: 20px;
               font-weight: 700;
-              color: #111827;
-              margin-bottom: 4px;
+              color: #0a0a0a;
+              margin-bottom: 6px;
+              letter-spacing: -0.5px;
             }
             .brand-tagline {
-              font-size: 14px;
-              color: #6b7280;
+              font-size: 13px;
+              color: #a3a3a3;
               font-weight: 500;
+              letter-spacing: 0.5px;
             }
           </style>
         </head>
@@ -542,91 +544,91 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
           <div class="email-container">
             <div class="header">
               <img src="https://rayagonwzwwguvybudir.supabase.co/storage/v1/object/public/email-assets/jugnu-logo.png" alt="Jugnu" class="logo" />
-              <p>${isBusinessAccount ? 'Your business account is ready' : 'Your account is ready'}</p>
+              <p class="header-title">${isBusinessAccount ? 'Business Account Active' : 'Account Created'}</p>
             </div>
             
             <div class="content">
-              <div class="greeting">${greeting},</div>
+              <h1 class="greeting">${greeting}</h1>
               
-              <div class="intro">
+              <p class="intro">
                 ${isBusinessAccount ? 
-                  `We're thrilled to have <strong>${data.businessName || 'your business'}</strong> join Canada's premier South Asian cultural events platform! Your account is now active and ready to help you grow your audience and connect with thousands of engaged community members across Canada.` :
-                  `We're excited to welcome you to Canada's premier South Asian cultural events platform! Your account is now active and you're ready to discover amazing events, connect with your community, and never miss out on the experiences that matter to you.`
+                  `Welcome to Jugnu — Canada's South Asian cultural hub. <strong>${data.businessName || 'Your business'}</strong> is now ready to reach thousands of engaged community members and grow your audience.` :
+                  `Welcome to Jugnu — Canada's South Asian cultural hub. You're all set to discover vibrant events, connect with your community, and explore experiences that matter.`
                 }
-              </div>
+              </p>
               
               <div class="features">
                 ${isBusinessAccount ? `
                   <div class="feature">
-                    <div class="feature-icon">📢</div>
+                    <span class="feature-icon">📢</span>
                     <div class="feature-content">
-                      <h3>Promote Your Events</h3>
-                      <p>Reach thousands of engaged community members across Canada and grow your audience with our powerful event promotion tools.</p>
+                      <h3>Event Promotion</h3>
+                      <p>Reach engaged community members across Canada with powerful promotion tools.</p>
                     </div>
                   </div>
                   <div class="feature">
-                    <div class="feature-icon">📊</div>
+                    <span class="feature-icon">📊</span>
                     <div class="feature-content">
-                      <h3>Analytics & Insights</h3>
-                      <p>Track your event performance, understand your audience, and make data-driven decisions to maximize your impact.</p>
+                      <h3>Analytics</h3>
+                      <p>Track performance and make data-driven decisions to maximize impact.</p>
                     </div>
                   </div>
                   <div class="feature">
-                    <div class="feature-icon">💬</div>
+                    <span class="feature-icon">💬</span>
                     <div class="feature-content">
-                      <h3>Community Building</h3>
-                      <p>Create your own community space, engage with attendees, and build lasting relationships with your audience.</p>
+                      <h3>Communities</h3>
+                      <p>Build your own community space and engage directly with your audience.</p>
                     </div>
                   </div>
                   <div class="feature">
-                    <div class="feature-icon">🎯</div>
+                    <span class="feature-icon">🎯</span>
                     <div class="feature-content">
-                      <h3>Sponsorship Opportunities</h3>
-                      <p>Partner with us to reach your target audience through strategic sponsorships and advertising campaigns.</p>
+                      <h3>Sponsorships</h3>
+                      <p>Partner with us for strategic sponsorships and advertising campaigns.</p>
                     </div>
                   </div>
                 ` : `
                   <div class="feature">
-                    <div class="feature-icon">🎭</div>
+                    <span class="feature-icon">🎭</span>
                     <div class="feature-content">
-                      <h3>Discover Events</h3>
-                      <p>Explore concerts, festivals, cultural celebrations, and community gatherings happening across Canada.</p>
+                      <h3>Event Discovery</h3>
+                      <p>Explore concerts, festivals, and cultural celebrations across Canada.</p>
                     </div>
                   </div>
                   <div class="feature">
-                    <div class="feature-icon">💬</div>
+                    <span class="feature-icon">💬</span>
                     <div class="feature-content">
-                      <h3>Join Communities</h3>
-                      <p>Connect with like-minded people, join exclusive groups, and stay updated on events that interest you.</p>
+                      <h3>Communities</h3>
+                      <p>Connect with like-minded people and join exclusive groups.</p>
                     </div>
                   </div>
                   <div class="feature">
-                    <div class="feature-icon">🎨</div>
+                    <span class="feature-icon">🎨</span>
                     <div class="feature-content">
-                      <h3>Support Local Artists</h3>
-                      <p>Discover and support talented South Asian artists, musicians, and performers in your area.</p>
+                      <h3>Local Artists</h3>
+                      <p>Discover and support talented South Asian artists and performers.</p>
                     </div>
                   </div>
                   <div class="feature">
-                    <div class="feature-icon">🔔</div>
+                    <span class="feature-icon">🔔</span>
                     <div class="feature-content">
-                      <h3>Never Miss Out</h3>
-                      <p>Get personalized notifications about upcoming events and never miss the experiences you love.</p>
+                      <h3>Notifications</h3>
+                      <p>Stay updated on upcoming events you care about.</p>
                     </div>
                   </div>
                 `}
               </div>
               
               <div class="cta">
-                <a href="${APP_BASE_URL}" class="cta-button" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: #ffffff !important; text-decoration: none; display: inline-block; padding: 16px 40px; border-radius: 12px; font-weight: 700; font-size: 16px;">
-                  ${isBusinessAccount ? 'Access Your Dashboard' : 'Start Exploring Events'}
+                <a href="${APP_BASE_URL}" class="cta-button">
+                  ${isBusinessAccount ? 'Access Dashboard' : 'Explore Events'}
                 </a>
               </div>
             </div>
             
             <div class="footer">
-              <p style="font-size: 14px; color: #6b7280; margin-bottom: 12px;">
-                Questions? We're here to help at <a href="mailto:${EMAIL_FROM_ADDRESS}" class="footer-link">${EMAIL_FROM_ADDRESS}</a>
+              <p class="footer-text">
+                Questions? Contact <a href="mailto:${EMAIL_FROM_ADDRESS}" class="footer-link">${EMAIL_FROM_ADDRESS}</a>
               </p>
               <div class="brand">
                 <div class="brand-name">Jugnu</div>
