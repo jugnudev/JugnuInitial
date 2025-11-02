@@ -355,14 +355,13 @@ export default function CommunitiesIndexPage() {
               </CardHeader>
               
               <CardContent className="space-y-6">
-                {/* Pricing */}
-                <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border border-yellow-500/30 rounded-xl p-4">
-                  <div className="flex items-baseline gap-2 mb-2">
-                    <span className="text-3xl font-bold text-yellow-400">$19.99</span>
-                    <span className="text-premium-text-muted">/month</span>
+                {/* Free Access */}
+                <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-3xl font-bold text-green-400">FREE</span>
                   </div>
                   <p className="text-sm text-premium-text-secondary">
-                    or <span className="font-semibold text-yellow-400">$199/year</span> (save 17%)
+                    All community features included at <span className="font-semibold text-green-400">no cost</span>
                   </p>
                 </div>
                 
@@ -382,7 +381,7 @@ export default function CommunitiesIndexPage() {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.6 + idx * 0.1 }}
                     >
-                      <feature.icon className="h-5 w-5 text-yellow-400 flex-shrink-0" />
+                      <feature.icon className="h-5 w-5 text-green-400 flex-shrink-0" />
                       <span className="text-premium-text-secondary">{feature.text}</span>
                     </motion.div>
                   ))}
@@ -392,7 +391,7 @@ export default function CommunitiesIndexPage() {
                   <Link href="/account/apply-organizer">
                     <Button 
                       size="lg"
-                      className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-black font-bold transition-all duration-300 hover:shadow-glow-strong"
+                      className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold transition-all duration-300 hover:shadow-glow-strong"
                       data-testid="apply-business-button"
                     >
                       Apply for Business Account
@@ -401,7 +400,7 @@ export default function CommunitiesIndexPage() {
                   </Link>
                   
                   <p className="text-center text-xs text-premium-text-muted mt-4">
-                    30-day free trial • No credit card required
+                    Free forever • No payment required
                   </p>
                 </div>
               </CardContent>
