@@ -146,10 +146,14 @@ export default function CommunityBilling({
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <CheckCircle className="w-6 h-6" />
-              <h3 className="text-2xl font-bold">Free Community Access</h3>
+              <h3 className="text-2xl font-bold">Free Beta Access</h3>
+              <Badge className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 text-amber-950 border-amber-300/50 font-bold text-xs px-2 py-1">
+                <Sparkles className="w-3 h-3 mr-1" />
+                BETA
+              </Badge>
             </div>
             <p className="text-sm text-white/90">
-              Your business account has unlimited access to all community features at no cost
+              Your business account has unlimited access to all community features at no cost during the beta period
             </p>
           </div>
           <Badge className="bg-white/20 text-white border-white/30 text-sm px-4 py-2">

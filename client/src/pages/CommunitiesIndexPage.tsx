@@ -355,13 +355,14 @@ export default function CommunitiesIndexPage() {
               </CardHeader>
               
               <CardContent className="space-y-6">
-                {/* Free Access */}
+                {/* Free Beta Access */}
                 <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-3xl font-bold text-green-400">FREE</span>
+                    <BetaBadge size="md" variant="prominent" />
                   </div>
                   <p className="text-sm text-premium-text-secondary">
-                    All community features included at <span className="font-semibold text-green-400">no cost</span>
+                    All community features included at <span className="font-semibold text-green-400">no cost</span> during beta
                   </p>
                 </div>
                 
@@ -400,7 +401,7 @@ export default function CommunitiesIndexPage() {
                   </Link>
                   
                   <p className="text-center text-xs text-premium-text-muted mt-4">
-                    Free forever • No payment required
+                    Free beta • No payment required
                   </p>
                 </div>
               </CardContent>
