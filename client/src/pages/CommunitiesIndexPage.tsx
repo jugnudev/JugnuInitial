@@ -270,10 +270,16 @@ export default function CommunitiesIndexPage() {
             transition={{ duration: 0.8 }}
             className="text-center mb-20"
           >
-            <Badge className="mb-8 bg-gradient-to-r from-copper-500/20 to-accent/20 text-accent border-accent/30 px-4 py-2">
-              <Sparkles className="h-4 w-4 mr-2" />
-              Premium Communities Platform
-            </Badge>
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Badge className="mb-8 bg-gradient-to-r from-copper-600 via-accent to-copper-600 text-white border border-copper-400/50 px-6 py-2.5 text-sm font-semibold shadow-lg shadow-copper-500/30 hover:shadow-xl hover:shadow-copper-500/40 transition-all duration-300">
+                <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
+                Premium Communities Platform
+              </Badge>
+            </motion.div>
             
             <div className="flex flex-col items-center gap-4 mb-8">
               <h1 className="font-fraunces text-5xl md:text-7xl font-bold leading-tight">
