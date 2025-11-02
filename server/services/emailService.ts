@@ -113,22 +113,37 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
               line-height: 1.6;
               color: #1f2937;
-              background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+              background: linear-gradient(135deg, #0f0a1e 0%, #1e1b4b 25%, #312e81 50%, #1e1b4b 75%, #0f0a1e 100%);
               padding: 40px 20px;
             }
             .email-container {
               max-width: 600px;
               margin: 0 auto;
               background: #ffffff;
-              border-radius: 16px;
+              border-radius: 20px;
               overflow: hidden;
-              box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+              box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.3);
             }
             .header {
-              background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
-              padding: 56px 40px;
+              background: linear-gradient(135deg, #0f0a1e 0%, #1e1b4b 25%, #312e81 50%, #1e1b4b 75%, #0f0a1e 100%);
+              padding: 64px 40px;
               text-align: center;
               position: relative;
+              overflow: hidden;
+            }
+            .header::before {
+              content: '';
+              position: absolute;
+              top: -50%;
+              left: -50%;
+              width: 200%;
+              height: 200%;
+              background: radial-gradient(circle, rgba(251, 191, 36, 0.1) 0%, transparent 70%);
+              animation: pulse 4s ease-in-out infinite;
+            }
+            @keyframes pulse {
+              0%, 100% { transform: scale(1); opacity: 0.5; }
+              50% { transform: scale(1.1); opacity: 0.8; }
             }
             .header::after {
               content: '';
@@ -136,23 +151,29 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
               bottom: 0;
               left: 0;
               right: 0;
-              height: 4px;
-              background: linear-gradient(90deg, #fbbf24, #f59e0b, #ea580c);
+              height: 5px;
+              background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 25%, #ea580c 50%, #f59e0b 75%, #fbbf24 100%);
+              box-shadow: 0 2px 8px rgba(251, 191, 36, 0.5);
             }
             .logo {
-              max-width: 180px;
+              max-width: 200px;
               height: auto;
-              margin: 0 auto 24px;
+              margin: 0 auto 28px;
               display: block;
-              filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+              filter: drop-shadow(0 6px 12px rgba(0,0,0,0.4));
+              position: relative;
+              z-index: 1;
             }
             .header p {
-              color: rgba(255, 255, 255, 0.9);
-              font-size: 16px;
-              margin-top: 12px;
-              font-weight: 500;
+              color: rgba(255, 255, 255, 0.95);
+              font-size: 17px;
+              margin-top: 16px;
+              font-weight: 600;
               text-transform: uppercase;
-              letter-spacing: 1px;
+              letter-spacing: 2px;
+              position: relative;
+              z-index: 1;
+              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             }
             .content {
               padding: 48px 40px;
@@ -171,35 +192,50 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
               line-height: 1.7;
             }
             .code-box {
-              background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
-              border: 3px solid #f97316;
-              padding: 32px 24px;
-              border-radius: 12px;
+              background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fed7aa 100%);
+              border: 4px solid #f97316;
+              padding: 40px 32px;
+              border-radius: 16px;
               text-align: center;
-              margin: 32px 0;
-              box-shadow: 0 4px 12px rgba(249, 115, 22, 0.15);
+              margin: 40px 0;
+              box-shadow: 0 8px 20px rgba(249, 115, 22, 0.2), 0 2px 8px rgba(249, 115, 22, 0.15);
+              position: relative;
+              overflow: hidden;
+            }
+            .code-box::before {
+              content: '';
+              position: absolute;
+              top: -2px;
+              left: -2px;
+              right: -2px;
+              bottom: -2px;
+              background: linear-gradient(45deg, #fbbf24, #f59e0b, #ea580c, #f59e0b, #fbbf24);
+              border-radius: 16px;
+              z-index: -1;
+              opacity: 0.3;
             }
             .code-label {
-              font-size: 13px;
+              font-size: 14px;
               color: #92400e;
               text-transform: uppercase;
-              letter-spacing: 1.5px;
-              font-weight: 700;
-              margin-bottom: 16px;
+              letter-spacing: 2px;
+              font-weight: 800;
+              margin-bottom: 20px;
             }
             .verification-code {
-              font-size: 40px;
-              font-weight: 800;
+              font-size: 48px;
+              font-weight: 900;
               color: #ea580c;
-              letter-spacing: 8px;
+              letter-spacing: 12px;
               font-family: 'Courier New', monospace;
-              text-shadow: 0 2px 4px rgba(234, 88, 12, 0.15);
+              text-shadow: 0 3px 6px rgba(234, 88, 12, 0.2);
+              padding: 8px 0;
             }
             .code-hint {
-              font-size: 14px;
+              font-size: 15px;
               color: #78350f;
-              margin-top: 16px;
-              font-weight: 500;
+              margin-top: 20px;
+              font-weight: 600;
             }
             .security-note {
               background: #f3f4f6;
@@ -261,7 +297,7 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
               
               <div class="message">
                 ${isSignup ? 
-                  'Welcome to <strong>Jugnu</strong> — Canada\'s premier cultural events platform! To complete your account setup and start exploring events, please verify your email address using the code below.' :
+                  'Welcome to <strong>Jugnu</strong> — Canada\'s South Asian cultural hub! To complete your account setup and explore our vibrant community, please verify your email address using the code below.' :
                   'To securely sign in to your <strong>Jugnu</strong> account, please enter the verification code below.'
                 }
               </div>
@@ -294,7 +330,7 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
 ${greeting},
 
 ${isSignup ? 
-  'Welcome to Jugnu! To complete your account setup, please verify your email address with the code below:' :
+  'Welcome to Jugnu — Canada\'s South Asian cultural hub! To complete your account setup, please verify your email address with the code below:' :
   'To sign in to your Jugnu account, please use the verification code below:'
 }
 
@@ -352,22 +388,37 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
               line-height: 1.6;
               color: #1f2937;
-              background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+              background: linear-gradient(135deg, #0f0a1e 0%, #1e1b4b 25%, #312e81 50%, #1e1b4b 75%, #0f0a1e 100%);
               padding: 40px 20px;
             }
             .email-container {
               max-width: 600px;
               margin: 0 auto;
               background: #ffffff;
-              border-radius: 16px;
+              border-radius: 20px;
               overflow: hidden;
-              box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+              box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.3);
             }
             .header {
-              background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
-              padding: 56px 40px;
+              background: linear-gradient(135deg, #0f0a1e 0%, #1e1b4b 25%, #312e81 50%, #1e1b4b 75%, #0f0a1e 100%);
+              padding: 64px 40px;
               text-align: center;
               position: relative;
+              overflow: hidden;
+            }
+            .header::before {
+              content: '';
+              position: absolute;
+              top: -50%;
+              left: -50%;
+              width: 200%;
+              height: 200%;
+              background: radial-gradient(circle, rgba(251, 191, 36, 0.1) 0%, transparent 70%);
+              animation: pulse 4s ease-in-out infinite;
+            }
+            @keyframes pulse {
+              0%, 100% { transform: scale(1); opacity: 0.5; }
+              50% { transform: scale(1.1); opacity: 0.8; }
             }
             .header::after {
               content: '';
@@ -375,33 +426,39 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
               bottom: 0;
               left: 0;
               right: 0;
-              height: 4px;
-              background: linear-gradient(90deg, #fbbf24, #f59e0b, #ea580c);
+              height: 5px;
+              background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 25%, #ea580c 50%, #f59e0b 75%, #fbbf24 100%);
+              box-shadow: 0 2px 8px rgba(251, 191, 36, 0.5);
             }
             .logo {
-              max-width: 180px;
+              max-width: 200px;
               height: auto;
-              margin: 0 auto 24px;
+              margin: 0 auto 28px;
               display: block;
-              filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+              filter: drop-shadow(0 6px 12px rgba(0,0,0,0.4));
+              position: relative;
+              z-index: 1;
             }
             .header p {
-              color: rgba(255, 255, 255, 0.9);
-              font-size: 18px;
-              margin-top: 12px;
-              font-weight: 500;
+              color: rgba(255, 255, 255, 0.95);
+              font-size: 19px;
+              margin-top: 16px;
+              font-weight: 600;
               text-transform: uppercase;
-              letter-spacing: 1px;
+              letter-spacing: 2px;
+              position: relative;
+              z-index: 1;
+              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             }
             .content {
               padding: 48px 40px;
               background: #ffffff;
             }
             .greeting {
-              font-size: 24px;
+              font-size: 26px;
               color: #111827;
               margin-bottom: 24px;
-              font-weight: 700;
+              font-weight: 800;
             }
             .intro {
               font-size: 17px;

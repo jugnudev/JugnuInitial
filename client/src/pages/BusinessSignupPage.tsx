@@ -195,7 +195,7 @@ export function BusinessSignupPage() {
                     </li>
                     <li className="flex items-start">
                       <span className="mr-2">3.</span>
-                      <span>After approval, you can start creating communities and hosting events!</span>
+                      <span>After approval, you can start building and engaging your community!</span>
                     </li>
                   </ul>
                 </div>

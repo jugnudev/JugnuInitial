@@ -1676,7 +1676,9 @@ export function addCommunitiesRoutes(app: Express) {
             membershipPolicy: community.membershipPolicy,
             isPrivate: community.isPrivate,
             totalMembers: community.totalMembers,
-            totalPosts: community.totalPosts
+            totalPosts: community.totalPosts,
+            memberCount: community.totalMembers,
+            postCount: community.totalPosts
           },
           canJoin: community.membershipPolicy !== 'closed',
           canManage: false
@@ -1737,7 +1739,9 @@ export function addCommunitiesRoutes(app: Express) {
             membershipPolicy: community.membershipPolicy,
             isPrivate: community.isPrivate,
             totalMembers: community.totalMembers,
-            totalPosts: community.totalPosts
+            totalPosts: community.totalPosts,
+            memberCount: community.totalMembers,
+            postCount: community.totalPosts
           },
           membership: membership || null,
           canJoin: !membership && community.membershipPolicy !== 'closed',
