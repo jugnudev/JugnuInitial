@@ -252,7 +252,7 @@ export async function sendVerificationEmail(data: VerificationEmailData): Promis
         <body>
           <div class="email-container">
             <div class="header">
-              <img src="https://jugnucanada.com/images/jugnu-logo.png" alt="Jugnu" class="logo" />
+              <img src="https://rayagonwzwwguvybudir.supabase.co/storage/v1/object/public/email-assets/jugnu-logo.png" alt="Jugnu" class="logo" />
               <p>Verification Required</p>
             </div>
             
@@ -484,7 +484,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
         <body>
           <div class="email-container">
             <div class="header">
-              <img src="https://jugnucanada.com/images/jugnu-logo.png" alt="Jugnu" class="logo" />
+              <img src="https://rayagonwzwwguvybudir.supabase.co/storage/v1/object/public/email-assets/jugnu-logo.png" alt="Jugnu" class="logo" />
               <p>${isBusinessAccount ? 'Your business account is ready' : 'Your account is ready'}</p>
             </div>
             
@@ -561,7 +561,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
               </div>
               
               <div class="cta">
-                <a href="${APP_BASE_URL}" class="cta-button">
+                <a href="${APP_BASE_URL}" class="cta-button" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: #ffffff !important; text-decoration: none; display: inline-block; padding: 16px 40px; border-radius: 12px; font-weight: 700; font-size: 16px;">
                   ${isBusinessAccount ? 'Access Your Dashboard' : 'Start Exploring Events'}
                 </a>
               </div>
@@ -760,7 +760,7 @@ export async function sendOnboardingEmail(data: OnboardingEmailData): Promise<vo
         <body>
           <div class="email-container">
             <div class="header">
-              <img src="https://jugnucanada.com/images/jugnu-logo.png" alt="Jugnu" class="logo" />
+              <img src="https://rayagonwzwwguvybudir.supabase.co/storage/v1/object/public/email-assets/jugnu-logo.png" alt="Jugnu" class="logo" />
               <p>You're Approved!</p>
             </div>
           
@@ -772,7 +772,7 @@ export async function sendOnboardingEmail(data: OnboardingEmailData): Promise<vo
             <p>You can now complete your campaign setup by clicking the button below:</p>
             
             <div style="text-align: center;">
-              <a href="${data.onboardingLink}" class="button">Complete Campaign Setup</a>
+              <a href="${data.onboardingLink}" class="button" style="background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); color: #ffffff !important; text-decoration: none; display: inline-block; padding: 16px 40px; border-radius: 12px; font-weight: 700; font-size: 16px;">Complete Campaign Setup</a>
             </div>
             
             <p style="color: #666; font-size: 14px;">
