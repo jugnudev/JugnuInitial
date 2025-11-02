@@ -1705,7 +1705,11 @@ export function addCommunitiesRoutes(app: Express) {
         
         res.json({
           ok: true,
-          community,
+          community: {
+            ...community,
+            memberCount: community.totalMembers,
+            postCount: community.totalPosts
+          },
           membership: { role: 'owner', status: 'approved' },
           members,
           posts,
@@ -1719,7 +1723,11 @@ export function addCommunitiesRoutes(app: Express) {
         
         res.json({
           ok: true,
-          community,
+          community: {
+            ...community,
+            memberCount: community.totalMembers,
+            postCount: community.totalPosts
+          },
           membership,
           members,
           posts,
