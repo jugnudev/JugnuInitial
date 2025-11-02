@@ -463,7 +463,7 @@ export default function CommunitiesIndexPage() {
                 {
                   icon: MessageSquare,
                   title: "Live Chat",
-                  description: "Real-time messaging with typing indicators, online presence, and threaded conversations",
+                  description: "Real-time, auto-moderated messaging for community discussions and general chatter",
                   gradient: "from-blue-500/10 to-cyan-500/10",
                   borderGradient: "from-blue-500/30 to-cyan-500/30",
                   iconColor: "text-blue-400"
@@ -501,9 +501,9 @@ export default function CommunitiesIndexPage() {
                   iconColor: "text-indigo-400"
                 },
                 {
-                  icon: Calendar,
-                  title: "Events & Tickets",
-                  description: "Create and manage exclusive community events with built-in ticketing",
+                  icon: Shield,
+                  title: "Role Management",
+                  description: "Assign roles and permissions with owner, moderator, and member access levels",
                   gradient: "from-red-500/10 to-rose-500/10",
                   borderGradient: "from-red-500/30 to-rose-500/30",
                   iconColor: "text-red-400"
