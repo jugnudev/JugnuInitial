@@ -298,130 +298,9 @@ export default function CommunitiesIndexPage() {
             </p>
           </motion.div>
           
-          {/* Features Showcase */}
-          <motion.div
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="mb-24"
-          >
-            <div className="text-center mb-12">
-              <h2 className="font-fraunces text-3xl md:text-4xl font-bold text-text mb-4">
-                Everything You Need to Build Community
-              </h2>
-              <p className="text-lg text-muted max-w-2xl mx-auto">
-                Powerful features designed to engage, connect, and grow your cultural community
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
-              {[
-                {
-                  icon: MessageSquare,
-                  title: "Live Chat",
-                  description: "Real-time messaging with typing indicators, online presence, and threaded conversations",
-                  gradient: "from-blue-500/10 to-cyan-500/10",
-                  borderGradient: "from-blue-500/30 to-cyan-500/30",
-                  iconColor: "text-blue-400"
-                },
-                {
-                  icon: Megaphone,
-                  title: "Announcements",
-                  description: "Share important updates and news with your entire community instantly",
-                  gradient: "from-purple-500/10 to-pink-500/10",
-                  borderGradient: "from-purple-500/30 to-pink-500/30",
-                  iconColor: "text-purple-400"
-                },
-                {
-                  icon: Gift,
-                  title: "Giveaways",
-                  description: "Run exciting giveaways with random draw, first-come-first-serve, or task-based entry",
-                  gradient: "from-green-500/10 to-emerald-500/10",
-                  borderGradient: "from-green-500/30 to-emerald-500/30",
-                  iconColor: "text-green-400"
-                },
-                {
-                  icon: BarChart3,
-                  title: "Polls & Voting",
-                  description: "Engage members with interactive polls and collect valuable feedback",
-                  gradient: "from-orange-500/10 to-amber-500/10",
-                  borderGradient: "from-orange-500/30 to-amber-500/30",
-                  iconColor: "text-orange-400"
-                },
-                {
-                  icon: TrendingUp,
-                  title: "Analytics Dashboard",
-                  description: "Track engagement, growth, and member activity with real-time insights",
-                  gradient: "from-indigo-500/10 to-violet-500/10",
-                  borderGradient: "from-indigo-500/30 to-violet-500/30",
-                  iconColor: "text-indigo-400"
-                },
-                {
-                  icon: Calendar,
-                  title: "Events & Tickets",
-                  description: "Create and manage exclusive community events with built-in ticketing",
-                  gradient: "from-red-500/10 to-rose-500/10",
-                  borderGradient: "from-red-500/30 to-rose-500/30",
-                  iconColor: "text-red-400"
-                },
-                {
-                  icon: Bell,
-                  title: "Smart Notifications",
-                  description: "Keep members engaged with email and in-app notifications",
-                  gradient: "from-yellow-500/10 to-amber-500/10",
-                  borderGradient: "from-yellow-500/30 to-amber-500/30",
-                  iconColor: "text-yellow-400"
-                },
-                {
-                  icon: Image,
-                  title: "Media Sharing",
-                  description: "Share images and videos with easy drag-and-drop support",
-                  gradient: "from-teal-500/10 to-cyan-500/10",
-                  borderGradient: "from-teal-500/30 to-cyan-500/30",
-                  iconColor: "text-teal-400"
-                },
-                {
-                  icon: Share2,
-                  title: "Invite System",
-                  description: "Grow your community with trackable invite links and referral rewards",
-                  gradient: "from-pink-500/10 to-rose-500/10",
-                  borderGradient: "from-pink-500/30 to-rose-500/30",
-                  iconColor: "text-pink-400"
-                }
-              ].map((feature, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 + idx * 0.1 }}
-                  className="group"
-                  data-testid={`feature-card-${idx}`}
-                >
-                  <Card className={`relative overflow-hidden bg-gradient-to-br ${feature.gradient} border-2 border-transparent bg-clip-padding hover:border-gradient-to-r ${feature.borderGradient} transition-all duration-300 hover:shadow-lg h-full`}>
-                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-radial from-white/5 via-transparent to-transparent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    
-                    <CardContent className="p-6 relative z-10">
-                      <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br from-premium-surface/50 to-premium-surface-elevated/50 border border-white/10 mb-4`}>
-                        <feature.icon className={`h-6 w-6 ${feature.iconColor}`} />
-                      </div>
-                      
-                      <h3 className="font-fraunces text-xl font-bold text-text mb-2">
-                        {feature.title}
-                      </h3>
-                      
-                      <p className="text-sm text-muted leading-relaxed">
-                        {feature.description}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-          
           {/* Two-Panel Pitch */}
           <motion.div 
-            className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto"
+            className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto mb-24"
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
@@ -562,6 +441,126 @@ export default function CommunitiesIndexPage() {
                 </div>
               </CardContent>
             </Card>
+          </motion.div>
+          
+          {/* Features Showcase */}
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          >
+            <div className="text-center mb-12">
+              <h2 className="font-fraunces text-3xl md:text-4xl font-bold text-text mb-4">
+                Everything You Need to Build Community
+              </h2>
+              <p className="text-lg text-muted max-w-2xl mx-auto">
+                Powerful features designed to engage, connect, and grow your cultural community
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+              {[
+                {
+                  icon: MessageSquare,
+                  title: "Live Chat",
+                  description: "Real-time messaging with typing indicators, online presence, and threaded conversations",
+                  gradient: "from-blue-500/10 to-cyan-500/10",
+                  borderGradient: "from-blue-500/30 to-cyan-500/30",
+                  iconColor: "text-blue-400"
+                },
+                {
+                  icon: Megaphone,
+                  title: "Announcements",
+                  description: "Share important updates and news with your entire community instantly",
+                  gradient: "from-purple-500/10 to-pink-500/10",
+                  borderGradient: "from-purple-500/30 to-pink-500/30",
+                  iconColor: "text-purple-400"
+                },
+                {
+                  icon: Gift,
+                  title: "Giveaways",
+                  description: "Run exciting giveaways with random draw, first-come-first-serve, or task-based entry",
+                  gradient: "from-green-500/10 to-emerald-500/10",
+                  borderGradient: "from-green-500/30 to-emerald-500/30",
+                  iconColor: "text-green-400"
+                },
+                {
+                  icon: BarChart3,
+                  title: "Polls & Voting",
+                  description: "Engage members with interactive polls and collect valuable feedback",
+                  gradient: "from-orange-500/10 to-amber-500/10",
+                  borderGradient: "from-orange-500/30 to-amber-500/30",
+                  iconColor: "text-orange-400"
+                },
+                {
+                  icon: TrendingUp,
+                  title: "Analytics Dashboard",
+                  description: "Track engagement, growth, and member activity with real-time insights",
+                  gradient: "from-indigo-500/10 to-violet-500/10",
+                  borderGradient: "from-indigo-500/30 to-violet-500/30",
+                  iconColor: "text-indigo-400"
+                },
+                {
+                  icon: Calendar,
+                  title: "Events & Tickets",
+                  description: "Create and manage exclusive community events with built-in ticketing",
+                  gradient: "from-red-500/10 to-rose-500/10",
+                  borderGradient: "from-red-500/30 to-rose-500/30",
+                  iconColor: "text-red-400"
+                },
+                {
+                  icon: Bell,
+                  title: "Smart Notifications",
+                  description: "Keep members engaged with email and in-app notifications",
+                  gradient: "from-yellow-500/10 to-amber-500/10",
+                  borderGradient: "from-yellow-500/30 to-amber-500/30",
+                  iconColor: "text-yellow-400"
+                },
+                {
+                  icon: Image,
+                  title: "Media Sharing",
+                  description: "Share images and videos with easy drag-and-drop support",
+                  gradient: "from-teal-500/10 to-cyan-500/10",
+                  borderGradient: "from-teal-500/30 to-cyan-500/30",
+                  iconColor: "text-teal-400"
+                },
+                {
+                  icon: Share2,
+                  title: "Invite System",
+                  description: "Grow your community with trackable invite links and referral rewards",
+                  gradient: "from-pink-500/10 to-rose-500/10",
+                  borderGradient: "from-pink-500/30 to-rose-500/30",
+                  iconColor: "text-pink-400"
+                }
+              ].map((feature, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 + idx * 0.1 }}
+                  className="group"
+                  data-testid={`feature-card-${idx}`}
+                >
+                  <Card className={`relative overflow-hidden bg-gradient-to-br ${feature.gradient} border-2 border-transparent bg-clip-padding hover:border-gradient-to-r ${feature.borderGradient} transition-all duration-300 hover:shadow-lg h-full`}>
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-radial from-white/5 via-transparent to-transparent rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    
+                    <CardContent className="p-6 relative z-10">
+                      <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br from-premium-surface/50 to-premium-surface-elevated/50 border border-white/10 mb-4`}>
+                        <feature.icon className={`h-6 w-6 ${feature.iconColor}`} />
+                      </div>
+                      
+                      <h3 className="font-fraunces text-xl font-bold text-text mb-2">
+                        {feature.title}
+                      </h3>
+                      
+                      <p className="text-sm text-muted leading-relaxed">
+                        {feature.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
         </div>
       </div>
