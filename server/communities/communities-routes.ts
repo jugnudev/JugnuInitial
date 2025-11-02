@@ -1626,7 +1626,7 @@ export function addCommunitiesRoutes(app: Express) {
           
           return {
             ...community,
-            total_members: approvedMembersCount // Override stale database value with real count
+            memberCount: approvedMembersCount // Frontend expects 'memberCount'
           };
         })
       );
