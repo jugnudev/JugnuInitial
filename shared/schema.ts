@@ -1597,7 +1597,7 @@ export const wallets = pgTable("wallets", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
   totalPoints: integer("total_points").notNull().default(0),
   metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // For future use (e.g., flags, notes)
 }, (table) => ({
@@ -1627,7 +1627,7 @@ export const loyaltyLedger = pgTable("loyalty_ledger", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   type: text("type").notNull(), // mint | burn | adjust | reverse
-  userId: varchar("user_id").notNull().references(() => users.id),
+  userId: uuid("user_id").notNull().references(() => users.id),
   organizerId: uuid("organizer_id").notNull().references(() => organizers.id),
   points: integer("points").notNull(), // Positive for mint, negative for burn
   centsValue: integer("cents_value"), // CAD cents value of transaction
@@ -1647,7 +1647,7 @@ export const userMerchantEarnings = pgTable("user_merchant_earnings", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
-  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   organizerId: uuid("organizer_id").notNull().references(() => organizers.id, { onDelete: 'cascade' }),
   totalEarned: integer("total_earned").notNull().default(0), // Total JP earned from this merchant
 }, (table) => ({
