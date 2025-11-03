@@ -352,15 +352,6 @@ export class CommunityEmailService {
       };
 
       await sgMail.send(msg);
-      
-      // Mark notification as email sent
-      await communitiesStorage.client
-        .from('community_notifications')
-        .update({ 
-          is_email_sent: true, 
-          email_sent_at: new Date().toISOString() 
-        })
-        .eq('id', notification.id);
 
       console.log(`[Email Service] Sent email for notification ${notification.id} to ${recipient.email}`);
       return true;

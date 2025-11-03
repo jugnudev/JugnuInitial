@@ -2863,8 +2863,7 @@ export class CommunitiesSupabaseDB {
         comment_id: data.commentId,
         poll_id: data.pollId,
         metadata: data.metadata || {},
-        is_read: false,
-        is_email_sent: false
+        is_read: false
       })
       .select()
       .single();
@@ -2897,8 +2896,7 @@ export class CommunitiesSupabaseDB {
       comment_id: n.commentId,
       poll_id: n.pollId,
       metadata: n.metadata || {},
-      is_read: false,
-      is_email_sent: false
+      is_read: false
     }));
 
     const { data: created, error } = await this.client
@@ -3185,12 +3183,12 @@ export class CommunitiesSupabaseDB {
       type: data.type,
       title: data.title,
       body: data.body,
-      actionUrl: data.action_url,
+      postId: data.post_id,
+      commentId: data.comment_id,
+      pollId: data.poll_id,
       metadata: data.metadata,
       isRead: data.is_read,
-      readAt: data.read_at,
-      isEmailSent: data.is_email_sent,
-      emailSentAt: data.email_sent_at
+      readAt: data.read_at
     };
   }
 

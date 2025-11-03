@@ -84,7 +84,7 @@ export function NotificationCenter() {
 
   // Fetch user's communities for filter
   const { data: communitiesData } = useQuery<{ ok: boolean; communities: Community[] }>({
-    queryKey: ['/api/communities/my'],
+    queryKey: ['/api/user/communities'],
   });
 
   // Fetch notifications with filters
