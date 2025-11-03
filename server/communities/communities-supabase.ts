@@ -3186,9 +3186,12 @@ export class CommunitiesSupabaseDB {
       postId: data.post_id,
       commentId: data.comment_id,
       pollId: data.poll_id,
+      actionUrl: data.action_url,
       metadata: data.metadata,
       isRead: data.is_read,
-      readAt: data.read_at
+      readAt: data.read_at,
+      isEmailSent: data.is_email_sent,
+      emailSentAt: data.email_sent_at
     };
   }
 
