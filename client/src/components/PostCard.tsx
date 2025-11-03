@@ -64,6 +64,8 @@ interface PostCardProps {
   onDelete?: () => void;
   onReaction?: (type: string) => void;
   onComment?: (comment: string, parentId?: string) => void;
+  onCommentEdit?: (commentId: string, content: string) => void;
+  onCommentDelete?: (commentId: string) => void;
   onCommentLike?: (commentId: string) => void;
   onShare?: () => void;
 }
@@ -116,6 +118,8 @@ export function PostCard({
   onDelete,
   onReaction,
   onComment,
+  onCommentEdit,
+  onCommentDelete,
   onCommentLike,
   onShare
 }: PostCardProps) {
@@ -508,6 +512,8 @@ export function PostCard({
                     currentUserName={currentUserName}
                     currentUserAvatar={currentUserAvatar}
                     onComment={onComment}
+                    onEdit={onCommentEdit}
+                    onDelete={onCommentDelete}
                     onLike={onCommentLike}
                   />
                 </motion.div>

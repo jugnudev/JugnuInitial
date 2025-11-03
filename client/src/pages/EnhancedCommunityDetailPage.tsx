@@ -872,6 +872,32 @@ export default function EnhancedCommunityDetailPage() {
   };
 
   // Handle comment likes
+  const handleCommentEdit = async (commentId: string, content: string) => {
+    if (!community?.id) return;
+    
+    try {
+      await apiRequest('PATCH', `/api/communities/${community.id}/comments/${commentId}`, { content });
+      // Invalidate comments to refresh
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', community.id] });
+      refetch();
+    } catch (error: any) {
+      console.error('Failed to edit comment:', error);
+    }
+  };
+
+  const handleCommentDelete = async (commentId: string) => {
+    if (!community?.id) return;
+    
+    try {
+      await apiRequest('DELETE', `/api/communities/${community.id}/comments/${commentId}`);
+      // Invalidate comments to refresh
+      queryClient.invalidateQueries({ queryKey: ['/api/communities', community.id] });
+      refetch();
+    } catch (error: any) {
+      console.error('Failed to delete comment:', error);
+    }
+  };
+
   const handleCommentLike = async (commentId: string) => {
     if (!community?.id) return;
     
@@ -1419,6 +1445,8 @@ export default function EnhancedCommunityDetailPage() {
                         }}
                         onReaction={(type) => handleReaction(post.id, type)}
                         onComment={(content, parentId) => handleComment(post.id, content, parentId)}
+                        onCommentEdit={(commentId, content) => handleCommentEdit(commentId, content)}
+                        onCommentDelete={(commentId) => handleCommentDelete(commentId)}
                         onCommentLike={(commentId) => handleCommentLike(commentId)}
                         onShare={() => handleShare(post)}
                       />
@@ -2349,6 +2377,8 @@ export default function EnhancedCommunityDetailPage() {
                         canDelete={false}
                         onReaction={(type) => handleReaction(post.id, type)}
                         onComment={(content, parentId) => handleComment(post.id, content, parentId)}
+                        onCommentEdit={(commentId, content) => handleCommentEdit(commentId, content)}
+                        onCommentDelete={(commentId) => handleCommentDelete(commentId)}
                         onCommentLike={(commentId) => handleCommentLike(commentId)}
                         onShare={() => handleShare(post)}
                       />

@@ -240,14 +240,15 @@ function CommentItem({
               <Textarea
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="min-h-[60px] bg-premium-surface border-premium-border text-premium-text-primary"
+                className="min-h-[60px] !bg-zinc-900 dark:!bg-zinc-900 border-zinc-700 dark:border-zinc-700 text-zinc-100 dark:text-zinc-100 resize-none focus:ring-2 focus:ring-copper-500 focus:border-copper-500"
                 data-testid={`edit-comment-input-${comment.id}`}
               />
               <div className="flex gap-2">
                 <Button
                   size="sm"
                   onClick={handleEdit}
-                  className="bg-accent hover:bg-accent/80"
+                  disabled={!editContent.trim()}
+                  className="bg-accent hover:bg-accent/80 disabled:opacity-50 disabled:cursor-not-allowed"
                   data-testid={`save-comment-${comment.id}`}
                 >
                   Save
@@ -259,6 +260,7 @@ function CommentItem({
                     setIsEditing(false);
                     setEditContent(comment.content);
                   }}
+                  className="hover:bg-premium-surface-elevated"
                   data-testid={`cancel-edit-${comment.id}`}
                 >
                   Cancel
