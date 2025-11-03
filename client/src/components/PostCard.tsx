@@ -55,6 +55,9 @@ interface PostCardProps {
     hasReacted?: boolean;
   }[];
   comments?: any[];
+  currentUserId?: string;
+  currentUserName?: string;
+  currentUserAvatar?: string;
   canEdit?: boolean;
   canDelete?: boolean;
   onEdit?: () => void;
@@ -104,6 +107,9 @@ export function PostCard({
   viewCount = 0,
   reactions = [],
   comments = [],
+  currentUserId,
+  currentUserName,
+  currentUserAvatar,
   canEdit = false,
   canDelete = false,
   onEdit,
@@ -498,6 +504,9 @@ export function PostCard({
                   <CommentsSection
                     postId={id}
                     comments={comments}
+                    currentUserId={currentUserId}
+                    currentUserName={currentUserName}
+                    currentUserAvatar={currentUserAvatar}
                     onComment={onComment}
                     onLike={onCommentLike}
                   />

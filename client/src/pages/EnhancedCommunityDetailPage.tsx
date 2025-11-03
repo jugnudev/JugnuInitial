@@ -178,12 +178,18 @@ function PostCardWithComments({
   communityId,
   communityName,
   communityImageUrl,
+  currentUserId,
+  currentUserName,
+  currentUserAvatar,
   ...otherProps
 }: {
   post: Post;
   communityId: string;
   communityName?: string;
   communityImageUrl?: string;
+  currentUserId?: string;
+  currentUserName?: string;
+  currentUserAvatar?: string;
   [key: string]: any;
 }) {
   const { data: commentsData } = useQuery({
@@ -214,6 +220,9 @@ function PostCardWithComments({
       authorName={authorName}
       authorAvatar={authorAvatar}
       comments={comments}
+      currentUserId={currentUserId}
+      currentUserName={currentUserName}
+      currentUserAvatar={currentUserAvatar}
       {...otherProps}
     />
   );
@@ -1399,6 +1408,9 @@ export default function EnhancedCommunityDetailPage() {
                         communityId={community?.id || ''}
                         communityName={community?.name}
                         communityImageUrl={community?.imageUrl}
+                        currentUserId={user?.id}
+                        currentUserName={user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : undefined}
+                        currentUserAvatar={user?.profileImageUrl}
                         canEdit={isOwner || post.authorId === user?.id}
                         canDelete={isOwner}
                         onEdit={() => handleEditPost(post)}
@@ -2330,6 +2342,9 @@ export default function EnhancedCommunityDetailPage() {
                         communityId={community?.id || ''}
                         communityName={community?.name}
                         communityImageUrl={community?.imageUrl}
+                        currentUserId={user?.id}
+                        currentUserName={user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : undefined}
+                        currentUserAvatar={user?.profileImageUrl}
                         canEdit={post.authorId === user?.id}
                         canDelete={false}
                         onReaction={(type) => handleReaction(post.id, type)}

@@ -47,11 +47,23 @@ interface CommentsSectionProps {
   postId: string;
   comments: Comment[];
   currentUserId?: string;
+  currentUserName?: string;
+  currentUserAvatar?: string;
   canModerate?: boolean;
   onComment?: (content: string, parentId?: string) => void;
   onEdit?: (commentId: string, content: string) => void;
   onDelete?: (commentId: string) => void;
   onLike?: (commentId: string) => void;
+}
+
+// Utility function to extract initials from full name
+function getInitials(name: string): string {
+  if (!name) return 'U';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return 'U';
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+  // First letter of first name + first letter of last name
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
 const commentAnimation = {
@@ -92,10 +104,24 @@ function CommentItem({
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
+  const [optimisticLiked, setOptimisticLiked] = useState(comment.hasLiked);
+  const [optimisticLikes, setOptimisticLikes] = useState(comment.likes);
   
   const isAuthor = currentUserId === comment.authorId;
   const canEdit = isAuthor;
   const canDelete = isAuthor || canModerate;
+  
+  const handleLike = () => {
+    if (!onLike) return;
+    
+    // Optimistic update for smooth UX
+    const wasLiked = optimisticLiked;
+    setOptimisticLiked(!wasLiked);
+    setOptimisticLikes(prev => wasLiked ? prev - 1 : prev + 1);
+    
+    // Call the actual API
+    onLike(comment.id);
+  };
   
   const handleEdit = () => {
     if (onEdit && editContent.trim()) {
@@ -118,7 +144,7 @@ function CommentItem({
         <Avatar className="h-8 w-8 flex-shrink-0">
           <AvatarImage src={comment.authorAvatar} alt={comment.authorName || 'User'} />
           <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white text-xs">
-            {(comment.authorName || 'U').substring(0, 2).toUpperCase()}
+            {getInitials(comment.authorName || 'User')}
           </AvatarFallback>
         </Avatar>
         
@@ -251,18 +277,23 @@ function CommentItem({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => onLike && onLike(comment.id)}
+                onClick={handleLike}
                 className={`
-                  h-7 px-2 text-xs
-                  ${comment.hasLiked 
+                  h-7 px-2 text-xs transition-colors
+                  ${optimisticLiked 
                     ? 'text-red-500 hover:text-red-400' 
                     : 'text-premium-text-muted hover:text-premium-text-primary'
                   }
                 `}
                 data-testid={`like-comment-${comment.id}`}
               >
-                <Heart className={`h-3 w-3 mr-1 ${comment.hasLiked ? 'fill-current' : ''}`} />
-                {comment.likes > 0 && comment.likes}
+                <motion.div
+                  animate={{ scale: optimisticLiked ? [1, 1.2, 1] : 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Heart className={`h-3 w-3 mr-1 ${optimisticLiked ? 'fill-current' : ''}`} />
+                </motion.div>
+                {optimisticLikes > 0 && optimisticLikes}
               </Button>
               
               {onReply && (
@@ -291,6 +322,8 @@ export function CommentsSection({
   postId,
   comments,
   currentUserId,
+  currentUserName,
+  currentUserAvatar,
   canModerate = false,
   onComment,
   onEdit,
@@ -326,8 +359,9 @@ export function CommentsSection({
       <div className="mb-6">
         <div className="flex gap-3">
           <Avatar className="h-8 w-8 flex-shrink-0">
+            <AvatarImage src={currentUserAvatar} alt={currentUserName || 'You'} />
             <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white text-xs">
-              YO
+              {getInitials(currentUserName || 'You')}
             </AvatarFallback>
           </Avatar>
           
