@@ -269,7 +269,7 @@ router.get('/transactions', requireAuth, async (req: Request, res: Response) => 
  * GET /api/loyalty/business/config
  * Get merchant's loyalty configuration and point bank status
  */
-router.get('/business/config', requireLoyaltyAccess, async (req: Request, res: Response) => {
+router.get('/business/config', requireAuth, requireLoyaltyAccess, async (req: Request, res: Response) => {
   try {
     const config = (req as any).loyaltyConfig;
     const organizer = (req as any).organizer;
@@ -304,7 +304,7 @@ const updateConfigSchema = z.object({
   redeemCapPercentage: z.number().int().min(0).max(50).optional(),
 });
 
-router.patch('/business/config', requireLoyaltyAccess, async (req: Request, res: Response) => {
+router.patch('/business/config', requireAuth, requireLoyaltyAccess, async (req: Request, res: Response) => {
   try {
     const validation = updateConfigSchema.safeParse(req.body);
     
@@ -355,7 +355,7 @@ const issuePointsSchema = z.object({
   reference: z.string().optional(), // Bill ID, receipt number, etc.
 });
 
-router.post('/business/issue', requireLoyaltyAccess, async (req: Request, res: Response) => {
+router.post('/business/issue', requireAuth, requireLoyaltyAccess, async (req: Request, res: Response) => {
   try {
     const validation = issuePointsSchema.safeParse(req.body);
     
