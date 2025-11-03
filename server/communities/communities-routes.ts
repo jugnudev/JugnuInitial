@@ -2400,6 +2400,9 @@ export function addCommunitiesRoutes(app: Express) {
             }
           });
 
+          // Send email notification
+          await emailService.sendNotificationEmail(notification, targetUser, community);
+          
           // Send real-time notification via WebSocket
           const { sendNotificationToUser } = require('./chat-server');
           sendNotificationToUser(userId, {
@@ -2560,7 +2563,10 @@ export function addCommunitiesRoutes(app: Express) {
           // Filter out nulls and create batch notifications
           const validNotifications = notifications.filter(n => n !== null);
           if (validNotifications.length > 0) {
-            await communitiesStorage.batchCreateNotifications(validNotifications);
+            const createdNotifications = await communitiesStorage.batchCreateNotifications(validNotifications);
+            
+            // Send email notifications (immediate or queued for digest)
+            await emailService.sendBatchNotifications(createdNotifications, community);
             
             // Send real-time notifications
             const { broadcastNotificationToCommunity } = require('./chat-server');
