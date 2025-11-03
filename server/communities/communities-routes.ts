@@ -3320,6 +3320,14 @@ export function addCommunitiesRoutes(app: Express) {
             const shouldNotify = prefs ? (notif.type === 'comment_reply' ? prefs.commentReplies : prefs.postComments) : true;
 
             if (shouldNotify) {
+              console.log('[Comment Notification] Creating notification:', {
+                recipientId: notif.recipientId,
+                communityId: community.id,
+                type: notif.type,
+                title: notif.title,
+                actionUrl: `/community/${community.slug}/post/${postId}`
+              });
+              
               const notification = await communitiesStorage.createNotification({
                 recipientId: notif.recipientId,
                 communityId: community.id,
@@ -3339,6 +3347,8 @@ export function addCommunitiesRoutes(app: Express) {
                   communitySlug: community.slug
                 }
               });
+              
+              console.log('[Comment Notification] Notification created:', notification.id);
 
               // Send email notification (immediate or queued for digest)
               const recipient = await communitiesStorage.getUserById(notif.recipientId);

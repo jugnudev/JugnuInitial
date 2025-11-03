@@ -990,7 +990,7 @@ export const communityBillingEvents = pgTable("community_billing_events", {
 export const communityNotifications = pgTable("community_notifications", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
-  recipientId: varchar("recipient_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  recipientId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   communityId: uuid("community_id").references(() => communities.id, { onDelete: 'cascade' }),
   type: text("type").notNull(), // post_published | comment_reply | mention | membership_approved | etc
   title: text("title").notNull(),

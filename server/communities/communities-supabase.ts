@@ -2849,26 +2849,45 @@ export class CommunitiesSupabaseDB {
     postId?: string;
     commentId?: string;
     pollId?: string;
+    actionUrl?: string;
     metadata?: any;
   }): Promise<CommunityNotification> {
+    console.log('[Supabase] createNotification received data:', {
+      recipientId: data.recipientId,
+      communityId: data.communityId,
+      type: data.type,
+      title: data.title,
+      actionUrl: data.actionUrl
+    });
+    
+    const insertData = {
+      user_id: data.recipientId,
+      community_id: data.communityId,
+      type: data.type,
+      title: data.title,
+      body: data.body,
+      post_id: data.postId,
+      comment_id: data.commentId,
+      poll_id: data.pollId,
+      action_url: data.actionUrl,
+      metadata: data.metadata || {},
+      is_read: false
+    };
+    
+    console.log('[Supabase] Inserting notification with user_id:', insertData.user_id);
+    
     const { data: notification, error } = await this.client
       .from('community_notifications')
-      .insert({
-        user_id: data.recipientId,
-        community_id: data.communityId,
-        type: data.type,
-        title: data.title,
-        body: data.body,
-        post_id: data.postId,
-        comment_id: data.commentId,
-        poll_id: data.pollId,
-        metadata: data.metadata || {},
-        is_read: false
-      })
+      .insert(insertData)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('[Supabase] Notification insert failed:', error);
+      throw error;
+    }
+    
+    console.log('[Supabase] Notification created successfully:', notification.id);
     return this.mapNotificationFromDb(notification);
   }
 
