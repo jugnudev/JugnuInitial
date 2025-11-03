@@ -77,6 +77,47 @@ const requireLoyaltyAccess = async (req: Request, res: Response, next: NextFunct
 // ===== USER ROUTES (Wallet, Redeem) =====
 
 /**
+ * GET /api/loyalty/participating-businesses
+ * Get list of businesses that accept loyalty point redemptions
+ */
+router.get('/participating-businesses', async (req: Request, res: Response) => {
+  try {
+    // Get all organizers with active loyalty configs
+    const { data: configs, error } = await db
+      .from('merchant_loyalty_config')
+      .select(`
+        organizer_id,
+        redeem_cap_percentage,
+        organizers:organizer_id (
+          id,
+          business_name,
+          status
+        )
+      `)
+      .eq('subscription_status', 'beta-free');
+
+    if (error) throw error;
+
+    // Filter for active organizers and format response
+    const businesses = (configs || [])
+      .filter((c: any) => c.organizers?.status === 'active')
+      .map((c: any) => ({
+        id: c.organizer_id,
+        name: c.organizers?.business_name || 'Unknown Business',
+        redeemCapPercentage: c.redeem_cap_percentage,
+      }));
+
+    res.json({
+      ok: true,
+      businesses,
+    });
+  } catch (error) {
+    console.error('[Loyalty] Get participating businesses error:', error);
+    res.status(500).json({ ok: false, error: 'Failed to get businesses' });
+  }
+});
+
+/**
  * GET /api/loyalty/wallet
  * Get authenticated user's wallet balance and per-merchant breakdown
  */
@@ -319,6 +360,91 @@ router.post('/business/issue', requireLoyaltyAccess, async (req: Request, res: R
   } catch (error: any) {
     console.error('[Loyalty] Issue points error:', error);
     res.status(500).json({ ok: false, error: error.message || 'Failed to issue points' });
+  }
+});
+
+/**
+ * POST /api/loyalty/redeem
+ * Redeem (burn) points at a merchant for a discount
+ * 
+ * Flow:
+ * 1. Validate user wallet has sufficient balance
+ * 2. Calculate max redeemable based on bill and cap
+ * 3. Create burn ledger entry
+ * 4. Update user wallet
+ */
+const redeemPointsSchema = z.object({
+  businessId: z.string().uuid('Valid business ID required'),
+  billAmountCents: z.number().int().positive('Bill amount must be positive'),
+  pointsToRedeem: z.number().int().positive('Points to redeem must be positive'),
+  reference: z.string().optional(),
+});
+
+router.post('/redeem', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const validation = redeemPointsSchema.safeParse(req.body);
+    
+    if (!validation.success) {
+      return res.status(400).json({ 
+        ok: false, 
+        error: 'Invalid redeem data',
+        details: validation.error.errors 
+      });
+    }
+
+    const { businessId, billAmountCents, pointsToRedeem, reference } = validation.data;
+    const user = (req as any).user;
+
+    // Get business/organizer info
+    const { data: organizer, error: orgError } = await db
+      .from('organizers')
+      .select('*')
+      .eq('id', businessId)
+      .single();
+
+    if (orgError || !organizer) {
+      return res.status(404).json({ 
+        ok: false, 
+        error: 'Business not found' 
+      });
+    }
+
+    // Get merchant loyalty config for redeem cap
+    const config = await loyaltyStorage.getMerchantConfig(organizer.id);
+    
+    if (!config) {
+      return res.status(403).json({ 
+        ok: false, 
+        error: 'This business does not accept loyalty point redemptions' 
+      });
+    }
+
+    // Execute the redeem transaction
+    const result = await loyaltyStorage.redeemPointsTransaction({
+      userId: user.id,
+      organizerId: organizer.id,
+      billAmountCents,
+      pointsToRedeem,
+      redeemCapPercentage: config.redeem_cap_percentage,
+      businessName: organizer.business_name,
+      reference,
+    });
+
+    res.json({
+      ok: true,
+      transaction: {
+        pointsRedeemed: result.pointsRedeemed,
+        cadValue: result.cadValue,
+        billAmountCents,
+        billDollars: result.billDollars.toFixed(2),
+        newWalletBalance: result.newWalletBalance,
+        maxRedeemablePoints: result.maxRedeemablePoints,
+        businessName: organizer.business_name,
+      },
+    });
+  } catch (error: any) {
+    console.error('[Loyalty] Redeem points error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to redeem points' });
   }
 });
 

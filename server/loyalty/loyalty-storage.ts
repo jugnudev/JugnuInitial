@@ -468,3 +468,88 @@ export async function issuePointsTransaction(params: {
     bucketUsed,
   };
 }
+
+/**
+ * Redeem points transaction (atomic operation)
+ * This handles the full flow:
+ * 1. Validate user wallet
+ * 2. Calculate max redeemable points based on bill and cap
+ * 3. Validate requested points against max
+ * 4. Create burn ledger entry
+ * 5. Update user wallet
+ */
+export async function redeemPointsTransaction(params: {
+  userId: string;
+  organizerId: string;
+  billAmountCents: number;
+  pointsToRedeem: number;
+  redeemCapPercentage: number;
+  businessName: string;
+  reference?: string;
+}) {
+  const {
+    userId,
+    organizerId,
+    billAmountCents,
+    pointsToRedeem,
+    redeemCapPercentage,
+    businessName,
+    reference,
+  } = params;
+
+  // 1. Get user wallet
+  const wallet = await getOrCreateWallet(userId);
+
+  // 2. Validate user has enough points
+  if (wallet.total_points < pointsToRedeem) {
+    throw new Error(`Insufficient wallet balance. Have ${wallet.total_points} JP, trying to redeem ${pointsToRedeem} JP`);
+  }
+
+  // 3. Calculate maximum redeemable points based on cap
+  const billDollars = billAmountCents / 100;
+  const maxRedeemableCad = billDollars * (redeemCapPercentage / 100);
+  const maxRedeemablePoints = Math.floor(maxRedeemableCad * 1000); // 1000 JP = $1
+
+  // 4. Validate requested points against cap
+  if (pointsToRedeem > maxRedeemablePoints) {
+    throw new Error(
+      `Points exceed redemption cap (${redeemCapPercentage}% of bill). ` +
+      `Max redeemable: ${maxRedeemablePoints} JP ($${maxRedeemableCad.toFixed(2)})`
+    );
+  }
+
+  if (pointsToRedeem <= 0) {
+    throw new Error('Points to redeem must be positive');
+  }
+
+  // 5. Calculate CAD value
+  const cadValue = pointsToRedeem / 1000;
+
+  // 6. Create burn ledger entry
+  const ledgerEntry = await createLedgerEntry({
+    userId,
+    organizerId,
+    type: 'burn',
+    points: pointsToRedeem,
+    centsValue: Math.floor(cadValue * 100),
+    reference: reference || `Redeemed at ${businessName}`,
+    metadata: {
+      billAmountCents,
+      redeemCapPercentage,
+      redeemedAt: businessName,
+    },
+  });
+
+  // 7. Update wallet balance
+  const newBalance = wallet.total_points - pointsToRedeem;
+  await updateWalletBalance(wallet.id, newBalance);
+
+  return {
+    ledgerEntry,
+    pointsRedeemed: pointsToRedeem,
+    cadValue: cadValue.toFixed(2),
+    billDollars,
+    newWalletBalance: newBalance,
+    maxRedeemablePoints,
+  };
+}

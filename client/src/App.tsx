@@ -56,6 +56,7 @@ import AdminCareersPage from "@/pages/AdminCareersPage";
 import CareersPage from "@/pages/CareersPage";
 import LoyaltyLanding from "@/pages/LoyaltyLanding";
 import WalletPage from "@/pages/WalletPage";
+import WalletRedeemPage from "@/pages/WalletRedeemPage";
 import BizLoyaltyHome from "@/pages/BizLoyaltyHome";
 import BizLoyaltyIssue from "@/pages/BizLoyaltyIssue";
 
@@ -71,6 +72,7 @@ function Router() {
         <Route path="/deals" component={Deals} />
         <Route path="/loyalty" component={LoyaltyLanding} />
         <Route path="/wallet" component={WalletPage} />
+        <Route path="/wallet/redeem" component={WalletRedeemPage} />
         <Route path="/biz/loyalty/home" component={BizLoyaltyHome} />
         <Route path="/biz/loyalty/issue" component={BizLoyaltyIssue} />
         <Route path="/explore" component={() => { window.location.href = '/events'; return null; }} />

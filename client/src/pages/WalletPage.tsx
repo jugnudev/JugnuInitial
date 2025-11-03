@@ -324,10 +324,10 @@ export default function WalletPage() {
           <Button
             onClick={() => setLocation('/wallet/redeem')}
             className="flex-1"
-            disabled
+            disabled={totalPoints === 0}
             data-testid="button-redeem"
           >
-            Redeem Points (Coming Soon)
+            Redeem Points
           </Button>
           <Button
             variant="outline"
