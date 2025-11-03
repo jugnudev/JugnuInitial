@@ -41,8 +41,11 @@ Preferred communication style: Simple, everyday language.
     - **Marketing Content**: Hero section, How It Works (Earn/Spend/Fixed Value), benefits for users and businesses, South Asian-first use cases (weddings, festivals), pricing snapshot ($50/mo includes 20k JP), and comprehensive FAQ with Schema.org markup.
     - **Cultural Design**: Premium aesthetic with gold/amber accents, cultural stock photography, festival mentions (Diwali, Eid, Vaisakhi, Navratri), and mobile-first responsive layout.
     - **Waitlist Integration**: CTAs link to existing newsletter signup system, business partner signups use organizer flow.
-    - **Feature Flag**: FF_COALITION_LOYALTY global flag for future wallet/console features (currently unused for landing page).
+    - **Feature Flag**: FF_COALITION_LOYALTY global flag controls API routes and future features. Landing page is always public.
     - **Core Principles**: Fixed burn value (1,000 JP = $1), merchant-set issue rate, pre-funded issuance, clearinghouse settlement, subscription + tiered top-ups, web-only MVP, optional Home Boost.
+    - **FREE BETA Implementation**: Like Communities, loyalty features are FREE during beta. No subscription enforcement. Auto-provision merchant_loyalty_config with 20k included points on first access. Database schema includes wallets, merchant_loyalty_config, loyalty_ledger (immutable audit trail), and user_merchant_earnings tables.
+    - **API Routes**: server/loyalty/loyalty-routes.ts provides user routes (/api/loyalty/wallet, /api/loyalty/transactions) and business routes (/api/loyalty/business/config, /api/loyalty/business/issue). Storage layer (server/loyalty/loyalty-storage.ts) uses Supabase client with typed interfaces matching database snake_case columns.
+    - **Issue Flow (MVP)**: Business looks up user by email, enters bill amount, system calculates points (bill × issue_rate), deducts from point bank (Included first, then Purchased), creates ledger entry, updates wallet + per-merchant breakdown atomically.
 - **Communities Platform**:
     - **Notification Preferences**: Email frequency settings (immediate/daily/weekly), digest time scheduling, timezone configuration. UI integrated in Account Settings > Schedule tab. Requires manual Supabase table setup (see SETUP_NOTIFICATION_PREFS.md).
     - **Growth Features**: Invite links with copy functionality for owners/moderators, member referrals, community discovery, social sharing.

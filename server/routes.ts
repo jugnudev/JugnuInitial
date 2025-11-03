@@ -45,6 +45,7 @@ import { addCommunitiesRoutes } from "./communities/communities-routes";
 // DISABLED: Communities billing routes - Communities are FREE for all business accounts
 // import billingRoutes from "./communities/billing-routes";
 import webhookRoutes from "./communities/webhook-routes";
+import loyaltyRoutes from "./loyalty/loyalty-routes";
 import { importFromGoogle, importFromYelp, reverifyAllPlaces } from "./lib/places-sync.js";
 import { matchAndEnrichPlaces, inactivateUnmatchedPlaces, getPlaceMatchingStats } from "./lib/place-matcher.js";
 import { sendDailyAnalyticsEmail } from "./services/emailService";
@@ -4326,6 +4327,18 @@ Disallow: /account/*`;
   
   // Add webhook routes
   app.use('/api/webhooks', webhookRoutes);
+
+  // Add loyalty routes if enabled (FREE BETA like Communities)
+  if (process.env.FF_COALITION_LOYALTY === 'true') {
+    app.use('/api/loyalty', loyaltyRoutes);
+    console.log('✅ Loyalty routes added (FREE BETA)');
+  } else {
+    // When loyalty is disabled, intercept all loyalty endpoints
+    app.all('/api/loyalty*', (req, res) => {
+      console.log(`[Loyalty] Disabled - API route ${req.path} blocked by FF_COALITION_LOYALTY flag`);
+      res.status(404).json({ ok: false, disabled: true });
+    });
+  }
 
   // Add ticketing routes if enabled
   if (process.env.ENABLE_TICKETING === 'true') {
