@@ -1,0 +1,232 @@
+SECTION 3 — Roles, Objects, Pricing & Config
+Roles & Access
+
+User (Member): wallet, personal QR, redeem; sees per-merchant earned breakdown (origin display only).
+
+Business (Merchant): subscription gate → issue rate, top-ups, issue (scan/lookup/OTP), accept redemptions, settlement.
+
+Admin: flags, allowlists, tiers, caps, settlement, ledger reversals, abuse controls.
+
+Objects (conceptual)
+
+User (id, contact)
+
+Wallet (user_id, total_points; per_merchant_buckets for display only)
+
+Merchant (id, name, province, issue_rate_jp_per_dollar, cap_percent, home_boost_multiplier, point_bank_included, point_bank_purchased, billing_date, loyalty_access_enabled)
+
+Ledger (id, type: mint|burn|adjust|reverse, user_id, merchant_id, points, cents_value, bucket_used: Included|Purchased, ref, created_at, reversed_of?)
+
+Settlement Batch (id, start, end, status, lines[])
+
+Settlement Line (merchant_id, redeemed_value_cents, issuer_cost_included_cents, issuer_cost_purchased_cents, net_cents)
+
+Subscription Plan ($50/mo; included_jp_per_month=20,000; monthly billing date)
+
+Top-Up Purchase (jp_amount, unit_price_per_point, price_cents, tax, ts)
+
+Pricing & Billing (Merchant)
+
+Subscription: $50/month CAD incl. 20,000 JP (no rollover MVP).
+
+Tiered Top-Ups: bigger bundles → cheaper per point
+
+Tier	JP	Unit Price (CAD/JP)	Total
+Small	20,000	0.00120	$24.00
+Medium	50,000	0.00112	$56.00
+Large	100,000	0.00108	$108.00
+XL	300,000	0.00105	$315.00
+XXL	1,000,000	0.00100	$1,000.00
+
+Auto Top-Up: optional; choose tier + threshold (e.g., buy 50k when < 2k remain).
+
+Taxes: collect GST/HST/QST per merchant billing province.
+
+Config / Toggles (ENV-style)
+
+FF_COALITION_LOYALTY
+
+BURN_POINTS_PER_DOLLAR = 1000
+
+CAP_PERCENT_DEFAULT = 0.20 (pick 0.20 or 0.30 default)
+
+ISSUE_RATE_MIN = 0, ISSUE_RATE_MAX = 150 (JP/$)
+
+LARGE_AWARD_PIN_THRESHOLD_POINTS = 2500
+
+USER_EARN_VELOCITY_DAILY = 5
+
+POINT_EXPIRY_INACTIVE_MONTHS = 24 (soft display MVP)
+
+HOME_BOOST_MAX_MULTIPLIER = 1.5 (optional)
+
+Top-Up Tiers as data (editable in Admin).
+
+SECTION 4 — Flows (User, Business) & Gating
+Business Subscription Gating
+
+A business can create/activate its loyalty program only after starting the $50/mo subscription.
+
+On start: credit Included JP = 20,000, set loyalty_access_enabled = true.
+
+Lapse: freeze issuing/redemption; balances persist; console shows “Reactivate to continue.”
+
+Identification (web-only)
+
+Personal User QR on /wallet (static signed token).
+
+Fallbacks: phone lookup and 6-digit OTP.
+
+Earn (Issue) Flow
+
+Merchant → /biz/issue → scan User QR (or lookup/OTP).
+
+Enter Bill Total.
+
+Compute points_to_award = round(bill_total * issue_rate) (versioned at mint time).
+
+Consume Included JP first, then Purchased JP; block if insufficient (Top-Up CTA).
+
+Confirm: create ledger: mint, update wallet + per-merchant origin breakdown (display only).
+
+Guards: staff PIN on large awards; per-user/day earn caps; per-bill max earn.
+
+Burn (Redeem) Flow
+
+User → /wallet → Redeem (or Merchant → /biz/redeem and scan user).
+
+Enter bill; choose points (default max under cap).
+
+Enforce Cap % (network default; merchant can raise).
+
+Home Boost (if enabled): boost value at issuing merchant.
+
+Confirm: create ledger: burn; reduce wallet; merchant gets payout in settlement.
+
+Show receipt (original → points value → net due).
+
+Reversals
+
+Refund clawback (earn): reverse mint; if insufficient balance, wallet can go negative (“owed” flag; auto-settle from future earns).
+
+Mistake reversal: admin or merchant manager can reverse mint/burn with reason (compensating entry).
+
+Refund after burn: not auto-reversed; handle via admin with merchant consent.
+
+Settlement (weekly)
+
+For each merchant: sum Redeemed value (gross cash to pay) and show issuer consumption (Included vs Purchased used).
+
+Compute Net; generate CSV; surface batch cards; pay out in CAD.
+
+SECTION 5 — Screens & Copy (Web)
+Public
+
+/loyalty (Coming Soon): premium SEO page with user/merchant CTAs.
+
+User Portal
+
+/wallet
+
+Header helper: “1,000 JP = $1 anywhere in Canada.”
+
+My QR (persistent).
+
+Total balance + CAD helper.
+
+Earned Breakdown (origin): “Restaurant A: 3,400 JP; Venue B: 2,120 JP; …” (display only).
+
+Redeem: scan/pick merchant → bill total → points slider → preview math + cap text → confirm.
+
+Recent Activity: earn/burn/reverse with logos.
+
+/wallet/history (filters by merchant/date/type).
+
+Copy (user):
+
+Earn success: “You earned 1,040 JP (~$1.04). Spend them anywhere.”
+
+Redeem preview: “Applying 2,000 JP = $2.00 off. Cap: up to 20% of bill payable with points.”
+
+Business Console
+
+/biz/home
+
+Subscription card (Start/Active/Renew).
+
+Included JP (remaining/20k; reset date), Purchased JP (remaining), Total Issuable JP.
+
+Issue Rate slider (0–150 JP/$) with % helper; Cap %; Home Boost toggle (later).
+
+Today’s issued/burned; In/Out mini card (issued cost vs redeemed value).
+
+Quick actions: Issue Points (scan), Accept Points, Top-Up, Export CSV.
+
+/biz/issue
+
+Scan User QR → user summary → Bill Total → computed JP → Confirm.
+
+Tabs: Phone Lookup, Enter OTP; staff PIN for large awards.
+
+/biz/redeem
+
+Scan/search user → wallet balance → bill + points → Burn Preview → Confirm.
+
+/biz/point-bank
+
+Two meters (Included + Purchased), low-bank alerts.
+
+Top-Up modal: tiered packages table with per-point unit price + savings vs smaller tiers; tax calc; pay; receipt.
+
+Auto Top-Up: toggle + pick tier + threshold.
+
+/biz/settlement
+
+Weekly batch cards, payout status, CSV with Issued (Included vs Purchased) and Redeemed.
+
+/biz/settings
+
+Issue Rate, Cap %, Home Boost (later), branding, payout details, subscription management.
+
+Copy (merchant):
+
+Issue rate helper: “50 JP/$ ≈ 5% back • 20 JP/$ ≈ 2% back.”
+
+Low bank: “Point bank low — Top-Up to keep awarding points.”
+
+Top-Up modal: “Save more with larger bundles (lower cost per JP).”
+
+Admin
+
+/admin/feature-flags: toggle FF_COALITION_LOYALTY; allowlist merchants/users.
+
+/admin/config: top-up tiers, caps, defaults.
+
+/admin/settlement: create/review batches; approve payouts.
+
+/admin/ledger: search; reversals with reason.
+
+/admin/abuse: velocity flags; blocks.
+
+SECTION 6 — Acceptance, Analytics, and Rollout
+Acceptance Criteria (MVP sign-off)
+
+Feature flag gates everything; /loyalty public SEO page live even when flag OFF.
+
+User: wallet (total + CAD helper), personal QR, per-merchant earned breakdown, redeem with preview + cap, history.
+
+Business: must Start Subscription to unlock loyalty; sees Included/Purchased JP meters; tiered Top-Ups; Auto Top-Up; Issue (scan/lookup/OTP with staff PIN); Accept Points; Settlement with CSV showing Issued (Included vs Purchased) and Redeemed.
+
+Admin: can toggle flag, allowlist, edit tiers, run settlement, search ledger, reverse entries; immutable ledger with compensating entries.
+
+Issuing blocked at 0 JP; velocity & PIN protections enforced; cap enforced at redemption.
+
+Analytics & KPIs
+
+Marketing: /loyalty traffic, waitlist conversions, SEO ranking.
+
+User: wallet DAU, earns, burns, earn→burn conversion, cross-city burns.
+
+Merchant: Included JP utilization, top-up tier mix & average unit price, In/Out ratio, % net redeemers vs issuers by province.
+
+Ops: time to complete Issue/Burn, fraud flags (low).

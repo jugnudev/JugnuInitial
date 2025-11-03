@@ -15,12 +15,18 @@ import {
   Star
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import weddingImage from '@assets/stock_images/south_asian_indian_w_43887ab0.jpg';
-import restaurantImage from '@assets/stock_images/indian_restaurant_fi_1633cc1b.jpg';
-import festivalImage from '@assets/stock_images/diwali_festival_ligh_713126ca.jpg';
-import businessImage from '@assets/stock_images/south_asian_business_d376a3bc.jpg';
+import { useQuery } from '@tanstack/react-query';
+import weddingImage from '@assets/stock_images/indian_wedding_celeb_02922724.jpg';
+import restaurantImage from '@assets/stock_images/south_asian_restaura_c2012f34.jpg';
+import festivalImage from '@assets/stock_images/diwali_festival_cele_c36482fa.jpg';
+import businessImage from '@assets/stock_images/south_asian_business_9d78d8db.jpg';
 
 export default function LoyaltyLanding() {
+  // Check if user is authenticated
+  const { data: user } = useQuery<{ id: string; email: string } | null>({
+    queryKey: ['/api/user'],
+  });
+
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -124,17 +130,31 @@ export default function LoyaltyLanding() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Button 
-                  asChild
-                  size="lg"
-                  className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-base sm:text-lg px-8 py-6"
-                  data-testid="button-join-waitlist-hero"
-                >
-                  <Link href="/#newsletter">
-                    Join the Waitlist
-                    <ArrowRight className="ml-2 w-5 h-5" />
-                  </Link>
-                </Button>
+                {user ? (
+                  <Button 
+                    asChild
+                    size="lg"
+                    className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-base sm:text-lg px-8 py-6"
+                    data-testid="button-join-waitlist-hero"
+                  >
+                    <Link href="/account/profile">
+                      Manage Account
+                      <ArrowRight className="ml-2 w-5 h-5" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button 
+                    asChild
+                    size="lg"
+                    className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-base sm:text-lg px-8 py-6"
+                    data-testid="button-join-waitlist-hero"
+                  >
+                    <Link href="/#newsletter">
+                      Join the Waitlist
+                      <ArrowRight className="ml-2 w-5 h-5" />
+                    </Link>
+                  </Button>
+                )}
                 
                 <Button 
                   asChild
@@ -172,7 +192,7 @@ export default function LoyaltyLanding() {
                 </div>
                 <h3 className="text-2xl font-bold mb-3">Earn Anywhere</h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  Shop at any participating South Asian business across Canada and earn Jugnu Points automatically. Every purchase adds up.
+                  Shop at any participating business across Canada. Businesses can scan your wallet QR code or enter your phone/email to award points instantly.
                 </p>
               </div>
 
@@ -450,7 +470,8 @@ export default function LoyaltyLanding() {
                       <span className="bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">$50</span>
                       <span className="text-2xl text-muted-foreground">/month</span>
                     </div>
-                    <p className="text-lg text-muted-foreground">Includes 20,000 Jugnu Points</p>
+                    <p className="text-lg font-semibold text-foreground mb-1">Full Platform Access</p>
+                    <p className="text-base text-muted-foreground">Includes 20,000 Jugnu Points + Communities</p>
                   </div>
 
                   <div className="max-w-md mx-auto space-y-3 mb-8">
@@ -562,17 +583,31 @@ export default function LoyaltyLanding() {
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <Button 
-                  asChild
-                  size="lg"
-                  className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-base sm:text-lg px-10 py-6"
-                  data-testid="button-join-waitlist-final"
-                >
-                  <Link href="/#newsletter">
-                    Join the Waitlist
-                    <ArrowRight className="ml-2 w-5 h-5" />
-                  </Link>
-                </Button>
+                {user ? (
+                  <Button 
+                    asChild
+                    size="lg"
+                    className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-base sm:text-lg px-10 py-6"
+                    data-testid="button-join-waitlist-final"
+                  >
+                    <Link href="/account/profile">
+                      Manage Account
+                      <ArrowRight className="ml-2 w-5 h-5" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <Button 
+                    asChild
+                    size="lg"
+                    className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 text-base sm:text-lg px-10 py-6"
+                    data-testid="button-join-waitlist-final"
+                  >
+                    <Link href="/#newsletter">
+                      Join the Waitlist
+                      <ArrowRight className="ml-2 w-5 h-5" />
+                    </Link>
+                  </Button>
+                )}
                 
                 <Button 
                   asChild
