@@ -2138,7 +2138,6 @@ export function addCommunitiesRoutes(app: Express) {
             type: 'membership_approved',
             title: 'Membership Approved!',
             body: `Your membership request for ${community.name} has been approved. Welcome to the community!`,
-            actionUrl: `/communities/${community.slug}`,
             metadata: {
               communityName: community.name,
               communitySlug: community.slug,
@@ -2156,7 +2155,8 @@ export function addCommunitiesRoutes(app: Express) {
             type: notification.type,
             title: notification.title,
             body: notification.body,
-            actionUrl: notification.actionUrl
+            communityId: community.id,
+            communitySlug: community.slug
           });
         }
       } catch (notifError) {
@@ -2392,7 +2392,6 @@ export function addCommunitiesRoutes(app: Express) {
             body: role === 'moderator' 
               ? `You have been promoted to moderator in ${community.name}`
               : `Your role has been updated to ${role} in ${community.name}`,
-            actionUrl: `/communities/${community.slug || community.id}`,
             metadata: {
               communityName: community.name,
               communitySlug: community.slug || community.id,
@@ -2410,7 +2409,8 @@ export function addCommunitiesRoutes(app: Express) {
             type: notification.type,
             title: notification.title,
             body: notification.body,
-            actionUrl: notification.actionUrl
+            communityId: community.id,
+            communitySlug: community.slug || community.id
           });
         }
       } catch (notifError) {
@@ -2545,13 +2545,14 @@ export function addCommunitiesRoutes(app: Express) {
                 type: 'post_published',
                 title: `New post in ${community.name}`,
                 body: `${user.firstName} ${user.lastName} posted: "${title}"`,
-                actionUrl: `/communities/${community.slug}/posts/${post.id}`,
+                postId: post.id,
                 metadata: {
                   postId: post.id,
                   postTitle: title,
                   postExcerpt: content.substring(0, 100),
                   authorName: `${user.firstName} ${user.lastName}`,
-                  communityName: community.name
+                  communityName: community.name,
+                  communitySlug: community.slug
                 }
               };
             } catch (err) {
@@ -2575,7 +2576,8 @@ export function addCommunitiesRoutes(app: Express) {
               type: 'post_published',
               title: `New post in ${community.name}`,
               body: `${user.firstName} ${user.lastName} posted: "${title}"`,
-              actionUrl: `/communities/${community.slug}/posts/${post.id}`
+              postId: post.id,
+              communitySlug: community.slug
             });
           }
         } catch (notifError) {
@@ -5304,8 +5306,11 @@ export function addCommunitiesRoutes(app: Express) {
         type,
         title,
         body,
-        actionUrl: `/communities/${community.slug}`,
-        metadata: { test: true, timestamp: new Date() }
+        metadata: { 
+          test: true, 
+          timestamp: new Date(),
+          communitySlug: community.slug
+        }
       });
 
       // Send test email if enabled
