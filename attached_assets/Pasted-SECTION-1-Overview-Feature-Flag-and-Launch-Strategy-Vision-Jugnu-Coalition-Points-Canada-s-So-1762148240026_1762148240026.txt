@@ -1,0 +1,107 @@
+SECTION 1 — Overview, Feature Flag, and Launch Strategy
+Vision
+
+Jugnu Coalition Points — Canada’s South Asian rewards wallet. Users earn at any partner and spend at any partner. One guest rule: 1,000 JP = $1.00 CAD everywhere.
+
+Core Principles (MVP)
+
+Fixed burn value: 1,000 JP = $1.00 CAD at any partner nationwide.
+
+Merchant-set issue rate: businesses choose points per $1 (e.g., 20–50 JP/$ ≈ 2–5% back).
+
+Pre-funded issuance: merchants must have JP in their Point Bank.
+
+Clearinghouse: Jugnu debits issuers on mint and pays redeemers on burn.
+
+Subscription + included JP + tiered top-ups: $50/mo includes 20,000 JP; buy more at volume discounts.
+
+Web-only MVP: responsive site; separate User and Business dashboards.
+
+(Week 2 optional) Home Boost: points worth more at the issuing merchant (e.g., 1,000 JP = $1.25 at home).
+
+Feature Flag (must-have)
+
+Flag name: FF_COALITION_LOYALTY (global, bool).
+
+Behavior when OFF:
+
+All product routes behind the flag return 404 (or Coming Soon where specified).
+
+SEO Loyalty Landing Page is public and indexable with “Coming Soon” CTAs, but no wallet/console links render for non-authorized sessions.
+
+Business console hides loyalty nav and shows teaser card with waitlist CTA.
+
+Behavior when ON (staged rollout):
+
+Allowlisted merchants/users can access the MVP; others still see Coming Soon.
+
+Admin toggle per merchant: loyalty_access_enabled.
+
+Build Order (marketing-first launch)
+
+Premium SEO “Loyalty” page (Coming Soon) — public, indexable (ship first).
+
+Core ledger + wallets (behind flag).
+
+Business subscription gating + JP banks + tiered top-ups.
+
+Issue (earn) and Redeem (burn) flows with QR & fallbacks.
+
+Settlement + merchant console.
+
+Optional Home Boost + cap tuning.
+
+SECTION 2 — Premium SEO “Loyalty” Landing Page (Public, Coming Soon)
+Route
+
+/loyalty (public; indexable; not behind feature flag)
+
+Purpose
+
+Announce Jugnu Coalition Points as Canada-wide.
+
+Sell benefits to Users and Businesses.
+
+Capture waitlist signups and merchant leads.
+
+Link internally to Jugnu ecosystem pages.
+
+Content & Structure
+
+Hero: “Canada’s South Asian Rewards Wallet — 1,000 JP = $1”
+
+Subhead: “Earn at restaurants, events, salons, markets. Spend anywhere on Jugnu.”
+
+CTA buttons: Join the Waitlist (Users), Become a Partner (Businesses).
+
+How it works (3 cards): Earn Anywhere → Fixed Value → Spend Anywhere.
+
+For Users (benefits): simple value, festival promos (Diwali/Eid/Vaisakhi/Navratri), national coverage, wallet QR.
+
+For Businesses (benefits): new customers, you control cashback (issue rate), subscription includes JP, volume discounts on top-ups, no POS swap.
+
+South Asian-first block: wedding week use, community events, veg/Jain/halal discovery (future tie-ins).
+
+Pricing snapshot: $50/mo includes 20k JP; larger JP bundles cheaper per point.
+
+FAQ: “Will I lose out if customers redeem elsewhere?” (Home Boost & caps), “Do guests get confused?” (1,000=$1), “Is it app-only?” (web first), “What about taxes?” (CAD, GST/HST/QST apply to merchants).
+
+Final CTA: “Launching soon in Canada — be first.”
+
+Design Notes
+
+Premium aesthetic: editorial typography, cultural photography (tasteful), subtle gold/amber accents.
+
+Trust: logos of early partners (placeholder), privacy & CASL badges.
+
+Coming Soon label: clearly visible; flows gated until flag ON.
+
+SEO Requirements
+
+Title: “Jugnu Loyalty — Canada’s South Asian Rewards Wallet (1,000 Points = $1)”
+
+H1/H2s reflect “South Asian”, “Rewards”, “Canada”.
+
+Meta description: “Earn at desi restaurants, events, and markets; spend anywhere. One simple rule: 1,000 points = $1. Canada-wide soon.”
+
+Schema.org FAQPage for FAQs; OpenGraph/Twitter cards; fast LCP.
