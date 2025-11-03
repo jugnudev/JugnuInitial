@@ -3,10 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Wallet, QrCode, TrendingUp, Store, Coins, Info } from 'lucide-react';
+import { Wallet, QrCode, TrendingUp, Store, Coins, Info, Clock } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import QRCodeLib from 'qrcode';
 import { useLocation } from 'wouter';
+import { format } from 'date-fns';
 
 interface WalletData {
   wallet: {
@@ -30,6 +31,22 @@ interface WalletResponse {
   data?: WalletData;
 }
 
+interface Transaction {
+  id: string;
+  createdAt: string;
+  type: 'earn' | 'redeem';
+  points: number;
+  cadValue: string | null;
+  businessName: string;
+  reference: string | null;
+}
+
+interface TransactionsResponse {
+  ok: boolean;
+  error?: string;
+  transactions?: Transaction[];
+}
+
 export default function WalletPage() {
   const [, setLocation] = useLocation();
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
@@ -43,8 +60,14 @@ export default function WalletPage() {
     enabled: !!response?.data?.wallet,
   });
 
+  const { data: txResponse, isLoading: txLoading } = useQuery<TransactionsResponse>({
+    queryKey: ['/api/loyalty/transactions'],
+    enabled: !!response?.data?.wallet,
+  });
+
   const wallet = response?.data?.wallet;
   const merchantEarnings = response?.data?.merchantEarnings || [];
+  const transactions = txResponse?.transactions || [];
   const totalPoints = wallet?.total_points || 0;
   const cadValue = (totalPoints / 1000).toFixed(2);
 
@@ -216,7 +239,7 @@ export default function WalletPage() {
           </Card>
         </div>
 
-        {/* Transaction History Placeholder */}
+        {/* Transaction History */}
         <Card data-testid="card-transactions">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -226,11 +249,73 @@ export default function WalletPage() {
             <CardDescription>Your recent points activity</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-12 text-muted-foreground">
-              <Info className="w-12 h-12 mx-auto mb-3 opacity-50" />
-              <p className="font-medium">Transaction history coming soon</p>
-              <p className="text-sm mt-1">View all your earn and redeem activity here</p>
-            </div>
+            {txLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <Skeleton key={i} className="h-16" />
+                ))}
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <Info className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p className="font-medium">No transactions yet</p>
+                <p className="text-sm mt-1">Your earn and redeem activity will appear here</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {transactions.map((tx, index) => (
+                  <div 
+                    key={tx.id}
+                    className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                    data-testid={`transaction-${index}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        tx.type === 'earn' 
+                          ? 'bg-green-100 dark:bg-green-900/20' 
+                          : 'bg-blue-100 dark:bg-blue-900/20'
+                      }`}>
+                        {tx.type === 'earn' ? (
+                          <Coins className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        ) : (
+                          <Store className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-medium" data-testid={`text-tx-business-${index}`}>
+                          {tx.businessName}
+                        </div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {format(new Date(tx.createdAt), 'MMM d, yyyy h:mm a')}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`font-semibold ${
+                        tx.type === 'earn' 
+                          ? 'text-green-600 dark:text-green-400' 
+                          : 'text-blue-600 dark:text-blue-400'
+                      }`} data-testid={`text-tx-points-${index}`}>
+                        {tx.type === 'earn' ? '+' : '-'}{tx.points.toLocaleString()} JP
+                      </div>
+                      {tx.cadValue && (
+                        <div className="text-xs text-muted-foreground">
+                          ${tx.cadValue}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {transactions.length >= 10 && (
+                  <div className="text-center pt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Showing last {transactions.length} transactions
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 

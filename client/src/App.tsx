@@ -57,6 +57,7 @@ import CareersPage from "@/pages/CareersPage";
 import LoyaltyLanding from "@/pages/LoyaltyLanding";
 import WalletPage from "@/pages/WalletPage";
 import BizLoyaltyHome from "@/pages/BizLoyaltyHome";
+import BizLoyaltyIssue from "@/pages/BizLoyaltyIssue";
 
 function Router() {
   // Track page views when routes change - Google Analytics integration
@@ -71,6 +72,7 @@ function Router() {
         <Route path="/loyalty" component={LoyaltyLanding} />
         <Route path="/wallet" component={WalletPage} />
         <Route path="/biz/loyalty/home" component={BizLoyaltyHome} />
+        <Route path="/biz/loyalty/issue" component={BizLoyaltyIssue} />
         <Route path="/explore" component={() => { window.location.href = '/events'; return null; }} />
         <Route path="/events" component={EventsExplore} />
         {/* Community routes - redirect to either new Communities feature or legacy redirect based on feature flag */}
