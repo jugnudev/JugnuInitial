@@ -3282,9 +3282,9 @@ export function addCommunitiesRoutes(app: Express) {
           if (parentId) {
             // Reply to a comment - notify the parent comment author
             const parentComment = await communitiesStorage.getCommentById(parentId);
-            if (parentComment && parentComment.author_id !== user.id) {
+            if (parentComment && parentComment.authorId !== user.id) {
               notificationsToCreate.push({
-                recipientId: parentComment.author_id,
+                recipientId: parentComment.authorId,
                 type: 'comment_reply',
                 title: 'New reply to your comment',
                 body: `${user.firstName} ${user.lastName} replied: "${content.trim().substring(0, 100)}"`
@@ -3292,10 +3292,10 @@ export function addCommunitiesRoutes(app: Express) {
             }
 
             // Also notify the post author (unless they're the commenter or already notified as parent comment author)
-            const parentCommentAuthorId = parentComment?.author_id;
-            if (post.author_id !== user.id && post.author_id !== parentCommentAuthorId) {
+            const parentCommentAuthorId = parentComment?.authorId;
+            if (post.authorId !== user.id && post.authorId !== parentCommentAuthorId) {
               notificationsToCreate.push({
-                recipientId: post.author_id,
+                recipientId: post.authorId,
                 type: 'post_comment',
                 title: 'New comment on your post',
                 body: `${user.firstName} ${user.lastName} commented: "${content.trim().substring(0, 100)}"`
@@ -3303,9 +3303,9 @@ export function addCommunitiesRoutes(app: Express) {
             }
           } else {
             // Top-level comment on a post - notify the post author
-            if (post.author_id !== user.id) {
+            if (post.authorId !== user.id) {
               notificationsToCreate.push({
-                recipientId: post.author_id,
+                recipientId: post.authorId,
                 type: 'post_comment',
                 title: 'New comment on your post',
                 body: `${user.firstName} ${user.lastName} commented: "${content.trim().substring(0, 100)}"`

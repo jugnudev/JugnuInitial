@@ -77,7 +77,7 @@ export function NotificationBell() {
   // Mutation to mark as read
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      return apiRequest(`/api/notifications/${notificationId}/read`, 'PATCH');
+      return apiRequest('PATCH', `/api/notifications/${notificationId}/read`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
@@ -94,7 +94,7 @@ export function NotificationBell() {
   // Mutation to mark all as read
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/notifications/read-all', 'PATCH');
+      return apiRequest('PATCH', '/api/notifications/read-all');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
@@ -116,7 +116,7 @@ export function NotificationBell() {
   // Mutation to delete notification
   const deleteNotificationMutation = useMutation({
     mutationFn: async (notificationId: string) => {
-      return apiRequest(`/api/notifications/${notificationId}`, 'DELETE');
+      return apiRequest('DELETE', `/api/notifications/${notificationId}`);
     },
     onSuccess: (_, notificationId) => {
       queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
