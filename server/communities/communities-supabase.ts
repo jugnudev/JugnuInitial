@@ -3028,12 +3028,19 @@ export class CommunitiesSupabaseDB {
   
   // Get notification preferences for a user
   async getNotificationPreferences(userId: string, communityId?: string): Promise<CommunityNotificationPreferences | null> {
-    const { data, error } = await this.client
+    let query = this.client
       .from('community_notification_preferences')
       .select('*')
-      .eq('user_id', userId)
-      .eq('community_id', communityId || null)
-      .single();
+      .eq('user_id', userId);
+    
+    // Use .is() for null checks, .eq() for actual UUID values
+    if (communityId) {
+      query = query.eq('community_id', communityId);
+    } else {
+      query = query.is('community_id', null);
+    }
+    
+    const { data, error } = await query.single();
 
     if (error && error.code !== 'PGRST116') throw error;
     if (!data) return null;
