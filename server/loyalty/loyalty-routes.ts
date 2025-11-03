@@ -4,23 +4,65 @@ import jwt from 'jsonwebtoken';
 import { db } from '../database';
 import { organizers } from '@shared/schema';
 import * as loyaltyStorage from './loyalty-storage';
+import { communitiesStorage } from '../communities/communities-supabase';
 
 const router = Router();
 
 // ===== MIDDLEWARE =====
 
 /**
- * Require authenticated user (session-based)
+ * Require authenticated user (hybrid: session-based OR community token)
  * Used for user-facing loyalty features (wallet, redeem)
+ * Supports both platform sessions (req.session) and community auth tokens
  */
-const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  const user = (req as any).user;
-  
-  if (!user) {
+const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    console.log('[Loyalty requireAuth] Starting auth check for:', req.path);
+    console.log('[Loyalty requireAuth] Headers Authorization:', req.headers['authorization'] ? 'present' : 'none');
+    console.log('[Loyalty requireAuth] Cookies community_auth_token:', req.cookies?.['community_auth_token'] ? 'present' : 'none');
+    console.log('[Loyalty requireAuth] Session userId:', req.session?.userId || 'none');
+    
+    // Try community auth token first (Authorization header or cookie)
+    const token = req.headers['authorization']?.replace('Bearer ', '') || 
+                  req.cookies?.['community_auth_token'];
+    
+    if (token) {
+      console.log('[Loyalty requireAuth] Found token, checking session...');
+      // Use community auth token flow
+      const session = await communitiesStorage.getSessionByToken(token);
+      if (session) {
+        console.log('[Loyalty requireAuth] Session found, fetching user:', session.userId);
+        const user = await communitiesStorage.getUserById(session.userId);
+        if (user && user.status === 'active') {
+          console.log('[Loyalty requireAuth] User authenticated via token:', user.id, user.email);
+          (req as any).user = user;
+          return next();
+        }
+        console.log('[Loyalty requireAuth] User found but not active or missing');
+      } else {
+        console.log('[Loyalty requireAuth] No session found for token');
+      }
+    }
+    
+    // Fall back to platform session
+    if (req.session?.userId) {
+      console.log('[Loyalty requireAuth] Checking platform session for userId:', req.session.userId);
+      const user = await communitiesStorage.getUserById(req.session.userId);
+      if (user && user.status === 'active') {
+        console.log('[Loyalty requireAuth] User authenticated via session:', user.id, user.email);
+        (req as any).user = user;
+        return next();
+      }
+      console.log('[Loyalty requireAuth] User found via session but not active or missing');
+    }
+    
+    // No valid authentication found
+    console.log('[Loyalty requireAuth] No valid authentication found, returning 401');
     return res.status(401).json({ ok: false, error: 'Authentication required' });
+  } catch (error) {
+    console.error('[Loyalty] Auth middleware error:', error);
+    return res.status(500).json({ ok: false, error: 'Authentication failed' });
   }
-  
-  next();
 };
 
 /**
