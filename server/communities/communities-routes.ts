@@ -2133,12 +2133,16 @@ export function addCommunitiesRoutes(app: Express) {
         const approvedUser = await communitiesStorage.getUserById(userId);
         if (approvedUser) {
           // Create notification
+          // Use slug if available, otherwise fallback to ID (for communities without slugs)
+          const communityIdentifier = community.slug || community.id;
+          
           const notification = await communitiesStorage.createNotification({
             recipientId: userId,
             communityId: community.id,
             type: 'membership_approved',
             title: 'Membership Approved!',
             body: `Your membership request for ${community.name} has been approved. Welcome to the community!`,
+            actionUrl: `/community/${communityIdentifier}`,
             metadata: {
               communityName: community.name,
               communitySlug: community.slug,
@@ -2385,6 +2389,9 @@ export function addCommunitiesRoutes(app: Express) {
       try {
         const targetUser = await communitiesStorage.getUserById(userId);
         if (targetUser) {
+          // Use slug if available, otherwise fallback to ID (for communities without slugs)
+          const communityIdentifier = community.slug || community.id;
+          
           const notification = await communitiesStorage.createNotification({
             recipientId: userId,
             communityId: community.id,
@@ -2393,6 +2400,7 @@ export function addCommunitiesRoutes(app: Express) {
             body: role === 'moderator' 
               ? `You have been promoted to moderator in ${community.name}`
               : `Your role has been updated to ${role} in ${community.name}`,
+            actionUrl: `/community/${communityIdentifier}`,
             metadata: {
               communityName: community.name,
               communitySlug: community.slug || community.id,
