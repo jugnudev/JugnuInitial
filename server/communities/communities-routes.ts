@@ -11,6 +11,7 @@ import { sanitizeText, sanitizeHTML, validateFileUpload, CSRFProtection, sanitiz
 import { inviteSystem } from './invite-system';
 import { queryCache, cacheKeys, cacheTTL } from './cache';
 import { cleanupJobs } from './cleanup-jobs';
+import { emailService } from './email-service';
 
 // COMMUNITIES ARE FREE - No Stripe initialization needed
 // Communities are free for all business accounts indefinitely (not a trial)
