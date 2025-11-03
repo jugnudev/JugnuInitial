@@ -1589,3 +1589,102 @@ export type JobPosting = typeof jobPostings.$inferSelect;
 export type InsertJobPosting = z.infer<typeof insertJobPostingSchema>;
 export type JobApplication = typeof jobApplications.$inferSelect;
 export type InsertJobApplication = z.infer<typeof insertJobApplicationSchema>;
+
+// Loyalty Program Tables
+
+// User loyalty wallets
+export const wallets = pgTable("wallets", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  totalPoints: integer("total_points").notNull().default(0),
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // For future use (e.g., flags, notes)
+}, (table) => ({
+  userIdIdx: index("wallets_user_id_idx").on(table.userId),
+}));
+
+// Merchant loyalty configuration
+export const merchantLoyaltyConfig = pgTable("merchant_loyalty_config", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  organizerId: uuid("organizer_id").notNull().references(() => organizers.id, { onDelete: 'cascade' }).unique(),
+  issueRate: integer("issue_rate").notNull().default(25), // JP per $1 (0-150)
+  capPercent: numeric("cap_percent", { precision: 5, scale: 2 }).notNull().default("0.20"), // 0.20 = 20%
+  homeBoostMultiplier: numeric("home_boost_multiplier", { precision: 3, scale: 2 }).default("1.00"), // 1.00 = no boost, 1.25 = 25% boost
+  pointBankIncluded: integer("point_bank_included").notNull().default(0), // Included JP from subscription
+  pointBankPurchased: integer("point_bank_purchased").notNull().default(0), // Purchased JP from top-ups
+  loyaltyEnabled: boolean("loyalty_enabled").notNull().default(false), // Gates access
+  billingDate: timestamp("billing_date", { withTimezone: true }), // Next billing date
+  subscriptionId: text("subscription_id"), // Stripe subscription ID
+}, (table) => ({
+  organizerIdIdx: index("merchant_loyalty_config_organizer_id_idx").on(table.organizerId),
+}));
+
+// Immutable loyalty ledger for all transactions
+export const loyaltyLedger = pgTable("loyalty_ledger", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  type: text("type").notNull(), // mint | burn | adjust | reverse
+  userId: varchar("user_id").notNull().references(() => users.id),
+  organizerId: uuid("organizer_id").notNull().references(() => organizers.id),
+  points: integer("points").notNull(), // Positive for mint, negative for burn
+  centsValue: integer("cents_value"), // CAD cents value of transaction
+  bucketUsed: text("bucket_used"), // Included | Purchased (for merchant tracking)
+  reference: text("reference"), // External reference (bill ID, etc.)
+  reversedOf: uuid("reversed_of").references((): any => loyaltyLedger.id), // If this reverses another transaction
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Additional data (bill amount, etc.)
+}, (table) => ({
+  userIdIdx: index("loyalty_ledger_user_id_idx").on(table.userId),
+  organizerIdIdx: index("loyalty_ledger_organizer_id_idx").on(table.organizerId),
+  createdAtIdx: index("loyalty_ledger_created_at_idx").on(table.createdAt),
+  typeIdx: index("loyalty_ledger_type_idx").on(table.type),
+}));
+
+// Per-merchant earned breakdown (display only)
+export const userMerchantEarnings = pgTable("user_merchant_earnings", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  organizerId: uuid("organizer_id").notNull().references(() => organizers.id, { onDelete: 'cascade' }),
+  totalEarned: integer("total_earned").notNull().default(0), // Total JP earned from this merchant
+}, (table) => ({
+  userOrganizerUnique: unique("user_merchant_earnings_user_organizer_unique").on(table.userId, table.organizerId),
+  userIdIdx: index("user_merchant_earnings_user_id_idx").on(table.userId),
+  organizerIdIdx: index("user_merchant_earnings_organizer_id_idx").on(table.organizerId),
+}));
+
+// Insert schemas and types for loyalty tables
+export const insertWalletSchema = createInsertSchema(wallets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertMerchantLoyaltyConfigSchema = createInsertSchema(merchantLoyaltyConfig).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertLoyaltyLedgerSchema = createInsertSchema(loyaltyLedger).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserMerchantEarningsSchema = createInsertSchema(userMerchantEarnings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type Wallet = typeof wallets.$inferSelect;
+export type InsertWallet = z.infer<typeof insertWalletSchema>;
+export type MerchantLoyaltyConfig = typeof merchantLoyaltyConfig.$inferSelect;
+export type InsertMerchantLoyaltyConfig = z.infer<typeof insertMerchantLoyaltyConfigSchema>;
+export type LoyaltyLedger = typeof loyaltyLedger.$inferSelect;
+export type InsertLoyaltyLedger = z.infer<typeof insertLoyaltyLedgerSchema>;
+export type UserMerchantEarning = typeof userMerchantEarnings.$inferSelect;
+export type InsertUserMerchantEarning = z.infer<typeof insertUserMerchantEarningsSchema>;
