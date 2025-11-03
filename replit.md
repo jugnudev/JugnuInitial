@@ -30,7 +30,7 @@ Preferred communication style: Simple, everyday language.
 - **Performance**: In-memory caching with TTL, query optimization, code splitting, lazy/progressive image loading, and React memoization.
 - **SEO**: Meta tags, Open Graph, Twitter Cards, and JSON-LD via react-helmet-async (wrapped with HelmetProvider in App.tsx).
 - **Data Management**: Static data from local JSON, automated import and bidirectional sync of community events from Google Calendar ICS feeds, and automated cleanup jobs.
-- **Email System**: SendGrid integration with premium-designed templates for verification codes, welcome emails (separate for user/business accounts), and notifications. Sender address is relations@jugnucanada.com with environment variable precedence: EMAIL_FROM_ADDRESS → SENDGRID_FROM_EMAIL → default. Welcome emails automatically sent after first account verification. All emails feature modern gradients, accessible design, and Canada-wide branding.
+- **Email System**: SendGrid integration with premium-designed templates for verification codes, welcome emails (separate for user/business accounts), and notifications. Sender address is relations@jugnucanada.com with environment variable precedence: EMAIL_FROM_ADDRESS → SENDGRID_FROM_EMAIL → default. Welcome emails automatically sent after first account verification. All emails feature modern gradients, accessible design, and Canada-wide branding. Email worker runs every minute via cron when Communities enabled, processing immediate notifications and scheduled daily/weekly digests from community_email_queue table.
 
 ### Feature Specifications
 - **Admin & Sponsorship Systems**: Key-based Admin API, portal token system (UUID-based), lead management (CRUD), multi-part onboarding for campaigns, creative upload (banners), sponsor portal with real-time analytics and CSV export, and health monitoring endpoints.
@@ -48,7 +48,7 @@ Preferred communication style: Simple, everyday language.
     - **Post as Business**: Toggle to post announcements as the community/business or as an individual user.
     - **Free Beta Access**: Communities are FREE for all business accounts during the beta period. No billing enforcement, subscription checks, or payment requirements. Billing routes and Stripe initialization disabled. Visual beta badges displayed on Communities features.
     - **Giveaway System**: Comprehensive functionality including random draw, first-come-first-serve, task-based, points-based with automated winner selection, prize management, winner display with confetti animation, delete capability, and premium mobile-friendly interface. Authors cannot enter their own giveaways to prevent conflicts of interest.
-    - **Notification System**: In-app notifications with email delivery, frequency preferences (immediate/daily/weekly), quiet hours support, and real-time WebSocket updates. Database uses `user_id` column for recipient identification (Supabase queries).
+    - **Notification System**: In-app notifications with email delivery, frequency preferences (immediate/daily/weekly), quiet hours support, and real-time WebSocket updates. Database uses `user_id` column for recipient identification (Supabase queries). PATCH endpoint sanitizes communityId parameter (converts "null"/null/undefined to undefined) to prevent UUID parsing errors for global preferences. Requires manual Supabase table setup for community_email_queue with scheduled_for column (see SETUP_EMAIL_QUEUE.md).
 
 ### System Design Choices
 - **Mobile-first approach**: Implemented using Tailwind CSS breakpoints.
