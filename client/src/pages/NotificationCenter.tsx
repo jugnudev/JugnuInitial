@@ -1,10 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import {
-  Bell, CheckCheck, Loader2, Trash2, Eye, Filter, Search,
-  Settings, Archive, ChevronLeft, ChevronRight
+  Bell, 
+  CheckCheck, 
+  Loader2, 
+  Trash2, 
+  Eye, 
+  Filter, 
+  Search,
+  Settings, 
+  Archive, 
+  ChevronLeft, 
+  ChevronRight,
+  FileText,
+  CheckCircle,
+  MessageCircle,
+  BarChart3,
+  AtSign,
+  Megaphone,
+  Sparkles,
+  Users
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,31 +41,49 @@ import { useToast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
 import type { CommunityNotification, Community } from '@shared/schema';
 
-// Icon and color mappings (same as NotificationBell)
+// Icon components (same as NotificationBell)
 const notificationIcons: Record<string, any> = {
-  'post_published': '📝',
-  'membership_approved': '✅',
-  'comment_reply': '💬',
-  'post_comment': '💬',
-  'poll_closed': '📊',
-  'mention': '👋',
-  'chat_mention': '@',
-  'community_announcement': '📢',
-  'new_deal': '🎉',
-  'test': '🔔',
+  'post_published': FileText,
+  'membership_approved': CheckCircle,
+  'comment_reply': MessageCircle,
+  'post_comment': MessageCircle,
+  'poll_closed': BarChart3,
+  'mention': AtSign,
+  'chat_mention': AtSign,
+  'community_announcement': Megaphone,
+  'new_deal': Sparkles,
+  'role_updated': Users,
+  'test': Bell,
 };
 
+// Premium dark-mode colors
 const notificationColors: Record<string, string> = {
-  'post_published': 'bg-blue-50 border-blue-200',
-  'membership_approved': 'bg-green-50 border-green-200',
-  'comment_reply': 'bg-indigo-50 border-indigo-200',
-  'post_comment': 'bg-indigo-50 border-indigo-200',
-  'poll_closed': 'bg-purple-50 border-purple-200',
-  'mention': 'bg-yellow-50 border-yellow-200',
-  'chat_mention': 'bg-yellow-50 border-yellow-200',
-  'community_announcement': 'bg-red-50 border-red-200',
-  'new_deal': 'bg-emerald-50 border-emerald-200',
-  'test': 'bg-gray-50 border-gray-200',
+  'post_published': 'text-blue-400 dark:text-blue-400',
+  'membership_approved': 'text-emerald-400 dark:text-emerald-400',
+  'comment_reply': 'text-violet-400 dark:text-violet-400',
+  'post_comment': 'text-violet-400 dark:text-violet-400',
+  'poll_closed': 'text-purple-400 dark:text-purple-400',
+  'mention': 'text-amber-400 dark:text-amber-400',
+  'chat_mention': 'text-amber-400 dark:text-amber-400',
+  'community_announcement': 'text-rose-400 dark:text-rose-400',
+  'new_deal': 'text-cyan-400 dark:text-cyan-400',
+  'role_updated': 'text-indigo-400 dark:text-indigo-400',
+  'test': 'text-gray-400 dark:text-gray-400',
+};
+
+// Background colors for cards
+const notificationBgColors: Record<string, string> = {
+  'post_published': 'bg-blue-500/5 dark:bg-blue-500/5 hover:bg-blue-500/10 dark:hover:bg-blue-500/10 border-blue-500/20',
+  'membership_approved': 'bg-emerald-500/5 dark:bg-emerald-500/5 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/10 border-emerald-500/20',
+  'comment_reply': 'bg-violet-500/5 dark:bg-violet-500/5 hover:bg-violet-500/10 dark:hover:bg-violet-500/10 border-violet-500/20',
+  'post_comment': 'bg-violet-500/5 dark:bg-violet-500/5 hover:bg-violet-500/10 dark:hover:bg-violet-500/10 border-violet-500/20',
+  'poll_closed': 'bg-purple-500/5 dark:bg-purple-500/5 hover:bg-purple-500/10 dark:hover:bg-purple-500/10 border-purple-500/20',
+  'mention': 'bg-amber-500/5 dark:bg-amber-500/5 hover:bg-amber-500/10 dark:hover:bg-amber-500/10 border-amber-500/20',
+  'chat_mention': 'bg-amber-500/5 dark:bg-amber-500/5 hover:bg-amber-500/10 dark:hover:bg-amber-500/10 border-amber-500/20',
+  'community_announcement': 'bg-rose-500/5 dark:bg-rose-500/5 hover:bg-rose-500/10 dark:hover:bg-rose-500/10 border-rose-500/20',
+  'new_deal': 'bg-cyan-500/5 dark:bg-cyan-500/5 hover:bg-cyan-500/10 dark:hover:bg-cyan-500/10 border-cyan-500/20',
+  'role_updated': 'bg-indigo-500/5 dark:bg-indigo-500/5 hover:bg-indigo-500/10 dark:hover:bg-indigo-500/10 border-indigo-500/20',
+  'test': 'bg-gray-500/5 dark:bg-gray-500/5 hover:bg-gray-500/10 dark:hover:bg-gray-500/10 border-gray-500/20',
 };
 
 const notificationTypeLabels: Record<string, string> = {
@@ -105,7 +140,7 @@ export function NotificationCenter() {
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationIds: string[]) => {
       const promises = notificationIds.map(id =>
-        apiRequest(`/api/notifications/${id}/read`, 'PATCH')
+        apiRequest('PATCH', `/api/notifications/${id}/read`)
       );
       return Promise.all(promises);
     },
@@ -129,7 +164,7 @@ export function NotificationCenter() {
   // Mark all as read mutation
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/notifications/read-all', 'PATCH', {
+      return apiRequest('PATCH', '/api/notifications/read-all', {
         communityId: filterCommunity !== 'all' ? filterCommunity : undefined
       });
     },
@@ -153,7 +188,7 @@ export function NotificationCenter() {
   const deleteNotificationsMutation = useMutation({
     mutationFn: async (notificationIds: string[]) => {
       const promises = notificationIds.map(id =>
-        apiRequest(`/api/notifications/${id}`, 'DELETE')
+        apiRequest('DELETE', `/api/notifications/${id}`)
       );
       return Promise.all(promises);
     },
@@ -223,50 +258,54 @@ export function NotificationCenter() {
 
   return (
     <div className="container mx-auto py-4 sm:py-8 px-3 sm:px-4 max-w-6xl">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 sm:mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold flex items-center gap-2" data-testid="text-page-title">
-            <Bell className="h-6 w-6 sm:h-8 sm:w-8" />
-            Notification Center
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold flex items-center gap-3" data-testid="text-page-title">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+              <Bell className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+            </div>
+            <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-transparent">
+              Notification Center
+            </span>
           </h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1">
-            Manage all your notifications
+          <p className="text-sm sm:text-base text-muted-foreground/80 mt-2 ml-13 sm:ml-15">
+            Manage all your notifications in one place
           </p>
         </div>
         <Link href="/account/profile#notifications">
-          <Button variant="outline" size="sm" data-testid="button-settings" className="w-full sm:w-auto">
+          <Button variant="outline" size="sm" data-testid="button-settings" className="w-full sm:w-auto hover:bg-white/5 border-white/10">
             <Settings className="h-4 w-4 mr-2" />
-            Settings
+            Preferences
           </Button>
         </Link>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <Card>
-          <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Total</CardTitle>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20 hover:border-blue-500/30 transition-colors">
+          <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-5">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Notifications</CardTitle>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0">
-            <div className="text-lg sm:text-2xl font-bold" data-testid="text-total-count">{data?.total || 0}</div>
+          <CardContent className="p-4 sm:p-5 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold text-blue-400" data-testid="text-total-count">{data?.total || 0}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Unread</CardTitle>
+        <Card className="bg-gradient-to-br from-amber-500/10 to-orange-600/5 border-amber-500/20 hover:border-amber-500/30 transition-colors">
+          <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-5">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Unread</CardTitle>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0">
-            <div className="text-lg sm:text-2xl font-bold text-blue-600" data-testid="text-unread-count">
+          <CardContent className="p-4 sm:p-5 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold text-amber-400" data-testid="text-unread-count">
               {data?.unreadCount || 0}
             </div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
-            <CardTitle className="text-xs sm:text-sm font-medium">Selected</CardTitle>
+        <Card className="bg-gradient-to-br from-violet-500/10 to-purple-600/5 border-violet-500/20 hover:border-violet-500/30 transition-colors">
+          <CardHeader className="pb-2 sm:pb-3 p-4 sm:p-5">
+            <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Selected</CardTitle>
           </CardHeader>
-          <CardContent className="p-3 sm:p-6 pt-0">
-            <div className="text-lg sm:text-2xl font-bold" data-testid="text-selected-count">
+          <CardContent className="p-4 sm:p-5 pt-0">
+            <div className="text-2xl sm:text-3xl font-bold text-violet-400" data-testid="text-selected-count">
               {selectedNotifications.size}
             </div>
           </CardContent>
@@ -402,13 +441,21 @@ export function NotificationCenter() {
               ))}
             </div>
           ) : filteredNotifications.length === 0 ? (
-            <div className="text-center py-12">
-              <Bell className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">No notifications found</p>
+            <div className="text-center py-16 px-6">
+              <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 flex items-center justify-center border border-white/10">
+                <Bell className="h-10 w-10 text-muted-foreground/50" />
+              </div>
+              <p className="text-base font-medium text-muted-foreground mb-1">No notifications found</p>
+              <p className="text-sm text-muted-foreground/60 mb-4">
+                {(searchQuery || filterType !== 'all' || filterStatus !== 'all') 
+                  ? 'Try adjusting your filters' 
+                  : 'You\'re all caught up'}
+              </p>
               {(searchQuery || filterType !== 'all' || filterStatus !== 'all') && (
                 <Button
-                  variant="link"
-                  className="mt-2"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 hover:bg-white/5 border-white/10"
                   onClick={() => {
                     setSearchQuery('');
                     setFilterType('all');
@@ -416,7 +463,7 @@ export function NotificationCenter() {
                   }}
                   data-testid="button-clear-filters"
                 >
-                  Clear filters
+                  Clear all filters
                 </Button>
               )}
             </div>
@@ -431,88 +478,100 @@ export function NotificationCenter() {
                 <span className="text-sm text-muted-foreground">Select all</span>
               </div>
               
-              {filteredNotifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`flex items-start gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg border transition-colors ${
-                    !notification.isRead ? 'bg-accent' : ''
-                  } ${notificationColors[notification.type] || 'bg-gray-50 border-gray-200'} ${
-                    selectedNotifications.has(notification.id) ? 'ring-2 ring-primary' : ''
-                  }`}
-                  data-testid={`notification-card-${notification.id}`}
-                >
-                  <Checkbox
-                    checked={selectedNotifications.has(notification.id)}
-                    onCheckedChange={() => handleSelectNotification(notification.id)}
-                    data-testid={`checkbox-notification-${notification.id}`}
-                    className="mt-0.5"
-                  />
-                  
-                  <span className="text-xl sm:text-2xl">
-                    {notificationIcons[notification.type] || '🔔'}
-                  </span>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex-1">
-                        <h3 className="font-medium text-sm sm:text-base">{notification.title}</h3>
-                        {notification.body && (
-                          <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-                            {notification.body}
-                          </p>
-                        )}
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-2">
-                          <Badge variant="outline" className="text-xs">
-                            {notificationTypeLabels[notification.type] || notification.type}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            {format(new Date(notification.createdAt), 'PPp')}
-                          </span>
-                          {!notification.isRead && (
-                            <Badge variant="default" className="text-xs">
-                              Unread
-                            </Badge>
+              {filteredNotifications.map((notification) => {
+                const IconComponent = notificationIcons[notification.type] || Bell;
+                const bgColor = notificationBgColors[notification.type] || 'bg-gray-500/5 hover:bg-gray-500/10 border-gray-500/20';
+                const iconColor = notificationColors[notification.type] || 'text-gray-400';
+                
+                return (
+                  <div
+                    key={notification.id}
+                    className={`relative flex items-start gap-3 sm:gap-4 p-4 sm:p-5 rounded-xl border transition-all duration-200 ${bgColor} ${
+                      selectedNotifications.has(notification.id) ? 'ring-2 ring-amber-500/50 ring-inset' : ''
+                    }`}
+                    data-testid={`notification-card-${notification.id}`}
+                  >
+                    {!notification.isRead && (
+                      <div className="absolute left-2 top-6 w-2 h-2 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full shadow-lg shadow-amber-500/50" />
+                    )}
+                    
+                    <Checkbox
+                      checked={selectedNotifications.has(notification.id)}
+                      onCheckedChange={() => handleSelectNotification(notification.id)}
+                      data-testid={`checkbox-notification-${notification.id}`}
+                      className="mt-1.5"
+                    />
+                    
+                    <div className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 flex items-center justify-center border border-white/10 ${iconColor}`}>
+                      <IconComponent className="w-6 h-6" />
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col gap-3">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-sm sm:text-base text-foreground mb-1.5 line-clamp-2">
+                            {notification.title}
+                          </h3>
+                          {notification.body && (
+                            <p className="text-xs sm:text-sm text-muted-foreground/80 line-clamp-3 leading-relaxed">
+                              {notification.body}
+                            </p>
                           )}
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-3">
+                            <Badge variant="outline" className="text-xs bg-white/5 border-white/10">
+                              {notificationTypeLabels[notification.type] || notification.type}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground/70 font-medium">
+                              {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
+                            </span>
+                            {!notification.isRead && (
+                              <Badge className="text-xs bg-gradient-to-br from-amber-500/20 to-orange-500/20 text-amber-400 border-amber-500/30">
+                                Unread
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      
-                      <div className="flex gap-1 flex-wrap">
-                        {notification.actionUrl && (
+                        
+                        <div className="flex gap-2 flex-wrap">
+                          {notification.actionUrl && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              asChild
+                              data-testid={`button-view-${notification.id}`}
+                              className="h-8 text-xs hover:bg-white/5 border-white/10"
+                            >
+                              <Link href={notification.actionUrl}>View Details</Link>
+                            </Button>
+                          )}
+                          {!notification.isRead && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => markAsReadMutation.mutate([notification.id])}
+                              data-testid={`button-mark-read-${notification.id}`}
+                              className="h-8 px-3 hover:bg-white/5 text-muted-foreground hover:text-foreground"
+                            >
+                              <Eye className="h-4 w-4 mr-1.5" />
+                              <span className="text-xs">Mark read</span>
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
-                            asChild
-                            data-testid={`button-view-${notification.id}`}
-                            className="h-8 text-xs"
+                            onClick={() => deleteNotificationsMutation.mutate([notification.id])}
+                            data-testid={`button-delete-${notification.id}`}
+                            className="h-8 px-3 hover:bg-white/5 text-muted-foreground hover:text-red-400"
                           >
-                            <Link href={notification.actionUrl}>View</Link>
+                            <Trash2 className="h-4 w-4 mr-1.5" />
+                            <span className="text-xs">Delete</span>
                           </Button>
-                        )}
-                        {!notification.isRead && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => markAsReadMutation.mutate([notification.id])}
-                            data-testid={`button-mark-read-${notification.id}`}
-                            className="h-8 px-2"
-                          >
-                            <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteNotificationsMutation.mutate([notification.id])}
-                          data-testid={`button-delete-${notification.id}`}
-                          className="h-8 px-2"
-                        >
-                          <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
-                        </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
