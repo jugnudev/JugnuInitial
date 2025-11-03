@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, CheckCheck, Loader2, Trash2, Eye } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
@@ -59,7 +59,6 @@ export function NotificationBell() {
   const [page, setPage] = useState(0);
   const [allNotifications, setAllNotifications] = useState<CommunityNotification[]>([]);
   const { toast } = useToast();
-  const wsRef = useRef<WebSocket | null>(null);
   const limit = 20;
 
   // Query for notifications
@@ -72,8 +71,7 @@ export function NotificationBell() {
       if (!response.ok) throw new Error('Failed to fetch notifications');
       return response.json();
     },
-    enabled: isOpen,
-    refetchInterval: isOpen ? 30000 : false, // Refetch every 30 seconds when open
+    refetchInterval: 30000, // Auto-refetch every 30 seconds for real-time updates
   });
 
   // Mutation to mark as read
@@ -148,77 +146,9 @@ export function NotificationBell() {
     }
   }, [data, page]);
 
-  // WebSocket connection for real-time updates
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    const connectWebSocket = () => {
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${wsProtocol}//${window.location.host}/ws?token=${token}`;
-      
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        console.log('WebSocket connected for notifications');
-        // Subscribe to notification events
-        ws.send(JSON.stringify({ type: 'subscribe', channel: 'notifications' }));
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          
-          if (message.type === 'notification') {
-            // New notification received
-            refetch();
-            
-            // Show toast for new notification
-            toast({
-              title: message.data.title,
-              description: message.data.body,
-              action: message.data.actionUrl ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => window.location.href = message.data.actionUrl}
-                >
-                  View
-                </Button>
-              ) : undefined
-            });
-          } else if (message.type === 'notification_read') {
-            // Notification marked as read
-            setAllNotifications(prev => 
-              prev.map(n => n.id === message.data.id ? { ...n, isRead: true } : n)
-            );
-            queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
-          }
-        } catch (error) {
-          console.error('Failed to parse WebSocket message:', error);
-        }
-      };
-
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
-
-      ws.onclose = () => {
-        console.log('WebSocket disconnected');
-        // Reconnect after 5 seconds
-        setTimeout(connectWebSocket, 5000);
-      };
-    };
-
-    connectWebSocket();
-
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, []);
+  // Note: Real-time WebSocket updates disabled for now
+  // The platform uses session-based auth, not token-based auth
+  // Will implement platform-wide notifications WebSocket in the future
 
   // Handle notification click
   const handleNotificationClick = async (notification: CommunityNotification) => {
