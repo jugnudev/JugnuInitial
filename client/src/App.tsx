@@ -54,6 +54,7 @@ import AdminCommunitiesPage from "@/pages/AdminCommunitiesPage";
 import NotificationCenter from "@/pages/NotificationCenter";
 import AdminCareersPage from "@/pages/AdminCareersPage";
 import CareersPage from "@/pages/CareersPage";
+import LoyaltyLanding from "@/pages/LoyaltyLanding";
 
 function Router() {
   // Track page views when routes change - Google Analytics integration
@@ -65,6 +66,7 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/story" component={Story} />
         <Route path="/deals" component={Deals} />
+        <Route path="/loyalty" component={LoyaltyLanding} />
         <Route path="/explore" component={() => { window.location.href = '/events'; return null; }} />
         <Route path="/events" component={EventsExplore} />
         {/* Community routes - redirect to either new Communities feature or legacy redirect based on feature flag */}

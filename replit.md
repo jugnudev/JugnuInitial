@@ -36,6 +36,13 @@ Preferred communication style: Simple, everyday language.
 - **Admin & Sponsorship Systems**: Key-based Admin API, portal token system (UUID-based), lead management (CRUD), multi-part onboarding for campaigns, creative upload (banners), sponsor portal with real-time analytics and CSV export, and health monitoring endpoints.
 - **Business Signup Flow**: Streamlined single-page signup combining user registration and organizer application submission. Includes CTAs in hero section and regular signup page. Form validation handles optional numeric fields (NaN → undefined). Backend conditionally inserts optional Supabase fields to prevent schema mismatch errors. Supports "0 years" experience properly using typeof checks. Website field automatically adds "https://" prefix to URLs without protocol for improved UX.
 - **Careers System**: "Join the Team" recruitment platform for volunteer opportunities. Public-facing careers page (/careers) with premium dark gradient hero, SEO optimization, department filtering, and job details. Admin management page (/admin/careers) with full CRUD for job postings and application tracking. Database uses snake_case field names to match Supabase conventions. Application data stored with status workflow (pending → reviewing → interviewed → accepted/rejected).
+- **Loyalty Program (Coalition Points)**: 
+    - **Coming Soon Landing Page**: Premium SEO-optimized page at /loyalty (public, not behind feature flag) announcing Jugnu Coalition Points - Canada's South Asian rewards wallet with fixed value (1,000 JP = $1 CAD).
+    - **Marketing Content**: Hero section, How It Works (Earn/Spend/Fixed Value), benefits for users and businesses, South Asian-first use cases (weddings, festivals), pricing snapshot ($50/mo includes 20k JP), and comprehensive FAQ with Schema.org markup.
+    - **Cultural Design**: Premium aesthetic with gold/amber accents, cultural stock photography, festival mentions (Diwali, Eid, Vaisakhi, Navratri), and mobile-first responsive layout.
+    - **Waitlist Integration**: CTAs link to existing newsletter signup system, business partner signups use organizer flow.
+    - **Feature Flag**: FF_COALITION_LOYALTY global flag for future wallet/console features (currently unused for landing page).
+    - **Core Principles**: Fixed burn value (1,000 JP = $1), merchant-set issue rate, pre-funded issuance, clearinghouse settlement, subscription + tiered top-ups, web-only MVP, optional Home Boost.
 - **Communities Platform**:
     - **Notification Preferences**: Email frequency settings (immediate/daily/weekly), digest time scheduling, timezone configuration. UI integrated in Account Settings > Schedule tab. Requires manual Supabase table setup (see SETUP_NOTIFICATION_PREFS.md).
     - **Growth Features**: Invite links with copy functionality for owners/moderators, member referrals, community discovery, social sharing.
@@ -52,7 +59,7 @@ Preferred communication style: Simple, everyday language.
 
 ### System Design Choices
 - **Mobile-first approach**: Implemented using Tailwind CSS breakpoints.
-- **Feature Flags**: `ENABLE_TICKETING` and `ENABLE_COMMUNITIES` control the visibility and functionality of major system components across both server and client, including SEO isolation via `robots.txt` and `sitemap.xml`.
+- **Feature Flags**: `ENABLE_TICKETING`, `ENABLE_COMMUNITIES`, and `FF_COALITION_LOYALTY` control the visibility and functionality of major system components across both server and client, including SEO isolation via `robots.txt` and `sitemap.xml`. Loyalty landing page is public regardless of flag state.
 - **Database Design**: Separate tables for community subscriptions, payments, billing events, giveaways, entries, and winners.
 - **Timezone Hardening**: All metrics processed and stored in Pacific timezone.
 
