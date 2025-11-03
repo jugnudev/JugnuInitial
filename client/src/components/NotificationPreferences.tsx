@@ -89,7 +89,7 @@ export function NotificationPreferences({ communityId, embedded = false }: Notif
 
   // Fetch user's communities
   const { data: communitiesData } = useQuery<{ ok: boolean; communities: Community[] }>({
-    queryKey: ['/api/communities/my'],
+    queryKey: ['/api/user/communities'],
     enabled: !communityId,
   });
 

@@ -2862,7 +2862,6 @@ export class CommunitiesSupabaseDB {
         post_id: data.postId,
         comment_id: data.commentId,
         poll_id: data.pollId,
-        metadata: data.metadata || {},
         is_read: false
       })
       .select()
@@ -2895,7 +2894,6 @@ export class CommunitiesSupabaseDB {
       post_id: n.postId,
       comment_id: n.commentId,
       poll_id: n.pollId,
-      metadata: n.metadata || {},
       is_read: false
     }));
 
