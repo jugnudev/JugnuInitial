@@ -1,5 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Bell, CheckCheck, Loader2, Trash2, Eye } from 'lucide-react';
+import { 
+  Bell, 
+  CheckCheck, 
+  Loader2, 
+  Trash2, 
+  Eye, 
+  FileText, 
+  CheckCircle, 
+  MessageCircle, 
+  BarChart3, 
+  AtSign, 
+  Megaphone, 
+  Sparkles,
+  Users
+} from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient, apiRequest } from '@/lib/queryClient';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -20,30 +34,47 @@ import type { CommunityNotification } from '@shared/schema';
 
 // Icon mapping for notification types
 const notificationIcons: Record<string, any> = {
-  'post_published': '📝',
-  'membership_approved': '✅',
-  'comment_reply': '💬',
-  'post_comment': '💬',
-  'poll_closed': '📊',
-  'mention': '👋',
-  'chat_mention': '@',
-  'community_announcement': '📢',
-  'new_deal': '🎉',
-  'test': '🔔',
+  'post_published': FileText,
+  'membership_approved': CheckCircle,
+  'comment_reply': MessageCircle,
+  'post_comment': MessageCircle,
+  'poll_closed': BarChart3,
+  'mention': AtSign,
+  'chat_mention': AtSign,
+  'community_announcement': Megaphone,
+  'new_deal': Sparkles,
+  'role_updated': Users,
+  'test': Bell,
 };
 
-// Color mapping for notification types
+// Color mapping for notification types (subtle, premium colors)
 const notificationColors: Record<string, string> = {
-  'post_published': 'text-blue-600',
-  'membership_approved': 'text-green-600',
-  'comment_reply': 'text-indigo-600',
-  'post_comment': 'text-indigo-600',
-  'poll_closed': 'text-purple-600',
-  'mention': 'text-yellow-600',
-  'chat_mention': 'text-yellow-600',
-  'community_announcement': 'text-red-600',
-  'new_deal': 'text-emerald-600',
-  'test': 'text-gray-600',
+  'post_published': 'text-blue-400 dark:text-blue-400',
+  'membership_approved': 'text-emerald-400 dark:text-emerald-400',
+  'comment_reply': 'text-violet-400 dark:text-violet-400',
+  'post_comment': 'text-violet-400 dark:text-violet-400',
+  'poll_closed': 'text-purple-400 dark:text-purple-400',
+  'mention': 'text-amber-400 dark:text-amber-400',
+  'chat_mention': 'text-amber-400 dark:text-amber-400',
+  'community_announcement': 'text-rose-400 dark:text-rose-400',
+  'new_deal': 'text-cyan-400 dark:text-cyan-400',
+  'role_updated': 'text-indigo-400 dark:text-indigo-400',
+  'test': 'text-gray-400 dark:text-gray-400',
+};
+
+// Background colors for notification types (very subtle)
+const notificationBgColors: Record<string, string> = {
+  'post_published': 'bg-blue-500/5 dark:bg-blue-500/5 hover:bg-blue-500/10 dark:hover:bg-blue-500/10',
+  'membership_approved': 'bg-emerald-500/5 dark:bg-emerald-500/5 hover:bg-emerald-500/10 dark:hover:bg-emerald-500/10',
+  'comment_reply': 'bg-violet-500/5 dark:bg-violet-500/5 hover:bg-violet-500/10 dark:hover:bg-violet-500/10',
+  'post_comment': 'bg-violet-500/5 dark:bg-violet-500/5 hover:bg-violet-500/10 dark:hover:bg-violet-500/10',
+  'poll_closed': 'bg-purple-500/5 dark:bg-purple-500/5 hover:bg-purple-500/10 dark:hover:bg-purple-500/10',
+  'mention': 'bg-amber-500/5 dark:bg-amber-500/5 hover:bg-amber-500/10 dark:hover:bg-amber-500/10',
+  'chat_mention': 'bg-amber-500/5 dark:bg-amber-500/5 hover:bg-amber-500/10 dark:hover:bg-amber-500/10',
+  'community_announcement': 'bg-rose-500/5 dark:bg-rose-500/5 hover:bg-rose-500/10 dark:hover:bg-rose-500/10',
+  'new_deal': 'bg-cyan-500/5 dark:bg-cyan-500/5 hover:bg-cyan-500/10 dark:hover:bg-cyan-500/10',
+  'role_updated': 'bg-indigo-500/5 dark:bg-indigo-500/5 hover:bg-indigo-500/10 dark:hover:bg-indigo-500/10',
+  'test': 'bg-gray-500/5 dark:bg-gray-500/5 hover:bg-gray-500/10 dark:hover:bg-gray-500/10',
 };
 
 interface NotificationsResponse {
@@ -207,24 +238,32 @@ export function NotificationBell() {
         </Button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent align="end" className="w-96">
-        <DropdownMenuLabel className="flex items-center justify-between">
-          <span>Notifications</span>
+      <DropdownMenuContent align="end" className="w-[420px] p-0 bg-background/95 backdrop-blur-xl border border-white/10">
+        <DropdownMenuLabel className="flex items-center justify-between px-5 py-4 border-b border-border/50">
+          <div className="flex items-center gap-2">
+            <span className="text-base font-semibold bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 bg-clip-text text-transparent">
+              Notifications
+            </span>
+            {unreadCount > 0 && (
+              <Badge variant="secondary" className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 text-amber-400 border-amber-500/30 px-2 h-5">
+                {unreadCount}
+              </Badge>
+            )}
+          </div>
           {unreadCount > 0 && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => markAllAsReadMutation.mutate()}
               disabled={markAllAsReadMutation.isPending}
+              className="h-8 hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors"
               data-testid="button-mark-all-read"
             >
-              <CheckCheck className="h-4 w-4 mr-1" />
+              <CheckCheck className="h-4 w-4 mr-2" />
               Mark all read
             </Button>
           )}
         </DropdownMenuLabel>
-        
-        <DropdownMenuSeparator />
         
         <ScrollArea className="h-[400px]">
           {isLoading && (
@@ -234,79 +273,94 @@ export function NotificationBell() {
           )}
           
           {!isLoading && allNotifications.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              <Bell className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p>No notifications yet</p>
+            <div className="text-center py-12 px-6">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 flex items-center justify-center border border-white/10">
+                <Bell className="h-8 w-8 text-muted-foreground/50" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground mb-1">All caught up</p>
+              <p className="text-xs text-muted-foreground/60">No new notifications</p>
             </div>
           )}
           
           {!isLoading && allNotifications.length > 0 && (
             <>
-              {allNotifications.map((notification) => (
-                <DropdownMenuItem
-                  key={notification.id}
-                  className={`p-3 cursor-pointer ${!notification.isRead ? 'bg-accent' : ''}`}
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    handleNotificationClick(notification);
-                  }}
-                  data-testid={`notification-item-${notification.id}`}
-                >
-                  <div className="flex items-start gap-3 w-full">
-                    <span className={`text-2xl ${notificationColors[notification.type] || 'text-gray-600'}`}>
-                      {notificationIcons[notification.type] || '🔔'}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">
-                        {notification.title}
-                      </p>
-                      {notification.body && (
-                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                          {notification.body}
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {formatTime(notification.createdAt)}
-                      </p>
-                    </div>
-                    <div className="flex gap-1">
+              {allNotifications.map((notification) => {
+                const IconComponent = notificationIcons[notification.type] || Bell;
+                const bgColor = notificationBgColors[notification.type] || 'hover:bg-accent';
+                const iconColor = notificationColors[notification.type] || 'text-gray-400';
+                
+                return (
+                  <DropdownMenuItem
+                    key={notification.id}
+                    className={`p-0 cursor-pointer border-b border-border/50 last:border-0 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/50 focus-visible:ring-inset ${bgColor}`}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      handleNotificationClick(notification);
+                    }}
+                    data-testid={`notification-item-${notification.id}`}
+                  >
+                    <div className="flex items-start gap-4 w-full p-4 relative">
                       {!notification.isRead && (
+                        <div className="absolute left-2 top-1/2 -translate-y-1/2 w-2 h-2 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full shadow-lg shadow-amber-500/50" />
+                      )}
+                      
+                      <div className={`flex-shrink-0 w-10 h-10 rounded-lg bg-gradient-to-br from-gray-800/50 to-gray-900/50 flex items-center justify-center border border-white/10 ${iconColor}`}>
+                        <IconComponent className="w-5 h-5" />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-foreground mb-1 line-clamp-1">
+                          {notification.title}
+                        </p>
+                        {notification.body && (
+                          <p className="text-xs text-muted-foreground/80 line-clamp-2 leading-relaxed">
+                            {notification.body}
+                          </p>
+                        )}
+                        <p className="text-xs text-muted-foreground/60 mt-2 font-medium">
+                          {formatTime(notification.createdAt)}
+                        </p>
+                      </div>
+                      
+                      <div className="flex gap-1 flex-shrink-0">
+                        {!notification.isRead && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-white/5 text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markAsReadMutation.mutate(notification.id);
+                            }}
+                            data-testid={`button-mark-read-${notification.id}`}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6"
+                          className="h-8 w-8 hover:bg-white/5 text-muted-foreground hover:text-red-400 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation();
-                            markAsReadMutation.mutate(notification.id);
+                            deleteNotificationMutation.mutate(notification.id);
                           }}
-                          data-testid={`button-mark-read-${notification.id}`}
+                          data-testid={`button-delete-${notification.id}`}
                         >
-                          <Eye className="h-3 w-3" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteNotificationMutation.mutate(notification.id);
-                        }}
-                        data-testid={`button-delete-${notification.id}`}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      </div>
                     </div>
-                  </div>
-                </DropdownMenuItem>
-              ))}
+                  </DropdownMenuItem>
+                );
+              })}
               
               {data?.hasMore && (
-                <div className="p-3">
+                <div className="p-4 border-t border-border/50">
                   <Button
                     variant="outline"
                     size="sm"
-                    className="w-full"
+                    className="w-full hover:bg-white/5 border-white/10 text-muted-foreground hover:text-foreground transition-colors"
                     onClick={loadMore}
                     data-testid="button-load-more"
                   >
@@ -318,13 +372,13 @@ export function NotificationBell() {
           )}
         </ScrollArea>
         
-        <DropdownMenuSeparator />
-        
-        <DropdownMenuItem asChild>
-          <Link href="/notifications" className="cursor-pointer" data-testid="link-all-notifications">
-            <span className="text-sm">View all notifications</span>
-          </Link>
-        </DropdownMenuItem>
+        <div className="border-t border-border/50">
+          <DropdownMenuItem asChild className="m-0 rounded-none hover:bg-white/5 transition-colors">
+            <Link href="/notifications" className="cursor-pointer px-5 py-3 flex items-center justify-center" data-testid="link-all-notifications">
+              <span className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">View all notifications</span>
+            </Link>
+          </DropdownMenuItem>
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );
