@@ -3323,14 +3323,16 @@ export function addCommunitiesRoutes(app: Express) {
                 type: notif.type,
                 title: notif.title,
                 body: notif.body,
-                actionUrl: `/communities/${community.slug}/posts/${postId}`,
+                postId,
+                commentId: comment.id,
                 metadata: {
                   postId,
                   postTitle: post.title,
                   commentId: comment.id,
                   commentContent: content.trim().substring(0, 100),
                   authorName: `${user.firstName} ${user.lastName}`,
-                  communityName: community.name
+                  communityName: community.name,
+                  communitySlug: community.slug
                 }
               });
 
@@ -3347,7 +3349,9 @@ export function addCommunitiesRoutes(app: Express) {
                 type: notif.type,
                 title: notif.title,
                 body: notif.body,
-                actionUrl: notification.actionUrl,
+                postId,
+                commentId: comment.id,
+                communitySlug: community.slug,
                 createdAt: notification.createdAt
               });
             }

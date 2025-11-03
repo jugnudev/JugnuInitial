@@ -2846,7 +2846,9 @@ export class CommunitiesSupabaseDB {
     type: string;
     title: string;
     body?: string;
-    actionUrl?: string;
+    postId?: string;
+    commentId?: string;
+    pollId?: string;
     metadata?: any;
   }): Promise<CommunityNotification> {
     const { data: notification, error } = await this.client
@@ -2857,7 +2859,9 @@ export class CommunitiesSupabaseDB {
         type: data.type,
         title: data.title,
         body: data.body,
-        action_url: data.actionUrl,
+        post_id: data.postId,
+        comment_id: data.commentId,
+        poll_id: data.pollId,
         metadata: data.metadata || {},
         is_read: false,
         is_email_sent: false
@@ -2876,7 +2880,9 @@ export class CommunitiesSupabaseDB {
     type: string;
     title: string;
     body?: string;
-    actionUrl?: string;
+    postId?: string;
+    commentId?: string;
+    pollId?: string;
     metadata?: any;
   }>): Promise<CommunityNotification[]> {
     if (!notifications.length) return [];
@@ -2887,7 +2893,9 @@ export class CommunitiesSupabaseDB {
       type: n.type,
       title: n.title,
       body: n.body,
-      action_url: n.actionUrl,
+      post_id: n.postId,
+      comment_id: n.commentId,
+      poll_id: n.pollId,
       metadata: n.metadata || {},
       is_read: false,
       is_email_sent: false
