@@ -3328,6 +3328,7 @@ export function addCommunitiesRoutes(app: Express) {
                 body: notif.body,
                 postId,
                 commentId: comment.id,
+                actionUrl: `/community/${community.slug}/post/${postId}`,
                 metadata: {
                   postId,
                   postTitle: post.title,
@@ -3517,6 +3518,65 @@ export function addCommunitiesRoutes(app: Express) {
       }
 
       const likeCount = await communitiesStorage.getCommentLikeCount(commentId);
+
+      // Send notification to comment author (non-blocking)
+      try {
+        const comment = await communitiesStorage.getCommentById(commentId);
+        
+        if (comment && comment.authorId !== user.id) {
+          // Get the post to build the actionUrl
+          const post = await communitiesStorage.getPostById(comment.postId);
+          
+          if (post) {
+            // Check notification preferences
+            const prefs = await communitiesStorage.getNotificationPreferences(comment.authorId, community.id);
+            const shouldNotify = prefs ? prefs.commentLikes : true;
+
+            if (shouldNotify) {
+              const notification = await communitiesStorage.createNotification({
+                recipientId: comment.authorId,
+                communityId: community.id,
+                type: 'comment_like',
+                title: 'Someone liked your comment',
+                body: `${user.firstName} ${user.lastName} liked your comment`,
+                postId: comment.postId,
+                commentId: comment.id,
+                actionUrl: `/community/${community.slug}/post/${comment.postId}`,
+                metadata: {
+                  postId: comment.postId,
+                  postTitle: post.title,
+                  commentId: comment.id,
+                  commentContent: comment.content.substring(0, 100),
+                  authorName: `${user.firstName} ${user.lastName}`,
+                  communityName: community.name,
+                  communitySlug: community.slug
+                }
+              });
+
+              // Send email notification (immediate or queued for digest)
+              const recipient = await communitiesStorage.getUserById(comment.authorId);
+              if (recipient) {
+                await emailService.sendNotificationEmail(notification, recipient, community);
+              }
+
+              // Send real-time notification
+              const { broadcastNotificationToCommunity } = require('./chat-server');
+              broadcastNotificationToCommunity(community.id, {
+                id: notification.id,
+                type: 'comment_like',
+                title: 'Someone liked your comment',
+                body: `${user.firstName} ${user.lastName} liked your comment`,
+                postId: comment.postId,
+                commentId: comment.id,
+                communitySlug: community.slug,
+                createdAt: notification.createdAt
+              });
+            }
+          }
+        }
+      } catch (notificationError) {
+        console.warn('Notification creation failed for comment like (non-blocking):', notificationError);
+      }
 
       res.json({
         ok: true,
