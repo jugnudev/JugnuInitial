@@ -3269,43 +3269,60 @@ export function addCommunitiesRoutes(app: Express) {
         const post = await communitiesStorage.getPostById(postId);
         
         if (post) {
-          let recipientId: string | null = null;
-          let notificationType = 'post_comment';
-          let notificationTitle = '';
-          let notificationBody = '';
+          const notificationsToCreate: Array<{
+            recipientId: string;
+            type: string;
+            title: string;
+            body: string;
+          }> = [];
 
           if (parentId) {
-            // Reply to a comment
+            // Reply to a comment - notify the parent comment author
             const parentComment = await communitiesStorage.getCommentById(parentId);
             if (parentComment && parentComment.author_id !== user.id) {
-              recipientId = parentComment.author_id;
-              notificationType = 'comment_reply';
-              notificationTitle = 'New reply to your comment';
-              notificationBody = `${user.firstName} ${user.lastName} replied: "${content.trim().substring(0, 100)}"`;
+              notificationsToCreate.push({
+                recipientId: parentComment.author_id,
+                type: 'comment_reply',
+                title: 'New reply to your comment',
+                body: `${user.firstName} ${user.lastName} replied: "${content.trim().substring(0, 100)}"`
+              });
+            }
+
+            // Also notify the post author (unless they're the commenter or already notified as parent comment author)
+            const parentCommentAuthorId = parentComment?.author_id;
+            if (post.author_id !== user.id && post.author_id !== parentCommentAuthorId) {
+              notificationsToCreate.push({
+                recipientId: post.author_id,
+                type: 'post_comment',
+                title: 'New comment on your post',
+                body: `${user.firstName} ${user.lastName} commented: "${content.trim().substring(0, 100)}"`
+              });
             }
           } else {
-            // Top-level comment on a post
+            // Top-level comment on a post - notify the post author
             if (post.author_id !== user.id) {
-              recipientId = post.author_id;
-              notificationType = 'post_comment';
-              notificationTitle = 'New comment on your post';
-              notificationBody = `${user.firstName} ${user.lastName} commented: "${content.trim().substring(0, 100)}"`;
+              notificationsToCreate.push({
+                recipientId: post.author_id,
+                type: 'post_comment',
+                title: 'New comment on your post',
+                body: `${user.firstName} ${user.lastName} commented: "${content.trim().substring(0, 100)}"`
+              });
             }
           }
 
-          // Create and send notification if we have a recipient
-          if (recipientId) {
+          // Create and send all notifications
+          for (const notif of notificationsToCreate) {
             // Check notification preferences
-            const prefs = await communitiesStorage.getNotificationPreferences(recipientId, community.id);
-            const shouldNotify = prefs ? (notificationType === 'comment_reply' ? prefs.commentReplies : prefs.postComments) : true;
+            const prefs = await communitiesStorage.getNotificationPreferences(notif.recipientId, community.id);
+            const shouldNotify = prefs ? (notif.type === 'comment_reply' ? prefs.commentReplies : prefs.postComments) : true;
 
             if (shouldNotify) {
               const notification = await communitiesStorage.createNotification({
-                recipientId,
+                recipientId: notif.recipientId,
                 communityId: community.id,
-                type: notificationType,
-                title: notificationTitle,
-                body: notificationBody,
+                type: notif.type,
+                title: notif.title,
+                body: notif.body,
                 actionUrl: `/communities/${community.slug}/posts/${postId}`,
                 metadata: {
                   postId,
@@ -3318,7 +3335,7 @@ export function addCommunitiesRoutes(app: Express) {
               });
 
               // Send email notification (immediate or queued for digest)
-              const recipient = await communitiesStorage.getUserById(recipientId);
+              const recipient = await communitiesStorage.getUserById(notif.recipientId);
               if (recipient) {
                 await emailService.sendNotificationEmail(notification, recipient, community);
               }
@@ -3327,9 +3344,9 @@ export function addCommunitiesRoutes(app: Express) {
               const { broadcastNotificationToCommunity } = require('./chat-server');
               broadcastNotificationToCommunity(community.id, {
                 id: notification.id,
-                type: notificationType,
-                title: notificationTitle,
-                body: notificationBody,
+                type: notif.type,
+                title: notif.title,
+                body: notif.body,
                 actionUrl: notification.actionUrl,
                 createdAt: notification.createdAt
               });
