@@ -3264,6 +3264,82 @@ export function addCommunitiesRoutes(app: Express) {
         console.warn('Analytics tracking failed (non-blocking):', analyticsError);
       }
 
+      // Send notification (non-blocking)
+      try {
+        const post = await communitiesStorage.getPostById(postId);
+        
+        if (post) {
+          let recipientId: string | null = null;
+          let notificationType = 'post_comment';
+          let notificationTitle = '';
+          let notificationBody = '';
+
+          if (parentId) {
+            // Reply to a comment
+            const parentComment = await communitiesStorage.getCommentById(parentId);
+            if (parentComment && parentComment.author_id !== user.id) {
+              recipientId = parentComment.author_id;
+              notificationType = 'comment_reply';
+              notificationTitle = 'New reply to your comment';
+              notificationBody = `${user.firstName} ${user.lastName} replied: "${content.trim().substring(0, 100)}"`;
+            }
+          } else {
+            // Top-level comment on a post
+            if (post.author_id !== user.id) {
+              recipientId = post.author_id;
+              notificationType = 'post_comment';
+              notificationTitle = 'New comment on your post';
+              notificationBody = `${user.firstName} ${user.lastName} commented: "${content.trim().substring(0, 100)}"`;
+            }
+          }
+
+          // Create and send notification if we have a recipient
+          if (recipientId) {
+            // Check notification preferences
+            const prefs = await communitiesStorage.getNotificationPreferences(recipientId, community.id);
+            const shouldNotify = prefs ? (notificationType === 'comment_reply' ? prefs.commentReplies : prefs.postComments) : true;
+
+            if (shouldNotify) {
+              const notification = await communitiesStorage.createNotification({
+                recipientId,
+                communityId: community.id,
+                type: notificationType,
+                title: notificationTitle,
+                body: notificationBody,
+                actionUrl: `/communities/${community.slug}/posts/${postId}`,
+                metadata: {
+                  postId,
+                  postTitle: post.title,
+                  commentId: comment.id,
+                  commentContent: content.trim().substring(0, 100),
+                  authorName: `${user.firstName} ${user.lastName}`,
+                  communityName: community.name
+                }
+              });
+
+              // Send email notification (immediate or queued for digest)
+              const recipient = await communitiesStorage.getUserById(recipientId);
+              if (recipient) {
+                await emailService.sendNotificationEmail(notification, recipient, community);
+              }
+
+              // Send real-time notification
+              const { broadcastNotificationToCommunity } = require('./chat-server');
+              broadcastNotificationToCommunity(community.id, {
+                id: notification.id,
+                type: notificationType,
+                title: notificationTitle,
+                body: notificationBody,
+                actionUrl: notification.actionUrl,
+                createdAt: notification.createdAt
+              });
+            }
+          }
+        }
+      } catch (notificationError) {
+        console.warn('Notification creation failed (non-blocking):', notificationError);
+      }
+
       res.json({
         ok: true,
         comment,
