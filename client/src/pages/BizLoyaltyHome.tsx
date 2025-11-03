@@ -50,8 +50,10 @@ export default function BizLoyaltyHome() {
   const purchasedPercent = totalBank > 0 ? (config?.purchased_jp_bank || 0) / totalBank * 100 : 0;
 
   const updateMutation = useMutation({
-    mutationFn: (data: { issue_rate: number }) =>
-      apiRequest('PATCH', '/api/loyalty/business/config', data),
+    mutationFn: async (data: { issue_rate: number }) => {
+      const response = await apiRequest('PATCH', '/api/loyalty/business/config', data);
+      return await response.json();
+    },
     onSuccess: (data: any) => {
       if (data.ok) {
         queryClient.invalidateQueries({ queryKey: ['/api/loyalty/business/config'] });

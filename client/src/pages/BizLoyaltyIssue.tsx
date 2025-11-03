@@ -78,8 +78,10 @@ export default function BizLoyaltyIssue() {
   });
 
   const issueMutation = useMutation({
-    mutationFn: (data: { userEmail: string; billAmountCents: number; reference?: string }) =>
-      apiRequest('POST', '/api/loyalty/business/issue', data),
+    mutationFn: async (data: { userEmail: string; billAmountCents: number; reference?: string }) => {
+      const response = await apiRequest('POST', '/api/loyalty/business/issue', data);
+      return await response.json();
+    },
     onSuccess: (data: any) => {
       if (data.ok && data.transaction) {
         setSuccessData(data.transaction);

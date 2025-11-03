@@ -87,8 +87,10 @@ export default function WalletRedeemPage() {
   });
 
   const redeemMutation = useMutation({
-    mutationFn: (data: { businessId: string; billAmountCents: number; pointsToRedeem: number }) =>
-      apiRequest('POST', '/api/loyalty/redeem', data),
+    mutationFn: async (data: { businessId: string; billAmountCents: number; pointsToRedeem: number }) => {
+      const response = await apiRequest('POST', '/api/loyalty/redeem', data);
+      return await response.json();
+    },
     onSuccess: (data: any) => {
       if (data.ok && data.transaction) {
         setSuccessData(data.transaction);
