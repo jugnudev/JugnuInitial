@@ -322,33 +322,33 @@ export default function BizLoyaltyIssue() {
                   {/* Preview Section */}
                   {previewPoints > 0 && (
                     <div className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 p-6 rounded-lg border border-orange-200 dark:border-orange-900">
-                      <h3 className="font-semibold mb-4 flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
                         <Sparkles className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                         Points Preview
                       </h3>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">Bill Amount:</span>
-                          <span className="font-semibold" data-testid="text-preview-bill">
+                          <span className="text-sm text-gray-700 dark:text-gray-300">Bill Amount:</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100" data-testid="text-preview-bill">
                             ${parseFloat(watchedBillAmount).toFixed(2)} CAD
                           </span>
                         </div>
                         <div className="flex justify-between items-center">
-                          <span className="text-sm text-muted-foreground">Current Issue Rate:</span>
-                          <span className="font-semibold" data-testid="text-preview-rate">
+                          <span className="text-sm text-gray-700 dark:text-gray-300">Current Issue Rate:</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100" data-testid="text-preview-rate">
                             {config.issueRatePerDollar} JP / $1
                           </span>
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center">
-                          <span className="font-semibold">Points to Issue:</span>
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">Points to Issue:</span>
                           <span className="text-2xl font-bold text-orange-600 dark:text-orange-400" data-testid="text-preview-points">
                             {previewPoints.toLocaleString()} JP
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
-                          <span className="text-muted-foreground">Value to Customer:</span>
-                          <span className="font-medium" data-testid="text-preview-cad-value">
+                          <span className="text-gray-700 dark:text-gray-300">Value to Customer:</span>
+                          <span className="font-medium text-gray-900 dark:text-gray-100" data-testid="text-preview-cad-value">
                             ${(previewPoints / 1000).toFixed(2)} CAD
                           </span>
                         </div>
