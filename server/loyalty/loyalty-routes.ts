@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import jwt from 'jsonwebtoken';
 import { db } from '../database';
 import { organizers } from '@shared/schema';
 import * as loyaltyStorage from './loyalty-storage';
@@ -87,21 +88,65 @@ router.get('/wallet', requireAuth, async (req: Request, res: Response) => {
 
     res.json({
       ok: true,
-      wallet: {
-        id: wallet.id,
-        totalPoints: wallet.total_points,
-        cadValue: (wallet.total_points / 1000).toFixed(2), // 1000 JP = $1 CAD
+      data: {
+        wallet: {
+          id: wallet.id,
+          user_id: wallet.user_id,
+          total_points: wallet.total_points,
+          created_at: wallet.created_at,
+          updated_at: wallet.updated_at,
+        },
+        merchantEarnings: earnings.map((e: any) => ({
+          id: e.id,
+          merchant_id: e.organizer_id,
+          total_earned: e.total_earned,
+          business_name: e.business_name || null,
+        })),
       },
-      merchantBreakdown: earnings.map((e: any) => ({
-        organizerId: e.organizer_id,
-        businessName: e.business_name || 'Unknown Business',
-        totalEarned: e.total_earned,
-        cadValue: (e.total_earned / 1000).toFixed(2),
-      })),
     });
   } catch (error) {
     console.error('[Loyalty] Get wallet error:', error);
     res.status(500).json({ ok: false, error: 'Failed to get wallet' });
+  }
+});
+
+/**
+ * GET /api/loyalty/wallet/qr
+ * Generate a signed JWT for QR code scanning at merchant checkouts
+ */
+router.get('/wallet/qr', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const wallet = await loyaltyStorage.getOrCreateWallet(user.id);
+
+    const jwtSecret = process.env.JWT_SECRET || process.env.SESSION_SECRET;
+    
+    if (!jwtSecret) {
+      console.error('[Loyalty] JWT_SECRET or SESSION_SECRET not configured');
+      return res.status(500).json({ 
+        ok: false, 
+        error: 'Server misconfiguration: JWT secret not set' 
+      });
+    }
+    
+    const token = jwt.sign(
+      {
+        walletId: wallet.id,
+        userId: wallet.user_id,
+        type: 'jugnu_wallet',
+        iat: Math.floor(Date.now() / 1000),
+      },
+      jwtSecret,
+      { expiresIn: '365d' } // Long-lived for wallet QR codes
+    );
+
+    res.json({
+      ok: true,
+      token,
+    });
+  } catch (error) {
+    console.error('[Loyalty] Generate QR token error:', error);
+    res.status(500).json({ ok: false, error: 'Failed to generate QR token' });
   }
 });
 
