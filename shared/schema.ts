@@ -995,6 +995,9 @@ export const communityNotifications = pgTable("community_notifications", {
   type: text("type").notNull(), // post_published | comment_reply | mention | membership_approved | etc
   title: text("title").notNull(),
   body: text("body"),
+  postId: uuid("post_id"),
+  commentId: uuid("comment_id"),
+  pollId: uuid("poll_id"),
   actionUrl: text("action_url"),
   metadata: jsonb("metadata").default(sql`'{}'::jsonb`),
   isRead: boolean("is_read").notNull().default(false),
