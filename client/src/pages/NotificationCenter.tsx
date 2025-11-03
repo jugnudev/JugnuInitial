@@ -38,7 +38,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import type { CommunityNotification, Community } from '@shared/schema';
 
 // Icon components (same as NotificationBell)
@@ -115,6 +115,7 @@ export function NotificationCenter() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'unread' | 'read'>('all');
   const [page, setPage] = useState(0);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const limit = 20;
 
   // Fetch user's communities for filter
@@ -251,6 +252,23 @@ export function NotificationCenter() {
   const handleBulkDelete = () => {
     if (selectedNotifications.size > 0) {
       deleteNotificationsMutation.mutate(Array.from(selectedNotifications));
+    }
+  };
+
+  // Handle notification card click - navigate and mark as read
+  const handleNotificationClick = (notification: CommunityNotification) => {
+    if (notification.actionUrl) {
+      // Mark as read if unread
+      if (!notification.isRead) {
+        apiRequest('PATCH', `/api/notifications/${notification.id}/read`)
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+          })
+          .catch(console.error);
+      }
+      
+      // Navigate to the action URL
+      setLocation(notification.actionUrl);
     }
   };
 
@@ -495,20 +513,28 @@ export function NotificationCenter() {
                       <div className="absolute left-2 top-6 w-2 h-2 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full shadow-lg shadow-amber-500/50" />
                     )}
                     
-                    <Checkbox
-                      checked={selectedNotifications.has(notification.id)}
-                      onCheckedChange={() => handleSelectNotification(notification.id)}
-                      data-testid={`checkbox-notification-${notification.id}`}
-                      className="mt-1.5"
-                    />
+                    <div onClick={(e) => e.stopPropagation()}>
+                      <Checkbox
+                        checked={selectedNotifications.has(notification.id)}
+                        onCheckedChange={() => handleSelectNotification(notification.id)}
+                        data-testid={`checkbox-notification-${notification.id}`}
+                        className="mt-1.5"
+                      />
+                    </div>
                     
-                    <div className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 flex items-center justify-center border border-white/10 ${iconColor}`}>
+                    <div 
+                      onClick={notification.actionUrl ? () => handleNotificationClick(notification) : undefined}
+                      className={`flex-shrink-0 w-12 h-12 rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 flex items-center justify-center border border-white/10 ${iconColor} ${notification.actionUrl ? 'cursor-pointer' : ''}`}
+                    >
                       <IconComponent className="w-6 h-6" />
                     </div>
                     
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-col gap-3">
-                        <div className="flex-1">
+                        <div 
+                          onClick={notification.actionUrl ? () => handleNotificationClick(notification) : undefined}
+                          className={`flex-1 ${notification.actionUrl ? 'cursor-pointer' : ''}`}
+                        >
                           <h3 className="font-semibold text-sm sm:text-base text-foreground mb-1.5 line-clamp-2">
                             {notification.title}
                           </h3>
@@ -532,18 +558,7 @@ export function NotificationCenter() {
                           </div>
                         </div>
                         
-                        <div className="flex gap-2 flex-wrap">
-                          {notification.actionUrl && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              asChild
-                              data-testid={`button-view-${notification.id}`}
-                              className="h-8 text-xs hover:bg-white/5 border-white/10"
-                            >
-                              <Link href={notification.actionUrl}>View Details</Link>
-                            </Button>
-                          )}
+                        <div className="flex gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
                           {!notification.isRead && (
                             <Button
                               variant="ghost"
