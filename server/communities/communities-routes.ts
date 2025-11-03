@@ -3320,12 +3320,16 @@ export function addCommunitiesRoutes(app: Express) {
             const shouldNotify = prefs ? (notif.type === 'comment_reply' ? prefs.commentReplies : prefs.postComments) : true;
 
             if (shouldNotify) {
+              // Use slug if available, otherwise fallback to ID (for communities without slugs)
+              const communityIdentifier = community.slug || community.id;
+              const actionUrl = `/community/${communityIdentifier}/post/${postId}`;
+              
               console.log('[Comment Notification] Creating notification:', {
                 recipientId: notif.recipientId,
                 communityId: community.id,
                 type: notif.type,
                 title: notif.title,
-                actionUrl: `/community/${community.slug}/post/${postId}`
+                actionUrl
               });
               
               const notification = await communitiesStorage.createNotification({
@@ -3336,7 +3340,7 @@ export function addCommunitiesRoutes(app: Express) {
                 body: notif.body,
                 postId,
                 commentId: comment.id,
-                actionUrl: `/community/${community.slug}/post/${postId}`,
+                actionUrl,
                 metadata: {
                   postId,
                   postTitle: post.title,
@@ -3543,6 +3547,10 @@ export function addCommunitiesRoutes(app: Express) {
             const shouldNotify = prefs ? prefs.commentLikes : true;
 
             if (shouldNotify) {
+              // Use slug if available, otherwise fallback to ID (for communities without slugs)
+              const communityIdentifier = community.slug || community.id;
+              const actionUrl = `/community/${communityIdentifier}/post/${comment.postId}`;
+              
               const notification = await communitiesStorage.createNotification({
                 recipientId: comment.authorId,
                 communityId: community.id,
@@ -3551,7 +3559,7 @@ export function addCommunitiesRoutes(app: Express) {
                 body: `${user.firstName} ${user.lastName} liked your comment`,
                 postId: comment.postId,
                 commentId: comment.id,
-                actionUrl: `/community/${community.slug}/post/${comment.postId}`,
+                actionUrl,
                 metadata: {
                   postId: comment.postId,
                   postTitle: post.title,
