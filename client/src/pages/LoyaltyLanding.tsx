@@ -23,9 +23,10 @@ import businessImage from '@assets/stock_images/south_asian_business_9d78d8db.jp
 
 export default function LoyaltyLanding() {
   // Check if user is authenticated
-  const { data: user } = useQuery<{ id: string; email: string } | null>({
-    queryKey: ['/api/user'],
+  const { data: authData } = useQuery<{ user?: { id: string; email: string } }>({
+    queryKey: ['/api/auth/me'],
   });
+  const user = authData?.user;
 
   const faqSchema = {
     "@context": "https://schema.org",
