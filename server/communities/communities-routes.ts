@@ -5287,11 +5287,18 @@ export function addCommunitiesRoutes(app: Express) {
       console.log('[PATCH] User from middleware:', user?.id);
       
       const { communityId, ...preferences } = req.body;
+      
+      // Sanitize communityId - convert 'null' string or null to undefined
+      const sanitizedCommunityId = (communityId === 'null' || communityId === null || communityId === undefined) 
+        ? undefined 
+        : communityId;
+
+      console.log('[PATCH] Sanitized community ID:', sanitizedCommunityId);
 
       const updatedPreferences = await communitiesStorage.upsertNotificationPreferences(
         user.id,
         preferences,
-        communityId
+        sanitizedCommunityId
       );
 
       console.log('[PATCH] Successfully updated preferences');
