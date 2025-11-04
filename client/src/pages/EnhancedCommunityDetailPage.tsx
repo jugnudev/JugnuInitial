@@ -3122,6 +3122,9 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
     );
   }
 
+  // Check if user has no organizer account at all
+  const needsBusinessAccount = !organizer && !isLoading && userId;
+
   return (
     <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
       <CardHeader>
@@ -3134,7 +3137,49 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {isPending ? (
+        {needsBusinessAccount ? (
+          <>
+            <Alert className="bg-blue-500/10 border-blue-500/50">
+              <AlertCircle className="h-4 w-4 text-blue-500" />
+              <AlertDescription className="text-blue-700 dark:text-blue-400">
+                You need an approved business account to enable ticketing. Apply for a business account first.
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-premium-text-primary text-sm">Step 1: Apply for Business Account</p>
+                  <p className="text-xs text-premium-text-muted">Submit your business information for approval</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-premium-text-muted flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-premium-text-muted text-sm">Step 2: Get Approved</p>
+                  <p className="text-xs text-premium-text-muted">Wait for admin approval (usually within 1-2 business days)</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-premium-text-muted flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-premium-text-muted text-sm">Step 3: Enable Ticketing</p>
+                  <p className="text-xs text-premium-text-muted">Connect your Stripe account and start selling tickets</p>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => setLocation('/business-signup')}
+              className="w-full bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-700"
+              data-testid="button-apply-business-account"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Apply for Business Account
+            </Button>
+          </>
+        ) : isPending ? (
           <>
             <Alert className="bg-blue-500/10 border-blue-500/50">
               <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />

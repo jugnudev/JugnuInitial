@@ -654,6 +654,14 @@ export const organizers = pgTable("organizers", {
   status: text("status").notNull().default("active"), // active | suspended | inactive
   approvedBy: varchar("approved_by").references(() => users.id),
   approvedAt: timestamp("approved_at", { withTimezone: true }).notNull().default(sql`now()`),
+  
+  // Stripe Connect ticketing fields
+  stripeAccountId: text("stripe_account_id").unique(),
+  stripeOnboardingComplete: boolean("stripe_onboarding_complete").notNull().default(false),
+  stripeChargesEnabled: boolean("stripe_charges_enabled").notNull().default(false),
+  stripePayoutsEnabled: boolean("stripe_payouts_enabled").notNull().default(false),
+  stripeDetailsSubmitted: boolean("stripe_details_submitted").notNull().default(false),
+  platformFeeBps: integer("platform_fee_bps").notNull().default(1500), // 15% = 1500 basis points
 });
 
 // User sessions for platform auth
