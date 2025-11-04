@@ -27,7 +27,8 @@ import {
   Ticket,
   Clock,
   MapPin,
-  Info
+  Info,
+  Loader2
 } from "lucide-react";
 import { Link } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -75,9 +76,6 @@ export function TicketsEventCreatePage() {
   // Check if ticketing is enabled
   const isEnabled = import.meta.env.VITE_ENABLE_TICKETING === 'true';
   
-  // For MVP, get organizer ID from localStorage
-  const organizerId = localStorage.getItem('ticketsOrganizerId');
-  
   const [activeTab, setActiveTab] = useState("details");
   const [form, setForm] = useState<EventCreateForm>({
     title: '',
@@ -115,16 +113,15 @@ export function TicketsEventCreatePage() {
     }
   ]);
 
-  // Get organizer data to check Stripe status
-  const { data: organizerData } = useQuery<{ ok: boolean; organizer: any }>({
+  // Get organizer data from approved business account (not localStorage)
+  const { data: organizerData, isLoading: isLoadingOrganizer } = useQuery<{ ok: boolean; organizer: any }>({
     queryKey: ['/api/tickets/organizers/me'],
-    enabled: isEnabled && !!organizerId,
-    meta: {
-      headers: {
-        'x-organizer-id': organizerId || ''
-      }
-    }
+    enabled: isEnabled,
+    retry: false,
   });
+  
+  const organizer = organizerData?.organizer;
+  const organizerId = organizer?.id;
 
   // Upload image mutation
   const uploadImageMutation = useMutation({
@@ -295,7 +292,18 @@ export function TicketsEventCreatePage() {
     setTicketTiers(prev => prev.filter((_, i) => i !== index));
   };
 
-  if (!isEnabled || !organizerId) {
+  // Show loading state while checking for organizer account
+  if (isLoadingOrganizer) {
+    return (
+      <div className="container mx-auto px-4 py-16 text-center">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  // Check if ticketing is enabled and user has approved business account
+  if (!isEnabled || !organizer) {
     return (
       <div className="container mx-auto px-4 py-16 text-center max-w-2xl mx-auto">
         <h1 className="text-2xl font-fraunces mb-4">Business Account Required</h1>

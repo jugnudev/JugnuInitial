@@ -153,8 +153,7 @@ Disallow: /account/*`;
     // Only include ticketing URLs when ticketing is enabled
     if (process.env.ENABLE_TICKETING === 'true') {
       sitemapUrls.push(
-        '<url><loc>' + baseUrl + '/tickets</loc><changefreq>daily</changefreq><priority>0.9</priority></url>',
-        '<url><loc>' + baseUrl + '/tickets/organizer/signup</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>'
+        '<url><loc>' + baseUrl + '/tickets</loc><changefreq>daily</changefreq><priority>0.9</priority></url>'
       );
     } else {
       console.log('[Ticketing] Disabled - sitemap.xml excluding /tickets* routes');

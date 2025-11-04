@@ -98,9 +98,7 @@ export function TicketsOrganizerDashboard() {
   // Check if ticketing is enabled
   const isEnabled = import.meta.env.VITE_ENABLE_TICKETING === 'true';
   
-  // For MVP, get organizer ID from localStorage
-  const organizerId = localStorage.getItem('ticketsOrganizerId');
-  
+  // Get organizer data from approved business account
   const { data, isLoading, error, refetch } = useQuery<{ 
     ok: boolean; 
     organizer: Organizer; 
@@ -108,13 +106,12 @@ export function TicketsOrganizerDashboard() {
     stats: DashboardStats;
   }>({
     queryKey: ['/api/tickets/organizers/me'],
-    enabled: isEnabled && !!organizerId,
-    meta: {
-      headers: {
-        'x-organizer-id': organizerId || ''
-      }
-    }
+    enabled: isEnabled,
+    retry: false,
   });
+
+  const organizer = data?.organizer;
+  const organizerId = organizer?.id;
 
   const duplicateEventMutation = useMutation({
     mutationFn: async (eventId: string) => {
@@ -188,7 +185,7 @@ export function TicketsOrganizerDashboard() {
     );
   }
 
-  if (!organizerId) {
+  if (!organizer && !isLoading) {
     return (
       <div className="container mx-auto px-4 py-16 text-center max-w-2xl mx-auto">
         <h1 className="text-4xl font-fraunces mb-4">Business Account Required</h1>
@@ -242,7 +239,6 @@ export function TicketsOrganizerDashboard() {
     );
   }
 
-  const organizer: Organizer | undefined = data?.organizer;
   const events: Event[] = data?.events || [];
   const stats: DashboardStats = data?.stats || {
     totalEvents: events.length,
