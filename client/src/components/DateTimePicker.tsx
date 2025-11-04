@@ -4,7 +4,7 @@ import { Calendar as CalendarIcon, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 interface DateTimePickerProps {
@@ -30,55 +30,42 @@ export function DateTimePicker({
 
   // Parse the current value
   const parseValue = () => {
-    if (!value) return { date: undefined, hour: '7', minute: '00', period: 'PM' };
+    if (!value) return { date: undefined, time: '19:00' };
     
     const dateObj = new Date(value);
-    if (isNaN(dateObj.getTime())) return { date: undefined, hour: '7', minute: '00', period: 'PM' };
+    if (isNaN(dateObj.getTime())) return { date: undefined, time: '19:00' };
     
-    let hours = dateObj.getHours();
-    const minutes = dateObj.getMinutes();
-    const period = hours >= 12 ? 'PM' : 'AM';
-    
-    // Convert to 12-hour format
-    if (hours === 0) hours = 12;
-    else if (hours > 12) hours -= 12;
+    const hours = String(dateObj.getHours()).padStart(2, '0');
+    const minutes = String(dateObj.getMinutes()).padStart(2, '0');
     
     return {
       date: dateObj,
-      hour: hours.toString(),
-      minute: minutes.toString().padStart(2, '0'),
-      period
+      time: `${hours}:${minutes}`
     };
   };
 
-  const { date, hour, minute, period } = parseValue();
+  const { date, time } = parseValue();
 
-  const updateDateTime = (updates: Partial<{ date: Date; hour: string; minute: string; period: string }>) => {
+  const updateDateTime = (updates: Partial<{ date: Date; time: string }>) => {
     const currentDate = date || new Date();
     const newDate = updates.date || currentDate;
-    const newHour = updates.hour || hour;
-    const newMinute = updates.minute || minute;
-    const newPeriod = updates.period || period;
+    const newTime = updates.time || time;
 
-    // Convert to 24-hour format
-    let hours24 = parseInt(newHour);
-    if (newPeriod === 'PM' && hours24 !== 12) hours24 += 12;
-    if (newPeriod === 'AM' && hours24 === 12) hours24 = 0;
+    // Parse time (HH:MM format)
+    const [hours, minutes] = newTime.split(':').map(Number);
 
     const dateTime = new Date(newDate);
-    dateTime.setHours(hours24, parseInt(newMinute), 0, 0);
+    dateTime.setHours(hours, minutes, 0, 0);
     
-    // Format as ISO 8601 datetime string WITH local timezone offset (not UTC)
-    // Example: 2025-11-05T16:00:00-08:00 (Pacific time)
+    // Format as ISO 8601 datetime string WITH local timezone offset
     const year = dateTime.getFullYear();
     const month = String(dateTime.getMonth() + 1).padStart(2, '0');
     const day = String(dateTime.getDate()).padStart(2, '0');
-    const hours = String(dateTime.getHours()).padStart(2, '0');
-    const minutes = String(dateTime.getMinutes()).padStart(2, '0');
+    const hrs = String(dateTime.getHours()).padStart(2, '0');
+    const mins = String(dateTime.getMinutes()).padStart(2, '0');
     const seconds = '00';
     
-    // Get timezone offset in minutes and convert to ±HH:MM format
-    // Note: getTimezoneOffset() returns OPPOSITE sign (negative for ahead of UTC)
+    // Get timezone offset
     const timezoneOffsetMinutes = dateTime.getTimezoneOffset();
     const absOffset = Math.abs(timezoneOffsetMinutes);
     const offsetHours = Math.floor(absOffset / 60);
@@ -86,33 +73,37 @@ export function DateTimePicker({
     const offsetSign = timezoneOffsetMinutes <= 0 ? '+' : '-';
     const offset = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`;
     
-    const isoString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offset}`;
+    const isoString = `${year}-${month}-${day}T${hrs}:${mins}:${seconds}${offset}`;
     onChange(isoString);
   };
 
-  const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
-  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
-
   return (
     <div className="space-y-2">
-      <Label>
-        {label} {required && <span className="text-red-400">*</span>}
+      <Label className="text-sm font-medium">
+        {label} {required && <span className="text-copper-500">*</span>}
       </Label>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {/* Date Picker */}
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="w-full justify-start text-left font-normal bg-card border-border text-card-foreground"
+              className="w-full justify-start text-left font-normal h-12 
+                       bg-charcoal-800/40 border-charcoal-700 hover:border-copper-500/50
+                       text-neutral-200 hover:bg-charcoal-800/60 transition-all"
               data-testid={testId ? `${testId}-date-button` : undefined}
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, 'PPP') : <span className="text-muted-foreground">Pick a date</span>}
+              <CalendarIcon className="mr-2 h-4 w-4 text-copper-500" />
+              {date ? format(date, 'MMM dd, yyyy') : <span className="text-neutral-500">Pick date</span>}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 bg-card border-border" align="start" role="dialog" aria-label="Date picker">
+          <PopoverContent 
+            className="w-auto p-0 glass-elevated border-charcoal-700" 
+            align="start" 
+            role="dialog" 
+            aria-label="Date picker"
+          >
             <Calendar
               mode="single"
               selected={date}
@@ -124,7 +115,6 @@ export function DateTimePicker({
               }}
               disabled={(date) => {
                 if (!minDate) return false;
-                // Compare dates only (ignore time) to allow same-day selections
                 const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
                 const minDateOnly = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
                 return dateOnly < minDateOnly;
@@ -134,65 +124,29 @@ export function DateTimePicker({
           </PopoverContent>
         </Popover>
 
-        {/* Time Picker */}
-        <div className="flex gap-2">
-          {/* Hour */}
-          <Select value={hour} onValueChange={(h) => updateDateTime({ hour: h })}>
-            <SelectTrigger 
-              className="w-20 bg-card border-border text-card-foreground"
-              data-testid={testId ? `${testId}-hour` : undefined}
-            >
-              <SelectValue placeholder="HH" />
-            </SelectTrigger>
-            <SelectContent>
-              {hours.map((h) => (
-                <SelectItem key={h} value={h}>
-                  {h}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <span className="flex items-center text-muted-foreground">:</span>
-
-          {/* Minute */}
-          <Select value={minute} onValueChange={(m) => updateDateTime({ minute: m })}>
-            <SelectTrigger 
-              className="w-20 bg-card border-border text-card-foreground"
-              data-testid={testId ? `${testId}-minute` : undefined}
-            >
-              <SelectValue placeholder="MM" />
-            </SelectTrigger>
-            <SelectContent>
-              {minutes.map((m) => (
-                <SelectItem key={m} value={m}>
-                  {m}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* AM/PM */}
-          <Select value={period} onValueChange={(p) => updateDateTime({ period: p })}>
-            <SelectTrigger 
-              className="w-20 bg-card border-border text-card-foreground"
-              data-testid={testId ? `${testId}-period` : undefined}
-            >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="AM">AM</SelectItem>
-              <SelectItem value="PM">PM</SelectItem>
-            </SelectContent>
-          </Select>
+        {/* Native Time Picker */}
+        <div className="relative">
+          <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-copper-500 pointer-events-none" />
+          <Input
+            type="time"
+            value={time}
+            onChange={(e) => updateDateTime({ time: e.target.value })}
+            className="h-12 pl-10 bg-charcoal-800/40 border-charcoal-700 
+                     hover:border-copper-500/50 focus:border-copper-500
+                     text-neutral-200 placeholder:text-neutral-500
+                     [&::-webkit-calendar-picker-indicator]:cursor-pointer
+                     [&::-webkit-calendar-picker-indicator]:opacity-60
+                     [&::-webkit-calendar-picker-indicator]:hover:opacity-100"
+            data-testid={testId ? `${testId}-time` : undefined}
+          />
         </div>
       </div>
 
-      {/* Preview of selected date/time */}
+      {/* Preview */}
       {date && (
-        <p className="text-xs text-muted-foreground">
-          <Clock className="inline w-3 h-3 mr-1" />
-          {format(date, 'EEEE, MMMM d, yyyy')} at {hour}:{minute} {period}
+        <p className="text-xs text-neutral-400 flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          {format(date, 'EEEE, MMMM d, yyyy')} at {time}
         </p>
       )}
     </div>
