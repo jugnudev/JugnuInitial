@@ -611,26 +611,34 @@ export default function CommunitiesIndexPage() {
           </div>
         </motion.div>
         
-        {/* Tabs */}
+        {/* Premium Mobile-First Navigation Tabs */}
         <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v as 'discover' | 'my')} className="space-y-8">
-          <TabsList className="grid w-full max-w-md grid-cols-2 bg-premium-surface border border-premium-border">
-            <TabsTrigger 
-              value="discover" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500/20 data-[state=active]:to-accent/20"
-              data-testid="discover-tab"
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Discover
-            </TabsTrigger>
-            <TabsTrigger 
-              value="my" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-500/20 data-[state=active]:to-accent/20"
-              data-testid="my-communities-tab"
-            >
-              <Crown className="h-4 w-4 mr-2" />
-              My Communities
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex justify-center">
+            <TabsList className="glass-elevated p-1.5 inline-flex gap-2 w-full max-w-md">
+              <TabsTrigger 
+                value="discover" 
+                className="flex-1 min-h-[48px] touch-target data-[state=active]:bg-copper-gradient data-[state=active]:text-white data-[state=active]:shadow-glow-copper data-[state=inactive]:text-neutral-300 data-[state=inactive]:hover:text-neutral-50 transition-all duration-300"
+                style={{
+                  borderRadius: 'var(--radius-lg)'
+                }}
+                data-testid="discover-tab"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                <span className="font-semibold">Discover</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="my" 
+                className="flex-1 min-h-[48px] touch-target data-[state=active]:bg-copper-gradient data-[state=active]:text-white data-[state=active]:shadow-glow-copper data-[state=inactive]:text-neutral-300 data-[state=inactive]:hover:text-neutral-50 transition-all duration-300"
+                style={{
+                  borderRadius: 'var(--radius-lg)'
+                }}
+                data-testid="my-communities-tab"
+              >
+                <Crown className="h-4 w-4 mr-2" />
+                <span className="font-semibold">My Communities</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
           
           <TabsContent value="discover" className="space-y-8">
             {/* Discover Communities */}
