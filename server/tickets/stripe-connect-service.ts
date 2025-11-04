@@ -96,7 +96,7 @@ export class StripeConnectService {
 
     return {
       accountId: account.id,
-      onboardingComplete: !account.requirements?.currently_due?.length && account.details_submitted,
+      onboardingComplete: account.charges_enabled,
       chargesEnabled: account.charges_enabled,
       payoutsEnabled: account.payouts_enabled,
       detailsSubmitted: account.details_submitted,
@@ -127,7 +127,7 @@ export class StripeConnectService {
       chargesEnabled: account.charges_enabled,
       payoutsEnabled: account.payouts_enabled,
       detailsSubmitted: account.details_submitted,
-      onboardingComplete: !account.requirements?.currently_due?.length && account.details_submitted,
+      onboardingComplete: account.charges_enabled,
     };
   }
 

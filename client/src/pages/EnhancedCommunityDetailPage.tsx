@@ -338,6 +338,16 @@ export default function EnhancedCommunityDetailPage() {
     retry: false,
   });
 
+  // Get organizer ticketing data
+  const { data: organizerData } = useQuery<{ ok: boolean; organizer: any | null; events?: any[] }>({
+    queryKey: ['/api/tickets/organizers/me'],
+    enabled: !!user?.id,
+    retry: false,
+  });
+
+  // Navigation hook for routing
+  const [, setLocation] = useLocation();
+
   // Handle Stripe Connect return with ticketing=success param
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -1355,7 +1365,7 @@ export default function EnhancedCommunityDetailPage() {
           // Owner/Moderator Console with Tabs
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <div className="w-full overflow-x-auto scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
-              <TabsList className="inline-flex md:grid w-full md:max-w-2xl md:grid-cols-7 bg-premium-surface border border-premium-border min-w-max md:min-w-0">
+              <TabsList className="inline-flex md:grid w-full md:max-w-2xl md:grid-cols-8 bg-premium-surface border border-premium-border min-w-max md:min-w-0">
                 <TabsTrigger 
                   value="announcements"
                   data-testid="announcements-tab"
@@ -1382,6 +1392,15 @@ export default function EnhancedCommunityDetailPage() {
                   <BarChart3 className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Polls</span>
                   <span className="sm:hidden">Polls</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="events"
+                  data-testid="events-tab"
+                  className="flex-shrink-0"
+                >
+                  <Calendar className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Events</span>
+                  <span className="sm:hidden">Events</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="members"
@@ -1865,6 +1884,108 @@ export default function EnhancedCommunityDetailPage() {
                   />
                 </TabsContent>
               </Tabs>
+            </TabsContent>
+            
+            {/* Events Tab */}
+            <TabsContent value="events" className="space-y-6">
+              <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+                <CardHeader>
+                  <CardTitle className="text-base md:text-lg flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    Ticketed Events
+                  </CardTitle>
+                  <CardDescription className="text-xs md:text-sm">
+                    Create and manage ticketed events for your community. Set up Stripe Connect in Settings to accept payments.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!organizerData?.organizer ? (
+                    <Alert className="bg-blue-500/10 border-blue-500/50">
+                      <Ticket className="h-4 w-4 text-blue-500" />
+                      <AlertDescription className="text-blue-700 dark:text-blue-400">
+                        Event ticketing is ready to use! Go to the Settings tab to set up payment processing with Stripe Connect. You can create draft events now and publish them once Stripe is connected.
+                      </AlertDescription>
+                    </Alert>
+                  ) : !organizerData.organizer.stripeOnboardingComplete ? (
+                    <Alert className="bg-yellow-500/10 border-yellow-500/50">
+                      <AlertCircle className="h-4 w-4 text-yellow-500" />
+                      <AlertDescription className="text-yellow-700 dark:text-yellow-400">
+                        You can create draft events, but you need to complete Stripe Connect setup in the Settings tab before you can accept payments.
+                      </AlertDescription>
+                    </Alert>
+                  ) : null}
+
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      onClick={() => setLocation('/tickets/organizer/dashboard')}
+                      variant="default"
+                      className="flex-1 bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-accent/90 text-black font-semibold shadow-lg transition-all"
+                      data-testid="button-manage-events"
+                    >
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Manage Events
+                    </Button>
+                    <Button
+                      onClick={() => setActiveTab('settings')}
+                      variant="outline"
+                      className="flex-1"
+                      data-testid="button-go-to-ticketing-settings"
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Payment Setup
+                    </Button>
+                  </div>
+
+                  {organizerData?.events && organizerData.events.length > 0 ? (
+                    <div className="mt-6">
+                      <h3 className="font-semibold mb-3 text-sm">Your Events</h3>
+                      <div className="space-y-2">
+                        {organizerData.events.slice(0, 3).map((event: any) => (
+                          <div
+                            key={event.id}
+                            className="p-3 rounded-lg bg-premium-surface-elevated border border-premium-border hover:border-copper-500/50 transition-colors cursor-pointer"
+                            onClick={() => setLocation('/tickets/organizer/dashboard')}
+                            data-testid={`event-card-${event.id}`}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{event.title}</p>
+                                <p className="text-xs text-premium-text-muted mt-1">
+                                  {new Date(event.startAt).toLocaleDateString('en-US', { 
+                                    month: 'short', 
+                                    day: 'numeric', 
+                                    year: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
+                              </div>
+                              <Badge variant={event.status === 'published' ? 'default' : 'secondary'} className="text-xs">
+                                {event.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                        {organizerData.events.length > 3 && (
+                          <Button
+                            onClick={() => setLocation('/tickets/organizer/dashboard')}
+                            variant="ghost"
+                            className="w-full text-xs"
+                            data-testid="button-view-all-events"
+                          >
+                            View all {organizerData.events.length} events →
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-premium-text-muted">
+                      <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">No events yet. Create your first ticketed event!</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
             
             {/* Settings Tab */}
