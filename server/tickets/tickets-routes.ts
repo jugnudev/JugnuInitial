@@ -731,6 +731,12 @@ export function addTicketsRoutes(app: Express) {
   // Get current user's organizer profile (or null if not set up yet)
   app.get('/api/tickets/organizers/me', requireTicketing, async (req: Request, res: Response) => {
     try {
+      console.log('[Ticketing] GET /api/tickets/organizers/me - Session:', {
+        hasSession: !!req.session,
+        userId: req.session?.userId,
+        sessionID: req.sessionID
+      });
+      
       // Check if user is logged in
       if (!req.session?.userId) {
         return res.status(401).json({ ok: false, error: 'Please log in' });

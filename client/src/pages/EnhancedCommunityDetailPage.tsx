@@ -2303,7 +2303,7 @@ export default function EnhancedCommunityDetailPage() {
               </Card>
 
               {/* Ticketing Settings Card */}
-              {import.meta.env.VITE_ENABLE_TICKETING === 'true' && (
+              {import.meta.env.VITE_ENABLE_TICKETING === 'true' && community?.slug && (
                 <TicketingSettingsCard communitySlug={community.slug} userId={user?.id} />
               )}
             </TabsContent>
