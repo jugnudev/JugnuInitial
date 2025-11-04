@@ -728,9 +728,22 @@ export function addTicketsRoutes(app: Express) {
   });
 
   // Get organizer info
-  app.get('/api/tickets/organizers/me', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
+  // Get current user's organizer profile (or null if not set up yet)
+  app.get('/api/tickets/organizers/me', requireTicketing, async (req: Request, res: Response) => {
     try {
-      const organizer = (req as any).organizer;
+      // Check if user is logged in
+      if (!req.session?.userId) {
+        return res.status(401).json({ ok: false, error: 'Please log in' });
+      }
+      
+      // Try to find organizer by userId
+      const organizer = await ticketsStorage.getOrganizerByUserId(req.session.userId);
+      
+      // If no organizer exists yet, return null (not an error - they haven't enabled ticketing yet)
+      if (!organizer) {
+        return res.json({ ok: true, organizer: null, events: [] });
+      }
+      
       const events = await ticketsStorage.getEventsByOrganizer(organizer.id);
       
       console.log('[DEBUG] Events before toCamelCase:', events.length > 0 ? JSON.stringify(events[0], null, 2).slice(0, 300) : 'No events');

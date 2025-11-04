@@ -2902,6 +2902,15 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
       return;
     }
 
+    if (!communitySlug || communitySlug === 'null' || communitySlug === 'undefined') {
+      toast({
+        title: "Invalid community",
+        description: "Cannot enable ticketing: community information is missing. Please refresh the page.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsEnabling(true);
 
     try {
@@ -3016,6 +3025,15 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
               </Button>
               <Button
               onClick={async () => {
+                if (!communitySlug || communitySlug === 'null' || communitySlug === 'undefined') {
+                  toast({
+                    title: "Invalid community",
+                    description: "Cannot continue setup: community information is missing. Please refresh the page.",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                
                 try {
                   const response = await fetch('/api/tickets/connect/login', {
                     method: 'POST',
