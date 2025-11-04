@@ -1094,6 +1094,85 @@ export class TicketsSupabaseDB {
     if (error) throw error;
     return data || [];
   }
+
+  // ============ ADDITIONAL METHODS FOR MY TICKETS ============
+  async getOrdersByBuyer(email: string): Promise<TicketsOrder[]> {
+    const { data, error } = await this.client
+      .from('tickets_orders')
+      .select('*')
+      .eq('buyer_email', email)
+      .eq('status', 'paid')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getOrdersByUserId(userId: string): Promise<TicketsOrder[]> {
+    const { data, error } = await this.client
+      .from('tickets_orders')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'paid')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  }
+  
+  async getUserById(userId: string): Promise<any> {
+    const { data, error } = await this.client
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+  
+  async getTicketById(ticketId: string): Promise<TicketsTicket | null> {
+    const { data, error } = await this.client
+      .from('tickets_tickets')
+      .select('*')
+      .eq('id', ticketId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+  
+  async getTicketsByOrderId(orderId: string): Promise<TicketsTicket[]> {
+    const { data: orderItems, error: itemsError } = await this.client
+      .from('tickets_order_items')
+      .select('id')
+      .eq('order_id', orderId);
+    
+    if (itemsError) throw itemsError;
+    
+    const orderItemIds = orderItems?.map(item => item.id) || [];
+    
+    if (orderItemIds.length === 0) return [];
+    
+    const { data, error } = await this.client
+      .from('tickets_tickets')
+      .select('*')
+      .in('order_item_id', orderItemIds);
+    
+    if (error) throw error;
+    return data || [];
+  }
+  
+  async getOrderByChargeId(chargeId: string): Promise<TicketsOrder | null> {
+    const { data, error } = await this.client
+      .from('tickets_orders')
+      .select('*')
+      .eq('stripe_charge_id', chargeId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
 }
 
 export const ticketsDB = new TicketsSupabaseDB();

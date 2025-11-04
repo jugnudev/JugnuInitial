@@ -63,7 +63,7 @@ export interface TicketEmailData {
   recipientEmail: string;
   buyerName: string;
   eventTitle: string;
-  eventVenue: string;
+  eventVenue?: string;
   eventDate: string;
   eventTime: string;
   orderNumber: string;
@@ -71,6 +71,7 @@ export interface TicketEmailData {
     id: string;
     tierName: string;
     qrToken: string;
+    serial: string;
     seat?: string;
   }>;
   totalAmount: string;

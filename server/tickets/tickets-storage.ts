@@ -158,6 +158,26 @@ export class TicketsStorage {
     return ticketsDB.getOrdersByBuyer(email);
   }
 
+  async getOrdersByUserId(userId: string): Promise<TicketsOrder[]> {
+    return ticketsDB.getOrdersByUserId(userId);
+  }
+  
+  async getUserById(userId: string): Promise<any> {
+    return ticketsDB.getUserById(userId);
+  }
+  
+  async getTicketById(ticketId: string): Promise<TicketsTicket | null> {
+    return ticketsDB.getTicketById(ticketId);
+  }
+  
+  async getTicketsByOrderId(orderId: string): Promise<TicketsTicket[]> {
+    return ticketsDB.getTicketsByOrderId(orderId);
+  }
+  
+  async getOrderByChargeId(chargeId: string): Promise<TicketsOrder | null> {
+    return ticketsDB.getOrderByChargeId(chargeId);
+  }
+
   async getEventMetrics(eventId: string): Promise<{
     totalOrders: number;
     totalRevenue: number;
