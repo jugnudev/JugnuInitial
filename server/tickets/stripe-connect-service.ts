@@ -25,6 +25,7 @@ export class StripeConnectService {
     email: string;
     businessName?: string;
     country?: string;
+    businessType?: 'individual' | 'company';
   }): Promise<string> {
     if (!stripe) {
       throw new Error('Stripe not configured');
@@ -38,7 +39,7 @@ export class StripeConnectService {
         card_payments: { requested: true },
         transfers: { requested: true },
       },
-      business_type: 'company', // Can be 'individual' or 'company'
+      business_type: params.businessType || 'individual', // Default to 'individual' for easier onboarding (SIN + bank info only)
       ...(params.businessName && {
         business_profile: {
           name: params.businessName,

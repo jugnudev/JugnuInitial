@@ -78,10 +78,13 @@ export function addConnectRoutes(app: Express) {
       
       if (!accountId) {
         // Create new Connect account
+        // Default to 'individual' for simpler onboarding (SIN + bank info only, no business registration needed)
+        // Can be overridden by passing businessType in request body
         accountId = await StripeConnectService.createConnectAccount({
           email: organizer.email,
           businessName: organizer.businessName ?? undefined,
           country: 'CA', // Canada
+          businessType: req.body.businessType || 'individual',
         });
 
         // Save account ID to organizer record
@@ -104,6 +107,86 @@ export function addConnectRoutes(app: Express) {
     } catch (error: any) {
       console.error('Error creating Connect onboarding:', error);
       res.status(500).json({ ok: false, error: error.message || 'Failed to create onboarding' });
+    }
+  });
+
+  // Get Stripe Connect login link (for organizers to access their Stripe Dashboard)
+  // If no account exists yet, creates one and returns onboarding URL
+  app.post('/api/tickets/connect/login', async (req: Request, res: Response) => {
+    try {
+      const userId = req.session?.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ ok: false, error: 'Not authenticated' });
+      }
+
+      let organizer = await ticketsStorage.getOrganizerByUserId(userId);
+      
+      if (!organizer) {
+        // Fetch user data to create organizer
+        const user = await communitiesStorage.getUserById(userId);
+        
+        if (!user || !user.email) {
+          return res.status(404).json({ ok: false, error: 'User not found or missing email' });
+        }
+        
+        // Check if organizer exists by email
+        organizer = await ticketsStorage.getOrganizerByEmail(user.email);
+        
+        if (organizer) {
+          // Link to userId if not already
+          if (!organizer.userId) {
+            organizer = await ticketsStorage.updateOrganizer(organizer.id, { userId });
+          }
+        } else {
+          // Create new organizer
+          organizer = await ticketsStorage.createOrganizer({
+            userId,
+            email: user.email,
+            businessName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'My Business',
+            businessEmail: user.email,
+            status: 'pending',
+          });
+        }
+      }
+
+      // If no Stripe account yet, create one and return onboarding link
+      if (!organizer.stripeAccountId) {
+        const accountId = await StripeConnectService.createConnectAccount({
+          email: organizer.email,
+          businessName: organizer.businessName ?? undefined,
+          country: 'CA',
+          businessType: req.body.businessType || 'individual',
+        });
+
+        await ticketsStorage.updateOrganizerStripeAccount(organizer.id, accountId);
+        
+        // Return onboarding link for new account
+        const onboardingUrl = await StripeConnectService.createAccountLink({
+          accountId,
+          refreshUrl: req.body.refreshUrl || `${req.protocol}://${req.get('host')}/communities`,
+          returnUrl: req.body.returnUrl || `${req.protocol}://${req.get('host')}/communities`,
+        });
+
+        return res.json({
+          ok: true,
+          url: onboardingUrl,
+          isOnboarding: true,
+        });
+      }
+
+      // Account exists, create login link to Stripe Dashboard
+      const loginUrl = await StripeConnectService.createLoginLink(organizer.stripeAccountId);
+
+      res.json({
+        ok: true,
+        url: loginUrl,
+        isOnboarding: false,
+      });
+
+    } catch (error: any) {
+      console.error('Error creating Stripe login/onboarding link:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to create link' });
     }
   });
 

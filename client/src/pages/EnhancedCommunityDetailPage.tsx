@@ -338,6 +338,26 @@ export default function EnhancedCommunityDetailPage() {
     retry: false,
   });
 
+  // Handle Stripe Connect return with ticketing=success param
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const ticketingSuccess = urlParams.get('ticketing');
+    
+    if (ticketingSuccess === 'success' && communitySlug) {
+      // Force refetch community data after Stripe return to get updated organizer status
+      refetch();
+      
+      toast({
+        title: "Ticketing Connected!",
+        description: "Your Stripe Connect account is being set up. You can now create events and sell tickets.",
+      });
+      
+      // Clean up URL without reloading page
+      const newUrl = `${window.location.pathname}?tab=settings`;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [communitySlug, refetch, toast]);
+
   const community = communityData?.community;
   const membership = communityData?.membership;
   const currentMember = membership; // Alias for consistency with component usage
@@ -2859,6 +2879,7 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isEnabling, setIsEnabling] = useState(false);
+  const [businessType, setBusinessType] = useState<'individual' | 'company'>('individual');
 
   const { data: organizerData, isLoading, refetch } = useQuery<{ ok: boolean; organizer: any }>({
     queryKey: ['/api/tickets/organizers/me'],
@@ -2867,7 +2888,9 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
   });
 
   const organizer = organizerData?.organizer;
+  const hasStripeAccount = !!organizer?.stripeAccountId;
   const isConnected = organizer?.stripeOnboardingComplete && organizer?.stripeChargesEnabled;
+  const isPending = hasStripeAccount && !isConnected;
 
   const handleEnableTicketing = async () => {
     if (!userId) {
@@ -2890,6 +2913,7 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
         body: JSON.stringify({
           returnUrl: `${window.location.origin}/communities/${communitySlug}?tab=settings&ticketing=success`,
           refreshUrl: `${window.location.origin}/communities/${communitySlug}?tab=settings`,
+          businessType, // Pass selected business type
         }),
       });
 
@@ -2948,7 +2972,67 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {isConnected ? (
+        {isPending ? (
+          <>
+            <Alert className="bg-blue-500/10 border-blue-500/50">
+              <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
+              <AlertDescription className="text-blue-700 dark:text-blue-400">
+                Stripe Connect setup in progress. Complete your onboarding to start accepting payments.
+              </AlertDescription>
+            </Alert>
+
+            <div className="p-3 rounded-lg bg-premium-surface-elevated border border-premium-border">
+              <p className="text-sm font-medium text-premium-text-primary mb-2">Next Steps:</p>
+              <ul className="text-xs text-premium-text-muted space-y-1 list-disc list-inside">
+                <li>Stripe will verify your information (usually takes a few minutes)</li>
+                <li>You'll receive an email when your account is ready</li>
+                <li>Once approved, you can create events and sell tickets</li>
+              </ul>
+            </div>
+
+            <Button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/tickets/connect/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      businessType,
+                      returnUrl: `${window.location.origin}/communities/${communitySlug}?tab=settings&ticketing=success`,
+                      refreshUrl: `${window.location.origin}/communities/${communitySlug}?tab=settings`,
+                    }),
+                  });
+                  
+                  const result = await response.json();
+                  
+                  if (result.ok) {
+                    // Either opens onboarding or dashboard in new tab
+                    window.location.href = result.url;
+                  } else {
+                    toast({
+                      title: "Failed to open Stripe setup",
+                      description: result.error || "Please try again",
+                      variant: "destructive"
+                    });
+                  }
+                } catch (error) {
+                  console.error('Failed to open Stripe:', error);
+                  toast({
+                    title: "Error",
+                    description: "Failed to continue setup. Please try again.",
+                    variant: "destructive"
+                  });
+                }
+              }}
+              variant="outline"
+              className="w-full"
+              data-testid="button-continue-stripe-setup"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Continue Stripe Setup
+            </Button>
+          </>
+        ) : isConnected ? (
           <>
             <Alert className="bg-green-500/10 border-green-500/50">
               <CheckCircle className="h-4 w-4 text-green-500" />
@@ -3020,6 +3104,43 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
                   <p className="text-xs text-premium-text-muted">Manage pricing, refunds, and analytics</p>
                 </div>
               </div>
+            </div>
+
+            <div className="space-y-3 p-3 rounded-lg bg-premium-surface-elevated border border-premium-border">
+              <p className="text-sm font-medium text-premium-text-primary">Account Type</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setBusinessType('individual')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    businessType === 'individual'
+                      ? 'border-copper-500 bg-copper-500/10'
+                      : 'border-premium-border bg-premium-surface hover:border-premium-border-hover'
+                  }`}
+                  data-testid="select-individual-account"
+                >
+                  <p className="font-semibold text-sm text-premium-text-primary">Individual</p>
+                  <p className="text-xs text-premium-text-muted mt-1">Sole proprietor, freelancer</p>
+                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">✓ SIN + bank info only</p>
+                </button>
+                <button
+                  onClick={() => setBusinessType('company')}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    businessType === 'company'
+                      ? 'border-copper-500 bg-copper-500/10'
+                      : 'border-premium-border bg-premium-surface hover:border-premium-border-hover'
+                  }`}
+                  data-testid="select-company-account"
+                >
+                  <p className="font-semibold text-sm text-premium-text-primary">Company</p>
+                  <p className="text-xs text-premium-text-muted mt-1">Incorporated business</p>
+                  <p className="text-xs text-premium-text-muted mt-1">Business registration needed</p>
+                </button>
+              </div>
+              <p className="text-xs text-premium-text-muted">
+                {businessType === 'individual' 
+                  ? "Perfect for unincorporated event organizers. Stripe will ask for your SIN and bank details."
+                  : "For registered businesses. Stripe will ask for business registration documents."}
+              </p>
             </div>
 
             <Button
