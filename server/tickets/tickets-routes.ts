@@ -39,36 +39,25 @@ const requireTicketing = (req: Request, res: Response, next: any) => {
   next();
 };
 
-// Middleware to check organizer auth - uses session
+// Middleware to check organizer auth - uses approved business account from session
 const requireOrganizer = async (req: Request & { session?: any }, res: Response, next: any) => {
-  let organizer = null;
-  
-  // PRIORITY 1: Check if user is logged in with main platform session (userId)
-  if (req.session?.userId) {
-    // Look up organizer by userId from main organizers table (approved business accounts)
-    organizer = await communitiesStorage.getOrganizerByUserId(req.session.userId);
+  // Check if user is logged in with main platform session (userId)
+  if (!req.session?.userId) {
+    return res.status(401).json({ ok: false, error: 'Please log in' });
   }
   
-  // PRIORITY 2: Fall back to organizerId in session (legacy/direct ticketing signup)
-  if (!organizer && req.session?.organizerId) {
-    organizer = await ticketsStorage.getOrganizerById(req.session.organizerId);
-  }
-  
-  // PRIORITY 3: Development fallback - check x-organizer-id header
-  if (!organizer && process.env.NODE_ENV === 'development') {
-    const headerOrganizerId = req.headers['x-organizer-id'] as string;
-    if (headerOrganizerId) {
-      console.log('[DEBUG] Using header-based auth in development:', headerOrganizerId);
-      organizer = await ticketsStorage.getOrganizerById(headerOrganizerId);
-    }
-  }
+  // Look up organizer by userId from main organizers table (approved business accounts)
+  const organizer = await communitiesStorage.getOrganizerByUserId(req.session.userId);
   
   if (!organizer) {
-    return res.status(401).json({ ok: false, error: 'Please log in as an organizer' });
+    return res.status(403).json({ 
+      ok: false, 
+      error: 'You must have an approved business account to access this feature. Apply at /business-signup' 
+    });
   }
   
   if (organizer.status === 'suspended') {
-    return res.status(401).json({ ok: false, error: 'Organizer account suspended' });
+    return res.status(403).json({ ok: false, error: 'Business account suspended. Please contact support.' });
   }
   // Allow 'pending' and 'active' status so organizers can complete Stripe Connect onboarding
   
