@@ -98,6 +98,14 @@ export function TicketsOrganizerDashboard() {
   // Check if ticketing is enabled
   const isEnabled = import.meta.env.VITE_ENABLE_TICKETING === 'true';
   
+  // Wait for user session to be ready before fetching organizer data
+  const { data: userData, isLoading: isLoadingUser } = useQuery<{ ok: boolean; user: any }>({
+    queryKey: ['/api/auth/me'],
+    retry: false,
+  });
+  
+  const isUserReady = !isLoadingUser && !!userData?.user;
+  
   // Get organizer data from approved business account
   const { data, isLoading, error, refetch } = useQuery<{ 
     ok: boolean; 
@@ -106,7 +114,7 @@ export function TicketsOrganizerDashboard() {
     stats: DashboardStats;
   }>({
     queryKey: ['/api/tickets/organizers/me'],
-    enabled: isEnabled,
+    enabled: isEnabled && isUserReady,
     retry: false,
   });
 
@@ -185,7 +193,7 @@ export function TicketsOrganizerDashboard() {
     );
   }
 
-  if (!organizer && !isLoading) {
+  if (!organizer && !isLoading && !isLoadingUser) {
     return (
       <div className="container mx-auto px-4 py-16 text-center max-w-2xl mx-auto">
         <h1 className="text-4xl font-fraunces mb-4">Business Account Required</h1>

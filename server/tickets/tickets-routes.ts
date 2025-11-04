@@ -1329,12 +1329,17 @@ export function addTicketsRoutes(app: Express) {
           if (tier.id && existingTierIds.includes(tier.id)) {
             // Update existing tier
             const { id, tempId, soldCount, ...tierData } = tier;
+            // Convert datetime fields
+            if (tierData.salesStartAt) tierData.salesStartAt = new Date(tierData.salesStartAt);
+            if (tierData.salesEndAt) tierData.salesEndAt = new Date(tierData.salesEndAt);
             await ticketsStorage.updateTier(id, tierData);
           } else if (!tier.id || tier.tempId) {
             // Create new tier
             const { id, tempId, soldCount, ...tierData } = tier;
             const newTierData: InsertTicketsTier = {
               ...tierData,
+              salesStartAt: tierData.salesStartAt ? new Date(tierData.salesStartAt) : null,
+              salesEndAt: tierData.salesEndAt ? new Date(tierData.salesEndAt) : null,
               eventId: req.params.id
             };
             await ticketsStorage.createTier(newTierData);
@@ -1470,6 +1475,8 @@ export function addTicketsRoutes(app: Express) {
       const validated = createTierSchema.parse(req.body);
       const tierData: InsertTicketsTier = {
         ...validated,
+        salesStartAt: validated.salesStartAt ? new Date(validated.salesStartAt) : null,
+        salesEndAt: validated.salesEndAt ? new Date(validated.salesEndAt) : null,
         eventId: event.id
       };
       

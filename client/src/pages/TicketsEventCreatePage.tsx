@@ -110,9 +110,17 @@ export function TicketsEventCreatePage() {
     }
   ]);
 
+  // Wait for user session to be ready before fetching organizer data
+  const { data: userData, isLoading: isLoadingUser } = useQuery<{ ok: boolean; user: any }>({
+    queryKey: ['/api/auth/me'],
+    retry: false,
+  });
+  
+  const isUserReady = !isLoadingUser && !!userData?.user;
+
   const { data: organizerData, isLoading: isLoadingOrganizer } = useQuery<{ ok: boolean; organizer: any }>({
     queryKey: ['/api/tickets/organizers/me'],
-    enabled: isEnabled,
+    enabled: isEnabled && isUserReady,
     retry: false,
   });
   
@@ -285,7 +293,7 @@ export function TicketsEventCreatePage() {
     setTicketTiers(prev => prev.filter((_, i) => i !== index));
   };
 
-  if (isLoadingOrganizer) {
+  if (isLoadingUser || isLoadingOrganizer) {
     return (
       <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
         <div className="text-center">

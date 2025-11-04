@@ -130,7 +130,24 @@ export function TicketsEventEditPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isEnabled = import.meta.env.VITE_ENABLE_TICKETING === 'true';
-  const organizerId = localStorage.getItem('ticketsOrganizerId');
+  
+  // Wait for user session to be ready before fetching organizer data
+  const { data: userData, isLoading: isLoadingUser } = useQuery<{ ok: boolean; user: any }>({
+    queryKey: ['/api/auth/me'],
+    retry: false,
+  });
+  
+  const isUserReady = !isLoadingUser && !!userData?.user;
+
+  // Get organizer data from approved business account
+  const { data: organizerData, isLoading: isLoadingOrganizer } = useQuery<{ ok: boolean; organizer: any }>({
+    queryKey: ['/api/tickets/organizers/me'],
+    enabled: isEnabled && isUserReady,
+    retry: false,
+  });
+  
+  const organizer = organizerData?.organizer;
+  const organizerId = organizer?.id;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -286,6 +303,25 @@ export function TicketsEventEditPage() {
 
     updateEventMutation.mutate({ ...values, tiers: ticketTiers });
   };
+
+  if (isLoadingUser || isLoadingOrganizer) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Skeleton className="h-10 w-64 mb-8" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-6">
+            {[1, 2, 3].map(i => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-6 w-48" />
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!isEnabled || !organizerId) {
     return (
