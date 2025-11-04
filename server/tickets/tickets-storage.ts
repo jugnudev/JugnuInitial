@@ -33,6 +33,10 @@ export class TicketsStorage {
     return ticketsDB.getOrganizerByUserId(userId);
   }
 
+  async getOrganizerByEmail(email: string): Promise<TicketsOrganizer | null> {
+    return ticketsDB.getOrganizerByEmail(email);
+  }
+
   async getOrganizerByStripeAccountId(stripeAccountId: string): Promise<TicketsOrganizer | null> {
     return ticketsDB.getOrganizerByStripeAccountId(stripeAccountId);
   }

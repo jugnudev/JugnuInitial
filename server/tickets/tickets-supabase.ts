@@ -134,7 +134,7 @@ export class TicketsSupabaseDB {
     const { data, error } = await this.client
       .from('tickets_organizers')
       .select('*')
-      .eq('business_email', email)  // Fixed: use business_email not email
+      .eq('email', email)  // Use email column (has unique constraint)
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;

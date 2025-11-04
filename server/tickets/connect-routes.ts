@@ -1,6 +1,7 @@
 import { Express, Request, Response } from 'express';
 import { StripeConnectService } from './stripe-connect-service.js';
 import { ticketsStorage } from './tickets-storage.js';
+import { communitiesStorage } from '../communities/communities-supabase.js';
 import { z } from 'zod';
 
 /**
@@ -35,14 +36,37 @@ export function addConnectRoutes(app: Express) {
       }
       
       if (!organizer && userId) {
-        // Create new organizer record (only if we have a userId)
-        organizer = await ticketsStorage.createOrganizer({
-          userId,
-          email: req.body.email || `user-${userId}@jugnu.ca`,
-          businessName: req.body.businessName || 'My Business',
-          businessEmail: req.body.businessEmail || req.body.email,
-          status: 'pending',
-        });
+        // Fetch user data to get their actual email
+        const user = await communitiesStorage.getUserById(userId);
+        
+        if (!user) {
+          return res.status(404).json({ ok: false, error: 'User not found' });
+        }
+        
+        if (!user.email) {
+          return res.status(400).json({ ok: false, error: 'User email is required to enable ticketing' });
+        }
+        
+        // Check if organizer already exists by email (from previous incomplete onboarding)
+        organizer = await ticketsStorage.getOrganizerByEmail(user.email);
+        
+        if (organizer) {
+          // Link existing organizer to this userId if not already linked
+          if (!organizer.userId) {
+            console.log(`[Ticketing] Linking existing organizer ${organizer.id} to user ${userId}`);
+            organizer = await ticketsStorage.updateOrganizer(organizer.id, { userId });
+          }
+        } else {
+          // Create new organizer record
+          console.log(`[Ticketing] Creating new organizer for user ${userId} with email ${user.email}`);
+          organizer = await ticketsStorage.createOrganizer({
+            userId,
+            email: user.email,
+            businessName: req.body.businessName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'My Business',
+            businessEmail: req.body.businessEmail || user.email,
+            status: 'pending',
+          });
+        }
       }
       
       if (!organizer) {
