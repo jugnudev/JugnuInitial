@@ -499,6 +499,106 @@ export function addTicketsRoutes(app: Express) {
     }
   });
 
+  // ============ ORDER RETRIEVAL ============
+  
+  // Get order details by ID or checkout session ID
+  app.get('/api/tickets/orders/:identifier', requireTicketing, async (req: Request, res: Response) => {
+    try {
+      const { identifier } = req.params;
+      console.log('[Orders] Getting order by identifier:', identifier);
+      
+      let order;
+      
+      // Check if it's a UUID (order ID) or checkout session ID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      
+      if (uuidRegex.test(identifier)) {
+        // It's a UUID - fetch by order ID
+        order = await ticketsStorage.getOrderById(identifier);
+      } else if (identifier.startsWith('cs_')) {
+        // It's a Stripe checkout session ID
+        order = await ticketsStorage.getOrderByCheckoutSession(identifier);
+      } else {
+        // Try as order ID anyway
+        order = await ticketsStorage.getOrderById(identifier);
+      }
+      
+      if (!order) {
+        console.log('[Orders] Order not found for identifier:', identifier);
+        return res.status(404).json({ ok: false, error: 'Order not found' });
+      }
+      
+      console.log('[Orders] Found order:', order.id, 'status:', order.status);
+      
+      // Only return completed orders
+      if (order.status !== 'paid') {
+        console.log('[Orders] Order not yet paid, status:', order.status);
+        return res.status(404).json({ ok: false, error: 'Order not completed' });
+      }
+      
+      // Get event details
+      const event = await ticketsStorage.getEventById(order.eventId);
+      if (!event) {
+        console.log('[Orders] Event not found for order:', order.id);
+        return res.status(404).json({ ok: false, error: 'Event not found' });
+      }
+      
+      // Get organizer details
+      let organizer = null;
+      if (event.organizerId) {
+        organizer = await ticketsStorage.getOrganizerById(event.organizerId);
+      }
+      
+      // Get order items with ticket details
+      const orderItems = await ticketsStorage.getOrderItems(order.id);
+      const tickets = [];
+      
+      for (const item of orderItems) {
+        const tier = await ticketsStorage.getTierById(item.tierId);
+        const itemTickets = await ticketsStorage.getTicketsByOrderItem(item.id);
+        
+        for (const ticket of itemTickets) {
+          tickets.push({
+            id: ticket.id,
+            tierId: ticket.tierId,
+            tierName: tier?.name || 'Unknown Tier',
+            serial: ticket.serial,
+            qrToken: ticket.qrToken,
+            status: ticket.status
+          });
+        }
+      }
+      
+      // Convert to camelCase for frontend
+      const camelCaseOrder = toCamelCase({
+        ...order,
+        tickets,
+        event: {
+          id: event.id,
+          title: event.title,
+          startAt: event.startAt,
+          venue: event.venue,
+          address: event.address,
+          city: event.city,
+          province: event.province,
+          coverUrl: event.coverUrl
+        },
+        organizer: organizer ? {
+          businessName: organizer.businessName
+        } : null
+      });
+      
+      res.json({ 
+        ok: true, 
+        order: camelCaseOrder
+      });
+      
+    } catch (error) {
+      console.error('[Orders] Error fetching order:', error);
+      res.status(500).json({ ok: false, error: 'Failed to fetch order' });
+    }
+  });
+
   // ============ WEBHOOK ============
   
   // Stripe webhook handler - MUST use raw body for signature verification
@@ -1329,19 +1429,11 @@ async function handleCheckoutCompleted(session: any) {
         feesCents: 0  // TODO: Calculate per-item fees
       });
       
-      // Create individual tickets
-      for (let i = 0; i < item.quantity; i++) {
-        await ticketsStorage.createTicket({
-          orderItemId: orderItem.id,
-          tierId: item.tierId,
-          serial: '', // Will be generated in createTicket
-          qrToken: '', // Will be generated in createTicket
-          status: 'valid'
-        });
-      }
+      // Tickets will be created by createTicketsForPaidOrder function
     }
     
-    // TODO: Send email with tickets
+    // Create tickets and send confirmation email
+    await createTicketsForPaidOrder(metadata.orderId);
     
     // Log audit (financial data will be logged by charge.succeeded)
     await ticketsStorage.createAudit({
@@ -1698,21 +1790,79 @@ async function createTicketsForPaidOrder(orderId: string): Promise<void> {
   // Get order items
   const orderItems = await ticketsStorage.getOrderItems(orderId);
   
+  // Get order details for email
+  const order = await ticketsStorage.getOrderById(orderId);
+  if (!order) {
+    console.error(`[TicketCreation] Order not found: ${orderId}`);
+    return;
+  }
+  
+  const event = await ticketsStorage.getEventById(order.eventId);
+  if (!event) {
+    console.error(`[TicketCreation] Event not found for order: ${orderId}`);
+    return;
+  }
+  
+  const createdTickets = [];
+  
   for (const orderItem of orderItems) {
+    // Get tier details for email
+    const tier = await ticketsStorage.getTierById(orderItem.tierId);
+    
     // Create individual tickets for each quantity
     for (let i = 0; i < orderItem.quantity; i++) {
-      const serial = `${orderItem.tierId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const qrToken = `qr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const serial = `TKT-${nanoid(10).toUpperCase()}`;
+      const qrToken = nanoid(20);
       
-      await ticketsStorage.createTicket({
+      const ticket = await ticketsStorage.createTicket({
         orderItemId: orderItem.id,
         tierId: orderItem.tierId,
         serial,
         qrToken,
         status: 'valid'
       });
+      
+      createdTickets.push({
+        id: ticket.id,
+        tierName: tier?.name || 'General Admission',
+        qrToken: ticket.qrToken,
+        serial: ticket.serial
+      });
     }
   }
   
-  console.log(`[TicketCreation] Created ${orderItems.reduce((sum, item) => sum + item.quantity, 0)} tickets for order: ${orderId}`);
+  console.log(`[TicketCreation] Created ${createdTickets.length} tickets for order: ${orderId}`);
+  
+  // Send ticket email confirmation
+  try {
+    const { sendTicketEmail } = await import('../services/emailService');
+    
+    const emailData = {
+      recipientEmail: order.buyerEmail,
+      buyerName: order.buyerName || 'Guest',
+      eventTitle: event.title,
+      eventVenue: event.venue,
+      eventDate: new Date(event.startAt).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }),
+      eventTime: new Date(event.startAt).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      }),
+      orderNumber: order.id.slice(0, 8).toUpperCase(),
+      tickets: createdTickets,
+      totalAmount: `$${(order.totalCents / 100).toFixed(2)} CAD`,
+      refundPolicy: event.refundPolicy || 'Refunds are available up to 24 hours before the event.'
+    };
+    
+    await sendTicketEmail(emailData);
+    console.log(`[TicketCreation] Sent ticket email to ${order.buyerEmail}`);
+  } catch (emailError) {
+    console.error('[TicketCreation] Failed to send ticket email:', emailError);
+    // Don't throw - tickets are created, email failure shouldn't break the flow
+  }
 }

@@ -315,15 +315,21 @@ export function TicketsEventDetailPage() {
     setBuyerPhone("");
     setDiscountCode("");
     setShowEmbeddedCheckout(false);
+    
+    // Redirect to order success page
+    if (currentOrderId) {
+      window.location.href = `/tickets/order/success?order_id=${currentOrderId}&success=true`;
+    } else {
+      // Fallback: Show success message if no order ID
+      toast({
+        title: "Payment Successful!",
+        description: "Your tickets have been purchased successfully. Check your email for confirmation.",
+        variant: "default"
+      });
+    }
+    
     setPaymentClientSecret(null);
     setCurrentOrderId(null);
-    
-    // Show success message
-    toast({
-      title: "Payment Successful!",
-      description: "Your tickets have been purchased successfully. Check your email for confirmation.",
-      variant: "default"
-    });
   };
 
   // Handle embedded checkout error

@@ -43,6 +43,7 @@ import { TicketsOrganizerConnect } from "@/pages/TicketsOrganizerConnect";
 import { TicketsCheckinPage } from "@/pages/TicketsCheckinPage";
 import { TicketsOrganizerPayouts } from "@/pages/TicketsOrganizerPayouts";
 import { TicketsOrganizerSettings } from "@/pages/TicketsOrganizerSettings";
+import { TicketsOrderSuccessPage } from "@/pages/TicketsOrderSuccessPage";
 import { CommunitiesSigninPage } from "@/pages/CommunitiesSigninPage";
 import { CommunitiesSignupPage } from "@/pages/CommunitiesSignupPage";
 import { BusinessSignupPage } from "@/pages/BusinessSignupPage";
@@ -122,6 +123,7 @@ function Router() {
             <Route path="/tickets/checkin" component={TicketsCheckinPage} />
             <Route path="/tickets/organizer/payouts" component={TicketsOrganizerPayouts} />
             <Route path="/tickets/organizer/settings" component={TicketsOrganizerSettings} />
+            <Route path="/tickets/order/success" component={TicketsOrderSuccessPage} />
           </>
         )}
         
