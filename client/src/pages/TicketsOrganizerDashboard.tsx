@@ -10,25 +10,65 @@ import {
   Ticket,
   Eye,
   Edit,
-  Copy
+  Copy,
+  Archive,
+  MoreVertical,
+  Clock,
+  ChevronRight,
+  ExternalLink,
+  Download,
+  Tag,
+  AlertCircle,
+  CheckCircle,
+  XCircle,
+  MapPin
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator,
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { queryClient } from "@/lib/queryClient";
+import { format, differenceInDays, formatDistanceToNow } from "date-fns";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+
+interface TicketTier {
+  id: string;
+  name: string;
+  priceCents: number;
+  capacity: number | null;
+  soldCount: number;
+}
 
 interface Event {
   id: string;
   slug: string;
   title: string;
+  summary?: string;
   status: 'draft' | 'published' | 'archived';
-  startAt: Date;
+  startAt: string;
+  endAt?: string;
   venue: string;
+  address?: string;
   city: string;
+  province: string;
+  coverUrl?: string;
+  createdAt: string;
+  tiers?: TicketTier[];
+  stats?: {
+    ticketsSold: number;
+    totalCapacity: number;
+    revenue: number;
+    views: number;
+  };
 }
 
 interface Organizer {
@@ -40,14 +80,16 @@ interface Organizer {
   stripeOnboardingComplete: boolean;
   stripeChargesEnabled: boolean;
   stripePayoutsEnabled: boolean;
-  status: 'active' | 'suspended';
+  status: 'active' | 'suspended' | 'pending';
 }
 
-interface RevenueSummary {
-  totalEarned: number;
-  totalPaidOut: number;
-  pendingBalance: number;
-  lastPayoutDate?: string;
+interface DashboardStats {
+  totalEvents: number;
+  activeEvents: number;
+  totalTicketsSold: number;
+  totalRevenue: number;
+  upcomingEvents: number;
+  pastEvents: number;
 }
 
 export function TicketsOrganizerDashboard() {
@@ -59,7 +101,12 @@ export function TicketsOrganizerDashboard() {
   // For MVP, get organizer ID from localStorage
   const organizerId = localStorage.getItem('ticketsOrganizerId');
   
-  const { data, isLoading, error } = useQuery<{ ok: boolean; organizer: Organizer; events: Event[] }>({
+  const { data, isLoading, error, refetch } = useQuery<{ 
+    ok: boolean; 
+    organizer: Organizer; 
+    events: Event[];
+    stats: DashboardStats;
+  }>({
     queryKey: ['/api/tickets/organizers/me'],
     enabled: isEnabled && !!organizerId,
     meta: {
@@ -68,8 +115,6 @@ export function TicketsOrganizerDashboard() {
       }
     }
   });
-
-  // Stripe Connect: No revenue summary needed - payments go directly to organizer's Stripe account
 
   const duplicateEventMutation = useMutation({
     mutationFn: async (eventId: string) => {
@@ -87,7 +132,47 @@ export function TicketsOrganizerDashboard() {
       queryClient.invalidateQueries({ queryKey: ['/api/tickets/organizers/me'] });
       toast({
         title: "Event duplicated",
-        description: "Your event has been duplicated successfully."
+        description: "Your event has been duplicated successfully. Edit the new event to update details."
+      });
+      refetch();
+    },
+    onError: () => {
+      toast({
+        title: "Failed to duplicate event",
+        description: "An error occurred while duplicating the event",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const archiveEventMutation = useMutation({
+    mutationFn: async ({ eventId, archive }: { eventId: string; archive: boolean }) => {
+      const response = await fetch(`/api/tickets/events/${eventId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-organizer-id': organizerId || ''
+        },
+        body: JSON.stringify({ status: archive ? 'archived' : 'published' })
+      });
+      if (!response.ok) throw new Error('Failed to update event status');
+      return response.json();
+    },
+    onSuccess: (_, { archive }) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/tickets/organizers/me'] });
+      toast({
+        title: archive ? "Event archived" : "Event unarchived",
+        description: archive 
+          ? "Event has been archived and is no longer visible to customers"
+          : "Event is now active and visible to customers"
+      });
+      refetch();
+    },
+    onError: () => {
+      toast({
+        title: "Failed to update event",
+        description: "An error occurred while updating the event status",
+        variant: "destructive"
       });
     }
   });
@@ -142,25 +227,51 @@ export function TicketsOrganizerDashboard() {
       <div className="container mx-auto px-4 py-16 text-center">
         <h1 className="text-2xl font-fraunces mb-4">Unable to load dashboard</h1>
         <p className="text-muted-foreground">Please try again later.</p>
+        <Button onClick={() => refetch()} className="mt-4">
+          Retry
+        </Button>
       </div>
     );
   }
 
   const organizer: Organizer | undefined = data?.organizer;
   const events: Event[] = data?.events || [];
+  const stats: DashboardStats = data?.stats || {
+    totalEvents: events.length,
+    activeEvents: events.filter(e => e.status === 'published').length,
+    totalTicketsSold: 0,
+    totalRevenue: 0,
+    upcomingEvents: events.filter(e => new Date(e.startAt) > new Date()).length,
+    pastEvents: events.filter(e => new Date(e.startAt) <= new Date()).length
+  };
 
-  // Calculate stats
-  const activeEvents = events.filter(e => e.status === 'published').length;
-  const draftEvents = events.filter(e => e.status === 'draft').length;
+  const upcomingEvents = events
+    .filter(e => new Date(e.startAt) > new Date())
+    .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+
+  const pastEvents = events
+    .filter(e => new Date(e.startAt) <= new Date())
+    .sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime());
+
+  const draftEvents = events.filter(e => e.status === 'draft');
   
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'published':
-        return <Badge variant="default">Published</Badge>;
+        return <Badge variant="default" data-testid="badge-published">
+          <CheckCircle className="w-3 h-3 mr-1" />
+          Published
+        </Badge>;
       case 'draft':
-        return <Badge variant="secondary">Draft</Badge>;
+        return <Badge variant="secondary" data-testid="badge-draft">
+          <Edit className="w-3 h-3 mr-1" />
+          Draft
+        </Badge>;
       case 'archived':
-        return <Badge variant="outline">Archived</Badge>;
+        return <Badge variant="outline" data-testid="badge-archived">
+          <Archive className="w-3 h-3 mr-1" />
+          Archived
+        </Badge>;
       default:
         return null;
     }
@@ -335,17 +446,10 @@ export function TicketsOrganizerDashboard() {
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        <Link href={`/tickets/organizer/events/${event.id}`}>
-                          <Button variant="outline" size="sm" data-testid={`button-manage-${event.id}`}>
-                            <Settings className="w-4 h-4 mr-2" />
-                            Manage
-                          </Button>
-                        </Link>
-                        
-                        <Link href={`/tickets/organizer/events/${event.id}/analytics`}>
-                          <Button variant="outline" size="sm" data-testid={`button-analytics-${event.id}`}>
-                            <BarChart3 className="w-4 h-4 mr-2" />
-                            Analytics
+                        <Link href={`/tickets/organizer/events/${event.id}/edit`}>
+                          <Button variant="outline" size="sm" data-testid={`button-edit-${event.id}`}>
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit
                           </Button>
                         </Link>
                         
@@ -358,16 +462,56 @@ export function TicketsOrganizerDashboard() {
                           </Link>
                         )}
                         
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => duplicateEventMutation.mutate(event.id)}
-                          disabled={duplicateEventMutation.isPending}
-                          data-testid={`button-duplicate-${event.id}`}
-                        >
-                          <Copy className="w-4 h-4 mr-2" />
-                          Duplicate
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" data-testid={`button-more-${event.id}`}>
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <Link href={`/tickets/organizer/events/${event.id}/analytics`}>
+                              <DropdownMenuItem>
+                                <BarChart3 className="w-4 h-4 mr-2" />
+                                Analytics
+                              </DropdownMenuItem>
+                            </Link>
+                            
+                            <Link href={`/tickets/organizer/events/${event.id}`}>
+                              <DropdownMenuItem>
+                                <Users className="w-4 h-4 mr-2" />
+                                View Attendees
+                              </DropdownMenuItem>
+                            </Link>
+                            
+                            <Link href={`/tickets/organizer/events/${event.id}/discount`}>
+                              <DropdownMenuItem>
+                                <Tag className="w-4 h-4 mr-2" />
+                                Discount Codes
+                              </DropdownMenuItem>
+                            </Link>
+                            
+                            <DropdownMenuSeparator />
+                            
+                            <DropdownMenuItem 
+                              onClick={() => duplicateEventMutation.mutate(event.id)}
+                              disabled={duplicateEventMutation.isPending}
+                            >
+                              <Copy className="w-4 h-4 mr-2" />
+                              Duplicate Event
+                            </DropdownMenuItem>
+                            
+                            <DropdownMenuItem 
+                              onClick={() => archiveEventMutation.mutate({ 
+                                eventId: event.id, 
+                                archive: event.status !== 'archived' 
+                              })}
+                              disabled={archiveEventMutation.isPending}
+                            >
+                              <Archive className="w-4 h-4 mr-2" />
+                              {event.status === 'archived' ? 'Unarchive' : 'Archive'} Event
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   ))

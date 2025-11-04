@@ -135,13 +135,28 @@ export function addTicketsRoutes(app: Express) {
     }
   });
 
-  // Get event by slug
-  app.get('/api/tickets/events/:slug', requireTicketing, async (req: Request, res: Response) => {
+  // Get event by slug or ID
+  app.get('/api/tickets/events/:identifier', requireTicketing, async (req: Request, res: Response) => {
     try {
-      console.log('[Event Detail] Looking up event by slug:', req.params.slug);
-      const event = await ticketsStorage.getEventBySlug(req.params.slug);
+      const identifier = req.params.identifier;
+      console.log('[Event Detail] Looking up event by identifier:', identifier);
+      
+      // Check if identifier looks like a UUID (for ID) or a slug
+      let event;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      
+      if (uuidRegex.test(identifier)) {
+        // It's a UUID, fetch by ID
+        console.log('[Event Detail] Identifier is UUID, fetching by ID');
+        event = await ticketsStorage.getEventById(identifier);
+      } else {
+        // It's a slug
+        console.log('[Event Detail] Identifier is slug, fetching by slug');
+        event = await ticketsStorage.getEventBySlug(identifier);
+      }
+      
       if (!event) {
-        console.log('[Event Detail] Event not found for slug:', req.params.slug);
+        console.log('[Event Detail] Event not found for identifier:', identifier);
         return res.status(404).json({ ok: false, error: 'Event not found' });
       }
       
@@ -918,9 +933,52 @@ export function addTicketsRoutes(app: Express) {
         return res.status(404).json({ ok: false, error: 'Event not found' });
       }
       
-      const validated = updateEventSchema.parse(req.body);
+      // Extract tiers from body before validation
+      const { tiers, ...eventData } = req.body;
+      
+      const validated = updateEventSchema.parse(eventData);
       const updated = await ticketsStorage.updateEvent(req.params.id, validated);
-      res.json({ ok: true, event: updated });
+      
+      // Handle tiers update if provided
+      if (tiers && Array.isArray(tiers)) {
+        // Get existing tiers
+        const existingTiers = await ticketsStorage.getTiersByEvent(req.params.id);
+        const existingTierIds = existingTiers.map(t => t.id);
+        
+        // Process each tier
+        for (const tier of tiers) {
+          if (tier.id && existingTierIds.includes(tier.id)) {
+            // Update existing tier
+            const { id, tempId, soldCount, ...tierData } = tier;
+            await ticketsStorage.updateTier(id, tierData);
+          } else if (!tier.id || tier.tempId) {
+            // Create new tier
+            const { id, tempId, soldCount, ...tierData } = tier;
+            const newTierData: InsertTicketsTier = {
+              ...tierData,
+              eventId: req.params.id
+            };
+            await ticketsStorage.createTier(newTierData);
+          }
+        }
+        
+        // Delete tiers that are no longer in the list
+        const updatedTierIds = tiers.filter(t => t.id).map(t => t.id);
+        for (const existingTier of existingTiers) {
+          if (!updatedTierIds.includes(existingTier.id)) {
+            // Only delete if no tickets sold
+            if (!existingTier.soldCount || existingTier.soldCount === 0) {
+              await ticketsStorage.deleteTier(existingTier.id);
+            }
+          }
+        }
+      }
+      
+      // Return updated event with tiers
+      const updatedTiers = await ticketsStorage.getTiersByEvent(req.params.id);
+      const eventWithTiers = { ...updated, tiers: updatedTiers };
+      
+      res.json({ ok: true, event: toCamelCase(eventWithTiers) });
     } catch (error) {
       console.error('Update event error:', error);
       res.status(500).json({ ok: false, error: 'Failed to update event' });

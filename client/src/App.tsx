@@ -34,6 +34,7 @@ import Deals from "@/pages/Deals";
 import { TicketsEventListPage } from "@/pages/TicketsEventListPage";
 import { TicketsEventDetailPage } from "@/pages/TicketsEventDetailPage";
 import { TicketsEventCreatePage } from "@/pages/TicketsEventCreatePage";
+import { TicketsEventEditPage } from "@/pages/TicketsEventEditPage";
 import { TicketsEventManagePage } from "@/pages/TicketsEventManagePage";
 import { TicketsEventAnalyticsPage } from "@/pages/TicketsEventAnalyticsPage";
 import { TicketsOrganizerDashboard } from "@/pages/TicketsOrganizerDashboard";
@@ -113,6 +114,7 @@ function Router() {
             <Route path="/tickets/event/:slug" component={TicketsEventDetailPage} />
             <Route path="/tickets/organizer/dashboard" component={TicketsOrganizerDashboard} />
             <Route path="/tickets/organizer/events/new" component={TicketsEventCreatePage} />
+            <Route path="/tickets/organizer/events/:eventId/edit" component={TicketsEventEditPage} />
             <Route path="/tickets/organizer/events/:id" component={TicketsEventManagePage} />
             <Route path="/tickets/organizer/events/:id/analytics" component={TicketsEventAnalyticsPage} />
             <Route path="/tickets/organizer/signup" component={TicketsOrganizerSignup} />
