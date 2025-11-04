@@ -32,17 +32,11 @@ const payoutSettingsSchema = z.object({
 type PayoutSettingsForm = z.infer<typeof payoutSettingsSchema>;
 
 export function TicketsOrganizerSettings() {
-  const organizerId = localStorage.getItem('ticketsOrganizerId');
   const { toast } = useToast();
 
+  // Use session-based auth - backend looks up organizer by session userId
   const { data, isLoading } = useQuery<{ ok: boolean; organizer: Organizer }>({
     queryKey: ['/api/tickets/organizers/me'],
-    enabled: !!organizerId,
-    meta: {
-      headers: {
-        'x-organizer-id': organizerId || ''
-      }
-    }
   });
 
   const form = useForm<PayoutSettingsForm>({
@@ -69,7 +63,6 @@ export function TicketsOrganizerSettings() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'x-organizer-id': organizerId || ''
         },
         body: JSON.stringify(values)
       });
@@ -96,11 +89,13 @@ export function TicketsOrganizerSettings() {
     updateSettingsMutation.mutate(values);
   };
 
-  if (!organizerId) {
+  if (!data && !isLoading) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-fraunces mb-4">Access Denied</h1>
-        <p className="text-muted-foreground">Please log in to view settings.</p>
+      <div className="container mx-auto px-4 py-16 text-center max-w-2xl mx-auto">
+        <h1 className="text-4xl font-fraunces mb-4">Business Account Required</h1>
+        <p className="text-lg text-muted-foreground mb-8">
+          You need an approved business account to access settings.
+        </p>
       </div>
     );
   }

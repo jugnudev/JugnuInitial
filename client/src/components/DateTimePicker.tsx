@@ -68,14 +68,8 @@ export function DateTimePicker({
     const dateTime = new Date(newDate);
     dateTime.setHours(hours24, parseInt(newMinute), 0, 0);
     
-    // Format as local datetime string (YYYY-MM-DDTHH:MM) without timezone conversion
-    const year = dateTime.getFullYear();
-    const month = String(dateTime.getMonth() + 1).padStart(2, '0');
-    const day = String(dateTime.getDate()).padStart(2, '0');
-    const hours = String(dateTime.getHours()).padStart(2, '0');
-    const minutes = String(dateTime.getMinutes()).padStart(2, '0');
-    
-    onChange(`${year}-${month}-${day}T${hours}:${minutes}`);
+    // Format as ISO 8601 datetime string with timezone (required by Zod validation)
+    onChange(dateTime.toISOString());
   };
 
   const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
@@ -110,7 +104,13 @@ export function DateTimePicker({
                   setIsOpen(false);
                 }
               }}
-              disabled={(date) => minDate ? date < minDate : false}
+              disabled={(date) => {
+                if (!minDate) return false;
+                // Compare dates only (ignore time) to allow same-day selections
+                const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                const minDateOnly = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+                return dateOnly < minDateOnly;
+              }}
               initialFocus
             />
           </PopoverContent>
