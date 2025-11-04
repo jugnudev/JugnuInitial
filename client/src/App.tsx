@@ -37,7 +37,8 @@ import { TicketsEventCreatePage } from "@/pages/TicketsEventCreatePage";
 import { TicketsEventEditPage } from "@/pages/TicketsEventEditPage";
 import { TicketsEventManagePage } from "@/pages/TicketsEventManagePage";
 import { TicketsOrganizerDashboard } from "@/pages/TicketsOrganizerDashboard";
-import { TicketsOrganizerSignup } from "@/pages/TicketsOrganizerSignup";
+// REMOVED: Separate organizer signup - now using /business-signup flow
+// import { TicketsOrganizerSignup } from "@/pages/TicketsOrganizerSignup";
 import { TicketsOrganizerConnect } from "@/pages/TicketsOrganizerConnect";
 import { TicketsCheckinPage } from "@/pages/TicketsCheckinPage";
 import { TicketsCheckinDashboard } from "@/pages/TicketsCheckinDashboard";
@@ -125,7 +126,8 @@ function Router() {
             <Route path="/tickets/organizer/events/:eventId/checkin" component={TicketsCheckinDashboard} />
             <Route path="/tickets/organizer/events/:eventId/attendees" component={TicketsAttendeesPageEnhanced} />
             <Route path="/tickets/organizer/events/:eventId/analytics" component={TicketsAnalyticsPage} />
-            <Route path="/tickets/organizer/signup" component={TicketsOrganizerSignup} />
+            {/* REMOVED: Separate organizer signup - redirect to business signup instead */}
+            {/* <Route path="/tickets/organizer/signup" component={TicketsOrganizerSignup} /> */}
             <Route path="/tickets/organizer/connect" component={TicketsOrganizerConnect} />
             <Route path="/tickets/checkin" component={TicketsCheckinPage} />
             <Route path="/tickets/organizer/payouts" component={TicketsOrganizerPayouts} />

@@ -190,14 +190,22 @@ export function TicketsOrganizerDashboard() {
 
   if (!organizerId) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-4xl font-fraunces mb-4">Get Started</h1>
+      <div className="container mx-auto px-4 py-16 text-center max-w-2xl mx-auto">
+        <h1 className="text-4xl font-fraunces mb-4">Business Account Required</h1>
         <p className="text-lg text-muted-foreground mb-8">
-          Create your organizer account to start selling tickets
+          You need an approved business account to access the organizer dashboard and manage events.
         </p>
-        <Link href="/tickets/organizer/signup">
-          <Button size="lg" data-testid="button-signup">
-            Create Organizer Account
+        <div className="bg-muted/50 rounded-lg p-6 mb-8 text-left">
+          <h3 className="font-semibold mb-4">How to Get Started:</h3>
+          <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
+            <li>Apply for a business account at /business-signup</li>
+            <li>Wait for admin approval (usually 1-2 business days)</li>
+            <li>Return here to manage your events and ticketing</li>
+          </ol>
+        </div>
+        <Link href="/business-signup">
+          <Button size="lg" data-testid="button-apply-business">
+            Apply for Business Account
           </Button>
         </Link>
       </div>

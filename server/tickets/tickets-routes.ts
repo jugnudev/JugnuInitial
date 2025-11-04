@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import express from "express";
 import { ticketsStorage } from "./tickets-storage";
+import { communitiesStorage } from "../communities/communities-supabase";
 import { StripeService, stripe } from "./stripe-service";
 import { addConnectRoutes } from './connect-routes';
 import { addRefundRoutes } from './refund-routes';
@@ -44,8 +45,8 @@ const requireOrganizer = async (req: Request & { session?: any }, res: Response,
   
   // PRIORITY 1: Check if user is logged in with main platform session (userId)
   if (req.session?.userId) {
-    // Look up organizer by userId (approved businesses who enabled ticketing)
-    organizer = await ticketsStorage.getOrganizerByUserId(req.session.userId);
+    // Look up organizer by userId from main organizers table (approved business accounts)
+    organizer = await communitiesStorage.getOrganizerByUserId(req.session.userId);
   }
   
   // PRIORITY 2: Fall back to organizerId in session (legacy/direct ticketing signup)
@@ -1042,7 +1043,7 @@ export function addTicketsRoutes(app: Express) {
   });
 
   // Get organizer info
-  // Get current user's organizer profile (or null if not set up yet)
+  // Get current user's organizer profile from main organizers table (approved business accounts)
   app.get('/api/tickets/organizers/me', requireTicketing, async (req: Request, res: Response) => {
     try {
       console.log('[Ticketing] GET /api/tickets/organizers/me - Session:', {
@@ -1054,19 +1055,21 @@ export function addTicketsRoutes(app: Express) {
       // Check if user is logged in
       if (!req.session?.userId) {
         // Return success with null organizer instead of 401
-        // This allows the UI to show "Enable Ticketing" button
+        // This allows the UI to show "Apply for Business Account" button
         console.log('[Ticketing] No userId in session - returning null organizer');
         return res.json({ ok: true, organizer: null, events: [] });
       }
       
-      // Try to find organizer by userId
-      const organizer = await ticketsStorage.getOrganizerByUserId(req.session.userId);
+      // Look up organizer from main organizers table (approved business accounts)
+      const organizer = await communitiesStorage.getOrganizerByUserId(req.session.userId);
       
-      // If no organizer exists yet, return null (not an error - they haven't enabled ticketing yet)
+      // If no organizer exists, return null (user hasn't applied for business account yet)
       if (!organizer) {
+        console.log('[Ticketing] No approved business account found for user');
         return res.json({ ok: true, organizer: null, events: [] });
       }
       
+      // Get events for this organizer (if they have any)
       const events = await ticketsStorage.getEventsByOrganizer(organizer.id);
       
       console.log('[DEBUG] Events before toCamelCase:', events.length > 0 ? JSON.stringify(events[0], null, 2).slice(0, 300) : 'No events');
@@ -1076,6 +1079,7 @@ export function addTicketsRoutes(app: Express) {
       const camelCaseOrganizer = toCamelCase(organizer);
       
       console.log('[DEBUG] Events after toCamelCase:', camelCaseEvents.length > 0 ? JSON.stringify(camelCaseEvents[0], null, 2).slice(0, 300) : 'No events');
+      console.log('[Ticketing] Found organizer:', { id: organizer.id, businessName: organizer.business_name, status: organizer.status });
       
       res.json({ ok: true, organizer: camelCaseOrganizer, events: camelCaseEvents });
     } catch (error) {

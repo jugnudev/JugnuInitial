@@ -297,11 +297,11 @@ export function TicketsEventCreatePage() {
 
   if (!isEnabled || !organizerId) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-2xl font-fraunces mb-4">Access Denied</h1>
-        <p className="text-muted-foreground">Please log in as an organizer to create events.</p>
-        <Link href="/tickets/organizer/signup">
-          <Button className="mt-4">Sign Up as Organizer</Button>
+      <div className="container mx-auto px-4 py-16 text-center max-w-2xl mx-auto">
+        <h1 className="text-2xl font-fraunces mb-4">Business Account Required</h1>
+        <p className="text-muted-foreground mb-6">You need an approved business account to create events.</p>
+        <Link href="/business-signup">
+          <Button className="mt-4">Apply for Business Account</Button>
         </Link>
       </div>
     );

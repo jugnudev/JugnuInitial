@@ -77,11 +77,11 @@ export function TicketsOrganizerConnect() {
   const handleStripeConnect = async () => {
     if (!organizerId) {
       toast({
-        title: "Missing organizer account",
-        description: "Please create an organizer account first.",
+        title: "Business Account Required",
+        description: "You need an approved business account to connect Stripe. Please apply at /business-signup first.",
         variant: "destructive"
       });
-      setLocation('/tickets/organizer/signup');
+      setLocation('/business-signup');
       return;
     }
 
@@ -134,14 +134,14 @@ export function TicketsOrganizerConnect() {
 
   if (!organizerId) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <h1 className="text-4xl font-fraunces mb-4">Create Account First</h1>
+      <div className="container mx-auto px-4 py-16 text-center max-w-2xl mx-auto">
+        <h1 className="text-4xl font-fraunces mb-4">Business Account Required</h1>
         <p className="text-lg text-muted-foreground mb-8">
-          You need to create an organizer account before connecting Stripe
+          You need an approved business account before connecting Stripe for ticketing
         </p>
-        <Link href="/tickets/organizer/signup">
-          <Button size="lg" data-testid="button-signup">
-            Create Organizer Account
+        <Link href="/business-signup">
+          <Button size="lg" data-testid="button-apply-business">
+            Apply for Business Account
           </Button>
         </Link>
       </div>
