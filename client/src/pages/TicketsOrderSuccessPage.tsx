@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "wouter";
+import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { 
   CheckCircle, 
@@ -62,8 +62,7 @@ interface OrderDetails {
 }
 
 export function TicketsOrderSuccessPage() {
-  const [location] = useLocation();
-  const navigate = useNavigate();
+  const [location, setLocation] = useLocation();
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
   const [downloadingTickets, setDownloadingTickets] = useState(false);
   
@@ -232,7 +231,7 @@ export function TicketsOrderSuccessPage() {
               <p className="text-muted-foreground mb-6">
                 Your order was cancelled. No payment was processed.
               </p>
-              <Button onClick={() => navigate('/events')}>
+              <Button onClick={() => setLocation('/events')}>
                 Back to Events
               </Button>
             </div>
@@ -266,7 +265,7 @@ export function TicketsOrderSuccessPage() {
               <p className="text-muted-foreground mb-6">
                 We couldn't find your order. Please check your email for confirmation.
               </p>
-              <Button onClick={() => navigate('/events')}>
+              <Button onClick={() => setLocation('/events')}>
                 Back to Events
               </Button>
             </div>
@@ -457,7 +456,7 @@ export function TicketsOrderSuccessPage() {
           <div className="flex flex-col sm:flex-row gap-4 mt-8">
             <Button 
               className="flex-1"
-              onClick={() => navigate('/events')}
+              onClick={() => setLocation('/events')}
             >
               Browse More Events
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -465,7 +464,7 @@ export function TicketsOrderSuccessPage() {
             <Button 
               variant="outline"
               className="flex-1"
-              onClick={() => navigate('/tickets/my-orders')}
+              onClick={() => setLocation('/tickets/my-orders')}
             >
               View My Orders
             </Button>
