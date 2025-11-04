@@ -242,9 +242,21 @@ export class TicketsSupabaseDB {
 
   // ============ TIERS ============
   async createTier(data: InsertTicketsTier): Promise<TicketsTier> {
+    // Convert camelCase to snake_case for Supabase
+    const dbData = {
+      event_id: data.eventId,
+      name: data.name,
+      price_cents: data.priceCents,
+      capacity: data.capacity,
+      max_per_order: data.maxPerOrder,
+      sales_start_at: data.salesStartAt,
+      sales_end_at: data.salesEndAt,
+      sort_order: data.sortOrder
+    };
+    
     const { data: tier, error } = await this.client
       .from('tickets_tiers')
-      .insert(data)
+      .insert(dbData)
       .select()
       .single();
     
