@@ -2990,7 +2990,31 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
               </ul>
             </div>
 
-            <Button
+            <div className="flex gap-2">
+              <Button
+                onClick={async () => {
+                  try {
+                    await refetch();
+                    toast({
+                      title: "Status refreshed",
+                      description: "Account status has been updated from Stripe.",
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "Failed to refresh",
+                      description: "Please try again.",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+                variant="secondary"
+                className="flex-1"
+                data-testid="button-refresh-status"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Status
+              </Button>
+              <Button
               onClick={async () => {
                 try {
                   const response = await fetch('/api/tickets/connect/login', {
@@ -3025,12 +3049,13 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
                 }
               }}
               variant="outline"
-              className="w-full"
+              className="flex-1"
               data-testid="button-continue-stripe-setup"
             >
               <ExternalLink className="h-4 w-4 mr-2" />
               Continue Stripe Setup
             </Button>
+            </div>
           </>
         ) : isConnected ? (
           <>
