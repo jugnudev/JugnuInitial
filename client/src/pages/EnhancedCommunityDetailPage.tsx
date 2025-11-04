@@ -1979,9 +1979,17 @@ export default function EnhancedCommunityDetailPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-premium-text-muted">
-                      <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm">No events yet. Create your first ticketed event!</p>
+                    <div className="text-center py-8">
+                      <Calendar className="h-12 w-12 mx-auto mb-3 text-premium-text-muted opacity-50" />
+                      <p className="text-sm text-premium-text-muted mb-4">No events yet. Create your first ticketed event!</p>
+                      <Button
+                        onClick={() => setLocation('/tickets/organizer/events/new')}
+                        className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-accent/90 text-black font-semibold"
+                        data-testid="button-create-first-event"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create Event
+                      </Button>
                     </div>
                   )}
                 </CardContent>
