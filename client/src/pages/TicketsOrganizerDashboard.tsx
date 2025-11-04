@@ -211,17 +211,26 @@ export function TicketsOrganizerDashboard() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Skeleton className="h-10 w-64 mb-8" />
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          {[1, 2, 3, 4].map(i => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-4 w-24 mb-2" />
-                <Skeleton className="h-8 w-32" />
-              </CardHeader>
-            </Card>
-          ))}
+      <div className="min-h-screen bg-charcoal-gradient">
+        <div className="container mx-auto px-4 md:px-6 py-8 md:py-12">
+          <Skeleton className="h-12 w-96 max-w-full mb-8 rounded-xl" style={{ background: 'var(--charcoal-elevated)' }} />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="glass-elevated rounded-xl p-5">
+                <Skeleton className="h-4 w-24 mb-3 rounded" style={{ background: 'var(--charcoal-surface)' }} />
+                <Skeleton className="h-10 w-20 mb-2 rounded" style={{ background: 'var(--charcoal-surface)' }} />
+                <Skeleton className="h-3 w-16 rounded" style={{ background: 'var(--charcoal-surface)' }} />
+              </div>
+            ))}
+          </div>
+          <div className="glass-elevated rounded-xl p-6">
+            <Skeleton className="h-8 w-48 mb-6 rounded-lg" style={{ background: 'var(--charcoal-surface)' }} />
+            <div className="space-y-4">
+              {[1, 2, 3].map(i => (
+                <Skeleton key={i} className="h-24 w-full rounded-lg" style={{ background: 'var(--charcoal-surface)' }} />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -282,137 +291,200 @@ export function TicketsOrganizerDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-fraunces mb-2">Organizer Dashboard</h1>
-          <p className="text-lg text-muted-foreground">
+    <div className="min-h-screen bg-charcoal-gradient">
+      <div className="container mx-auto px-4 md:px-6 py-8 md:py-12">
+        {/* Premium Header */}
+        <div className="mb-8 md:mb-12 animate-fadeIn">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-8 bg-copper-gradient rounded-full" />
+            <h1 className="text-3xl md:text-5xl font-fraunces font-bold" style={{ color: 'var(--neutral-50)' }}>
+              Organizer <span className="text-copper-gradient">Dashboard</span>
+            </h1>
+          </div>
+          <p className="text-base md:text-lg ml-5" style={{ color: 'var(--neutral-300)' }}>
             Welcome back, {organizer?.businessName}
           </p>
         </div>
 
         {/* Stripe Connect Status */}
         {!organizer?.stripeOnboardingComplete ? (
-          <Card className="mb-8 border-orange-200 bg-orange-50">
-            <CardHeader>
-              <CardTitle className="text-orange-900">Complete Stripe Setup</CardTitle>
-              <CardDescription className="text-orange-700">
-                Connect your Stripe account to start accepting payments for your events.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-orange-800">
-                    You need to complete Stripe Connect onboarding before you can sell tickets.
-                  </p>
+          <div className="mb-8 glass-elevated rounded-xl p-6 border-2 animate-slideUp" style={{ borderColor: 'var(--copper)', background: 'var(--copper-glow)' }}>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-5 h-5" style={{ color: 'var(--copper)' }} />
+                  <h3 className="text-lg font-fraunces font-semibold" style={{ color: 'var(--neutral-50)' }}>
+                    Complete Stripe Setup
+                  </h3>
                 </div>
-                <Link href="/tickets/organizer/connect">
-                  <Button className="bg-orange-600 hover:bg-orange-700 text-white" data-testid="button-connect-stripe">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Connect Stripe
-                  </Button>
-                </Link>
+                <p className="text-sm mb-3" style={{ color: 'var(--neutral-300)' }}>
+                  Connect your Stripe account to start accepting payments for your events.
+                </p>
+                <p className="text-xs" style={{ color: 'var(--neutral-400)' }}>
+                  You need to complete Stripe Connect onboarding before you can sell tickets.
+                </p>
               </div>
-            </CardContent>
-          </Card>
+              <Link href="/tickets/organizer/connect">
+                <Button 
+                  className="bg-copper-gradient hover:shadow-glow-copper text-white font-semibold touch-target whitespace-nowrap"
+                  data-testid="button-connect-stripe"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Connect Stripe
+                </Button>
+              </Link>
+            </div>
+          </div>
         ) : (
-          <Card className="mb-8 border-green-200 bg-green-50">
-            <CardHeader>
-              <CardTitle className="text-green-900">Payment Account Connected</CardTitle>
-              <CardDescription className="text-green-700">
-                Your Stripe account is connected. Payments go directly to your Stripe account.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm text-green-800">
-                    <strong>Status:</strong> {organizer?.stripeChargesEnabled ? '✓ Can accept payments' : '⚠ Setup incomplete'}
-                  </p>
-                  <p className="text-sm text-green-800">
-                    <strong>Payouts:</strong> {organizer?.stripePayoutsEnabled ? '✓ Enabled' : '⚠ Pending setup'}
-                  </p>
-                  <p className="text-sm text-green-600">
-                    <strong>Platform Fee:</strong> {(organizer?.platformFeeBps || 500) / 100}%
-                  </p>
+          <div className="mb-8 glass-elevated rounded-xl p-6 border-2 animate-slideUp" style={{ borderColor: 'var(--jade)', background: 'var(--jade-glow)' }}>
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="w-5 h-5" style={{ color: 'var(--jade)' }} />
+                  <h3 className="text-lg font-fraunces font-semibold" style={{ color: 'var(--neutral-50)' }}>
+                    Payment Account Connected
+                  </h3>
                 </div>
-                <Link href="/tickets/organizer/settings">
-                  <Button variant="outline" data-testid="button-account-settings">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Account Settings
-                  </Button>
-                </Link>
+                <p className="text-sm mb-4" style={{ color: 'var(--neutral-300)' }}>
+                  Your Stripe account is connected. Payments go directly to your account.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2">
+                    {organizer?.stripeChargesEnabled ? (
+                      <CheckCircle className="w-4 h-4" style={{ color: 'var(--jade)' }} />
+                    ) : (
+                      <AlertCircle className="w-4 h-4" style={{ color: 'var(--copper)' }} />
+                    )}
+                    <span className="text-sm" style={{ color: 'var(--neutral-200)' }}>
+                      {organizer?.stripeChargesEnabled ? 'Can accept payments' : 'Setup incomplete'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {organizer?.stripePayoutsEnabled ? (
+                      <CheckCircle className="w-4 h-4" style={{ color: 'var(--jade)' }} />
+                    ) : (
+                      <AlertCircle className="w-4 h-4" style={{ color: 'var(--copper)' }} />
+                    )}
+                    <span className="text-sm" style={{ color: 'var(--neutral-200)' }}>
+                      {organizer?.stripePayoutsEnabled ? 'Payouts enabled' : 'Pending setup'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Tag className="w-4 h-4" style={{ color: 'var(--jade)' }} />
+                    <span className="text-sm font-medium" style={{ color: 'var(--neutral-200)' }}>
+                      Platform Fee: {(organizer?.platformFeeBps || 500) / 100}%
+                    </span>
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+              <Link href="/tickets/organizer/settings">
+                <Button 
+                  variant="outline" 
+                  className="glass-card hover-glow touch-target whitespace-nowrap"
+                  style={{ color: 'var(--neutral-50)' }}
+                  data-testid="button-account-settings"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Account Settings
+                </Button>
+              </Link>
+            </div>
+          </div>
         )}
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Events</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{activeEvents}</div>
-            </CardContent>
-          </Card>
+        {/* Premium KPI Tiles */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="glass-elevated rounded-xl p-5 hover-lift animate-slideUp" style={{ animationDelay: '100ms' }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--neutral-400)' }}>
+                Active Events
+              </span>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--copper-glow)' }}>
+                <Calendar className="w-4 h-4" style={{ color: 'var(--copper)' }} />
+              </div>
+            </div>
+            <div className="text-3xl font-fraunces font-bold mb-1" style={{ color: 'var(--neutral-50)' }}>
+              {stats.activeEvents}
+            </div>
+            <p className="text-xs" style={{ color: 'var(--neutral-500)' }}>
+              Published & live
+            </p>
+          </div>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Draft Events</CardTitle>
-              <Edit className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{draftEvents}</div>
-            </CardContent>
-          </Card>
+          <div className="glass-elevated rounded-xl p-5 hover-lift animate-slideUp" style={{ animationDelay: '200ms' }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--neutral-400)' }}>
+                Draft Events
+              </span>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--neutral-800)' }}>
+                <Edit className="w-4 h-4" style={{ color: 'var(--neutral-400)' }} />
+              </div>
+            </div>
+            <div className="text-3xl font-fraunces font-bold mb-1" style={{ color: 'var(--neutral-50)' }}>
+              {draftEvents.length}
+            </div>
+            <p className="text-xs" style={{ color: 'var(--neutral-500)' }}>
+              Work in progress
+            </p>
+          </div>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Events</CardTitle>
-              <Ticket className="w-4 h-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{events.length}</div>
-              <p className="text-xs text-muted-foreground">
-                All time
-              </p>
-            </CardContent>
-          </Card>
+          <div className="glass-elevated rounded-xl p-5 hover-lift animate-slideUp" style={{ animationDelay: '300ms' }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--neutral-400)' }}>
+                Total Events
+              </span>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--jade-glow)' }}>
+                <Ticket className="w-4 h-4" style={{ color: 'var(--jade)' }} />
+              </div>
+            </div>
+            <div className="text-3xl font-fraunces font-bold mb-1" style={{ color: 'var(--neutral-50)' }}>
+              {events.length}
+            </div>
+            <p className="text-xs" style={{ color: 'var(--neutral-500)' }}>
+              All time
+            </p>
+          </div>
           
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Revenue & Payouts</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">Stripe Dashboard</div>
-              <p className="text-xs text-muted-foreground">
-                View in your Stripe account
-              </p>
-            </CardContent>
-          </Card>
+          <div className="glass-elevated rounded-xl p-5 hover-lift animate-slideUp" style={{ animationDelay: '400ms' }}>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--neutral-400)' }}>
+                Revenue
+              </span>
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'var(--copper-glow)' }}>
+                <DollarSign className="w-4 h-4" style={{ color: 'var(--copper)' }} />
+              </div>
+            </div>
+            <div className="text-2xl font-fraunces font-bold mb-1" style={{ color: 'var(--neutral-50)' }}>
+              Stripe
+            </div>
+            <p className="text-xs" style={{ color: 'var(--neutral-500)' }}>
+              View in dashboard
+            </p>
+          </div>
         </div>
 
         {/* Events Management */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+        <div className="glass-elevated rounded-xl p-6 animate-slideUp" style={{ animationDelay: '500ms' }}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <div>
-              <CardTitle>Your Events</CardTitle>
-              <CardDescription>Manage your ticketed events</CardDescription>
+              <h2 className="text-2xl font-fraunces font-bold mb-1" style={{ color: 'var(--neutral-50)' }}>
+                Your Events
+              </h2>
+              <p className="text-sm" style={{ color: 'var(--neutral-400)' }}>
+                Manage your ticketed events
+              </p>
             </div>
             <Link href="/tickets/organizer/events/new">
-              <Button data-testid="button-create-event">
+              <Button 
+                className="bg-copper-gradient hover:shadow-glow-copper text-white font-semibold touch-target whitespace-nowrap"
+                data-testid="button-create-event"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Create Event
               </Button>
             </Link>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <div>
             <Tabs defaultValue="all" className="w-full">
               <TabsList>
                 <TabsTrigger value="all">All Events</TabsTrigger>
@@ -570,8 +642,8 @@ export function TicketsOrganizerDashboard() {
                 ))}
               </TabsContent>
             </Tabs>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Quick Actions */}
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
