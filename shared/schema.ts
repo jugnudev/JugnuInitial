@@ -232,29 +232,10 @@ export const sponsorLeads = pgTable("sponsor_leads", {
 });
 
 // ============================================
-// TICKETING MODULE TABLES (Completely Isolated)
+// TICKETING MODULE TABLES
 // ============================================
-
-// Organizers who can create and manage ticketed events (Stripe Connect model)
-export const ticketsOrganizers = pgTable("tickets_organizers", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  userId: varchar("user_id").references(() => users.id),
-  // Stripe Connect fields
-  stripeAccountId: text("stripe_account_id").unique(), // Stripe Connect account ID
-  stripeOnboardingComplete: boolean("stripe_onboarding_complete").notNull().default(false),
-  stripeChargesEnabled: boolean("stripe_charges_enabled").notNull().default(false),
-  stripePayoutsEnabled: boolean("stripe_payouts_enabled").notNull().default(false),
-  stripeDetailsSubmitted: boolean("stripe_details_submitted").notNull().default(false),
-  // Business info
-  status: text("status").notNull().default("pending"), // pending | active | suspended
-  businessName: text("business_name"),
-  businessEmail: text("business_email"),
-  email: text("email").notNull(),
-  // Platform fee configuration (in basis points, 500 = 5%)
-  platformFeeBps: integer("platform_fee_bps").notNull().default(500), // Default 5% platform fee
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
-});
+// Note: Organizers are managed in the main organizers table (line 643)
+// with Stripe Connect fields integrated there
 
 // Ticketed events created by organizers
 export const ticketsEvents = pgTable("tickets_events", {
@@ -491,11 +472,7 @@ export const insertVisitorAnalyticsSchema = createInsertSchema(visitorAnalytics)
 });
 
 // Ticketing Insert Schemas
-export const insertTicketsOrganizerSchema = createInsertSchema(ticketsOrganizers).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+// Note: Organizers use the main insertOrganizerSchema from line ~1500
 
 export const insertTicketsEventSchema = createInsertSchema(ticketsEvents).omit({
   id: true,
@@ -576,8 +553,7 @@ export type VisitorAnalytics = typeof visitorAnalytics.$inferSelect;
 export type InsertVisitorAnalytics = z.infer<typeof insertVisitorAnalyticsSchema>;
 
 // Ticketing Type Exports
-export type TicketsOrganizer = typeof ticketsOrganizers.$inferSelect;
-export type InsertTicketsOrganizer = z.infer<typeof insertTicketsOrganizerSchema>;
+// Note: Use main Organizer type from line ~1500 instead of separate TicketsOrganizer
 export type TicketsEvent = typeof ticketsEvents.$inferSelect;
 export type InsertTicketsEvent = z.infer<typeof insertTicketsEventSchema>;
 export type TicketsTier = typeof ticketsTiers.$inferSelect;
