@@ -2925,6 +2925,12 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
         throw new Error(result.error || 'Failed to start onboarding');
       }
 
+      // Store account ID in localStorage to handle status refresh after redirect
+      // (even if session is lost during Stripe redirect)
+      if (result.accountId) {
+        localStorage.setItem('pendingStripeAccountId', result.accountId);
+      }
+
       window.location.href = result.url;
     } catch (error: any) {
       console.error('Enable ticketing error:', error);
@@ -2940,12 +2946,45 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('ticketing') === 'success') {
-      toast({
-        title: "Ticketing Enabled!",
-        description: "Your payment account is set up. You can now create ticketed events.",
-        variant: "default"
-      });
-      refetch();
+      // Get the stored Stripe account ID from localStorage
+      const accountId = localStorage.getItem('pendingStripeAccountId');
+      
+      // Auto-refresh status from Stripe (works even if session was lost)
+      const refreshStatus = async () => {
+        try {
+          const endpoint = accountId 
+            ? `/api/tickets/connect/status?accountId=${accountId}`
+            : '/api/tickets/connect/status';
+          
+          const response = await fetch(endpoint);
+          const result = await response.json();
+          
+          if (result.ok && result.onboardingComplete) {
+            toast({
+              title: "Ticketing Enabled!",
+              description: "Your payment account is fully set up. You can now create ticketed events.",
+            });
+            // Clear the stored account ID
+            localStorage.removeItem('pendingStripeAccountId');
+          } else if (result.ok && !result.onboardingComplete) {
+            toast({
+              title: "Almost there!",
+              description: "Stripe is reviewing your information. This usually takes a few minutes.",
+            });
+          }
+          
+          // Refetch organizer data to update UI
+          refetch();
+        } catch (error) {
+          console.error('Failed to refresh status:', error);
+          toast({
+            title: "Setup in progress",
+            description: "Click 'Refresh Status' to check if your account is ready.",
+          });
+        }
+      };
+      
+      refreshStatus();
       window.history.replaceState({}, '', window.location.pathname + '?tab=settings');
     }
   }, [toast, refetch]);
@@ -2996,8 +3035,14 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
               <Button
                 onClick={async () => {
                   try {
+                    // Try to use stored account ID if session is lost
+                    const storedAccountId = localStorage.getItem('pendingStripeAccountId') || organizer?.stripeAccountId;
+                    const endpoint = storedAccountId 
+                      ? `/api/tickets/connect/status?accountId=${storedAccountId}`
+                      : '/api/tickets/connect/status';
+                    
                     // Call the status endpoint to fetch latest from Stripe and update DB
-                    const response = await fetch('/api/tickets/connect/status');
+                    const response = await fetch(endpoint);
                     const result = await response.json();
                     
                     if (!result.ok) {
@@ -3007,11 +3052,16 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
                     // Refetch organizer data to get updated status
                     await refetch();
                     
+                    // Clear stored account ID if onboarding is complete
+                    if (result.onboardingComplete) {
+                      localStorage.removeItem('pendingStripeAccountId');
+                    }
+                    
                     toast({
                       title: "Status refreshed",
                       description: result.onboardingComplete 
                         ? "Your Stripe account is now fully set up!" 
-                        : "Status updated. Complete Stripe onboarding if pending.",
+                        : "Status updated. Stripe is still reviewing your information.",
                     });
                   } catch (error: any) {
                     toast({

@@ -190,14 +190,23 @@ export function addConnectRoutes(app: Express) {
     }
   });
 
-  // Get Connect account status
+  // Get Connect account status (works with session OR account ID query param)
   app.get('/api/tickets/connect/status', async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
+      const userId = req.session?.userId;
+      const accountId = req.query.accountId as string;
+
+      let organizer;
+
+      if (accountId) {
+        // Public endpoint: fetch by Stripe account ID (for post-onboarding status check)
+        organizer = await ticketsStorage.getOrganizerByStripeAccountId(accountId);
+      } else if (userId) {
+        // Session-based: fetch by user ID
+        organizer = await ticketsStorage.getOrganizerByUserId(userId);
+      } else {
         return res.status(401).json({ ok: false, error: 'Not authenticated' });
       }
-
-      const organizer = await ticketsStorage.getOrganizerByUserId(req.session.userId);
       
       if (!organizer) {
         return res.json({
@@ -207,7 +216,10 @@ export function addConnectRoutes(app: Express) {
         });
       }
 
-      if (!organizer.stripeAccountId) {
+      // Handle snake_case from Supabase
+      const stripeAccountId = (organizer as any).stripe_account_id || organizer.stripeAccountId;
+      
+      if (!stripeAccountId) {
         return res.json({
           ok: true,
           hasAccount: false,
@@ -217,7 +229,15 @@ export function addConnectRoutes(app: Express) {
       }
 
       // Fetch latest status from Stripe
-      const status = await StripeConnectService.getAccountStatus(organizer.stripeAccountId);
+      const status = await StripeConnectService.getAccountStatus(stripeAccountId);
+
+      console.log(`[Stripe Connect] Status for account ${stripeAccountId}:`, {
+        onboardingComplete: status.onboardingComplete,
+        chargesEnabled: status.chargesEnabled,
+        payoutsEnabled: status.payoutsEnabled,
+        detailsSubmitted: status.detailsSubmitted,
+        currentlyDue: status.requirements.currentlyDue,
+      });
 
       // Update local database with latest status
       await ticketsStorage.updateOrganizer(organizer.id, {
