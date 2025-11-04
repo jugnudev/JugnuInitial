@@ -2996,15 +2996,27 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
               <Button
                 onClick={async () => {
                   try {
+                    // Call the status endpoint to fetch latest from Stripe and update DB
+                    const response = await fetch('/api/tickets/connect/status');
+                    const result = await response.json();
+                    
+                    if (!result.ok) {
+                      throw new Error(result.error || 'Failed to refresh status');
+                    }
+                    
+                    // Refetch organizer data to get updated status
                     await refetch();
+                    
                     toast({
                       title: "Status refreshed",
-                      description: "Account status has been updated from Stripe.",
+                      description: result.onboardingComplete 
+                        ? "Your Stripe account is now fully set up!" 
+                        : "Status updated. Complete Stripe onboarding if pending.",
                     });
-                  } catch (error) {
+                  } catch (error: any) {
                     toast({
                       title: "Failed to refresh",
-                      description: "Please try again.",
+                      description: error.message || "Please try again.",
                       variant: "destructive"
                     });
                   }
