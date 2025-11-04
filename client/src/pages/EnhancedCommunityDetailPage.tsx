@@ -2303,7 +2303,7 @@ export default function EnhancedCommunityDetailPage() {
               </Card>
 
               {/* Ticketing Settings Card */}
-              {import.meta.env.VITE_ENABLE_TICKETING === 'true' && community?.slug && (
+              {import.meta.env.VITE_ENABLE_TICKETING === 'true' && community && (
                 <TicketingSettingsCard communitySlug={community.slug} userId={user?.id} />
               )}
             </TabsContent>
@@ -2875,13 +2875,13 @@ export default function EnhancedCommunityDetailPage() {
   );
 }
 
-function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: string; userId?: string }) {
+function TicketingSettingsCard({ communitySlug, userId }: { communitySlug?: string; userId?: string }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isEnabling, setIsEnabling] = useState(false);
   const [businessType, setBusinessType] = useState<'individual' | 'company'>('individual');
 
-  const { data: organizerData, isLoading, refetch } = useQuery<{ ok: boolean; organizer: any }>({
+  const { data: organizerData, isLoading, refetch } = useQuery<{ ok: boolean; organizer: any | null }>({
     queryKey: ['/api/tickets/organizers/me'],
     enabled: !!userId,
     retry: false,
