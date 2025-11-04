@@ -321,40 +321,52 @@ export function TicketsEventCreatePage() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8">
+    <div className="min-h-screen bg-charcoal-gradient">
+      <div className="container mx-auto px-4 md:px-6 py-8 md:py-12">
+        {/* Premium Header */}
+        <div className="mb-8 md:mb-12 animate-fadeIn">
           <Link href="/tickets/organizer/dashboard">
-            <Button variant="ghost" className="mb-4" data-testid="button-back-dashboard">
+            <Button 
+              variant="ghost" 
+              className="mb-4 glass-card hover-glow"
+              style={{ color: 'var(--neutral-300)' }}
+              data-testid="button-back-dashboard"
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
             </Button>
           </Link>
-          <h1 className="text-4xl font-fraunces mb-2">Create New Event</h1>
-          <p className="text-lg text-muted-foreground">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-10 bg-copper-gradient rounded-full" />
+            <h1 className="text-3xl md:text-5xl font-fraunces font-bold" style={{ color: 'var(--neutral-50)' }}>
+              Create New <span className="text-copper-gradient">Event</span>
+            </h1>
+          </div>
+          <p className="text-base md:text-lg ml-5" style={{ color: 'var(--neutral-300)' }}>
             Set up your event details, configure tickets, and start selling
           </p>
         </div>
 
         {/* Stripe Connect Warning */}
         {!organizerData?.organizer?.stripeOnboardingComplete && (
-          <Card className="mb-6 border-orange-200 bg-orange-50">
-            <CardContent className="pt-6">
-              <div className="flex items-start gap-3">
-                <Info className="w-5 h-5 text-orange-600 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-orange-900">Complete Stripe setup to publish events</p>
-                  <p className="text-sm text-orange-700 mt-1">
-                    You can create and save events as drafts, but you'll need to connect your Stripe account before publishing.
-                  </p>
-                  <Link href="/tickets/organizer/dashboard">
-                    <Button size="sm" className="mt-3">Complete Setup</Button>
-                  </Link>
-                </div>
+          <div className="mb-6 glass-elevated rounded-xl p-5 border-2 animate-slideUp" style={{ borderColor: 'var(--copper)', background: 'var(--copper-glow)' }}>
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 mt-0.5" style={{ color: 'var(--copper)' }} />
+              <div className="flex-1">
+                <p className="font-semibold mb-1" style={{ color: 'var(--neutral-50)' }}>
+                  Complete Stripe setup to publish events
+                </p>
+                <p className="text-sm mb-3" style={{ color: 'var(--neutral-300)' }}>
+                  You can create and save events as drafts, but you'll need to connect your Stripe account before publishing.
+                </p>
+                <Link href="/tickets/organizer/dashboard">
+                  <Button size="sm" className="bg-copper-gradient hover:shadow-glow-copper text-white font-semibold">
+                    Complete Setup
+                  </Button>
+                </Link>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Event Creation Tabs */}
@@ -376,14 +388,16 @@ export function TicketsEventCreatePage() {
 
           {/* Event Details Tab */}
           <TabsContent value="details">
-            <Card>
-              <CardHeader>
-                <CardTitle>Event Information</CardTitle>
-                <CardDescription>
+            <div className="glass-elevated rounded-xl p-6 animate-slideUp">
+              <div className="mb-6">
+                <h2 className="text-xl font-fraunces font-semibold mb-2" style={{ color: 'var(--neutral-50)' }}>
+                  Event Information
+                </h2>
+                <p className="text-sm" style={{ color: 'var(--neutral-400)' }}>
                   Basic details about your event that attendees will see
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+                </p>
+              </div>
+              <div className="space-y-6">
                 {/* Event Title */}
                 <div className="space-y-2">
                   <Label htmlFor="title">Event Title *</Label>
@@ -558,28 +572,30 @@ export function TicketsEventCreatePage() {
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Ticket Tiers Tab */}
           <TabsContent value="tickets">
-            <Card>
-              <CardHeader>
-                <CardTitle>Ticket Tiers</CardTitle>
-                <CardDescription>
+            <div className="glass-elevated rounded-xl p-6 animate-slideUp">
+              <div className="mb-6">
+                <h2 className="text-xl font-fraunces font-semibold mb-2" style={{ color: 'var(--neutral-50)' }}>
+                  Ticket Tiers
+                </h2>
+                <p className="text-sm mb-3" style={{ color: 'var(--neutral-400)' }}>
                   Configure different ticket types and pricing for your event
-                </CardDescription>
+                </p>
                 {totalCapacity > 0 && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <Users className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2 glass-card rounded-lg px-3 py-2 inline-flex">
+                    <Users className="w-4 h-4" style={{ color: 'var(--copper)' }} />
+                    <span className="text-sm font-medium" style={{ color: 'var(--neutral-200)' }}>
                       Total capacity: {totalCapacity} tickets
                     </span>
                   </div>
                 )}
-              </CardHeader>
-              <CardContent className="space-y-4">
+              </div>
+              <div className="space-y-4">
                 {ticketTiers.map((tier, index) => (
                   <Card key={index} className="relative">
                     <CardContent className="pt-6">
@@ -692,20 +708,22 @@ export function TicketsEventCreatePage() {
                   <Plus className="w-4 h-4 mr-2" />
                   Add Another Ticket Tier
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
 
           {/* Fees & Taxes Tab */}
           <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Fees & Tax Settings</CardTitle>
-                <CardDescription>
+            <div className="glass-elevated rounded-xl p-6 animate-slideUp">
+              <div className="mb-6">
+                <h2 className="text-xl font-fraunces font-semibold mb-2" style={{ color: 'var(--neutral-50)' }}>
+                  Fees & Tax Settings
+                </h2>
+                <p className="text-sm" style={{ color: 'var(--neutral-400)' }}>
                   Configure how service fees and taxes are handled
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+                </p>
+              </div>
+              <div className="space-y-6">
                 {/* Fee Structure */}
                 <div className="space-y-4">
                   <h3 className="font-semibold flex items-center gap-2">
@@ -823,38 +841,44 @@ export function TicketsEventCreatePage() {
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4 mt-8">
-          <Button
-            onClick={() => handleSubmit('draft')}
-            variant="outline"
-            disabled={createEventMutation.isPending}
-            className="flex-1"
-            data-testid="button-save-draft"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            Save as Draft
-          </Button>
-          <Button
-            onClick={() => handleSubmit('published')}
-            disabled={createEventMutation.isPending || !organizerData?.organizer?.stripeOnboardingComplete}
-            className="flex-1"
-            data-testid="button-publish-event"
-          >
-            {createEventMutation.isPending ? (
-              <>Creating...</>
-            ) : (
-              <>
-                <Upload className="w-4 h-4 mr-2" />
-                Publish Event
-              </>
-            )}
-          </Button>
+        {/* Premium Action Buttons - Mobile-First */}
+        <div className="bottom-action-bar">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <Button
+              onClick={() => handleSubmit('draft')}
+              variant="outline"
+              disabled={createEventMutation.isPending}
+              className="flex-1 glass-card hover-glow touch-target"
+              style={{ color: 'var(--neutral-200)' }}
+              data-testid="button-save-draft"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              Save as Draft
+            </Button>
+            <Button
+              onClick={() => handleSubmit('published')}
+              disabled={createEventMutation.isPending || !organizerData?.organizer?.stripeOnboardingComplete}
+              className="flex-1 bg-copper-gradient hover:shadow-glow-copper text-white font-semibold touch-target"
+              data-testid="button-publish-event"
+            >
+              {createEventMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Publish Event
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* Cancel Link */}
