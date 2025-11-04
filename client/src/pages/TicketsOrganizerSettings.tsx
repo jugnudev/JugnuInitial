@@ -2,6 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useEffect } from "react";
 import { Settings, User, CreditCard, Mail, Lock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,18 +48,20 @@ export function TicketsOrganizerSettings() {
   const form = useForm<PayoutSettingsForm>({
     resolver: zodResolver(payoutSettingsSchema),
     defaultValues: {
-      payoutMethod: data?.organizer?.payoutMethod || 'e-transfer',
-      payoutEmail: data?.organizer?.payoutEmail || '',
+      payoutMethod: 'e-transfer',
+      payoutEmail: '',
     }
   });
 
   // Update form when data loads
-  if (data?.organizer && !form.formState.isDirty) {
-    form.reset({
-      payoutMethod: data.organizer.payoutMethod || 'e-transfer',
-      payoutEmail: data.organizer.payoutEmail || data.organizer.businessEmail,
-    });
-  }
+  useEffect(() => {
+    if (data?.organizer && !form.formState.isDirty) {
+      form.reset({
+        payoutMethod: data.organizer.payoutMethod || 'e-transfer',
+        payoutEmail: data.organizer.payoutEmail || data.organizer.businessEmail || '',
+      });
+    }
+  }, [data?.organizer, form])
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (values: PayoutSettingsForm) => {

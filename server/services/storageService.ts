@@ -488,3 +488,62 @@ export async function uploadResume(
   
   return urlData.publicUrl;
 }
+// Upload ticketing event cover image
+export async function uploadTicketEventImage(
+  file: Express.Multer.File,
+  organizerId: string
+): Promise<string> {
+  const supabase = getStorageClient();
+  const bucketName = 'ticket-event-images';
+  
+  // Validate file type
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+  if (!allowedTypes.includes(file.mimetype)) {
+    throw new Error(`Invalid file type: ${file.mimetype}. Only JPEG, PNG, and WebP images are allowed.`);
+  }
+  
+  // Validate file size (max 5MB)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxSize) {
+    throw new Error('Image file size must be less than 5MB');
+  }
+  
+  // Generate unique path
+  const timestamp = Date.now();
+  const safeFilename = slugify(file.originalname, { lower: true, strict: true });
+  const path = `organizers/${organizerId}/${timestamp}-${safeFilename}`;
+  
+  // Create bucket if it doesn't exist
+  const { error: bucketError } = await supabase.storage.getBucket(bucketName);
+  if (bucketError && bucketError.message.includes('not found')) {
+    const { error: createError } = await supabase.storage.createBucket(bucketName, {
+      public: true, // Public so event images can be displayed
+      fileSizeLimit: maxSize,
+      allowedMimeTypes: allowedTypes
+    });
+    if (createError) {
+      console.error('Failed to create ticket events bucket:', createError);
+      throw new Error(`Failed to create storage bucket: ${createError.message}`);
+    }
+  }
+  
+  // Upload to Supabase Storage
+  const { data, error } = await supabase.storage
+    .from(bucketName)
+    .upload(path, file.buffer, {
+      contentType: file.mimetype,
+      upsert: false
+    });
+  
+  if (error) {
+    console.error('Ticket event image upload error:', error);
+    throw new Error(`Failed to upload image: ${error.message}`);
+  }
+  
+  // Get public URL
+  const { data: urlData } = supabase.storage
+    .from(bucketName)
+    .getPublicUrl(data.path);
+  
+  return urlData.publicUrl;
+}

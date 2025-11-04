@@ -1,11 +1,13 @@
 import type { Express, Request, Response } from "express";
 import express from "express";
+import multer from 'multer';
 import { ticketsStorage } from "./tickets-storage";
 import { communitiesStorage } from "../communities/communities-supabase";
 import { StripeService, stripe } from "./stripe-service";
 import { addConnectRoutes } from './connect-routes';
 import { addRefundRoutes } from './refund-routes';
 import { addAnalyticsRoutes } from './analytics-routes';
+import { uploadTicketEventImage } from '../services/storageService';
 import { nanoid } from 'nanoid';
 import QRCode from 'qrcode';
 import { format } from 'date-fns';
@@ -91,6 +93,23 @@ const toCamelCase = (obj: any): any => {
   }, {} as any);
 };
 
+// Configure multer for image uploads
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept only images
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  },
+});
+
 export function addTicketsRoutes(app: Express) {
   // ============ STRIPE CONNECT ROUTES ============
   // Add Connect onboarding routes for business setup
@@ -102,6 +121,30 @@ export function addTicketsRoutes(app: Express) {
   
   // Add analytics and communication routes
   addAnalyticsRoutes(app);
+  
+  // ============ IMAGE UPLOAD ENDPOINT ============
+  
+  // Upload event cover image
+  app.post('/api/tickets/events/upload-image', requireTicketing, requireOrganizer, upload.single('image'), async (req: Request, res: Response) => {
+    try {
+      const organizer = (req as any).organizer;
+      const file = req.file;
+
+      if (!file) {
+        return res.status(400).json({ ok: false, error: 'No image file provided' });
+      }
+
+      const imageUrl = await uploadTicketEventImage(file, organizer.id);
+
+      res.json({
+        ok: true,
+        imageUrl
+      });
+    } catch (error: any) {
+      console.error('Event image upload error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to upload image' });
+    }
+  });
   
   // ============ CHECK-IN ENDPOINTS ============
   
@@ -1170,7 +1213,14 @@ export function addTicketsRoutes(app: Express) {
   app.post('/api/tickets/events', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
     try {
       const organizer = (req as any).organizer;
-      const validated = createEventSchema.parse(req.body);
+      
+      // Extract event and tiers from request body
+      const { event: eventPayload, tiers } = req.body;
+      
+      // If old format (direct fields), use req.body, otherwise use eventPayload
+      const eventData = eventPayload || req.body;
+      
+      const validated = createEventSchema.parse(eventData);
       
       // Generate slug from title with uniqueness retry
       const baseSlug = validated.title
@@ -1187,7 +1237,7 @@ export function addTicketsRoutes(app: Express) {
         const suffix = Math.random().toString(36).substring(2, 8);
         const slug = `${baseSlug}-${suffix}`;
         
-        const eventData: InsertTicketsEvent = {
+        const eventInsertData: InsertTicketsEvent = {
           ...validated,
           organizerId: organizer.id,
           slug: slug,
@@ -1195,7 +1245,7 @@ export function addTicketsRoutes(app: Express) {
         };
         
         try {
-          event = await ticketsStorage.createEvent(eventData);
+          event = await ticketsStorage.createEvent(eventInsertData);
         } catch (error: any) {
           // If slug conflict, retry with new suffix
           if (error.code === '23505' && error.detail?.includes('slug')) {
@@ -1205,6 +1255,26 @@ export function addTicketsRoutes(app: Express) {
             continue;
           }
           throw error;
+        }
+      }
+      
+      // Create tiers if provided
+      if (tiers && Array.isArray(tiers) && tiers.length > 0) {
+        for (const tier of tiers) {
+          if (tier.name) {
+            const tierData: InsertTicketsTier = {
+              eventId: event.id,
+              name: tier.name,
+              description: tier.description || null,
+              priceCents: tier.priceCents || 0,
+              capacity: tier.capacity || null,
+              maxPerOrder: tier.maxPerOrder || 10,
+              salesStartAt: tier.salesStartAt || null,
+              salesEndAt: tier.salesEndAt || null,
+              sortOrder: tier.sortOrder || 0
+            };
+            await ticketsStorage.createTier(tierData);
+          }
         }
       }
       
