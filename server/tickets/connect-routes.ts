@@ -12,32 +12,51 @@ export function addConnectRoutes(app: Express) {
   // Create or get Connect account and start onboarding
   app.post('/api/tickets/connect/onboarding', async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
+      // Support both session-based and header-based auth (like requireOrganizer middleware)
+      let userId = req.session?.userId;
+      let organizerId = req.headers['x-organizer-id'] as string;
+      
+      // If we have an organizer ID from header, fetch that organizer directly
+      if (organizerId) {
+        const organizer = await ticketsStorage.getOrganizerById(organizerId);
+        if (organizer) {
+          userId = organizer.userId ?? undefined;
+        }
+      }
+      
+      if (!userId && !organizerId) {
         return res.status(401).json({ ok: false, error: 'Not authenticated' });
       }
 
-      // Get or create organizer record
-      let organizer = await ticketsStorage.getOrganizerByUserId(req.session.userId);
+      // Get or create organizer record (prefer fetching by userId if available)
+      let organizer = userId ? await ticketsStorage.getOrganizerByUserId(userId) : null;
+      if (!organizer && organizerId) {
+        organizer = await ticketsStorage.getOrganizerById(organizerId);
+      }
       
-      if (!organizer) {
-        // Create new organizer record
+      if (!organizer && userId) {
+        // Create new organizer record (only if we have a userId)
         organizer = await ticketsStorage.createOrganizer({
-          userId: req.session.userId,
-          email: req.body.email || `user-${req.session.userId}@jugnu.ca`,
+          userId,
+          email: req.body.email || `user-${userId}@jugnu.ca`,
           businessName: req.body.businessName || 'My Business',
           businessEmail: req.body.businessEmail || req.body.email,
           status: 'pending',
         });
       }
+      
+      if (!organizer) {
+        return res.status(404).json({ ok: false, error: 'Organizer not found' });
+      }
 
       // Create or retrieve Stripe Connect account
-      let accountId = organizer.stripeAccountId || undefined;
+      let accountId = organizer.stripeAccountId ?? undefined;
       
       if (!accountId) {
         // Create new Connect account
         accountId = await StripeConnectService.createConnectAccount({
           email: organizer.email,
-          businessName: organizer.businessName,
+          businessName: organizer.businessName ?? undefined,
           country: 'CA', // Canada
         });
 
@@ -45,17 +64,16 @@ export function addConnectRoutes(app: Express) {
         await ticketsStorage.updateOrganizerStripeAccount(organizer.id, accountId);
       }
 
-      // Create onboarding link
-      const appUrl = process.env.APP_URL || `${req.protocol}://${req.get('host')}`;
+      // Create onboarding link using frontend-provided URLs
       const accountLink = await StripeConnectService.createAccountLink({
         accountId,
-        refreshUrl: `${appUrl}/business/ticketing/onboarding`,
-        returnUrl: `${appUrl}/business/ticketing/dashboard?onboarding=complete`,
+        refreshUrl: req.body.refreshUrl || `${req.protocol}://${req.get('host')}/tickets/organizer/connect`,
+        returnUrl: req.body.returnUrl || `${req.protocol}://${req.get('host')}/tickets/organizer/connect?success=true`,
       });
 
       res.json({
         ok: true,
-        onboardingUrl: accountLink,
+        url: accountLink, // Frontend expects 'url' not 'onboardingUrl'
         accountId,
       });
 

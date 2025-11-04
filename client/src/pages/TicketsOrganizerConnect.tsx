@@ -22,6 +22,10 @@ interface Organizer {
   businessName: string;
   businessEmail: string;
   stripeAccountId: string | null;
+  platformFeeBps: number;
+  stripeOnboardingComplete: boolean;
+  stripeChargesEnabled: boolean;
+  stripePayoutsEnabled: boolean;
   status: 'pending' | 'active' | 'suspended';
 }
 
@@ -84,16 +88,14 @@ export function TicketsOrganizerConnect() {
     setIsConnecting(true);
 
     try {
-      const response = await fetch('/api/tickets/organizers/connect', {
+      // Use the correct Stripe Connect onboarding endpoint
+      const response = await fetch('/api/tickets/connect/onboarding', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-organizer-id': organizerId
         },
         body: JSON.stringify({
-          userId: generateUUID(), // Generate proper UUID for validation
-          businessName: data?.organizer?.businessName || '',
-          businessEmail: data?.organizer?.businessEmail || '',
           returnUrl: `${window.location.origin}/tickets/organizer/connect?success=true`,
           refreshUrl: `${window.location.origin}/tickets/organizer/connect`
         })
@@ -101,17 +103,9 @@ export function TicketsOrganizerConnect() {
 
       const result = await response.json();
       
-      if (result.ok && result.onboardingUrl) {
+      if (result.ok && result.url) {
         // Redirect to Stripe Connect onboarding
-        window.location.href = result.onboardingUrl;
-      } else if (result.testMode) {
-        // Test mode - simulate success
-        toast({
-          title: "Test Mode: Stripe Connected",
-          description: "In test mode, your account is automatically connected.",
-          variant: "default"
-        });
-        refetch();
+        window.location.href = result.url;
       } else {
         throw new Error(result.error || 'Failed to start Stripe onboarding');
       }
@@ -186,7 +180,8 @@ export function TicketsOrganizerConnect() {
   }
 
   const organizer = data?.organizer;
-  const isConnected = organizer?.status === 'active';
+  // Check Stripe Connect onboarding status
+  const isConnected = organizer?.stripeOnboardingComplete && organizer?.stripeChargesEnabled;
 
   return (
     <div className="min-h-screen bg-background">

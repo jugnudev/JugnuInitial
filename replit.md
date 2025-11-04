@@ -1,7 +1,7 @@
 # Replit.md
 
 ## Overview
-Jugnu is a cultural events and communities platform for South Asian and global music experiences across Canada. It offers exclusive member spaces, event discovery, ticketing, and sponsorship opportunities. The platform prioritizes performance, security, and growth, featuring caching, rate limiting, invite systems, and analytics. Communities feature is currently in FREE BETA.
+Jugnu is a cultural events and communities platform for South Asian and global music experiences across Canada. It facilitates event discovery, ticketing, and sponsorship opportunities, with exclusive member spaces. The platform prioritizes performance, security, and growth through features like caching, rate limiting, invite systems, and analytics. The Communities feature is currently in FREE BETA.
 
 ## User Preferences
 Preferred communication style: Simple, everyday language.
@@ -9,72 +9,21 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### UI/UX Decisions
-- **Frontend Framework**: React 18 with TypeScript and Vite.
-- **Styling**: Tailwind CSS, shadcn/ui components, and custom variables for a mobile-first responsive design.
-- **Typography**: Google Fonts (Fraunces, Inter).
-- **Navigation**: Conditional display with streamlined CTAs in hero sections and fixed bottom action bars for mobile.
-- **Accessibility**: ARIA labels, keyboard navigation, and screen reader support.
-- **User Acquisition Hierarchy**: Account creation (primary) > Event exploration (secondary) > Newsletter signup (tertiary, homepage bottom only). Authenticated users manage newsletter preferences in account settings.
-- **Polls & Giveaways UI**: Card-based navigation with interactive hover effects and scale animations for primary type selection. Status filters (Active/Closed/Ended) integrated as pill buttons with gradient highlights in action bar, eliminating stacked tab bars for cleaner UX.
+The platform uses React 18 with TypeScript and Vite, styled with Tailwind CSS and shadcn/ui components for a mobile-first, responsive design. Typography uses Google Fonts (Fraunces, Inter). Navigation is conditional, featuring streamlined CTAs and fixed bottom action bars for mobile. Accessibility is ensured with ARIA labels, keyboard navigation, and screen reader support. User acquisition prioritizes account creation, followed by event exploration, and newsletter signup. Polls and Giveaways utilize card-based navigation with interactive effects and status filters integrated as pill buttons.
 
 ### Technical Implementations
-- **Backend Framework**: Express.js with TypeScript.
-- **Middleware**: cookie-parser for cookie handling (required for community auth tokens), express-session for platform sessions.
-- **Authentication**: Hybrid middleware (`requireAuthOrSession`) supports both community auth tokens (Bearer/cookie) and platform sessions for seamless user experience across community portals and main platform.
-- **Database ORM**: Drizzle ORM for PostgreSQL.
-- **State Management**: TanStack Query for server state, React hooks for local state.
-- **Routing**: Wouter for client-side navigation.
-- **Session Management**: Connect-pg-simple with 24-hour timeout.
-- **API**: RESTful with comprehensive error handling.
-- **Security**: Rate limiting, input sanitization, CSRF protection, IP blocking, and environment variables for sensitive data.
-- **Performance**: In-memory caching with TTL, query optimization, code splitting, lazy/progressive image loading, and React memoization.
-- **SEO**: Meta tags, Open Graph, Twitter Cards, and JSON-LD via react-helmet-async (wrapped with HelmetProvider in App.tsx).
-- **Data Management**: Static data from local JSON, automated import and bidirectional sync of community events from Google Calendar ICS feeds, and automated cleanup jobs.
-- **Email System**: SendGrid integration with premium-designed templates for verification codes, welcome emails (separate for user/business accounts), and notifications. Sender address is relations@jugnucanada.com with environment variable precedence: EMAIL_FROM_ADDRESS → SENDGRID_FROM_EMAIL → default. Welcome emails automatically sent after first account verification. All emails feature modern gradients, accessible design, and Canada-wide branding. Email worker runs every minute via cron when Communities enabled, processing immediate notifications and scheduled daily/weekly digests from community_email_queue table.
+The backend is built with Express.js and TypeScript, utilizing `cookie-parser` and `express-session` for session management. Authentication uses a hybrid middleware supporting both community auth tokens and platform sessions. Drizzle ORM is used for PostgreSQL, and TanStack Query for server state management. Wouter handles client-side routing. Security features include rate limiting, input sanitization, CSRF protection, IP blocking, and environment variables. Performance is optimized with in-memory caching, query optimization, code splitting, lazy loading, and React memoization. SEO is managed with `react-helmet-async` for meta tags and structured data. Data management involves static JSON data, automated Google Calendar ICS feed synchronization, and cleanup jobs. SendGrid is integrated for email communications, including verification, welcome, and notification emails, processed by a cron-based worker.
 
 ### Feature Specifications
-- **Admin & Sponsorship Systems**: Key-based Admin API, portal token system (UUID-based), lead management (CRUD), multi-part onboarding for campaigns, creative upload (banners), sponsor portal with real-time analytics and CSV export, and health monitoring endpoints.
-- **Business Signup Flow**: Streamlined single-page signup combining user registration and organizer application submission. Includes CTAs in hero section and regular signup page. Form validation handles optional numeric fields (NaN → undefined). Backend conditionally inserts optional Supabase fields to prevent schema mismatch errors. Supports "0 years" experience properly using typeof checks. Website field automatically adds "https://" prefix to URLs without protocol for improved UX.
-- **Careers System**: "Join the Team" recruitment platform for volunteer opportunities. Public-facing careers page (/careers) with premium dark gradient hero, SEO optimization, department filtering, and job details. Admin management page (/admin/careers) with full CRUD for job postings and application tracking. Database uses snake_case field names to match Supabase conventions. Application data stored with status workflow (pending → reviewing → interviewed → accepted/rejected).
-- **Loyalty Program (Coalition Points)**: 
-    - **Coming Soon Landing Page**: Premium SEO-optimized page at /loyalty (public, not behind feature flag) announcing Jugnu Coalition Points - Canada's South Asian rewards wallet with fixed value (1,000 JP = $1 CAD).
-    - **Marketing Content**: Hero section, How It Works (Earn/Spend/Fixed Value), benefits for users and businesses, South Asian-first use cases (weddings, festivals), pricing snapshot ($50/mo includes 20k JP), and comprehensive FAQ with Schema.org markup.
-    - **Cultural Design**: Premium aesthetic with gold/amber accents, cultural stock photography, festival mentions (Diwali, Eid, Vaisakhi, Navratri), and mobile-first responsive layout.
-    - **Waitlist Integration**: CTAs link to existing newsletter signup system, business partner signups use organizer flow.
-    - **Feature Flag**: FF_COALITION_LOYALTY global flag controls API routes and future features. Landing page is always public.
-    - **Core Principles**: Fixed burn value (1,000 JP = $1), merchant-set issue rate, pre-funded issuance, clearinghouse settlement, subscription + tiered top-ups, web-only MVP, optional Home Boost.
-    - **FREE BETA Implementation**: Like Communities, loyalty features are FREE during beta. No subscription enforcement. Auto-provision merchant_loyalty_config with 20k included points on first access. Database schema includes wallets, merchant_loyalty_config, loyalty_ledger (immutable audit trail), and user_merchant_earnings tables.
-    - **API Routes**: server/loyalty/loyalty-routes.ts provides user routes (/api/loyalty/wallet, /api/loyalty/transactions) and business routes (/api/loyalty/business/config, /api/loyalty/business/issue). Storage layer (server/loyalty/loyalty-storage.ts) uses Supabase client with typed interfaces matching database snake_case columns.
-    - **Issue Flow (MVP)**: Business looks up user by email, enters bill amount, system calculates points (bill × issue_rate), deducts from point bank (Included first, then Purchased), creates ledger entry, updates wallet + per-merchant breakdown atomically.
-- **Ticketing System (Stripe Connect)**:
-    - **Architecture**: Converted from Merchant of Record (MoR) to Stripe Connect for direct-to-business payments. Money flows directly to business Stripe accounts with automatic 5% platform fee collection via `application_fee_amount`.
-    - **Onboarding**: Businesses complete Stripe Connect Express onboarding through `/api/tickets/connect/onboarding`. Backend tracks onboarding status via `stripe_onboarding_complete`, `stripe_charges_enabled`, `stripe_payouts_enabled` fields in `tickets_organizers` table.
-    - **Payment Flow**: Checkout sessions and payment intents use `on_behalf_of` and `transfer_data.destination` to route payments to business Stripe accounts. Platform fee (configurable via `platform_fee_bps`, default 500 = 5%) automatically deducted.
-    - **Database Schema**: `tickets_organizers` links to `users` via `user_id`, enabling seamless integration with Communities platform. `tickets_orders` simplified to use `application_fee_cents` instead of MoR payout tracking fields.
-    - **Communities Integration**: Business accounts can enable ticketing, create events visible in their community portal, and sell tickets directly. Events appear in both community pages and public event listings (`/events`).
-    - **Webhooks**: `account.updated` webhook updates organizer status when Stripe Connect onboarding changes. Standard payment webhooks (`payment_intent.succeeded`, `checkout.session.completed`) handle order fulfillment.
-    - **Instant Settlement**: Businesses receive payments directly from Stripe (instant payouts available). No manual payout processing or reconciliation needed.
-    - **Compliance Benefits**: Platform not a money transmitter, lower liability, simpler accounting, easier global scaling.
-    - **API Routes**: Connect routes (`/api/tickets/connect/*`), event management (`/api/tickets/events/*`), checkout (`/api/tickets/checkout/*`). See TICKETING_STRIPE_CONNECT.md for complete documentation.
-- **Communities Platform**:
-    - **Notification Preferences**: Email frequency settings (immediate/daily/weekly), digest time scheduling, timezone configuration. UI integrated in Account Settings > Schedule tab. Requires manual Supabase table setup (see SETUP_NOTIFICATION_PREFS.md).
-    - **Growth Features**: Invite links with copy functionality for owners/moderators, member referrals, community discovery, social sharing.
-    - **Join Link Management**: Owners and moderators can access permanent invite links from Settings tab with one-click copy, usage tracking, and automatic link generation.
-    - **Analytics Dashboard**: Real-time insights including best time to post, engagement metrics, member metrics, and post performance.
-    - **Real-Time Chat**: WebSocket server with Supabase persistence, online presence, typing indicators, role-based permissions, auto-moderation, and message management.
-    - **Moderator & Permissions**: Role management (owner, moderator, member) with granular permissions. Moderators have access to Settings tab including invite link management.
-    - **Post Reactions**: Atomic upsert operations with optimistic UI updates.
-    - **Media Upload**: Supports images (JPG/PNG/WebP, max 10MB) and MP4 videos (max 50MB) with drag-and-drop.
-    - **Post as Business**: Toggle to post announcements as the community/business or as an individual user.
-    - **Free Beta Access**: Communities are FREE for all business accounts during the beta period. No billing enforcement, subscription checks, or payment requirements. Billing routes and Stripe initialization disabled. Visual beta badges displayed on Communities features.
-    - **Giveaway System**: Comprehensive functionality including random draw, first-come-first-serve, task-based, points-based with automated winner selection, prize management, winner display with confetti animation, delete capability, and premium mobile-friendly interface. Authors cannot enter their own giveaways to prevent conflicts of interest.
-    - **Notification System**: In-app notifications with email delivery, frequency preferences (immediate/daily/weekly), quiet hours support, and real-time WebSocket updates. Premium UI with Lucide icons, gradient containers, and dark-mode optimized design. Notification cards are fully clickable - clicking anywhere on a card navigates to the actionUrl and automatically marks the notification as read. Dedicated Notification Center page (/notifications) with filtering, bulk actions, and pagination. Database uses `user_id` column for recipient identification (Supabase queries). Schema includes post_id, comment_id, poll_id for context tracking, action_url for navigation, and metadata (jsonb) for rich notification data. Email tracking via is_email_sent and email_sent_at columns. PATCH endpoint sanitizes communityId parameter (converts "null"/null/undefined to undefined) to prevent UUID parsing errors for global preferences. Email notifications automatically sent when posts are created, members are approved, or roles are updated, respecting user frequency preferences (immediate emails sent right away, daily/weekly queued for digest). Requires manual Supabase table setup for community_email_queue with scheduled_for column (see SETUP_EMAIL_QUEUE.md). All notification creation points (membership approval, role updates, post publishing, comment creation) pass comprehensive metadata including communityName, communitySlug, postTitle, authorName, etc.
+- **Admin & Sponsorship Systems**: Includes a key-based Admin API, UUID-based portal tokens, lead management (CRUD), multi-part onboarding for campaigns, creative uploads, a sponsor portal with real-time analytics and CSV export, and health monitoring endpoints.
+- **Business Signup Flow**: A streamlined single-page process for user registration and organizer application, with form validation and automatic URL prefixing.
+- **Careers System**: A "Join the Team" platform for volunteer recruitment, featuring a public-facing careers page with department filtering and job details, and an admin management page for full CRUD operations on job postings and application tracking.
+- **Loyalty Program (Coalition Points)**: Features a "Coming Soon" landing page announcing "Jugnu Coalition Points" with a fixed value (1,000 JP = $1 CAD). Includes marketing content, FAQs, cultural design elements, and waitlist integration. Controlled by a `FF_COALITION_LOYALTY` feature flag, but the landing page is always public. The program is in FREE BETA, with auto-provisioning of points for merchants and specific API routes for user wallets and business point issuance.
+- **Ticketing System (Stripe Connect)**: Converted to a Stripe Connect Express model for direct-to-business payments with automatic platform fee collection. Includes an onboarding flow for businesses to connect their Stripe accounts, and a payment flow utilizing `on_behalf_of` and `transfer_data.destination` for direct routing. Webhooks handle account updates and payment fulfillment.
+- **Communities Platform**: Offers notification preferences (email frequency, digest scheduling), growth features (invite links, member referrals, discovery), and an analytics dashboard. Includes a real-time chat with WebSocket server, online presence, and role-based permissions. Supports post reactions, media uploads (images/videos), and "Post as Business" functionality. The platform is in Free Beta, with visual badges indicating beta status and disabled billing checks. A comprehensive giveaway system is included, with automated winner selection and prize management. An in-app notification system with email delivery, frequency preferences, and a dedicated Notification Center page is also present.
 
 ### System Design Choices
-- **Mobile-first approach**: Implemented using Tailwind CSS breakpoints.
-- **Feature Flags**: `ENABLE_TICKETING`, `ENABLE_COMMUNITIES`, and `FF_COALITION_LOYALTY` control the visibility and functionality of major system components across both server and client, including SEO isolation via `robots.txt` and `sitemap.xml`. Loyalty landing page is public regardless of flag state.
-- **Database Design**: Separate tables for community subscriptions, payments, billing events, giveaways, entries, and winners.
-- **Timezone Hardening**: All metrics processed and stored in Pacific timezone.
+A mobile-first approach is implemented using Tailwind CSS. Feature flags (`ENABLE_TICKETING`, `ENABLE_COMMUNITIES`, `FF_COALITION_LOYALTY`) control the visibility and functionality of major components and SEO. Database design includes separate tables for community subscriptions, payments, billing, giveaways, entries, and winners. All metrics are processed and stored in the Pacific timezone.
 
 ## External Dependencies
 
@@ -84,7 +33,7 @@ Preferred communication style: Simple, everyday language.
 - **@tanstack/react-query**: Server state management.
 - **wouter**: React router.
 - **express**: Node.js web framework.
-- **cookie-parser**: Cookie parsing middleware (critical for community auth).
+- **cookie-parser**: Cookie parsing middleware.
 
 ### UI and Styling
 - **@radix-ui/react-***: Accessible UI primitives.

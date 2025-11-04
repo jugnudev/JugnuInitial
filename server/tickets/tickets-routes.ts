@@ -51,9 +51,10 @@ const requireOrganizer = async (req: Request & { session?: any }, res: Response,
   }
   
   const organizer = await ticketsStorage.getOrganizerById(organizerId);
-  if (!organizer || organizer.status !== 'active') {
-    return res.status(401).json({ ok: false, error: 'Organizer account not active' });
+  if (!organizer || organizer.status === 'suspended') {
+    return res.status(401).json({ ok: false, error: 'Organizer account not active or suspended' });
   }
+  // Allow 'pending' and 'active' status so organizers can complete Stripe Connect onboarding
   
   (req as any).organizer = organizer;
   next();
@@ -722,12 +723,13 @@ export function addTicketsRoutes(app: Express) {
       
       console.log('[DEBUG] Events before toCamelCase:', events.length > 0 ? JSON.stringify(events[0], null, 2).slice(0, 300) : 'No events');
       
-      // Convert events to camelCase for frontend consistency
+      // Convert events and organizer to camelCase for frontend consistency
       const camelCaseEvents = toCamelCase(events);
+      const camelCaseOrganizer = toCamelCase(organizer);
       
       console.log('[DEBUG] Events after toCamelCase:', camelCaseEvents.length > 0 ? JSON.stringify(camelCaseEvents[0], null, 2).slice(0, 300) : 'No events');
       
-      res.json({ ok: true, organizer, events: camelCaseEvents });
+      res.json({ ok: true, organizer: camelCaseOrganizer, events: camelCaseEvents });
     } catch (error) {
       console.error('Get organizer error:', error);
       res.status(500).json({ ok: false, error: 'Failed to fetch organizer info' });

@@ -35,9 +35,12 @@ interface Organizer {
   id: string;
   businessName: string;
   businessEmail: string;
+  stripeAccountId: string | null;
+  platformFeeBps: number;
+  stripeOnboardingComplete: boolean;
+  stripeChargesEnabled: boolean;
+  stripePayoutsEnabled: boolean;
   status: 'active' | 'suspended';
-  payoutMethod: string;
-  payoutEmail: string;
 }
 
 interface RevenueSummary {
@@ -66,16 +69,7 @@ export function TicketsOrganizerDashboard() {
     }
   });
 
-  // Get revenue summary for MoR model
-  const { data: revenueData, isLoading: revenueLoading } = useQuery<{ ok: boolean; summary: RevenueSummary }>({
-    queryKey: ['/api/tickets/organizers/revenue-summary'],
-    enabled: isEnabled && !!organizerId && !!data?.organizer,
-    meta: {
-      headers: {
-        'x-organizer-id': organizerId || ''
-      }
-    }
-  });
+  // Stripe Connect: No revenue summary needed - payments go directly to organizer's Stripe account
 
   const duplicateEventMutation = useMutation({
     mutationFn: async (eventId: string) => {
@@ -183,31 +177,62 @@ export function TicketsOrganizerDashboard() {
           </p>
         </div>
 
-        {/* Payout Settings - MoR Model */}
-        <Card className="mb-8 border-green-200 bg-green-50">
-          <CardHeader>
-            <CardTitle className="text-green-900">Payout Settings</CardTitle>
-            <CardDescription className="text-green-700">
-              Your account is active. Update your payout preferences to receive your earnings.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-800">
-                  <strong>Payout Method:</strong> {organizer?.payoutMethod || 'E-transfer'}
-                </p>
-                <p className="text-sm text-green-800">
-                  <strong>Payout Email:</strong> {organizer?.payoutEmail || organizer?.businessEmail}
-                </p>
+        {/* Stripe Connect Status */}
+        {!organizer?.stripeOnboardingComplete ? (
+          <Card className="mb-8 border-orange-200 bg-orange-50">
+            <CardHeader>
+              <CardTitle className="text-orange-900">Complete Stripe Setup</CardTitle>
+              <CardDescription className="text-orange-700">
+                Connect your Stripe account to start accepting payments for your events.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-orange-800">
+                    You need to complete Stripe Connect onboarding before you can sell tickets.
+                  </p>
+                </div>
+                <Link href="/tickets/organizer/connect">
+                  <Button className="bg-orange-600 hover:bg-orange-700 text-white" data-testid="button-connect-stripe">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Connect Stripe
+                  </Button>
+                </Link>
               </div>
-              <Button variant="outline" data-testid="button-payout-settings">
-                <Settings className="w-4 h-4 mr-2" />
-                Update Settings
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="mb-8 border-green-200 bg-green-50">
+            <CardHeader>
+              <CardTitle className="text-green-900">Payment Account Connected</CardTitle>
+              <CardDescription className="text-green-700">
+                Your Stripe account is connected. Payments go directly to your Stripe account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm text-green-800">
+                    <strong>Status:</strong> {organizer?.stripeChargesEnabled ? '✓ Can accept payments' : '⚠ Setup incomplete'}
+                  </p>
+                  <p className="text-sm text-green-800">
+                    <strong>Payouts:</strong> {organizer?.stripePayoutsEnabled ? '✓ Enabled' : '⚠ Pending setup'}
+                  </p>
+                  <p className="text-sm text-green-600">
+                    <strong>Platform Fee:</strong> {(organizer?.platformFeeBps || 500) / 100}%
+                  </p>
+                </div>
+                <Link href="/tickets/organizer/settings">
+                  <Button variant="outline" data-testid="button-account-settings">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Account Settings
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -233,38 +258,26 @@ export function TicketsOrganizerDashboard() {
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Earned</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Total Events</CardTitle>
+              <Ticket className="w-4 h-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {revenueLoading ? (
-                  <div className="animate-pulse bg-gray-200 h-8 w-20 rounded"></div>
-                ) : (
-                  `$${((revenueData?.summary?.totalEarned || 0) / 100).toFixed(2)}`
-                )}
-              </div>
+              <div className="text-2xl font-bold">{events.length}</div>
               <p className="text-xs text-muted-foreground">
-                Platform fees deducted
+                All time
               </p>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Balance</CardTitle>
-              <Ticket className="w-4 h-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium">Revenue & Payouts</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
-                {revenueLoading ? (
-                  <div className="animate-pulse bg-gray-200 h-8 w-20 rounded"></div>
-                ) : (
-                  `$${((revenueData?.summary?.pendingBalance || 0) / 100).toFixed(2)}`
-                )}
-              </div>
+              <div className="text-2xl font-bold">Stripe Dashboard</div>
               <p className="text-xs text-muted-foreground">
-                Ready for payout
+                View in your Stripe account
               </p>
             </CardContent>
           </Card>
