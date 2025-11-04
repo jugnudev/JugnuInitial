@@ -268,7 +268,7 @@ const contentAnimation = {
 
 export default function EnhancedCommunityDetailPage() {
   const [match, params] = useRoute("/communities/:slug");
-  const communitySlug = params?.slug;
+  const communitySlug = params?.slug || '';  // Use URL slug directly
   
   const [activeTab, setActiveTab] = useState("announcements");
   const [showCreatePost, setShowCreatePost] = useState(false);
@@ -2303,8 +2303,8 @@ export default function EnhancedCommunityDetailPage() {
               </Card>
 
               {/* Ticketing Settings Card */}
-              {import.meta.env.VITE_ENABLE_TICKETING === 'true' && community && (
-                <TicketingSettingsCard communitySlug={community.slug} userId={user?.id} />
+              {import.meta.env.VITE_ENABLE_TICKETING === 'true' && communitySlug && (
+                <TicketingSettingsCard communitySlug={communitySlug} userId={user?.id} />
               )}
             </TabsContent>
 
@@ -2875,15 +2875,16 @@ export default function EnhancedCommunityDetailPage() {
   );
 }
 
-function TicketingSettingsCard({ communitySlug, userId }: { communitySlug?: string; userId?: string }) {
+function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: string; userId?: string }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [isEnabling, setIsEnabling] = useState(false);
   const [businessType, setBusinessType] = useState<'individual' | 'company'>('individual');
 
+  // Simple query - no complicated logic
   const { data: organizerData, isLoading, refetch } = useQuery<{ ok: boolean; organizer: any | null }>({
     queryKey: ['/api/tickets/organizers/me'],
-    enabled: !!userId,
+    enabled: true,  // Always try to fetch
     retry: false,
   });
 
@@ -2893,24 +2894,6 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug?: stri
   const isPending = hasStripeAccount && !isConnected;
 
   const handleEnableTicketing = async () => {
-    if (!userId) {
-      toast({
-        title: "Sign in required",
-        description: "Please sign in to enable ticketing.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (!communitySlug || communitySlug === 'null' || communitySlug === 'undefined') {
-      toast({
-        title: "Invalid community",
-        description: "Cannot enable ticketing: community information is missing. Please refresh the page.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setIsEnabling(true);
 
     try {
@@ -2922,7 +2905,7 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug?: stri
         body: JSON.stringify({
           returnUrl: `${window.location.origin}/communities/${communitySlug}?tab=settings&ticketing=success`,
           refreshUrl: `${window.location.origin}/communities/${communitySlug}?tab=settings`,
-          businessType, // Pass selected business type
+          businessType,
         }),
       });
 
@@ -3025,15 +3008,6 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug?: stri
               </Button>
               <Button
               onClick={async () => {
-                if (!communitySlug || communitySlug === 'null' || communitySlug === 'undefined') {
-                  toast({
-                    title: "Invalid community",
-                    description: "Cannot continue setup: community information is missing. Please refresh the page.",
-                    variant: "destructive"
-                  });
-                  return;
-                }
-                
                 try {
                   const response = await fetch('/api/tickets/connect/login', {
                     method: 'POST',
@@ -3048,7 +3022,6 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug?: stri
                   const result = await response.json();
                   
                   if (result.ok) {
-                    // Either opens onboarding or dashboard in new tab
                     window.location.href = result.url;
                   } else {
                     toast({
