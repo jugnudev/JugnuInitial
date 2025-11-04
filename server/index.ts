@@ -22,7 +22,8 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true, // Prevent XSS
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax' // Allow cookie to be sent on redirects from external sites (like Stripe)
   }
 }));
 
