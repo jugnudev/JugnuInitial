@@ -1887,111 +1887,310 @@ export default function EnhancedCommunityDetailPage() {
             </TabsContent>
             
             {/* Events Tab */}
-            <TabsContent value="events" className="space-y-6">
-              <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
-                <CardHeader>
-                  <CardTitle className="text-base md:text-lg flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
-                    Ticketed Events
-                  </CardTitle>
-                  <CardDescription className="text-xs md:text-sm">
-                    Create and manage ticketed events for your community. Set up Stripe Connect in Settings to accept payments.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {!organizerData?.organizer ? (
-                    <Alert className="bg-blue-500/10 border-blue-500/50">
-                      <Ticket className="h-4 w-4 text-blue-500" />
-                      <AlertDescription className="text-blue-700 dark:text-blue-400">
-                        Event ticketing is ready to use! Go to the Settings tab to set up payment processing with Stripe Connect. You can create draft events now and publish them once Stripe is connected.
-                      </AlertDescription>
-                    </Alert>
-                  ) : !organizerData.organizer.stripeOnboardingComplete ? (
-                    <Alert className="bg-yellow-500/10 border-yellow-500/50">
-                      <AlertCircle className="h-4 w-4 text-yellow-500" />
-                      <AlertDescription className="text-yellow-700 dark:text-yellow-400">
-                        You can create draft events, but you need to complete Stripe Connect setup in the Settings tab before you can accept payments.
-                      </AlertDescription>
-                    </Alert>
-                  ) : null}
+            <TabsContent value="events" className="space-y-4 md:space-y-6">
+              {/* Setup Status & Guidance */}
+              {!organizerData?.organizer ? (
+                <Alert className="glass-card border-blue-500/50 bg-blue-500/10">
+                  <Ticket className="h-4 w-4 text-blue-400" />
+                  <AlertDescription className="text-blue-300">
+                    <strong className="font-semibold">Event Ticketing Available!</strong> Go to the Settings tab to enable Stripe Connect payment processing. You can create draft events now and publish them once Stripe is connected.
+                  </AlertDescription>
+                </Alert>
+              ) : !organizerData.organizer.stripeOnboardingComplete ? (
+                <Alert className="glass-card border-yellow-500/50 bg-yellow-500/10">
+                  <AlertCircle className="h-4 w-4 text-yellow-400" />
+                  <AlertDescription className="text-yellow-300">
+                    <strong className="font-semibold">Setup In Progress.</strong> Complete Stripe Connect setup in Settings to accept payments. Draft events can be created now.
+                  </AlertDescription>
+                </Alert>
+              ) : organizerData.organizer.stripeChargesEnabled ? (
+                <Alert className="glass-card border-green-500/50 bg-green-500/10">
+                  <CheckCircle className="h-4 w-4 text-green-400" />
+                  <AlertDescription className="text-green-300">
+                    <strong className="font-semibold">Ticketing Active!</strong> Your Stripe Connect account is ready. Create and sell tickets for your events.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
 
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      onClick={() => setLocation('/tickets/organizer/dashboard')}
-                      variant="default"
-                      className="flex-1 bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-accent/90 text-black font-semibold shadow-lg transition-all"
-                      data-testid="button-manage-events"
-                    >
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Manage Events
-                    </Button>
-                    <Button
-                      onClick={() => setActiveTab('settings')}
-                      variant="outline"
-                      className="flex-1"
-                      data-testid="button-go-to-ticketing-settings"
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Payment Setup
-                    </Button>
+              {/* Event Stats Overview */}
+              {organizerData?.events && organizerData.events.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                  <Card className="glass-card border-premium-border">
+                    <CardContent className="pt-4 md:pt-6">
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <div className="p-2 rounded-lg bg-copper-500/20">
+                          <Calendar className="h-4 w-4 md:h-5 md:w-5 text-copper-400" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-premium-text-muted">Total Events</p>
+                          <p className="text-lg md:text-2xl font-bold text-white">{organizerData.events.length}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="glass-card border-premium-border">
+                    <CardContent className="pt-4 md:pt-6">
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <div className="p-2 rounded-lg bg-green-500/20">
+                          <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-400" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-premium-text-muted">Published</p>
+                          <p className="text-lg md:text-2xl font-bold text-white">
+                            {organizerData.events.filter((e: any) => e.status === 'published').length}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="glass-card border-premium-border">
+                    <CardContent className="pt-4 md:pt-6">
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <div className="p-2 rounded-lg bg-yellow-500/20">
+                          <Edit3 className="h-4 w-4 md:h-5 md:w-5 text-yellow-400" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-premium-text-muted">Drafts</p>
+                          <p className="text-lg md:text-2xl font-bold text-white">
+                            {organizerData.events.filter((e: any) => e.status === 'draft').length}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="glass-card border-premium-border">
+                    <CardContent className="pt-4 md:pt-6">
+                      <div className="flex items-center gap-2 md:gap-3">
+                        <div className="p-2 rounded-lg bg-blue-500/20">
+                          <Clock className="h-4 w-4 md:h-5 md:w-5 text-blue-400" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-premium-text-muted">Upcoming</p>
+                          <p className="text-lg md:text-2xl font-bold text-white">
+                            {organizerData.events.filter((e: any) => new Date(e.startAt) > new Date()).length}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Main Events Dashboard */}
+              <Card className="glass-elevated border-premium-border">
+                <CardHeader className="border-b border-premium-border/50">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-base md:text-lg flex items-center gap-2">
+                        <Ticket className="h-5 w-5 text-copper-400" />
+                        Event Management
+                      </CardTitle>
+                      <CardDescription className="text-xs md:text-sm mt-1">
+                        Create, edit, and manage all your community events
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => setLocation('/tickets/organizer/events/new')}
+                        className="touch-target bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-accent/90 text-black font-semibold shadow-lg"
+                        data-testid="button-create-event"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Create Event</span>
+                        <span className="sm:hidden">New</span>
+                      </Button>
+                      <Button
+                        onClick={() => setActiveTab('settings')}
+                        variant="outline"
+                        className="touch-target border-premium-border hover:border-copper-500/50"
+                        data-testid="button-go-to-settings"
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        <span className="hidden sm:inline">Settings</span>
+                      </Button>
+                    </div>
                   </div>
-
+                </CardHeader>
+                <CardContent className="p-4 md:p-6">
                   {organizerData?.events && organizerData.events.length > 0 ? (
-                    <div className="mt-6">
-                      <h3 className="font-semibold mb-3 text-sm">Your Events</h3>
-                      <div className="space-y-2">
-                        {organizerData.events.slice(0, 3).map((event: any) => (
-                          <div
-                            key={event.id}
-                            className="p-3 rounded-lg bg-premium-surface-elevated border border-premium-border hover:border-copper-500/50 transition-colors cursor-pointer"
-                            onClick={() => setLocation('/tickets/organizer/dashboard')}
-                            data-testid={`event-card-${event.id}`}
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <p className="font-medium text-sm">{event.title}</p>
-                                <p className="text-xs text-premium-text-muted mt-1">
-                                  {new Date(event.startAt).toLocaleDateString('en-US', { 
+                    <div className="space-y-3">
+                      {organizerData.events.map((event: any) => (
+                        <motion.div
+                          key={event.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="group p-4 rounded-xl glass-card border border-premium-border hover:border-copper-500/50 transition-all cursor-pointer"
+                          onClick={() => setLocation(`/tickets/organizer/events/${event.id}/edit`)}
+                          data-testid={`event-card-${event.id}`}
+                        >
+                          <div className="flex flex-col md:flex-row md:items-center gap-4">
+                            {/* Event Cover Image */}
+                            {event.coverUrl ? (
+                              <div className="w-full md:w-32 h-20 md:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-premium-surface-elevated">
+                                <img 
+                                  src={event.coverUrl} 
+                                  alt={event.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-full md:w-32 h-20 md:h-20 rounded-lg bg-gradient-to-br from-copper-500/20 to-accent/20 flex items-center justify-center flex-shrink-0">
+                                <Calendar className="h-8 w-8 text-copper-400/50" />
+                              </div>
+                            )}
+
+                            {/* Event Info */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex-1 min-w-0">
+                                  <h3 className="font-semibold text-white truncate text-sm md:text-base">
+                                    {event.title}
+                                  </h3>
+                                  {event.summary && (
+                                    <p className="text-xs md:text-sm text-premium-text-muted mt-1 line-clamp-1">
+                                      {event.summary}
+                                    </p>
+                                  )}
+                                </div>
+                                <Badge 
+                                  variant={event.status === 'published' ? 'default' : event.status === 'draft' ? 'secondary' : 'outline'}
+                                  className={`text-xs flex-shrink-0 ${
+                                    event.status === 'published' ? 'bg-green-500/20 text-green-400 border-green-500/50' :
+                                    event.status === 'draft' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50' :
+                                    'bg-gray-500/20 text-gray-400 border-gray-500/50'
+                                  }`}
+                                >
+                                  {event.status}
+                                </Badge>
+                              </div>
+
+                              {/* Event Meta */}
+                              <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-3 text-xs text-premium-text-muted">
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  <span>{new Date(event.startAt).toLocaleDateString('en-US', { 
                                     month: 'short', 
-                                    day: 'numeric', 
+                                    day: 'numeric',
                                     year: 'numeric',
                                     hour: 'numeric',
                                     minute: '2-digit'
-                                  })}
-                                </p>
+                                  })}</span>
+                                </div>
+                                {event.venue && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Building2 className="h-3.5 w-3.5" />
+                                    <span className="truncate max-w-[150px]">{event.venue}</span>
+                                  </div>
+                                )}
+                                {event.tiers && event.tiers.length > 0 && (
+                                  <div className="flex items-center gap-1.5">
+                                    <Ticket className="h-3.5 w-3.5" />
+                                    <span>{event.tiers.length} ticket tier{event.tiers.length !== 1 ? 's' : ''}</span>
+                                  </div>
+                                )}
                               </div>
-                              <Badge variant={event.status === 'published' ? 'default' : 'secondary'} className="text-xs">
-                                {event.status}
-                              </Badge>
+                            </div>
+
+                            {/* Quick Actions */}
+                            <div className="flex md:flex-col gap-2 md:items-end">
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLocation(`/tickets/organizer/events/${event.id}/edit`);
+                                }}
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 md:flex-none touch-target border-premium-border hover:border-copper-500/50 text-xs"
+                                data-testid={`button-edit-event-${event.id}`}
+                              >
+                                <Edit3 className="h-3.5 w-3.5 mr-1.5" />
+                                Edit
+                              </Button>
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`/events/${event.slug}`, '_blank');
+                                }}
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 md:flex-none touch-target border-premium-border hover:border-blue-500/50 text-xs"
+                                data-testid={`button-view-event-${event.id}`}
+                              >
+                                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                                View
+                              </Button>
                             </div>
                           </div>
-                        ))}
-                        {organizerData.events.length > 3 && (
-                          <Button
-                            onClick={() => setLocation('/tickets/organizer/dashboard')}
-                            variant="ghost"
-                            className="w-full text-xs"
-                            data-testid="button-view-all-events"
-                          >
-                            View all {organizerData.events.length} events →
-                          </Button>
-                        )}
-                      </div>
+                        </motion.div>
+                      ))}
                     </div>
                   ) : (
-                    <div className="text-center py-8">
-                      <Calendar className="h-12 w-12 mx-auto mb-3 text-premium-text-muted opacity-50" />
-                      <p className="text-sm text-premium-text-muted mb-4">No events yet. Create your first ticketed event!</p>
+                    <div className="text-center py-12">
+                      <div className="inline-flex p-6 rounded-2xl bg-gradient-to-br from-copper-500/10 to-accent/10 mb-4">
+                        <Calendar className="h-16 w-16 text-copper-400/50" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-white mb-2">No events yet</h3>
+                      <p className="text-sm text-premium-text-muted mb-6 max-w-md mx-auto">
+                        Create your first ticketed event and start selling tickets to your community members.
+                      </p>
                       <Button
                         onClick={() => setLocation('/tickets/organizer/events/new')}
-                        className="bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-accent/90 text-black font-semibold"
+                        className="touch-target bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-accent/90 text-black font-semibold shadow-lg"
                         data-testid="button-create-first-event"
                       >
                         <Plus className="h-4 w-4 mr-2" />
-                        Create Event
+                        Create Your First Event
                       </Button>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Help & Resources */}
+              <Card className="glass-card border-premium-border/50">
+                <CardHeader>
+                  <CardTitle className="text-sm md:text-base flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-accent" />
+                    Event Ticketing Guide
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 text-xs md:text-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-lg bg-copper-500/20 flex-shrink-0">
+                      <span className="text-copper-400 font-bold">1</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Set up Stripe Connect</p>
+                      <p className="text-premium-text-muted text-xs mt-0.5">
+                        Go to Settings → Ticketing to connect your Stripe account for payment processing
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-lg bg-copper-500/20 flex-shrink-0">
+                      <span className="text-copper-400 font-bold">2</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Create your event</p>
+                      <p className="text-premium-text-muted text-xs mt-0.5">
+                        Add event details, set ticket tiers with pricing, capacity, and sale windows
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="p-1.5 rounded-lg bg-copper-500/20 flex-shrink-0">
+                      <span className="text-copper-400 font-bold">3</span>
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">Publish & promote</p>
+                      <p className="text-premium-text-muted text-xs mt-0.5">
+                        Share your event link with your community and track sales in real-time
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
