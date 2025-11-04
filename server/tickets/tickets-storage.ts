@@ -275,6 +275,36 @@ export class TicketsStorage {
     return ticketsDB.createAudit(data);
   }
 
+  async createAuditLog(data: InsertTicketsAudit): Promise<void> {
+    return ticketsDB.createAudit(data);
+  }
+
+  // ============ CHECK-IN OPERATIONS ============
+  async getTicketByQrToken(qrToken: string): Promise<TicketsTicket | null> {
+    return ticketsDB.getTicketByQrToken(qrToken);
+  }
+
+  async checkInTicket(ticketId: string, checkInBy: string): Promise<void> {
+    return ticketsDB.checkInTicket(ticketId, checkInBy);
+  }
+
+  async getOrderItemById(id: string): Promise<TicketsOrderItem | null> {
+    return ticketsDB.getOrderItemById(id);
+  }
+
+  async getEventAttendees(eventId: string, filters: { status?: string; search?: string }): Promise<any[]> {
+    return ticketsDB.getEventAttendees(eventId, filters);
+  }
+
+  async getCheckInStats(eventId: string): Promise<{
+    totalTickets: number;
+    checkedIn: number;
+    remaining: number;
+    recentCheckIns: any[];
+  }> {
+    return ticketsDB.getCheckInStats(eventId);
+  }
+
   // ============ INVENTORY MANAGEMENT ============
   async getAvailableCapacity(tierId: string): Promise<number | null> {
     // Check if tier has a capacity limit

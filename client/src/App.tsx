@@ -41,6 +41,8 @@ import { TicketsOrganizerDashboard } from "@/pages/TicketsOrganizerDashboard";
 import { TicketsOrganizerSignup } from "@/pages/TicketsOrganizerSignup";
 import { TicketsOrganizerConnect } from "@/pages/TicketsOrganizerConnect";
 import { TicketsCheckinPage } from "@/pages/TicketsCheckinPage";
+import { TicketsCheckinDashboard } from "@/pages/TicketsCheckinDashboard";
+import { TicketsAttendeesPage } from "@/pages/TicketsAttendeesPage";
 import { TicketsOrganizerPayouts } from "@/pages/TicketsOrganizerPayouts";
 import { TicketsOrganizerSettings } from "@/pages/TicketsOrganizerSettings";
 import { TicketsOrderSuccessPage } from "@/pages/TicketsOrderSuccessPage";
@@ -121,6 +123,8 @@ function Router() {
             <Route path="/tickets/organizer/events/:eventId/edit" component={TicketsEventEditPage} />
             <Route path="/tickets/organizer/events/:id" component={TicketsEventManagePage} />
             <Route path="/tickets/organizer/events/:id/analytics" component={TicketsEventAnalyticsPage} />
+            <Route path="/tickets/organizer/events/:eventId/checkin" component={TicketsCheckinDashboard} />
+            <Route path="/tickets/organizer/events/:eventId/attendees" component={TicketsAttendeesPage} />
             <Route path="/tickets/organizer/signup" component={TicketsOrganizerSignup} />
             <Route path="/tickets/organizer/connect" component={TicketsOrganizerConnect} />
             <Route path="/tickets/checkin" component={TicketsCheckinPage} />

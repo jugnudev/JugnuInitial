@@ -620,6 +620,123 @@ export class TicketsDB {
     ];
     await pool.query(query, values);
   }
+
+  // ============ CHECK-IN OPERATIONS ============
+  async getTicketByQrToken(qrToken: string): Promise<TicketsTicket | null> {
+    const query = 'SELECT * FROM tickets_tickets WHERE qr_token = $1';
+    const result = await pool.query(query, [qrToken]);
+    return result.rows[0] || null;
+  }
+
+  async checkInTicket(ticketId: string, checkInBy: string): Promise<void> {
+    const query = `
+      UPDATE tickets_tickets
+      SET status = 'used', used_at = NOW(), scanned_by = $2
+      WHERE id = $1
+    `;
+    await pool.query(query, [ticketId, checkInBy]);
+  }
+
+  async getOrderItemById(id: string): Promise<TicketsOrderItem | null> {
+    const query = 'SELECT * FROM tickets_order_items WHERE id = $1';
+    const result = await pool.query(query, [id]);
+    return result.rows[0] || null;
+  }
+
+  async getEventAttendees(eventId: string, filters: { status?: string; search?: string }): Promise<any[]> {
+    let query = `
+      SELECT 
+        t.id as ticket_id,
+        t.serial,
+        t.qr_token,
+        t.status,
+        t.used_at as checked_in_at,
+        t.scanned_by,
+        tier.name as tier_name,
+        o.buyer_email,
+        o.buyer_name,
+        o.buyer_phone,
+        o.placed_at
+      FROM tickets_tickets t
+      JOIN tickets_tiers tier ON t.tier_id = tier.id
+      JOIN tickets_order_items oi ON t.order_item_id = oi.id
+      JOIN tickets_orders o ON oi.order_id = o.id
+      WHERE tier.event_id = $1
+    `;
+    
+    const values: any[] = [eventId];
+    let paramNum = 2;
+    
+    if (filters.status) {
+      query += ` AND t.status = $${paramNum}`;
+      values.push(filters.status);
+      paramNum++;
+    }
+    
+    if (filters.search) {
+      query += ` AND (
+        LOWER(o.buyer_name) LIKE $${paramNum} OR 
+        LOWER(o.buyer_email) LIKE $${paramNum} OR 
+        t.serial ILIKE $${paramNum}
+      )`;
+      values.push(`%${filters.search.toLowerCase()}%`);
+      paramNum++;
+    }
+    
+    query += ' ORDER BY o.placed_at DESC, t.serial ASC';
+    
+    const result = await pool.query(query, values);
+    return result.rows;
+  }
+
+  async getCheckInStats(eventId: string): Promise<{
+    totalTickets: number;
+    checkedIn: number;
+    remaining: number;
+    recentCheckIns: any[];
+  }> {
+    // Get total and checked-in counts
+    const statsQuery = `
+      SELECT 
+        COUNT(*) as total,
+        COUNT(CASE WHEN t.status = 'used' THEN 1 END) as checked_in
+      FROM tickets_tickets t
+      JOIN tickets_tiers tier ON t.tier_id = tier.id
+      WHERE tier.event_id = $1 AND t.status IN ('valid', 'used')
+    `;
+    const statsResult = await pool.query(statsQuery, [eventId]);
+    
+    const { total, checked_in } = statsResult.rows[0];
+    const totalTickets = parseInt(total) || 0;
+    const checkedIn = parseInt(checked_in) || 0;
+    
+    // Get recent check-ins
+    const recentQuery = `
+      SELECT 
+        t.id,
+        t.serial,
+        t.used_at,
+        t.scanned_by,
+        tier.name as tier_name,
+        o.buyer_name,
+        o.buyer_email
+      FROM tickets_tickets t
+      JOIN tickets_tiers tier ON t.tier_id = tier.id
+      JOIN tickets_order_items oi ON t.order_item_id = oi.id
+      JOIN tickets_orders o ON oi.order_id = o.id
+      WHERE tier.event_id = $1 AND t.status = 'used' AND t.used_at IS NOT NULL
+      ORDER BY t.used_at DESC
+      LIMIT 10
+    `;
+    const recentResult = await pool.query(recentQuery, [eventId]);
+    
+    return {
+      totalTickets,
+      checkedIn,
+      remaining: totalTickets - checkedIn,
+      recentCheckIns: recentResult.rows
+    };
+  }
 }
 
 // Export singleton instance

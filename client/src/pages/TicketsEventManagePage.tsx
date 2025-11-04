@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { ArrowLeft, Edit, Trash2, Settings } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, Settings, UserCheck, Users, BarChart3, QrCode } from "lucide-react";
 
 interface Event {
   id: string;
@@ -63,6 +63,27 @@ export function TicketsEventManagePage() {
                 <CardTitle className="text-white">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                <Link href={`/tickets/organizer/events/${id}/checkin`}>
+                  <Button className="w-full bg-green-600 hover:bg-green-700 text-white" data-testid="button-checkin-dashboard">
+                    <QrCode className="w-4 h-4 mr-2" />
+                    Check-in Dashboard
+                  </Button>
+                </Link>
+                
+                <Link href={`/tickets/organizer/events/${id}/attendees`}>
+                  <Button className="w-full" variant="outline" data-testid="button-manage-attendees">
+                    <Users className="w-4 h-4 mr-2" />
+                    Manage Attendees
+                  </Button>
+                </Link>
+                
+                <Link href={`/tickets/organizer/events/${id}/analytics`}>
+                  <Button className="w-full" variant="outline" data-testid="button-view-analytics">
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    View Analytics
+                  </Button>
+                </Link>
+                
                 <Button className="w-full" variant="outline" data-testid="button-edit-event">
                   <Edit className="w-4 h-4 mr-2" />
                   Edit Event
@@ -72,13 +93,6 @@ export function TicketsEventManagePage() {
                   <Settings className="w-4 h-4 mr-2" />
                   Manage Tiers
                 </Button>
-                
-                <Link href={`/tickets/organizer/events/${id}/analytics`}>
-                  <Button className="w-full" variant="outline" data-testid="button-view-analytics">
-                    <Settings className="w-4 h-4 mr-2" />
-                    View Analytics
-                  </Button>
-                </Link>
                 
                 <Button className="w-full" variant="destructive" data-testid="button-delete-event">
                   <Trash2 className="w-4 h-4 mr-2" />
