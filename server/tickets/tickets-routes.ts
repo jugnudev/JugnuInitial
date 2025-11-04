@@ -494,6 +494,14 @@ export function addTicketsRoutes(app: Express) {
           const tier = await ticketsStorage.getTierById(item.tierId);
           if (!tier) throw new Error(`Tier ${item.tierId} not found`);
           
+          console.log(`[Checkout] Tier ${tier.id} details:`, {
+            name: tier.name,
+            priceCents: tier.priceCents,
+            price_cents: (tier as any).price_cents,
+            capacity: tier.capacity,
+            quantity: item.quantity
+          });
+          
           // Check availability
           const available = await ticketsStorage.checkTierAvailability(tier.id, item.quantity);
           if (!available) throw new Error(`Not enough tickets available for ${tier.name}`);
@@ -634,6 +642,14 @@ export function addTicketsRoutes(app: Express) {
         items.map(async (item: any) => {
           const tier = await ticketsStorage.getTierById(item.tierId);
           if (!tier) throw new Error(`Tier ${item.tierId} not found`);
+          
+          console.log(`[Checkout] Tier ${tier.id} details:`, {
+            name: tier.name,
+            priceCents: tier.priceCents,
+            price_cents: (tier as any).price_cents,
+            capacity: tier.capacity,
+            quantity: item.quantity
+          });
           
           // Check availability
           const available = await ticketsStorage.checkTierAvailability(tier.id, item.quantity);

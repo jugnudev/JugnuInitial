@@ -229,9 +229,15 @@ export class TicketsSupabaseDB {
   }
 
   async updateEvent(id: string, data: Partial<InsertTicketsEvent>): Promise<TicketsEvent> {
+    // Convert camelCase to snake_case for Supabase
+    const snakeCaseData = toSnakeCase({
+      ...data,
+      updated_at: new Date().toISOString()
+    });
+    
     const { data: event, error } = await this.client
       .from('tickets_events')
-      .update(data)
+      .update(snakeCaseData)
       .eq('id', id)
       .select()
       .single();

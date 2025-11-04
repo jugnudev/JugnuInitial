@@ -223,17 +223,10 @@ export function TicketsEventEditPage() {
   const updateEventMutation = useMutation({
     mutationFn: async (values: FormValues & { tiers: TicketTier[] }) => {
       setIsSubmitting(true);
-      const response = await apiRequest(`/api/tickets/events/${eventId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-organizer-id': organizerId || ''
-        },
-        body: JSON.stringify({
-          ...values,
-          coverUrl: coverImage || values.coverUrl,
-          tiers: values.tiers
-        })
+      const response = await apiRequest('PATCH', `/api/tickets/events/${eventId}`, {
+        ...values,
+        coverUrl: coverImage || values.coverUrl,
+        tiers: values.tiers
       });
       
       if (!response.ok) {
@@ -878,6 +871,7 @@ export function TicketsEventEditPage() {
                               {...field}
                               type="number"
                               min="1"
+                              value={field.value ?? ''}
                               onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                               data-testid="input-capacity"
                               className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
