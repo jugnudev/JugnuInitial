@@ -28,6 +28,13 @@ export default {
           900: "var(--copper-900)",
           950: "var(--copper-950)",
         },
+        charcoal: {
+          DEFAULT: "var(--charcoal)",
+          700: "var(--charcoal-border)",
+          800: "var(--charcoal-surface)",
+          900: "var(--charcoal-elevated)",
+          950: "#0B0B0F",
+        },
         
         // shadcn compatibility
         background: "var(--background)",
