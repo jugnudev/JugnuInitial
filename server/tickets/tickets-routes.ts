@@ -2,6 +2,7 @@ import type { Express, Request, Response } from "express";
 import express from "express";
 import { ticketsStorage } from "./tickets-storage";
 import { StripeService, stripe } from "./stripe-service";
+import { addConnectRoutes } from './connect-routes';
 import { nanoid } from 'nanoid';
 import QRCode from 'qrcode';
 import type { 
@@ -85,6 +86,10 @@ const toCamelCase = (obj: any): any => {
 };
 
 export function addTicketsRoutes(app: Express) {
+  // ============ STRIPE CONNECT ROUTES ============
+  // Add Connect onboarding routes for business setup
+  addConnectRoutes(app);
+  
   // ============ PUBLIC ENDPOINTS ============
   
   // Get public events

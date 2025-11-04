@@ -33,16 +33,16 @@ export class TicketsStorage {
     return ticketsDB.getOrganizerByUserId(userId);
   }
 
+  async getOrganizerByStripeAccountId(stripeAccountId: string): Promise<TicketsOrganizer | null> {
+    return ticketsDB.getOrganizerByStripeAccountId(stripeAccountId);
+  }
+
   async updateOrganizerStripeAccount(id: string, stripeAccountId: string): Promise<TicketsOrganizer> {
     return ticketsDB.updateOrganizerStripeAccount(id, stripeAccountId);
   }
 
-  async updateOrganizerPayoutSettings(id: string, settings: {
-    payoutMethod: string;
-    payoutEmail: string;
-  }): Promise<TicketsOrganizer> {
-    return ticketsDB.updateOrganizerPayoutSettings(id, settings);
-  }
+  // REMOVED: updateOrganizerPayoutSettings - MoR-only method removed for Stripe Connect
+  // Use updateOrganizer() to modify organizer settings instead
 
   async updateOrganizer(id: string, data: Partial<InsertTicketsOrganizer>): Promise<TicketsOrganizer> {
     return ticketsDB.updateOrganizer(id, data);

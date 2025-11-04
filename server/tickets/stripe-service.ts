@@ -59,11 +59,13 @@ export class StripeService {
 
   /**
    * Calculate fees and taxes for an order
+   * @param organizer - Organizer to get platform_fee_bps from (optional, defaults to 500 = 5%)
    */
   static calculatePricing(
     items: Array<{ tier: TicketsTier; quantity: number }>,
     event: TicketsEvent,
-    discountAmountCents: number = 0
+    discountAmountCents: number = 0,
+    organizer?: TicketsOrganizer
   ): CalculatedPricing {
     // Calculate subtotal
     const rawSubtotalCents = items.reduce((sum, item) => {
@@ -78,9 +80,10 @@ export class StripeService {
     const effectiveDiscountCents = Math.min(discountAmountCents, rawSubtotalCents);
     const subtotalCents = Math.max(0, rawSubtotalCents - effectiveDiscountCents);
 
-    // Calculate platform fee (always 2.5% + $0.50 per ticket for platform)
-    const ticketCount = items.reduce((sum, item) => sum + item.quantity, 0);
-    const feesCents = Math.round(subtotalCents * 0.025 + ticketCount * 50);
+    // Calculate platform fee using organizer's platform_fee_bps (default 500 = 5%)
+    // Use nullish coalescing to allow 0 fees (|| would override 0 with default)
+    const platformFeeBps = organizer?.platformFeeBps ?? 500;
+    const feesCents = Math.round(subtotalCents * (platformFeeBps / 10000));
 
     // Calculate taxes on subtotal (not including platform fee)
     const taxSettings = (event.taxSettings as any) || { collectTax: true, gstPercent: 5, pstPercent: 7 };
@@ -160,7 +163,7 @@ export class StripeService {
     };
 
     // Calculate pricing to get tax amounts
-    const pricing = StripeService.calculatePricing(items, event, 0);
+    const pricing = StripeService.calculatePricing(items, event, 0, organizer);
     
     // Add tax as a separate line item since we're handling taxes manually
     const taxLineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
@@ -179,7 +182,8 @@ export class StripeService {
     }
 
     try {
-      const session = await stripe.checkout.sessions.create({
+      // Stripe Connect Model: Direct payment to business with application fee
+      const sessionParams: Stripe.Checkout.SessionCreateParams = {
         payment_method_types: ['card'],
         line_items: [...lineItems, ...taxLineItems],
         mode: 'payment',
@@ -187,9 +191,21 @@ export class StripeService {
         cancel_url: `${returnUrl}?cancelled=true`,
         customer_email: order.buyerEmail,
         metadata: metadata as any,
-        // MoR Model: Always direct charge to platform account
-        // Platform handles all payment processing and pays out organizers later
-      });
+      };
+
+      // If organizer has Stripe Connect account, charge directly to them
+      if (organizer.stripeAccountId) {
+        sessionParams.payment_intent_data = {
+          application_fee_amount: pricing.feesCents, // Platform fee collected automatically
+          on_behalf_of: organizer.stripeAccountId, // Charge goes to organizer's account
+          transfer_data: {
+            destination: organizer.stripeAccountId,
+          },
+        };
+      }
+      // Otherwise, charge to platform account (fallback for testing or incomplete onboarding)
+
+      const session = await stripe.checkout.sessions.create(sessionParams);
 
       return session;
     } catch (error) {
@@ -278,7 +294,7 @@ export class StripeService {
 
     try {
       // Calculate pricing
-      const pricing = StripeService.calculatePricing(items, event, 0);
+      const pricing = StripeService.calculatePricing(items, event, 0, organizer);
       
       // Create metadata for payment processing
       const metadata: CheckoutSessionMetadata = {
@@ -294,7 +310,7 @@ export class StripeService {
         })))
       };
 
-      // Create Payment Intent with marketplace flow or direct charge
+      // Create Payment Intent with Stripe Connect flow
       const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
         amount: pricing.totalCents,
         currency: 'cad',
@@ -302,15 +318,22 @@ export class StripeService {
         metadata: metadata as any,
         description: `Tickets for ${event.title}`,
         receipt_email: order.buyerEmail,
-        // Hold funds until after event for marketplace model
         capture_method: 'automatic',
-        // Use confirmation_method: 'automatic' to allow frontend confirmation
         confirmation_method: 'automatic'
       };
 
-      // MoR Model: Always direct charge to Jugnu's platform account
-      // Platform collects all payments and handles organizer payouts separately
-      console.log('[StripeService] Using MoR model - direct charge to platform');
+      // If organizer has Stripe Connect account, charge directly to them
+      if (organizer.stripeAccountId) {
+        paymentIntentParams.application_fee_amount = pricing.feesCents; // Platform fee
+        paymentIntentParams.on_behalf_of = organizer.stripeAccountId; // Charge to organizer
+        paymentIntentParams.transfer_data = {
+          destination: organizer.stripeAccountId,
+        };
+        console.log('[StripeService] Using Stripe Connect - direct charge to organizer account');
+      } else {
+        // Fallback to platform account if onboarding not complete
+        console.log('[StripeService] Using platform account - organizer onboarding incomplete');
+      }
 
       const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams);
 

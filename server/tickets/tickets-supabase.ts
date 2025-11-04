@@ -152,6 +152,11 @@ export class TicketsSupabaseDB {
     return data;
   }
 
+  // Alias for getOrganizerByStripeAccount
+  async getOrganizerByStripeAccountId(stripeAccountId: string): Promise<TicketsOrganizer | null> {
+    return this.getOrganizerByStripeAccount(stripeAccountId);
+  }
+
   async updateOrganizer(id: string, data: Partial<InsertTicketsOrganizer>): Promise<TicketsOrganizer> {
     const snakeCaseData = toSnakeCase(data);
     const { data: organizer, error } = await this.client
@@ -539,24 +544,8 @@ export class TicketsSupabaseDB {
     return data;
   }
 
-  async updateOrganizerPayoutSettings(id: string, settings: {
-    payoutMethod: string;
-    payoutEmail: string;
-  }): Promise<TicketsOrganizer> {
-    const { data, error } = await this.client
-      .from('tickets_organizers')
-      .update({ 
-        payout_method: settings.payoutMethod,
-        payout_email: settings.payoutEmail,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) throw error;
-    return data;
-  }
+  // REMOVED: updateOrganizerPayoutSettings - MoR-only method removed for Stripe Connect
+  // Use updateOrganizer() to modify organizer settings instead
 
   async updateTier(id: string, data: Partial<InsertTicketsTier>): Promise<TicketsTier> {
     const snakeCaseData = toSnakeCase({

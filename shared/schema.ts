@@ -235,20 +235,23 @@ export const sponsorLeads = pgTable("sponsor_leads", {
 // TICKETING MODULE TABLES (Completely Isolated)
 // ============================================
 
-// Organizers who can create and manage ticketed events
+// Organizers who can create and manage ticketed events (Stripe Connect model)
 export const ticketsOrganizers = pgTable("tickets_organizers", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").references(() => users.id),
-  stripeAccountId: text("stripe_account_id").unique(), // Deprecated for MoR model
-  status: text("status").notNull().default("active"), // active | suspended (removed pending)
+  // Stripe Connect fields
+  stripeAccountId: text("stripe_account_id").unique(), // Stripe Connect account ID
+  stripeOnboardingComplete: boolean("stripe_onboarding_complete").notNull().default(false),
+  stripeChargesEnabled: boolean("stripe_charges_enabled").notNull().default(false),
+  stripePayoutsEnabled: boolean("stripe_payouts_enabled").notNull().default(false),
+  stripeDetailsSubmitted: boolean("stripe_details_submitted").notNull().default(false),
+  // Business info
+  status: text("status").notNull().default("pending"), // pending | active | suspended
   businessName: text("business_name"),
   businessEmail: text("business_email"),
-  email: text("email").notNull(), // NOT NULL email for MoR payouts
-  // MoR payout fields
-  payoutMethod: text("payout_method").notNull().default("etransfer"), // etransfer | paypal | manual
-  payoutEmail: text("payout_email"), // Email for payouts (can be different from business email)
-  legalName: text("legal_name"), // Full legal name for tax purposes
-  defaultShareBps: integer("default_share_bps").default(9000), // Default 90% to organizer, 10% platform fee
+  email: text("email").notNull(),
+  // Platform fee configuration (in basis points, 500 = 5%)
+  platformFeeBps: integer("platform_fee_bps").notNull().default(500), // Default 5% platform fee
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
@@ -291,7 +294,7 @@ export const ticketsTiers = pgTable("tickets_tiers", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
 
-// Orders placed by buyers
+// Orders placed by buyers (Stripe Connect - direct payments to businesses)
 export const ticketsOrders = pgTable("tickets_orders", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   eventId: uuid("event_id").notNull().references(() => ticketsEvents.id),
@@ -300,7 +303,7 @@ export const ticketsOrders = pgTable("tickets_orders", {
   buyerPhone: text("buyer_phone"),
   status: text("status").notNull().default("pending"), // pending | paid | refunded | partially_refunded | canceled
   subtotalCents: integer("subtotal_cents").notNull(),
-  feesCents: integer("fees_cents").notNull().default(0),
+  applicationFeeCents: integer("application_fee_cents").notNull().default(0), // Platform fee collected via Stripe Connect
   taxCents: integer("tax_cents").notNull().default(0),
   totalCents: integer("total_cents").notNull(),
   currency: text("currency").notNull().default("CAD"),
@@ -309,20 +312,9 @@ export const ticketsOrders = pgTable("tickets_orders", {
   discountCode: text("discount_code"),
   discountAmountCents: integer("discount_amount_cents").default(0),
   refundedAmountCents: integer("refunded_amount_cents").default(0),
-  // MoR Financial Tracking Fields
-  stripeChargeId: text("stripe_charge_id"), // For fee calculation
-  stripeFeeCents: integer("stripe_fee_cents"), // Actual Stripe processing fee
-  platformFeeCents: integer("platform_fee_cents"), // Jugnu platform fee
-  netToOrganizerCents: integer("net_to_organizer_cents"), // Amount organizer receives
-  payoutId: uuid("payout_id").references(() => ticketsPayouts.id), // Linked when paid out
-  payoutStatus: text("payout_status").notNull().default("pending"), // pending | in_progress | paid
   placedAt: timestamp("placed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
-}, (table) => ({
-  payoutStatusIdx: index("orders_payout_status_idx").on(table.payoutStatus),
-  payoutIdIdx: index("orders_payout_id_idx").on(table.payoutId),
-  eventPayoutIdx: index("orders_event_payout_idx").on(table.eventId, table.payoutStatus),
-}));
+});
 
 // Line items within orders
 export const ticketsOrderItems = pgTable("tickets_order_items", {
@@ -816,13 +808,13 @@ export const communityPostReactions = pgTable("community_post_reactions", {
 }));
 
 // Comments on posts
-export const communityComments = pgTable("community_comments", {
+export const communityComments: any = pgTable("community_comments", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
   postId: uuid("post_id").notNull().references(() => communityPosts.id, { onDelete: 'cascade' }),
   authorId: varchar("author_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  parentCommentId: uuid("parent_comment_id").references(() => communityComments.id, { onDelete: 'cascade' }),
+  parentCommentId: uuid("parent_comment_id").references((): any => communityComments.id, { onDelete: 'cascade' }),
   content: text("content").notNull(),
   isHidden: boolean("is_hidden").notNull().default(false),
   hiddenBy: varchar("hidden_by").references(() => users.id),
