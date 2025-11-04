@@ -3,6 +3,8 @@ import express from "express";
 import { ticketsStorage } from "./tickets-storage";
 import { StripeService, stripe } from "./stripe-service";
 import { addConnectRoutes } from './connect-routes';
+import { addRefundRoutes } from './refund-routes';
+import { addAnalyticsRoutes } from './analytics-routes';
 import { nanoid } from 'nanoid';
 import QRCode from 'qrcode';
 import { format } from 'date-fns';
@@ -103,6 +105,13 @@ export function addTicketsRoutes(app: Express) {
   // ============ STRIPE CONNECT ROUTES ============
   // Add Connect onboarding routes for business setup
   addConnectRoutes(app);
+  
+  // ============ REFUND & ANALYTICS ROUTES ============
+  // Add refund and attendee management routes
+  addRefundRoutes(app);
+  
+  // Add analytics and communication routes
+  addAnalyticsRoutes(app);
   
   // ============ CHECK-IN ENDPOINTS ============
   

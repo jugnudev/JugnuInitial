@@ -484,6 +484,78 @@ export class TicketsStorage {
       lastPayoutDate: lastPayout?.paidAt ? new Date(lastPayout.paidAt) : undefined
     };
   }
+
+  // ============ EXTENDED METHODS FOR REFUNDS & ANALYTICS ============
+  // These methods are implemented in storage-extensions.ts
+  async updateTicket(id: string, data: any): Promise<TicketsTicket> {
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.updateTicket(id, data);
+  }
+
+  async getOrdersByEvent(eventId: string): Promise<TicketsOrder[]> {
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.getOrdersByEvent(eventId);
+  }
+
+  async getOrdersByBuyer(email: string): Promise<TicketsOrder[]> {
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.getOrdersByBuyer(email);
+  }
+
+  async getOrdersByUserId(userId: string): Promise<TicketsOrder[]> {
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.getOrdersByUserId(userId);
+  }
+
+  async getTicketsByEvent(eventId: string): Promise<TicketsTicket[]> {
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.getTicketsByEvent(eventId);
+  }
+
+  async getTicketsByOrderItem(orderItemId: string): Promise<TicketsTicket[]> {
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.getTicketsByOrderItem(orderItemId);
+  }
+
+  async getTicketById(id: string): Promise<TicketsTicket | null> {
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.getTicketById(id);
+  }
+
+  async getUserById(userId: string): Promise<any | null> {
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.getUserById(userId);
+  }
+
+  async createAuditLog(data: InsertTicketsAudit): Promise<void> {
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.createAuditLog(data);
+  }
+
+  async createEmailCommunication(data: any): Promise<any> {
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.createEmailCommunication(data);
+  }
+
+  async updateEmailCommunication(id: string, data: any): Promise<any> {
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.updateEmailCommunication(id, data);
+  }
+
+  async getEmailCommunicationsByEvent(eventId: string): Promise<any[]> {
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.getEmailCommunicationsByEvent(eventId);
+  }
+
+  async updateAnalyticsCache(eventId: string, date: string, metricType: string, data: any): Promise<void> {
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.updateAnalyticsCache(eventId, date, metricType, data);
+  }
+
+  async getAnalyticsCache(eventId: string, date: string, metricType: string): Promise<any | null> {
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.getAnalyticsCache(eventId, date, metricType);
+  }
 }
 
 export const ticketsStorage = new TicketsStorage();
