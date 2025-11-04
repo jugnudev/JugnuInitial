@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +14,6 @@ import { Badge } from "@/components/ui/badge";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Calendar, 
   ArrowLeft, 
   Plus, 
   Save,
@@ -22,17 +21,16 @@ import {
   DollarSign,
   Users,
   Settings,
-  Upload,
-  Image,
+  Image as ImageIcon,
   Ticket,
-  Clock,
   MapPin,
   Info,
-  Loader2
+  Loader2,
+  AlertCircle,
+  Sparkles
 } from "lucide-react";
 import { Link } from "wouter";
-import { queryClient, apiRequest } from "@/lib/queryClient";
-import { format } from "date-fns";
+import { queryClient } from "@/lib/queryClient";
 
 interface EventCreateForm {
   title: string;
@@ -73,7 +71,6 @@ export function TicketsEventCreatePage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   
-  // Check if ticketing is enabled
   const isEnabled = import.meta.env.VITE_ENABLE_TICKETING === 'true';
   
   const [activeTab, setActiveTab] = useState("details");
@@ -113,7 +110,6 @@ export function TicketsEventCreatePage() {
     }
   ]);
 
-  // Get organizer data from approved business account (not localStorage)
   const { data: organizerData, isLoading: isLoadingOrganizer } = useQuery<{ ok: boolean; organizer: any }>({
     queryKey: ['/api/tickets/organizers/me'],
     enabled: isEnabled,
@@ -123,7 +119,6 @@ export function TicketsEventCreatePage() {
   const organizer = organizerData?.organizer;
   const organizerId = organizer?.id;
 
-  // Upload image mutation
   const uploadImageMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
@@ -159,31 +154,31 @@ export function TicketsEventCreatePage() {
   });
 
   const createEventMutation = useMutation({
-    mutationFn: async (data: { event: EventCreateForm; tiers: TicketTier[] }) => {
+    mutationFn: async (data: { event: EventCreateForm; tiers: TicketTier[]; requestedStatus: 'draft' | 'published' }) => {
       const response = await fetch('/api/tickets/events', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-organizer-id': organizerId || ''
         },
-        body: JSON.stringify(data)
+        body: JSON.stringify({ event: data.event, tiers: data.tiers })
       });
       if (!response.ok) throw new Error('Failed to create event');
-      return response.json();
+      const result = await response.json();
+      return { ...result, requestedStatus: data.requestedStatus };
     },
     onSuccess: (data) => {
       if (data.ok) {
+        const eventStatus = data.event?.status || data.requestedStatus || 'draft';
         toast({
           title: "Event created successfully!",
-          description: form.status === 'published' 
+          description: eventStatus === 'published' 
             ? "Your event is now live and accepting tickets."
             : "Your event has been saved as a draft.",
         });
         
-        // Invalidate organizer dashboard data
         queryClient.invalidateQueries({ queryKey: ['/api/tickets/organizers/me'] });
         
-        // Redirect to event manage page
         if (data.event?.id) {
           setLocation(`/tickets/organizer/events/${data.event.id}/edit`);
         } else {
@@ -208,7 +203,6 @@ export function TicketsEventCreatePage() {
   });
 
   const handleSubmit = (status: 'draft' | 'published') => {
-    // Validate required fields
     if (!form.title || !form.startAt || !form.venue) {
       toast({
         title: "Please fill in required fields",
@@ -219,7 +213,6 @@ export function TicketsEventCreatePage() {
       return;
     }
 
-    // Validate ticket tiers
     const validTiers = ticketTiers.filter(tier => tier.name);
     if (validTiers.length === 0) {
       toast({
@@ -231,7 +224,6 @@ export function TicketsEventCreatePage() {
       return;
     }
 
-    // Check Stripe onboarding for published events
     if (status === 'published' && !organizerData?.organizer?.stripeOnboardingComplete) {
       toast({
         title: "Complete Stripe setup first",
@@ -249,7 +241,8 @@ export function TicketsEventCreatePage() {
       tiers: validTiers.map((tier, index) => ({
         ...tier,
         sortOrder: index
-      }))
+      })),
+      requestedStatus: status
     };
 
     createEventMutation.mutate(submitData);
@@ -292,75 +285,79 @@ export function TicketsEventCreatePage() {
     setTicketTiers(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Show loading state while checking for organizer account
   if (isLoadingOrganizer) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-        <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-copper-500" />
+          <p className="text-neutral-400">Loading your account...</p>
+        </div>
       </div>
     );
   }
 
-  // Check if ticketing is enabled and user has approved business account
   if (!isEnabled || !organizer) {
     return (
-      <div className="container mx-auto px-4 py-16 text-center max-w-2xl mx-auto">
-        <h1 className="text-2xl font-fraunces mb-4">Business Account Required</h1>
-        <p className="text-muted-foreground mb-6">You need an approved business account to create events.</p>
-        <Link href="/business-signup">
-          <Button className="mt-4">Apply for Business Account</Button>
-        </Link>
+      <div className="min-h-screen bg-charcoal-950 flex items-center justify-center px-4">
+        <div className="text-center max-w-md glass-elevated rounded-2xl p-8">
+          <AlertCircle className="h-16 w-16 text-copper-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-fraunces font-bold mb-3 text-neutral-50">Business Account Required</h1>
+          <p className="text-neutral-400 mb-6">You need an approved business account to create and manage events.</p>
+          <Link href="/business-signup">
+            <Button className="bg-copper-gradient hover:shadow-glow-copper text-white font-semibold touch-target">
+              Apply for Business Account
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
-  // Calculate total capacity
-  const totalCapacity = ticketTiers.reduce((sum, tier) => 
-    sum + (tier.capacity || 0), 0
-  );
+  const totalCapacity = ticketTiers.reduce((sum, tier) => sum + (tier.capacity || 0), 0);
 
   return (
-    <div className="min-h-screen bg-charcoal-gradient">
-      <div className="container mx-auto px-4 md:px-6 py-8 md:py-12">
+    <div className="min-h-screen bg-charcoal-950">
+      <div className="container mx-auto px-4 py-6 md:py-12 max-w-5xl">
         {/* Premium Header */}
-        <div className="mb-8 md:mb-12 animate-fadeIn">
+        <div className="mb-8 animate-fadeIn">
           <Link href="/tickets/organizer/dashboard">
             <Button 
               variant="ghost" 
-              className="mb-4 glass-card hover-glow"
-              style={{ color: 'var(--neutral-300)' }}
+              className="mb-6 text-neutral-300 hover:text-copper-500 transition-colors -ml-3"
               data-testid="button-back-dashboard"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
             </Button>
           </Link>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-1.5 h-10 bg-copper-gradient rounded-full" />
-            <h1 className="text-3xl md:text-5xl font-fraunces font-bold" style={{ color: 'var(--neutral-50)' }}>
-              Create New <span className="text-copper-gradient">Event</span>
-            </h1>
+          
+          <div className="flex items-start gap-4 mb-6">
+            <div className="w-1.5 h-16 bg-copper-gradient rounded-full flex-shrink-0" />
+            <div>
+              <h1 className="text-4xl md:text-5xl font-fraunces font-bold text-neutral-50 mb-3">
+                Create New Event
+              </h1>
+              <p className="text-lg text-neutral-400">
+                Set up your event and start selling tickets
+              </p>
+            </div>
           </div>
-          <p className="text-base md:text-lg ml-5" style={{ color: 'var(--neutral-300)' }}>
-            Set up your event details, configure tickets, and start selling
-          </p>
         </div>
 
         {/* Stripe Connect Warning */}
         {!organizerData?.organizer?.stripeOnboardingComplete && (
-          <div className="mb-6 glass-elevated rounded-xl p-5 border-2 animate-slideUp" style={{ borderColor: 'var(--copper)', background: 'var(--copper-glow)' }}>
-            <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 mt-0.5" style={{ color: 'var(--copper)' }} />
-              <div className="flex-1">
-                <p className="font-semibold mb-1" style={{ color: 'var(--neutral-50)' }}>
+          <div className="mb-8 glass-card rounded-xl p-5 border-2 border-copper-500/30 bg-copper-500/5 animate-slideUp">
+            <div className="flex items-start gap-4">
+              <Info className="w-5 h-5 mt-0.5 text-copper-500 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-neutral-50 mb-2">
                   Complete Stripe setup to publish events
                 </p>
-                <p className="text-sm mb-3" style={{ color: 'var(--neutral-300)' }}>
-                  You can create and save events as drafts, but you'll need to connect your Stripe account before publishing.
+                <p className="text-sm text-neutral-300 mb-4">
+                  You can create and save drafts, but you'll need to connect Stripe before publishing.
                 </p>
                 <Link href="/tickets/organizer/dashboard">
-                  <Button size="sm" className="bg-copper-gradient hover:shadow-glow-copper text-white font-semibold">
+                  <Button size="sm" className="bg-copper-gradient hover:shadow-glow-copper text-white font-semibold touch-target">
                     Complete Setup
                   </Button>
                 </Link>
@@ -369,88 +366,126 @@ export function TicketsEventCreatePage() {
           </div>
         )}
 
-        {/* Event Creation Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="details" data-testid="tab-event-details">
+        {/* Premium Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          {/* Mobile-optimized tab navigation */}
+          <TabsList className="grid grid-cols-3 gap-2 bg-charcoal-900/40 p-1.5 rounded-xl h-auto">
+            <TabsTrigger 
+              value="details" 
+              className="data-[state=active]:bg-copper-gradient data-[state=active]:text-white 
+                       text-neutral-400 font-medium py-3 rounded-lg transition-all
+                       data-[state=active]:shadow-glow-copper touch-target"
+              data-testid="tab-event-details"
+            >
               <Info className="w-4 h-4 mr-2" />
-              Event Details
+              <span className="hidden sm:inline">Event</span> Details
             </TabsTrigger>
-            <TabsTrigger value="tickets" data-testid="tab-ticket-tiers">
+            <TabsTrigger 
+              value="tickets" 
+              className="data-[state=active]:bg-copper-gradient data-[state=active]:text-white 
+                       text-neutral-400 font-medium py-3 rounded-lg transition-all
+                       data-[state=active]:shadow-glow-copper touch-target"
+              data-testid="tab-ticket-tiers"
+            >
               <Ticket className="w-4 h-4 mr-2" />
-              Ticket Tiers
+              <span className="hidden sm:inline">Ticket</span> Tiers
             </TabsTrigger>
-            <TabsTrigger value="settings" data-testid="tab-fee-settings">
+            <TabsTrigger 
+              value="settings" 
+              className="data-[state=active]:bg-copper-gradient data-[state=active]:text-white 
+                       text-neutral-400 font-medium py-3 rounded-lg transition-all
+                       data-[state=active]:shadow-glow-copper touch-target"
+              data-testid="tab-fee-settings"
+            >
               <Settings className="w-4 h-4 mr-2" />
-              Fees & Taxes
+              <span className="hidden sm:inline">Fees &</span> Taxes
             </TabsTrigger>
           </TabsList>
 
           {/* Event Details Tab */}
-          <TabsContent value="details">
-            <div className="glass-elevated rounded-xl p-6 animate-slideUp">
-              <div className="mb-6">
-                <h2 className="text-xl font-fraunces font-semibold mb-2" style={{ color: 'var(--neutral-50)' }}>
+          <TabsContent value="details" className="space-y-6">
+            <div className="glass-elevated rounded-2xl p-6 md:p-8 animate-slideUp">
+              <div className="mb-8">
+                <h2 className="text-2xl font-fraunces font-bold text-neutral-50 mb-2">
                   Event Information
                 </h2>
-                <p className="text-sm" style={{ color: 'var(--neutral-400)' }}>
+                <p className="text-neutral-400">
                   Basic details about your event that attendees will see
                 </p>
               </div>
-              <div className="space-y-6">
+
+              <div className="space-y-8">
                 {/* Event Title */}
                 <div className="space-y-2">
-                  <Label htmlFor="title">Event Title *</Label>
+                  <Label htmlFor="title" className="text-neutral-200 font-medium">
+                    Event Title <span className="text-copper-500">*</span>
+                  </Label>
                   <Input
                     id="title"
                     data-testid="input-event-title"
                     placeholder="e.g., Summer Music Festival 2025"
                     value={form.title}
                     onChange={(e) => handleInputChange('title', e.target.value)}
+                    className="h-12 bg-charcoal-900/40 border-charcoal-700 
+                             focus:border-copper-500 text-neutral-100 placeholder:text-neutral-500
+                             text-lg"
                     required
                   />
                 </div>
 
                 {/* Event Summary */}
                 <div className="space-y-2">
-                  <Label htmlFor="summary">Short Summary</Label>
+                  <Label htmlFor="summary" className="text-neutral-200 font-medium">
+                    Short Summary
+                  </Label>
                   <Input
                     id="summary"
                     data-testid="input-event-summary"
                     placeholder="Brief one-line description"
                     value={form.summary}
                     onChange={(e) => handleInputChange('summary', e.target.value)}
+                    className="h-12 bg-charcoal-900/40 border-charcoal-700 
+                             focus:border-copper-500 text-neutral-100 placeholder:text-neutral-500"
                   />
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-neutral-500">
                     Displayed in event cards and search results
                   </p>
                 </div>
 
                 {/* Event Description */}
                 <div className="space-y-2">
-                  <Label htmlFor="description">Full Description</Label>
+                  <Label htmlFor="description" className="text-neutral-200 font-medium">
+                    Full Description
+                  </Label>
                   <Textarea
                     id="description"
                     data-testid="input-event-description"
-                    placeholder="Detailed information about your event..."
+                    placeholder="Tell attendees what makes your event special..."
                     value={form.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     rows={6}
+                    className="bg-charcoal-900/40 border-charcoal-700 
+                             focus:border-copper-500 text-neutral-100 placeholder:text-neutral-500
+                             resize-none"
                   />
                 </div>
 
                 {/* Cover Image Upload */}
-                <div className="space-y-2">
-                  <Label>Cover Image</Label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                <div className="space-y-3">
+                  <Label className="text-neutral-200 font-medium flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-copper-500" />
+                    Cover Image
+                  </Label>
+                  <div className="border-2 border-dashed border-charcoal-700 rounded-xl p-6 bg-charcoal-900/20
+                               hover:border-copper-500/50 transition-colors">
                     {form.coverUrl ? (
                       <div className="space-y-4">
                         <img
                           src={form.coverUrl}
                           alt="Event cover"
-                          className="w-full max-w-md mx-auto rounded-lg"
+                          className="w-full max-w-2xl mx-auto rounded-lg shadow-xl"
                         />
-                        <div className="flex justify-center gap-2">
+                        <div className="flex justify-center gap-3">
                           <ObjectUploader
                             onUpload={uploadImageMutation.mutateAsync}
                             accept="image/*"
@@ -462,6 +497,7 @@ export function TicketsEventCreatePage() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleInputChange('coverUrl', '')}
+                            className="border-charcoal-700 hover:border-red-500 hover:text-red-500 touch-target"
                             data-testid="button-remove-image"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
@@ -470,24 +506,27 @@ export function TicketsEventCreatePage() {
                         </div>
                       </div>
                     ) : (
-                      <ObjectUploader
-                        onUpload={uploadImageMutation.mutateAsync}
-                        accept="image/*"
-                        maxSizeMB={5}
-                        placeholder="Upload event cover image (recommended: 1920x1080)"
-                        className="w-full"
-                      />
+                      <div className="text-center">
+                        <ImageIcon className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
+                        <ObjectUploader
+                          onUpload={uploadImageMutation.mutateAsync}
+                          accept="image/*"
+                          maxSizeMB={5}
+                          placeholder="Upload event cover (1920x1080 recommended)"
+                          className="w-full max-w-md mx-auto"
+                        />
+                      </div>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Recommended size: 1920x1080px. Max 5MB.
+                  <p className="text-xs text-neutral-500">
+                    Recommended size: 1920x1080px. Max 5MB. JPG or PNG.
                   </p>
                 </div>
 
                 {/* Date and Time */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-6">
                   <DateTimePicker
-                    label="Start Date & Time *"
+                    label="Start Date & Time"
                     value={form.startAt}
                     onChange={(value) => handleInputChange('startAt', value)}
                     required
@@ -506,54 +545,72 @@ export function TicketsEventCreatePage() {
                 </div>
 
                 {/* Location Details */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
+                <div className="space-y-6 pt-6 border-t border-charcoal-800">
+                  <h3 className="text-xl font-fraunces font-bold text-neutral-50 flex items-center gap-2">
+                    <MapPin className="w-5 h-5 text-copper-500" />
                     Location Details
                   </h3>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="venue">Venue Name *</Label>
+                    <Label htmlFor="venue" className="text-neutral-200 font-medium">
+                      Venue Name <span className="text-copper-500">*</span>
+                    </Label>
                     <Input
                       id="venue"
                       data-testid="input-event-venue"
                       placeholder="e.g., Rogers Arena"
                       value={form.venue}
                       onChange={(e) => handleInputChange('venue', e.target.value)}
+                      className="h-12 bg-charcoal-900/40 border-charcoal-700 
+                               focus:border-copper-500 text-neutral-100 placeholder:text-neutral-500"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="address">Street Address</Label>
+                    <Label htmlFor="address" className="text-neutral-200 font-medium">
+                      Street Address
+                    </Label>
                     <Input
                       id="address"
                       data-testid="input-event-address"
                       placeholder="e.g., 800 Griffiths Way"
                       value={form.address}
                       onChange={(e) => handleInputChange('address', e.target.value)}
+                      className="h-12 bg-charcoal-900/40 border-charcoal-700 
+                               focus:border-copper-500 text-neutral-100 placeholder:text-neutral-500"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="city">City *</Label>
+                      <Label htmlFor="city" className="text-neutral-200 font-medium">
+                        City <span className="text-copper-500">*</span>
+                      </Label>
                       <Input
                         id="city"
                         data-testid="input-event-city"
                         placeholder="Vancouver"
                         value={form.city}
                         onChange={(e) => handleInputChange('city', e.target.value)}
+                        className="h-12 bg-charcoal-900/40 border-charcoal-700 
+                                 focus:border-copper-500 text-neutral-100 placeholder:text-neutral-500"
                         required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="province">Province *</Label>
+                      <Label htmlFor="province" className="text-neutral-200 font-medium">
+                        Province <span className="text-copper-500">*</span>
+                      </Label>
                       <Select value={form.province} onValueChange={(value) => handleInputChange('province', value)}>
-                        <SelectTrigger data-testid="select-event-province">
+                        <SelectTrigger 
+                          className="h-12 bg-charcoal-900/40 border-charcoal-700 
+                                   focus:border-copper-500 text-neutral-100"
+                          data-testid="select-event-province"
+                        >
                           <SelectValue placeholder="Select province" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-charcoal-900 border-charcoal-700">
                           <SelectItem value="BC">British Columbia</SelectItem>
                           <SelectItem value="AB">Alberta</SelectItem>
                           <SelectItem value="ON">Ontario</SelectItem>
@@ -577,120 +634,167 @@ export function TicketsEventCreatePage() {
           </TabsContent>
 
           {/* Ticket Tiers Tab */}
-          <TabsContent value="tickets">
-            <div className="glass-elevated rounded-xl p-6 animate-slideUp">
-              <div className="mb-6">
-                <h2 className="text-xl font-fraunces font-semibold mb-2" style={{ color: 'var(--neutral-50)' }}>
-                  Ticket Tiers
-                </h2>
-                <p className="text-sm mb-3" style={{ color: 'var(--neutral-400)' }}>
-                  Configure different ticket types and pricing for your event
-                </p>
-                {totalCapacity > 0 && (
-                  <div className="flex items-center gap-2 glass-card rounded-lg px-3 py-2 inline-flex">
-                    <Users className="w-4 h-4" style={{ color: 'var(--copper)' }} />
-                    <span className="text-sm font-medium" style={{ color: 'var(--neutral-200)' }}>
-                      Total capacity: {totalCapacity} tickets
-                    </span>
+          <TabsContent value="tickets" className="space-y-6">
+            <div className="glass-elevated rounded-2xl p-6 md:p-8 animate-slideUp">
+              <div className="mb-8">
+                <div className="flex items-center justify-between flex-wrap gap-4 mb-4">
+                  <div>
+                    <h2 className="text-2xl font-fraunces font-bold text-neutral-50 mb-2">
+                      Ticket Tiers
+                    </h2>
+                    <p className="text-neutral-400">
+                      Configure different ticket types and pricing
+                    </p>
                   </div>
-                )}
+                  {totalCapacity > 0 && (
+                    <div className="glass-card rounded-lg px-4 py-2.5 flex items-center gap-2">
+                      <Users className="w-5 h-5 text-copper-500" />
+                      <span className="text-sm font-semibold text-neutral-200">
+                        Total: {totalCapacity} tickets
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div className="space-y-4">
-                {ticketTiers.map((tier, index) => (
-                  <Card key={index} className="relative">
-                    <CardContent className="pt-6">
-                      {ticketTiers.length > 1 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="absolute top-2 right-2"
-                          onClick={() => removeTier(index)}
-                          data-testid={`button-remove-tier-${index}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
 
-                      <div className="space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Tier Name *</Label>
-                            <Input
-                              placeholder="e.g., General Admission, VIP, Early Bird"
-                              value={tier.name}
-                              onChange={(e) => handleTierChange(index, 'name', e.target.value)}
-                              data-testid={`input-tier-name-${index}`}
-                            />
+              <div className="space-y-6">
+                {ticketTiers.map((tier, index) => (
+                  <Card key={index} className="glass-card border-charcoal-700 overflow-hidden">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-copper-gradient flex items-center justify-center">
+                            <Ticket className="w-5 h-5 text-white" />
                           </div>
-                          <div className="space-y-2">
-                            <Label>Price (CAD)</Label>
-                            <div className="relative">
-                              <DollarSign className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
-                              <Input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                className="pl-9"
-                                placeholder="0.00"
-                                value={tier.priceCents / 100 || ''}
-                                onChange={(e) => handleTierChange(index, 'priceCents', Math.round(parseFloat(e.target.value || '0') * 100))}
-                                data-testid={`input-tier-price-${index}`}
-                              />
-                            </div>
+                          <div>
+                            <h3 className="font-semibold text-neutral-50">
+                              Tier {index + 1}
+                            </h3>
+                            <p className="text-xs text-neutral-500">
+                              {tier.name || 'Unnamed tier'}
+                            </p>
                           </div>
                         </div>
+                        {ticketTiers.length > 1 && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeTier(index)}
+                            className="text-neutral-400 hover:text-red-500 hover:bg-red-500/10 touch-target"
+                            data-testid={`button-remove-tier-${index}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
 
-                        <div className="space-y-2">
-                          <Label>Description</Label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Tier Name */}
+                        <div className="space-y-2 md:col-span-2">
+                          <Label className="text-neutral-200 font-medium">
+                            Tier Name <span className="text-copper-500">*</span>
+                          </Label>
+                          <Input
+                            placeholder="e.g., General Admission, VIP, Early Bird"
+                            value={tier.name}
+                            onChange={(e) => handleTierChange(index, 'name', e.target.value)}
+                            className="h-12 bg-charcoal-900/40 border-charcoal-700 
+                                     focus:border-copper-500 text-neutral-100"
+                            data-testid={`input-tier-name-${index}`}
+                          />
+                        </div>
+
+                        {/* Tier Description */}
+                        <div className="space-y-2 md:col-span-2">
+                          <Label className="text-neutral-200 font-medium">
+                            Description
+                          </Label>
                           <Textarea
-                            placeholder="What's included with this ticket?"
+                            placeholder="What's included in this tier?"
                             value={tier.description}
                             onChange={(e) => handleTierChange(index, 'description', e.target.value)}
-                            rows={2}
+                            rows={3}
+                            className="bg-charcoal-900/40 border-charcoal-700 
+                                     focus:border-copper-500 text-neutral-100"
                             data-testid={`input-tier-description-${index}`}
                           />
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label>Capacity</Label>
+                        {/* Price */}
+                        <div className="space-y-2">
+                          <Label className="text-neutral-200 font-medium flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-copper-500" />
+                            Price (CAD) <span className="text-copper-500">*</span>
+                          </Label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">$</span>
                             <Input
                               type="number"
-                              min="1"
-                              placeholder="Unlimited"
-                              value={tier.capacity || ''}
-                              onChange={(e) => handleTierChange(index, 'capacity', e.target.value ? parseInt(e.target.value) : null)}
-                              data-testid={`input-tier-capacity-${index}`}
-                            />
-                            <p className="text-xs text-muted-foreground">
-                              Leave blank for unlimited
-                            </p>
-                          </div>
-                          <div className="space-y-2">
-                            <Label>Max per Order</Label>
-                            <Input
-                              type="number"
-                              min="1"
-                              value={tier.maxPerOrder}
-                              onChange={(e) => handleTierChange(index, 'maxPerOrder', parseInt(e.target.value) || 10)}
-                              data-testid={`input-tier-max-per-order-${index}`}
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={(tier.priceCents / 100).toFixed(2)}
+                              onChange={(e) => handleTierChange(index, 'priceCents', Math.round(parseFloat(e.target.value || '0') * 100))}
+                              className="h-12 pl-8 bg-charcoal-900/40 border-charcoal-700 
+                                       focus:border-copper-500 text-neutral-100"
+                              data-testid={`input-tier-price-${index}`}
                             />
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Capacity */}
+                        <div className="space-y-2">
+                          <Label className="text-neutral-200 font-medium flex items-center gap-2">
+                            <Users className="w-4 h-4 text-copper-500" />
+                            Capacity
+                          </Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder="Unlimited"
+                            value={tier.capacity || ''}
+                            onChange={(e) => handleTierChange(index, 'capacity', e.target.value ? parseInt(e.target.value) : null)}
+                            className="h-12 bg-charcoal-900/40 border-charcoal-700 
+                                     focus:border-copper-500 text-neutral-100"
+                            data-testid={`input-tier-capacity-${index}`}
+                          />
+                          <p className="text-xs text-neutral-500">Leave empty for unlimited</p>
+                        </div>
+
+                        {/* Max Per Order */}
+                        <div className="space-y-2">
+                          <Label className="text-neutral-200 font-medium">
+                            Max Per Order
+                          </Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder="10"
+                            value={tier.maxPerOrder}
+                            onChange={(e) => handleTierChange(index, 'maxPerOrder', parseInt(e.target.value) || 1)}
+                            className="h-12 bg-charcoal-900/40 border-charcoal-700 
+                                     focus:border-copper-500 text-neutral-100"
+                            data-testid={`input-tier-max-per-order-${index}`}
+                          />
+                        </div>
+
+                        {/* Sales Period */}
+                        <div className="space-y-2">
                           <DateTimePicker
                             label="Sales Start (Optional)"
                             value={tier.salesStartAt}
                             onChange={(value) => handleTierChange(index, 'salesStartAt', value)}
-                            placeholder="Immediately"
+                            minDate={new Date()}
                             testId={`tier-sales-start-${index}`}
                           />
+                        </div>
+
+                        <div className="space-y-2">
                           <DateTimePicker
                             label="Sales End (Optional)"
                             value={tier.salesEndAt}
                             onChange={(value) => handleTierChange(index, 'salesEndAt', value)}
-                            placeholder="At event start"
+                            minDate={tier.salesStartAt ? new Date(tier.salesStartAt) : new Date()}
                             testId={`tier-sales-end-${index}`}
                           />
                         </div>
@@ -699,13 +803,17 @@ export function TicketsEventCreatePage() {
                   </Card>
                 ))}
 
+                {/* Add Tier Button */}
                 <Button
-                  variant="outline"
                   onClick={addTier}
-                  className="w-full"
+                  variant="outline"
+                  className="w-full h-16 border-2 border-dashed border-charcoal-700 
+                           hover:border-copper-500 hover:bg-copper-500/5 
+                           text-neutral-400 hover:text-copper-500 transition-all
+                           touch-target"
                   data-testid="button-add-tier"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-5 h-5 mr-2" />
                   Add Another Ticket Tier
                 </Button>
               </div>
@@ -713,131 +821,147 @@ export function TicketsEventCreatePage() {
           </TabsContent>
 
           {/* Fees & Taxes Tab */}
-          <TabsContent value="settings">
-            <div className="glass-elevated rounded-xl p-6 animate-slideUp">
-              <div className="mb-6">
-                <h2 className="text-xl font-fraunces font-semibold mb-2" style={{ color: 'var(--neutral-50)' }}>
-                  Fees & Tax Settings
+          <TabsContent value="settings" className="space-y-6">
+            <div className="glass-elevated rounded-2xl p-6 md:p-8 animate-slideUp space-y-8">
+              {/* Service Fees */}
+              <div>
+                <h2 className="text-2xl font-fraunces font-bold text-neutral-50 mb-2">
+                  Service Fees
                 </h2>
-                <p className="text-sm" style={{ color: 'var(--neutral-400)' }}>
-                  Configure how service fees and taxes are handled
+                <p className="text-neutral-400 mb-6">
+                  Choose how to handle transaction fees
                 </p>
-              </div>
-              <div className="space-y-6">
-                {/* Fee Structure */}
+
                 <div className="space-y-4">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <DollarSign className="w-4 h-4" />
-                    Service Fee Structure
-                  </h3>
-                  <div className="space-y-3">
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="feeStructure"
-                        className="mt-1"
-                        checked={form.feeStructure.type === 'buyer_pays'}
-                        onChange={() => handleInputChange('feeStructure', { ...form.feeStructure, type: 'buyer_pays' })}
-                        data-testid="radio-buyer-pays"
+                  <Label className="text-neutral-200 font-medium">
+                    Fee Structure
+                  </Label>
+                  <Select 
+                    value={form.feeStructure.type} 
+                    onValueChange={(value: 'buyer_pays' | 'organizer_absorbs') => 
+                      setForm(prev => ({ ...prev, feeStructure: { ...prev.feeStructure, type: value } }))
+                    }
+                  >
+                    <SelectTrigger 
+                      className="h-12 bg-charcoal-900/40 border-charcoal-700 
+                               focus:border-copper-500 text-neutral-100"
+                      data-testid="select-fee-structure"
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-charcoal-900 border-charcoal-700">
+                      <SelectItem value="buyer_pays">
+                        <div className="py-1">
+                          <div className="font-medium">Buyer Pays Fees</div>
+                          <div className="text-xs text-neutral-500">Fees added to ticket price at checkout</div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="organizer_absorbs">
+                        <div className="py-1">
+                          <div className="font-medium">Organizer Absorbs Fees</div>
+                          <div className="text-xs text-neutral-500">Fees deducted from your payout</div>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <div className="space-y-2">
+                    <Label className="text-neutral-200 font-medium">
+                      Service Fee Percentage
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="20"
+                        step="0.1"
+                        value={form.feeStructure.serviceFeePercent}
+                        onChange={(e) => setForm(prev => ({ 
+                          ...prev, 
+                          feeStructure: { ...prev.feeStructure, serviceFeePercent: parseFloat(e.target.value) || 0 } 
+                        }))}
+                        className="h-12 pr-10 bg-charcoal-900/40 border-charcoal-700 
+                                 focus:border-copper-500 text-neutral-100"
+                        data-testid="input-service-fee"
                       />
-                      <div>
-                        <p className="font-medium">Buyer Pays Fees (Recommended)</p>
-                        <p className="text-sm text-muted-foreground">
-                          Service fees are added to the ticket price at checkout. You receive the full ticket price.
-                        </p>
-                      </div>
-                    </label>
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="feeStructure"
-                        className="mt-1"
-                        checked={form.feeStructure.type === 'organizer_absorbs'}
-                        onChange={() => handleInputChange('feeStructure', { ...form.feeStructure, type: 'organizer_absorbs' })}
-                        data-testid="radio-organizer-absorbs"
-                      />
-                      <div>
-                        <p className="font-medium">Organizer Absorbs Fees</p>
-                        <p className="text-sm text-muted-foreground">
-                          Service fees are deducted from your payout. Buyers see the exact ticket price.
-                        </p>
-                      </div>
-                    </label>
-                  </div>
-                  
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm font-medium mb-2">Service Fee: {form.feeStructure.serviceFeePercent}%</p>
-                    <p className="text-xs text-muted-foreground">
-                      This covers payment processing and platform features
-                    </p>
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">%</span>
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                {/* Tax Settings */}
-                <div className="space-y-4">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <Settings className="w-4 h-4" />
-                    Tax Collection
-                  </h3>
-                  
-                  <div className="flex items-center justify-between">
+              {/* Tax Settings */}
+              <div className="pt-8 border-t border-charcoal-800">
+                <h2 className="text-2xl font-fraunces font-bold text-neutral-50 mb-2">
+                  Tax Settings
+                </h2>
+                <p className="text-neutral-400 mb-6">
+                  Configure tax collection for your event
+                </p>
+
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between p-4 glass-card rounded-lg">
                     <div>
-                      <Label htmlFor="collectTax">Collect Taxes</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Automatically calculate and collect applicable taxes
-                      </p>
+                      <Label className="text-neutral-200 font-medium">Collect Tax</Label>
+                      <p className="text-sm text-neutral-500">Automatically add taxes to ticket prices</p>
                     </div>
                     <Switch
-                      id="collectTax"
                       checked={form.taxSettings.collectTax}
-                      onCheckedChange={(checked) => 
-                        handleInputChange('taxSettings', { ...form.taxSettings, collectTax: checked })
-                      }
+                      onCheckedChange={(checked) => setForm(prev => ({ 
+                        ...prev, 
+                        taxSettings: { ...prev.taxSettings, collectTax: checked } 
+                      }))}
                       data-testid="switch-collect-tax"
                     />
                   </div>
 
                   {form.taxSettings.collectTax && (
-                    <div className="space-y-3 pl-4 border-l-2">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>GST Rate (%)</Label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-slideUp">
+                      <div className="space-y-2">
+                        <Label className="text-neutral-200 font-medium">
+                          GST/HST %
+                        </Label>
+                        <div className="relative">
                           <Input
                             type="number"
                             min="0"
-                            max="100"
+                            max="15"
                             step="0.1"
                             value={form.taxSettings.gstPercent}
-                            onChange={(e) => 
-                              handleInputChange('taxSettings', { 
-                                ...form.taxSettings, 
-                                gstPercent: parseFloat(e.target.value) || 0 
-                              })
-                            }
-                            data-testid="input-gst-percent"
+                            onChange={(e) => setForm(prev => ({ 
+                              ...prev, 
+                              taxSettings: { ...prev.taxSettings, gstPercent: parseFloat(e.target.value) || 0 } 
+                            }))}
+                            className="h-12 pr-10 bg-charcoal-900/40 border-charcoal-700 
+                                     focus:border-copper-500 text-neutral-100"
+                            data-testid="input-gst"
                           />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">%</span>
                         </div>
-                        <div className="space-y-2">
-                          <Label>PST Rate (%)</Label>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-neutral-200 font-medium">
+                          PST/QST %
+                        </Label>
+                        <div className="relative">
                           <Input
                             type="number"
                             min="0"
-                            max="100"
+                            max="15"
                             step="0.1"
                             value={form.taxSettings.pstPercent}
-                            onChange={(e) => 
-                              handleInputChange('taxSettings', { 
-                                ...form.taxSettings, 
-                                pstPercent: parseFloat(e.target.value) || 0 
-                              })
-                            }
-                            data-testid="input-pst-percent"
+                            onChange={(e) => setForm(prev => ({ 
+                              ...prev, 
+                              taxSettings: { ...prev.taxSettings, pstPercent: parseFloat(e.target.value) || 0 } 
+                            }))}
+                            className="h-12 pr-10 bg-charcoal-900/40 border-charcoal-700 
+                                     focus:border-copper-500 text-neutral-100"
+                            data-testid="input-pst"
                           />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">%</span>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        Default rates for British Columbia. Adjust based on your event location.
-                      </p>
                     </div>
                   )}
                 </div>
@@ -846,49 +970,61 @@ export function TicketsEventCreatePage() {
           </TabsContent>
         </Tabs>
 
-        {/* Premium Action Buttons - Mobile-First */}
-        <div className="bottom-action-bar">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            <Button
-              onClick={() => handleSubmit('draft')}
-              variant="outline"
-              disabled={createEventMutation.isPending}
-              className="flex-1 glass-card hover-glow touch-target"
-              style={{ color: 'var(--neutral-200)' }}
-              data-testid="button-save-draft"
-            >
-              <Save className="w-4 h-4 mr-2" />
-              Save as Draft
-            </Button>
-            <Button
-              onClick={() => handleSubmit('published')}
-              disabled={createEventMutation.isPending || !organizerData?.organizer?.stripeOnboardingComplete}
-              className="flex-1 bg-copper-gradient hover:shadow-glow-copper text-white font-semibold touch-target"
-              data-testid="button-publish-event"
-            >
-              {createEventMutation.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Upload className="w-4 h-4 mr-2" />
-                  Publish Event
-                </>
-              )}
-            </Button>
+        {/* Fixed Bottom Action Bar (Mobile-optimized) */}
+        <div className="fixed bottom-0 left-0 right-0 md:relative md:mt-8 
+                     glass-elevated border-t border-charcoal-800 md:border-0 md:rounded-xl
+                     p-4 md:p-6 z-10">
+          <div className="container mx-auto max-w-5xl">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="text-sm text-neutral-400 hidden md:block">
+                <Sparkles className="w-4 h-4 inline mr-1.5 text-copper-500" />
+                All changes are auto-saved
+              </div>
+              <div className="flex gap-3 flex-col sm:flex-row">
+                <Button
+                  onClick={() => handleSubmit('draft')}
+                  variant="outline"
+                  disabled={createEventMutation.isPending}
+                  className="h-12 border-charcoal-700 hover:border-copper-500 
+                           text-neutral-300 hover:bg-copper-500/5 touch-target order-2 sm:order-1"
+                  data-testid="button-save-draft"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {createEventMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save as Draft'
+                  )}
+                </Button>
+                <Button
+                  onClick={() => handleSubmit('published')}
+                  disabled={createEventMutation.isPending || !organizerData?.organizer?.stripeOnboardingComplete}
+                  className="h-12 bg-copper-gradient hover:shadow-glow-copper 
+                           text-white font-semibold touch-target order-1 sm:order-2"
+                  data-testid="button-publish-event"
+                >
+                  {createEventMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Publishing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Publish Event
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Cancel Link */}
-        <div className="text-center mt-4">
-          <Link href="/tickets/organizer/dashboard">
-            <Button variant="ghost" data-testid="button-cancel">
-              Cancel
-            </Button>
-          </Link>
-        </div>
+        {/* Spacer for fixed bottom bar on mobile */}
+        <div className="h-24 md:hidden" />
       </div>
     </div>
   );
