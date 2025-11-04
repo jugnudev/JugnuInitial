@@ -259,7 +259,7 @@ export const ticketsOrganizers = pgTable("tickets_organizers", {
 // Ticketed events created by organizers
 export const ticketsEvents = pgTable("tickets_events", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  organizerId: uuid("organizer_id").notNull().references(() => ticketsOrganizers.id),
+  organizerId: uuid("organizer_id").notNull().references(() => organizers.id),
   slug: text("slug").notNull().unique(),
   title: text("title").notNull(),
   summary: text("summary"),
@@ -399,7 +399,7 @@ export const ticketsAudit = pgTable("tickets_audit", {
 // MoR Financial Ledger - tracks all revenue transactions
 export const ticketsLedger = pgTable("tickets_ledger", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  organizerId: uuid("organizer_id").notNull().references(() => ticketsOrganizers.id),
+  organizerId: uuid("organizer_id").notNull().references(() => organizers.id),
   orderId: uuid("order_id").references(() => ticketsOrders.id), // nullable for adjustments
   payoutId: uuid("payout_id").references(() => ticketsPayouts.id), // linked when paid out
   type: text("type").notNull(), // sale | refund | chargeback | adjustment
@@ -416,7 +416,7 @@ export const ticketsLedger = pgTable("tickets_ledger", {
 // MoR Payout Management - batched payments to organizers
 export const ticketsPayouts = pgTable("tickets_payouts", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  organizerId: uuid("organizer_id").notNull().references(() => ticketsOrganizers.id),
+  organizerId: uuid("organizer_id").notNull().references(() => organizers.id),
   periodStart: date("period_start").notNull(),
   periodEnd: date("period_end").notNull(),
   totalCents: integer("total_cents").notNull(),
