@@ -448,6 +448,7 @@ export function TicketsEventEditPage() {
                               {...field} 
                               placeholder="e.g., Summer Music Festival 2025"
                               data-testid="input-title"
+                              className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                             />
                           </FormControl>
                           <FormMessage />
@@ -465,7 +466,7 @@ export function TicketsEventEditPage() {
                             <Textarea 
                               {...field}
                               placeholder="Brief description for event cards (max 500 chars)"
-                              className="resize-none h-20"
+                              className="resize-none h-20 bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                               maxLength={500}
                               data-testid="input-summary"
                             />
@@ -488,7 +489,7 @@ export function TicketsEventEditPage() {
                             <Textarea 
                               {...field}
                               placeholder="Detailed event description, lineup, schedule, etc."
-                              className="resize-none h-32"
+                              className="resize-none h-32 bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                               maxLength={5000}
                               data-testid="input-description"
                             />
@@ -524,6 +525,7 @@ export function TicketsEventEditPage() {
                                 {...field}
                                 type="datetime-local"
                                 data-testid="input-start-date"
+                                className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                               />
                             </FormControl>
                             <FormMessage />
@@ -542,6 +544,7 @@ export function TicketsEventEditPage() {
                                 {...field}
                                 type="datetime-local"
                                 data-testid="input-end-date"
+                                className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                               />
                             </FormControl>
                             <FormMessage />
@@ -572,6 +575,7 @@ export function TicketsEventEditPage() {
                               {...field}
                               placeholder="e.g., Rogers Centre"
                               data-testid="input-venue"
+                              className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                             />
                           </FormControl>
                           <FormMessage />
@@ -590,6 +594,7 @@ export function TicketsEventEditPage() {
                               {...field}
                               placeholder="e.g., 1 Blue Jays Way"
                               data-testid="input-address"
+                              className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                             />
                           </FormControl>
                           <FormMessage />
@@ -609,6 +614,7 @@ export function TicketsEventEditPage() {
                                 {...field}
                                 placeholder="e.g., Toronto"
                                 data-testid="input-city"
+                                className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                               />
                             </FormControl>
                             <FormMessage />
@@ -665,6 +671,7 @@ export function TicketsEventEditPage() {
                                 {...field}
                                 placeholder="Canada"
                                 data-testid="input-country"
+                                className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                               />
                             </FormControl>
                             <FormMessage />
@@ -683,6 +690,7 @@ export function TicketsEventEditPage() {
                                 {...field}
                                 placeholder="e.g., M5V 3B3"
                                 data-testid="input-postal"
+                                className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                               />
                             </FormControl>
                             <FormMessage />
@@ -737,6 +745,7 @@ export function TicketsEventEditPage() {
                                   onChange={(e) => updateTicketTier(index, { name: e.target.value })}
                                   placeholder="e.g., General Admission"
                                   data-testid={`input-tier-name-${index}`}
+                                  className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                                 />
                               </div>
                               
@@ -752,6 +761,7 @@ export function TicketsEventEditPage() {
                                   })}
                                   placeholder="0.00"
                                   data-testid={`input-tier-price-${index}`}
+                                  className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                                 />
                               </div>
                             </div>
@@ -762,7 +772,7 @@ export function TicketsEventEditPage() {
                                 value={tier.description || ''}
                                 onChange={(e) => updateTicketTier(index, { description: e.target.value })}
                                 placeholder="What's included with this ticket tier?"
-                                className="resize-none h-20"
+                                className="resize-none h-20 bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                                 data-testid={`input-tier-description-${index}`}
                               />
                             </div>
@@ -779,6 +789,7 @@ export function TicketsEventEditPage() {
                                   })}
                                   placeholder="Unlimited"
                                   data-testid={`input-tier-capacity-${index}`}
+                                  className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                                 />
                               </div>
                               
@@ -794,6 +805,7 @@ export function TicketsEventEditPage() {
                                   })}
                                   placeholder="10"
                                   data-testid={`input-tier-max-${index}`}
+                                  className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                                 />
                               </div>
                             </div>
@@ -868,6 +880,7 @@ export function TicketsEventEditPage() {
                               min="1"
                               onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                               data-testid="input-capacity"
+                              className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                             />
                           </FormControl>
                           <FormDescription>
