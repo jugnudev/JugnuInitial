@@ -43,6 +43,7 @@ export const createEventSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(5000).optional(),
   startAt: z.string().datetime(),
+  endAt: z.string().datetime().optional(),
   venue: z.string().min(1).max(200),
   city: z.string().min(1).max(100),
   province: z.string().length(2),

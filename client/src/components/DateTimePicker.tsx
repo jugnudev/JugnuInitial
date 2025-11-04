@@ -68,8 +68,26 @@ export function DateTimePicker({
     const dateTime = new Date(newDate);
     dateTime.setHours(hours24, parseInt(newMinute), 0, 0);
     
-    // Format as ISO 8601 datetime string with timezone (required by Zod validation)
-    onChange(dateTime.toISOString());
+    // Format as ISO 8601 datetime string WITH local timezone offset (not UTC)
+    // Example: 2025-11-05T16:00:00-08:00 (Pacific time)
+    const year = dateTime.getFullYear();
+    const month = String(dateTime.getMonth() + 1).padStart(2, '0');
+    const day = String(dateTime.getDate()).padStart(2, '0');
+    const hours = String(dateTime.getHours()).padStart(2, '0');
+    const minutes = String(dateTime.getMinutes()).padStart(2, '0');
+    const seconds = '00';
+    
+    // Get timezone offset in minutes and convert to ±HH:MM format
+    // Note: getTimezoneOffset() returns OPPOSITE sign (negative for ahead of UTC)
+    const timezoneOffsetMinutes = dateTime.getTimezoneOffset();
+    const absOffset = Math.abs(timezoneOffsetMinutes);
+    const offsetHours = Math.floor(absOffset / 60);
+    const offsetMinutes = absOffset % 60;
+    const offsetSign = timezoneOffsetMinutes <= 0 ? '+' : '-';
+    const offset = `${offsetSign}${String(offsetHours).padStart(2, '0')}:${String(offsetMinutes).padStart(2, '0')}`;
+    
+    const isoString = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offset}`;
+    onChange(isoString);
   };
 
   const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
