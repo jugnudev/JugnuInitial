@@ -739,7 +739,10 @@ export function addTicketsRoutes(app: Express) {
       
       // Check if user is logged in
       if (!req.session?.userId) {
-        return res.status(401).json({ ok: false, error: 'Please log in' });
+        // Return success with null organizer instead of 401
+        // This allows the UI to show "Enable Ticketing" button
+        console.log('[Ticketing] No userId in session - returning null organizer');
+        return res.json({ ok: true, organizer: null, events: [] });
       }
       
       // Try to find organizer by userId

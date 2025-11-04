@@ -673,7 +673,7 @@ export function addCommunitiesRoutes(app: Express) {
    * curl -X GET http://localhost:5000/api/account/me \
    *   -H "Authorization: Bearer YOUR_TOKEN"
    */
-  app.get('/api/auth/me', requireAuth, async (req: Request, res: Response) => {
+  app.get('/api/auth/me', requireAuthOrSession, async (req: Request, res: Response) => {
     // Prevent caching of user data to ensure fresh profile pictures
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('Pragma', 'no-cache');
@@ -681,6 +681,19 @@ export function addCommunitiesRoutes(app: Express) {
     
     try {
       const user = (req as any).user;
+      
+      // CRITICAL: Set session userId for ticketing integration
+      // This ensures ticketing endpoints can access the user
+      if (user && user.id && req.session) {
+        req.session.userId = user.id;
+        // Save session to persist the userId
+        await new Promise<void>((resolve) => {
+          req.session.save((err) => {
+            if (err) console.error('Session save error in /api/auth/me:', err);
+            resolve();
+          });
+        });
+      }
       
       // Check if user is an organizer
       let organizerApplication = null;
