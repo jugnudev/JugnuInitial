@@ -91,7 +91,7 @@ export function DateTimePicker({
   };
 
   const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
-  const minutes = ['00', '15', '30', '45'];
+  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
   return (
     <div className="space-y-2">
