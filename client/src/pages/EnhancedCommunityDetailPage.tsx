@@ -2881,12 +2881,22 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
   const [isEnabling, setIsEnabling] = useState(false);
   const [businessType, setBusinessType] = useState<'individual' | 'company'>('individual');
 
-  // Simple query - no complicated logic
-  const { data: organizerData, isLoading, refetch } = useQuery<{ ok: boolean; organizer: any | null }>({
+  // Fetch organizer data - will return null if user hasn't enabled ticketing yet
+  const { data: organizerData, isLoading, refetch, error } = useQuery<{ ok: boolean; organizer: any | null }>({
     queryKey: ['/api/tickets/organizers/me'],
-    enabled: true,  // Always try to fetch
+    enabled: !!userId,  // Only fetch if user is logged in
     retry: false,
   });
+
+  // Debug logging
+  useEffect(() => {
+    console.log('[TicketingSettingsCard] Data:', {
+      userId,
+      organizerData,
+      error,
+      isLoading
+    });
+  }, [userId, organizerData, error, isLoading]);
 
   const organizer = organizerData?.organizer;
   const hasStripeAccount = !!organizer?.stripeAccountId;
