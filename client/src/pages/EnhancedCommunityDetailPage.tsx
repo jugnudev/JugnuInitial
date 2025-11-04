@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -73,15 +74,16 @@ import {
   ClockIcon,
   TrendingDown,
   RefreshCw,
+  Ticket,
+  CreditCard,
   Vote,
   Gift,
   Copy,
   Check,
-  AlertTriangle,
-  CreditCard
+  AlertTriangle
 } from "lucide-react";
 import { format, addDays } from "date-fns";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -2279,6 +2281,11 @@ export default function EnhancedCommunityDetailPage() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Ticketing Settings Card */}
+              {import.meta.env.VITE_ENABLE_TICKETING === 'true' && (
+                <TicketingSettingsCard communitySlug={community.slug} userId={user?.id} />
+              )}
             </TabsContent>
 
             {/* Billing Tab */}
@@ -2845,5 +2852,197 @@ export default function EnhancedCommunityDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
     </motion.div>
+  );
+}
+
+function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: string; userId?: string }) {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [isEnabling, setIsEnabling] = useState(false);
+
+  const { data: organizerData, isLoading, refetch } = useQuery<{ ok: boolean; organizer: any }>({
+    queryKey: ['/api/tickets/organizers/me'],
+    enabled: !!userId,
+    retry: false,
+  });
+
+  const organizer = organizerData?.organizer;
+  const isConnected = organizer?.stripeOnboardingComplete && organizer?.stripeChargesEnabled;
+
+  const handleEnableTicketing = async () => {
+    if (!userId) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to enable ticketing.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsEnabling(true);
+
+    try {
+      const response = await fetch('/api/tickets/connect/onboarding', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          returnUrl: `${window.location.origin}/communities/${communitySlug}?tab=settings&ticketing=success`,
+          refreshUrl: `${window.location.origin}/communities/${communitySlug}?tab=settings`,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.ok) {
+        throw new Error(result.error || 'Failed to start onboarding');
+      }
+
+      window.location.href = result.url;
+    } catch (error: any) {
+      console.error('Enable ticketing error:', error);
+      toast({
+        title: "Failed to enable ticketing",
+        description: error.message || "Please try again",
+        variant: "destructive"
+      });
+      setIsEnabling(false);
+    }
+  };
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('ticketing') === 'success') {
+      toast({
+        title: "Ticketing Enabled!",
+        description: "Your payment account is set up. You can now create ticketed events.",
+        variant: "default"
+      });
+      refetch();
+      window.history.replaceState({}, '', window.location.pathname + '?tab=settings');
+    }
+  }, [toast, refetch]);
+
+  if (isLoading) {
+    return (
+      <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+        <CardContent className="py-8">
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-6 w-6 animate-spin text-premium-text-muted" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
+      <CardHeader>
+        <CardTitle className="text-base md:text-lg flex items-center gap-2">
+          <Ticket className="h-5 w-5" />
+          Event Ticketing
+        </CardTitle>
+        <CardDescription className="text-xs md:text-sm">
+          Sell tickets for your community events with direct-to-business payments
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isConnected ? (
+          <>
+            <Alert className="bg-green-500/10 border-green-500/50">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <AlertDescription className="text-green-700 dark:text-green-400">
+                Ticketing is enabled. Payments go directly to your Stripe account with a {((organizer.platformFeeBps || 500) / 100).toFixed(1)}% platform fee.
+              </AlertDescription>
+            </Alert>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 rounded-lg bg-premium-surface-elevated border border-premium-border">
+                <p className="text-xs text-premium-text-muted mb-1">Charges Enabled</p>
+                <p className="font-semibold text-premium-text-primary">{organizer.stripeChargesEnabled ? 'Yes' : 'No'}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-premium-surface-elevated border border-premium-border">
+                <p className="text-xs text-premium-text-muted mb-1">Payouts Enabled</p>
+                <p className="font-semibold text-premium-text-primary">{organizer.stripePayoutsEnabled ? 'Yes' : 'No'}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setLocation('/tickets/organizer/dashboard')}
+                variant="default"
+                className="flex-1"
+                data-testid="button-manage-ticketing"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Manage Events
+              </Button>
+              <Button
+                onClick={() => window.open('https://dashboard.stripe.com', '_blank')}
+                variant="outline"
+                className="flex-1"
+                data-testid="button-stripe-dashboard"
+              >
+                <CreditCard className="h-4 w-4 mr-2" />
+                Stripe Dashboard
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <Alert className="bg-copper-500/10 border-copper-500/50">
+              <AlertCircle className="h-4 w-4 text-copper-500" />
+              <AlertDescription className="text-copper-700 dark:text-copper-400">
+                Enable ticketing to sell tickets for community events and accept payments directly.
+              </AlertDescription>
+            </Alert>
+
+            <div className="space-y-3">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-premium-text-primary text-sm">Direct Payments</p>
+                  <p className="text-xs text-premium-text-muted">Money goes straight to your Stripe account</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-premium-text-primary text-sm">Instant Payouts</p>
+                  <p className="text-xs text-premium-text-muted">No waiting for platform payouts</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-premium-text-primary text-sm">Full Control</p>
+                  <p className="text-xs text-premium-text-muted">Manage pricing, refunds, and analytics</p>
+                </div>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleEnableTicketing}
+              disabled={isEnabling}
+              className="w-full bg-gradient-to-r from-copper-500 to-accent hover:from-copper-600 hover:to-copper-700"
+              data-testid="button-enable-ticketing"
+            >
+              {isEnabling ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Connecting to Stripe...
+                </>
+              ) : (
+                <>
+                  <Ticket className="h-4 w-4 mr-2" />
+                  Enable Ticketing
+                </>
+              )}
+            </Button>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
