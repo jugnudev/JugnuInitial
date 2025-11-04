@@ -1237,8 +1237,15 @@ export function addTicketsRoutes(app: Express) {
         const suffix = Math.random().toString(36).substring(2, 8);
         const slug = `${baseSlug}-${suffix}`;
         
+        // Convert ISO datetime strings to Date objects for database
         const eventInsertData: InsertTicketsEvent = {
-          ...validated,
+          title: validated.title,
+          description: validated.description,
+          startAt: new Date(validated.startAt),
+          endAt: validated.endAt ? new Date(validated.endAt) : undefined,
+          venue: validated.venue,
+          city: validated.city,
+          province: validated.province,
           organizerId: organizer.id,
           slug: slug,
           status: validated.status || 'draft'
@@ -1265,12 +1272,11 @@ export function addTicketsRoutes(app: Express) {
             const tierData: InsertTicketsTier = {
               eventId: event.id,
               name: tier.name,
-              description: tier.description || null,
               priceCents: tier.priceCents || 0,
               capacity: tier.capacity || null,
               maxPerOrder: tier.maxPerOrder || 10,
-              salesStartAt: tier.salesStartAt || null,
-              salesEndAt: tier.salesEndAt || null,
+              salesStartAt: tier.salesStartAt ? new Date(tier.salesStartAt) : null,
+              salesEndAt: tier.salesEndAt ? new Date(tier.salesEndAt) : null,
               sortOrder: tier.sortOrder || 0
             };
             await ticketsStorage.createTier(tierData);
@@ -1299,7 +1305,18 @@ export function addTicketsRoutes(app: Express) {
       const { tiers, ...eventData } = req.body;
       
       const validated = updateEventSchema.parse(eventData);
-      const updated = await ticketsStorage.updateEvent(req.params.id, validated);
+      
+      // Convert datetime strings to Date objects if provided
+      const updateData: any = {};
+      for (const [key, value] of Object.entries(validated)) {
+        if ((key === 'startAt' || key === 'endAt') && value) {
+          updateData[key] = new Date(value as string);
+        } else if (value !== undefined) {
+          updateData[key] = value;
+        }
+      }
+      
+      const updated = await ticketsStorage.updateEvent(req.params.id, updateData);
       
       // Handle tiers update if provided
       if (tiers && Array.isArray(tiers)) {

@@ -426,8 +426,8 @@ export function TicketsEventCreatePage() {
                     placeholder="e.g., Summer Music Festival 2025"
                     value={form.title}
                     onChange={(e) => handleInputChange('title', e.target.value)}
-                    className="h-12 bg-charcoal-900/40 border-charcoal-700 
-                             focus:border-copper-500 text-neutral-100 placeholder:text-neutral-500
+                    className="h-12 bg-charcoal-900/60 border-charcoal-700 
+                             focus:border-copper-500 text-white placeholder:text-neutral-500
                              text-lg"
                     required
                   />
@@ -444,8 +444,8 @@ export function TicketsEventCreatePage() {
                     placeholder="Brief one-line description"
                     value={form.summary}
                     onChange={(e) => handleInputChange('summary', e.target.value)}
-                    className="h-12 bg-charcoal-900/40 border-charcoal-700 
-                             focus:border-copper-500 text-neutral-100 placeholder:text-neutral-500"
+                    className="h-12 bg-charcoal-900/60 border-charcoal-700 
+                             focus:border-copper-500 text-white placeholder:text-neutral-500"
                   />
                   <p className="text-sm text-neutral-500">
                     Displayed in event cards and search results
@@ -464,8 +464,8 @@ export function TicketsEventCreatePage() {
                     value={form.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     rows={6}
-                    className="bg-charcoal-900/40 border-charcoal-700 
-                             focus:border-copper-500 text-neutral-100 placeholder:text-neutral-500
+                    className="bg-charcoal-900/60 border-charcoal-700 
+                             focus:border-copper-500 text-white placeholder:text-neutral-500
                              resize-none"
                   />
                 </div>
@@ -561,8 +561,8 @@ export function TicketsEventCreatePage() {
                       placeholder="e.g., Rogers Arena"
                       value={form.venue}
                       onChange={(e) => handleInputChange('venue', e.target.value)}
-                      className="h-12 bg-charcoal-900/40 border-charcoal-700 
-                               focus:border-copper-500 text-neutral-100 placeholder:text-neutral-500"
+                      className="h-12 bg-charcoal-900/60 border-charcoal-700 
+                               focus:border-copper-500 text-white placeholder:text-neutral-500"
                       required
                     />
                   </div>
@@ -577,8 +577,8 @@ export function TicketsEventCreatePage() {
                       placeholder="e.g., 800 Griffiths Way"
                       value={form.address}
                       onChange={(e) => handleInputChange('address', e.target.value)}
-                      className="h-12 bg-charcoal-900/40 border-charcoal-700 
-                               focus:border-copper-500 text-neutral-100 placeholder:text-neutral-500"
+                      className="h-12 bg-charcoal-900/60 border-charcoal-700 
+                               focus:border-copper-500 text-white placeholder:text-neutral-500"
                     />
                   </div>
 
@@ -593,8 +593,8 @@ export function TicketsEventCreatePage() {
                         placeholder="Vancouver"
                         value={form.city}
                         onChange={(e) => handleInputChange('city', e.target.value)}
-                        className="h-12 bg-charcoal-900/40 border-charcoal-700 
-                                 focus:border-copper-500 text-neutral-100 placeholder:text-neutral-500"
+                        className="h-12 bg-charcoal-900/60 border-charcoal-700 
+                                 focus:border-copper-500 text-white placeholder:text-neutral-500"
                         required
                       />
                     </div>
@@ -604,13 +604,13 @@ export function TicketsEventCreatePage() {
                       </Label>
                       <Select value={form.province} onValueChange={(value) => handleInputChange('province', value)}>
                         <SelectTrigger 
-                          className="h-12 bg-charcoal-900/40 border-charcoal-700 
-                                   focus:border-copper-500 text-neutral-100"
+                          className="h-12 bg-charcoal-900/60 border-charcoal-700 
+                                   focus:border-copper-500 text-white"
                           data-testid="select-event-province"
                         >
                           <SelectValue placeholder="Select province" />
                         </SelectTrigger>
-                        <SelectContent className="bg-charcoal-900 border-charcoal-700">
+                        <SelectContent className="bg-charcoal-900 border-charcoal-700 text-white">
                           <SelectItem value="BC">British Columbia</SelectItem>
                           <SelectItem value="AB">Alberta</SelectItem>
                           <SelectItem value="ON">Ontario</SelectItem>
@@ -698,8 +698,8 @@ export function TicketsEventCreatePage() {
                             placeholder="e.g., General Admission, VIP, Early Bird"
                             value={tier.name}
                             onChange={(e) => handleTierChange(index, 'name', e.target.value)}
-                            className="h-12 bg-charcoal-900/40 border-charcoal-700 
-                                     focus:border-copper-500 text-neutral-100"
+                            className="h-12 bg-charcoal-900/60 border-charcoal-700 
+                                     focus:border-copper-500 text-white"
                             data-testid={`input-tier-name-${index}`}
                           />
                         </div>
@@ -714,8 +714,8 @@ export function TicketsEventCreatePage() {
                             value={tier.description}
                             onChange={(e) => handleTierChange(index, 'description', e.target.value)}
                             rows={3}
-                            className="bg-charcoal-900/40 border-charcoal-700 
-                                     focus:border-copper-500 text-neutral-100"
+                            className="bg-charcoal-900/60 border-charcoal-700 
+                                     focus:border-copper-500 text-white"
                             data-testid={`input-tier-description-${index}`}
                           />
                         </div>
@@ -735,8 +735,8 @@ export function TicketsEventCreatePage() {
                               placeholder="0.00"
                               value={(tier.priceCents / 100).toFixed(2)}
                               onChange={(e) => handleTierChange(index, 'priceCents', Math.round(parseFloat(e.target.value || '0') * 100))}
-                              className="h-12 pl-8 bg-charcoal-900/40 border-charcoal-700 
-                                       focus:border-copper-500 text-neutral-100"
+                              className="h-12 pl-8 bg-charcoal-900/60 border-charcoal-700 
+                                       focus:border-copper-500 text-white"
                               data-testid={`input-tier-price-${index}`}
                             />
                           </div>
@@ -754,8 +754,8 @@ export function TicketsEventCreatePage() {
                             placeholder="Unlimited"
                             value={tier.capacity || ''}
                             onChange={(e) => handleTierChange(index, 'capacity', e.target.value ? parseInt(e.target.value) : null)}
-                            className="h-12 bg-charcoal-900/40 border-charcoal-700 
-                                     focus:border-copper-500 text-neutral-100"
+                            className="h-12 bg-charcoal-900/60 border-charcoal-700 
+                                     focus:border-copper-500 text-white"
                             data-testid={`input-tier-capacity-${index}`}
                           />
                           <p className="text-xs text-neutral-500">Leave empty for unlimited</p>
@@ -772,8 +772,8 @@ export function TicketsEventCreatePage() {
                             placeholder="10"
                             value={tier.maxPerOrder}
                             onChange={(e) => handleTierChange(index, 'maxPerOrder', parseInt(e.target.value) || 1)}
-                            className="h-12 bg-charcoal-900/40 border-charcoal-700 
-                                     focus:border-copper-500 text-neutral-100"
+                            className="h-12 bg-charcoal-900/60 border-charcoal-700 
+                                     focus:border-copper-500 text-white"
                             data-testid={`input-tier-max-per-order-${index}`}
                           />
                         </div>
@@ -843,13 +843,13 @@ export function TicketsEventCreatePage() {
                     }
                   >
                     <SelectTrigger 
-                      className="h-12 bg-charcoal-900/40 border-charcoal-700 
-                               focus:border-copper-500 text-neutral-100"
+                      className="h-12 bg-charcoal-900/60 border-charcoal-700 
+                               focus:border-copper-500 text-white"
                       data-testid="select-fee-structure"
                     >
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-charcoal-900 border-charcoal-700">
+                    <SelectContent className="bg-charcoal-900 border-charcoal-700 text-white">
                       <SelectItem value="buyer_pays">
                         <div className="py-1">
                           <div className="font-medium">Buyer Pays Fees</div>
@@ -880,8 +880,8 @@ export function TicketsEventCreatePage() {
                           ...prev, 
                           feeStructure: { ...prev.feeStructure, serviceFeePercent: parseFloat(e.target.value) || 0 } 
                         }))}
-                        className="h-12 pr-10 bg-charcoal-900/40 border-charcoal-700 
-                                 focus:border-copper-500 text-neutral-100"
+                        className="h-12 pr-10 bg-charcoal-900/60 border-charcoal-700 
+                                 focus:border-copper-500 text-white"
                         data-testid="input-service-fee"
                       />
                       <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">%</span>
@@ -932,8 +932,8 @@ export function TicketsEventCreatePage() {
                               ...prev, 
                               taxSettings: { ...prev.taxSettings, gstPercent: parseFloat(e.target.value) || 0 } 
                             }))}
-                            className="h-12 pr-10 bg-charcoal-900/40 border-charcoal-700 
-                                     focus:border-copper-500 text-neutral-100"
+                            className="h-12 pr-10 bg-charcoal-900/60 border-charcoal-700 
+                                     focus:border-copper-500 text-white"
                             data-testid="input-gst"
                           />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">%</span>
@@ -955,8 +955,8 @@ export function TicketsEventCreatePage() {
                               ...prev, 
                               taxSettings: { ...prev.taxSettings, pstPercent: parseFloat(e.target.value) || 0 } 
                             }))}
-                            className="h-12 pr-10 bg-charcoal-900/40 border-charcoal-700 
-                                     focus:border-copper-500 text-neutral-100"
+                            className="h-12 pr-10 bg-charcoal-900/60 border-charcoal-700 
+                                     focus:border-copper-500 text-white"
                             data-testid="input-pst"
                           />
                           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">%</span>
