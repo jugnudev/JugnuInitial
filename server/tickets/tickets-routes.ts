@@ -37,22 +37,34 @@ const requireTicketing = (req: Request, res: Response, next: any) => {
 
 // Middleware to check organizer auth - uses session
 const requireOrganizer = async (req: Request & { session?: any }, res: Response, next: any) => {
-  // Check session for organizer authentication first
-  let organizerId = req.session?.organizerId;
+  let organizer = null;
   
-  // Development fallback: also check x-organizer-id header (localStorage-based auth)
-  if (!organizerId && process.env.NODE_ENV === 'development') {
-    organizerId = req.headers['x-organizer-id'] as string;
-    console.log('[DEBUG] Using header-based auth in development:', organizerId);
+  // PRIORITY 1: Check if user is logged in with main platform session (userId)
+  if (req.session?.userId) {
+    // Look up organizer by userId (approved businesses who enabled ticketing)
+    organizer = await ticketsStorage.getOrganizerByUserId(req.session.userId);
   }
   
-  if (!organizerId) {
+  // PRIORITY 2: Fall back to organizerId in session (legacy/direct ticketing signup)
+  if (!organizer && req.session?.organizerId) {
+    organizer = await ticketsStorage.getOrganizerById(req.session.organizerId);
+  }
+  
+  // PRIORITY 3: Development fallback - check x-organizer-id header
+  if (!organizer && process.env.NODE_ENV === 'development') {
+    const headerOrganizerId = req.headers['x-organizer-id'] as string;
+    if (headerOrganizerId) {
+      console.log('[DEBUG] Using header-based auth in development:', headerOrganizerId);
+      organizer = await ticketsStorage.getOrganizerById(headerOrganizerId);
+    }
+  }
+  
+  if (!organizer) {
     return res.status(401).json({ ok: false, error: 'Please log in as an organizer' });
   }
   
-  const organizer = await ticketsStorage.getOrganizerById(organizerId);
-  if (!organizer || organizer.status === 'suspended') {
-    return res.status(401).json({ ok: false, error: 'Organizer account not active or suspended' });
+  if (organizer.status === 'suspended') {
+    return res.status(401).json({ ok: false, error: 'Organizer account suspended' });
   }
   // Allow 'pending' and 'active' status so organizers can complete Stripe Connect onboarding
   
