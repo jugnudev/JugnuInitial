@@ -13,82 +13,53 @@ export function addConnectRoutes(app: Express) {
   // Create or get Connect account and start onboarding
   app.post('/api/tickets/connect/onboarding', async (req: Request, res: Response) => {
     try {
-      // Support both session-based and header-based auth (like requireOrganizer middleware)
-      let userId = req.session?.userId;
-      let organizerId = req.headers['x-organizer-id'] as string;
+      const userId = req.session?.userId;
       
-      // If we have an organizer ID from header, fetch that organizer directly
-      if (organizerId) {
-        const organizer = await ticketsStorage.getOrganizerById(organizerId);
-        if (organizer) {
-          userId = organizer.userId ?? undefined;
-        }
-      }
-      
-      if (!userId && !organizerId) {
+      if (!userId) {
         return res.status(401).json({ ok: false, error: 'Not authenticated' });
       }
 
-      // Get or create organizer record (prefer fetching by userId if available)
-      let organizer = userId ? await ticketsStorage.getOrganizerByUserId(userId) : null;
-      if (!organizer && organizerId) {
-        organizer = await ticketsStorage.getOrganizerById(organizerId);
-      }
-      
-      if (!organizer && userId) {
-        // Fetch user data to get their actual email
-        const user = await communitiesStorage.getUserById(userId);
-        
-        if (!user) {
-          return res.status(404).json({ ok: false, error: 'User not found' });
-        }
-        
-        if (!user.email) {
-          return res.status(400).json({ ok: false, error: 'User email is required to enable ticketing' });
-        }
-        
-        // Check if organizer already exists by email (from previous incomplete onboarding)
-        organizer = await ticketsStorage.getOrganizerByEmail(user.email);
-        
-        if (organizer) {
-          // Link existing organizer to this userId if not already linked
-          if (!organizer.userId) {
-            console.log(`[Ticketing] Linking existing organizer ${organizer.id} to user ${userId}`);
-            organizer = await ticketsStorage.updateOrganizer(organizer.id, { userId });
-          }
-        } else {
-          // Create new organizer record
-          console.log(`[Ticketing] Creating new organizer for user ${userId} with email ${user.email}`);
-          organizer = await ticketsStorage.createOrganizer({
-            userId,
-            email: user.email,
-            businessName: req.body.businessName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'My Business',
-            businessEmail: req.body.businessEmail || user.email,
-            status: 'pending',
-          });
-        }
-      }
+      // Check if user has an approved community_organizer account
+      let organizer = await communitiesStorage.getOrganizerByUserId(userId);
       
       if (!organizer) {
-        return res.status(404).json({ ok: false, error: 'Organizer not found' });
+        return res.status(403).json({ 
+          ok: false, 
+          error: 'You must have an approved business account to enable ticketing. Please apply for a business account first.' 
+        });
+      }
+      
+      if (organizer.status !== 'active') {
+        return res.status(403).json({ 
+          ok: false, 
+          error: 'Your business account is not active. Please contact support.' 
+        });
       }
 
       // Create or retrieve Stripe Connect account
       let accountId = organizer.stripeAccountId ?? undefined;
       
       if (!accountId) {
+        // Fetch user for email
+        const user = await communitiesStorage.getUserById(userId);
+        if (!user || !user.email) {
+          return res.status(400).json({ ok: false, error: 'User email not found' });
+        }
+
         // Create new Connect account
         // Default to 'individual' for simpler onboarding (SIN + bank info only, no business registration needed)
         // Can be overridden by passing businessType in request body
         accountId = await StripeConnectService.createConnectAccount({
-          email: organizer.email,
+          email: user.email,
           businessName: organizer.businessName ?? undefined,
           country: 'CA', // Canada
           businessType: req.body.businessType || 'individual',
         });
 
-        // Save account ID to organizer record
-        await ticketsStorage.updateOrganizerStripeAccount(organizer.id, accountId);
+        // Save account ID to community_organizers record
+        await communitiesStorage.updateOrganizerStripe(organizer.id, {
+          stripeAccountId: accountId
+        });
       }
 
       // Create onboarding link using frontend-provided URLs
@@ -113,6 +84,139 @@ export function addConnectRoutes(app: Express) {
   // Get Stripe Connect login link (for organizers to access their Stripe Dashboard)
   // If no account exists yet, creates one and returns onboarding URL
   app.post('/api/tickets/connect/login', async (req: Request, res: Response) => {
+    try {
+      const userId = req.session?.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ ok: false, error: 'Not authenticated' });
+      }
+
+      const organizer = await communitiesStorage.getOrganizerByUserId(userId);
+      
+      if (!organizer) {
+        return res.status(403).json({ 
+          ok: false, 
+          error: 'You must have an approved business account to enable ticketing.' 
+        });
+      }
+
+      if (organizer.status !== 'active') {
+        return res.status(403).json({ 
+          ok: false, 
+          error: 'Your business account is not active.' 
+        });
+      }
+
+      // If no Stripe account yet, redirect to onboarding instead
+      if (!organizer.stripeAccountId) {
+        return res.status(400).json({ 
+          ok: false, 
+          error: 'No Stripe account found. Please complete onboarding first.',
+          needsOnboarding: true
+        });
+      }
+
+      // Generate login link for existing Stripe account
+      try {
+        const loginUrl = await StripeConnectService.createLoginLink(organizer.stripeAccountId);
+        return res.json({ ok: true, url: loginUrl });
+      } catch (error: any) {
+        console.error('Failed to create Stripe login link:', error);
+        
+        // If account doesn't exist in Stripe, clear it and ask them to re-onboard
+        if (error.code === 'resource_missing') {
+          await communitiesStorage.updateOrganizerStripe(organizer.id, {
+            stripeAccountId: undefined
+          });
+          
+          return res.status(400).json({ 
+            ok: false, 
+            error: 'Stripe account not found. Please complete onboarding again.',
+            needsOnboarding: true
+          });
+        }
+        
+        throw error;
+      }
+    } catch (error: any) {
+      console.error('Error creating Stripe login link:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to create login link' });
+    }
+  });
+
+  // Get organizer status (for Communities Settings tab)
+  app.get('/api/tickets/connect/status', async (req: Request, res: Response) => {
+    try {
+      // Support accountId query param for public status refresh (no auth required)
+      const accountIdParam = req.query.accountId as string;
+      
+      if (accountIdParam) {
+        // Public endpoint - fetch status by Stripe account ID
+        const organizer = await communitiesStorage.getOrganizerByStripeAccountId(accountIdParam);
+        
+        if (!organizer) {
+          return res.status(404).json({ ok: false, error: 'Account not found' });
+        }
+
+        // Fetch latest status from Stripe
+        const stripeStatus = await StripeConnectService.getAccountStatus(accountIdParam);
+        
+        // Update database with latest status
+        await communitiesStorage.updateOrganizerStripe(organizer.id, {
+          stripeOnboardingComplete: stripeStatus.onboardingComplete,
+          stripeChargesEnabled: stripeStatus.chargesEnabled,
+          stripePayoutsEnabled: stripeStatus.payoutsEnabled,
+          stripeDetailsSubmitted: stripeStatus.detailsSubmitted
+        });
+
+        return res.json({
+          ok: true,
+          onboardingComplete: stripeStatus.onboardingComplete,
+          chargesEnabled: stripeStatus.chargesEnabled,
+          payoutsEnabled: stripeStatus.payoutsEnabled,
+          detailsSubmitted: stripeStatus.detailsSubmitted
+        });
+      }
+
+      // Authenticated endpoint - use session
+      const userId = req.session?.userId;
+      
+      if (!userId) {
+        return res.status(401).json({ ok: false, error: 'Not authenticated' });
+      }
+
+      const organizer = await communitiesStorage.getOrganizerByUserId(userId);
+      
+      if (!organizer || !organizer.stripeAccountId) {
+        return res.status(404).json({ ok: false, error: 'No Stripe account found' });
+      }
+
+      // Fetch latest status from Stripe
+      const stripeStatus = await StripeConnectService.getAccountStatus(organizer.stripeAccountId);
+      
+      // Update database with latest status
+      await communitiesStorage.updateOrganizerStripe(organizer.id, {
+        stripeOnboardingComplete: stripeStatus.onboardingComplete,
+        stripeChargesEnabled: stripeStatus.chargesEnabled,
+        stripePayoutsEnabled: stripeStatus.payoutsEnabled,
+        stripeDetailsSubmitted: stripeStatus.detailsSubmitted
+      });
+
+      return res.json({
+        ok: true,
+        onboardingComplete: stripeStatus.onboardingComplete,
+        chargesEnabled: stripeStatus.chargesEnabled,
+        payoutsEnabled: stripeStatus.payoutsEnabled,
+        detailsSubmitted: stripeStatus.detailsSubmitted
+      });
+    } catch (error: any) {
+      console.error('Error fetching Connect status:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to fetch status' });
+    }
+  });
+
+  // DEPRECATED - old organizer creation flow
+  app.post('/api/tickets/connect/login-old', async (req: Request, res: Response) => {
     try {
       const userId = req.session?.userId;
       

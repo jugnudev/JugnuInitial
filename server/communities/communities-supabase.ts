@@ -681,6 +681,53 @@ export class CommunitiesSupabaseDB {
     return data;
   }
 
+  async updateOrganizerStripe(organizerId: string, stripeData: {
+    stripeAccountId?: string;
+    stripeOnboardingComplete?: boolean;
+    stripeChargesEnabled?: boolean;
+    stripePayoutsEnabled?: boolean;
+    stripeDetailsSubmitted?: boolean;
+  }): Promise<Organizer> {
+    const updateData: any = { updated_at: new Date().toISOString() };
+    
+    if (stripeData.stripeAccountId !== undefined) {
+      updateData.stripe_account_id = stripeData.stripeAccountId;
+    }
+    if (stripeData.stripeOnboardingComplete !== undefined) {
+      updateData.stripe_onboarding_complete = stripeData.stripeOnboardingComplete;
+    }
+    if (stripeData.stripeChargesEnabled !== undefined) {
+      updateData.stripe_charges_enabled = stripeData.stripeChargesEnabled;
+    }
+    if (stripeData.stripePayoutsEnabled !== undefined) {
+      updateData.stripe_payouts_enabled = stripeData.stripePayoutsEnabled;
+    }
+    if (stripeData.stripeDetailsSubmitted !== undefined) {
+      updateData.stripe_details_submitted = stripeData.stripeDetailsSubmitted;
+    }
+
+    const { data, error } = await this.client
+      .from('organizers')
+      .update(updateData)
+      .eq('id', organizerId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  async getOrganizerByStripeAccountId(stripeAccountId: string): Promise<Organizer | null> {
+    const { data, error } = await this.client
+      .from('organizers')
+      .select('*')
+      .eq('stripe_account_id', stripeAccountId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
   // ============ COMMUNITIES ============
   async createCommunity(data: InsertCommunity): Promise<Community> {
     // First, get the organizer to find their user_id
