@@ -1762,6 +1762,81 @@ export function addTicketsRoutes(app: Express) {
     }
   });
 
+  // ============ MY ORDERS ENDPOINT ============
+  
+  // Get all orders for logged-in user
+  app.get('/api/tickets/my-orders', requireTicketing, async (req: Request & { session?: any }, res: Response) => {
+    try {
+      // Get user ID from session
+      const userId = req.session?.userId;
+      if (!userId) {
+        return res.status(401).json({ ok: false, error: 'Authentication required' });
+      }
+      
+      // Get user details
+      const user = await ticketsStorage.getUserById(userId);
+      if (!user) {
+        return res.status(404).json({ ok: false, error: 'User not found' });
+      }
+      
+      // Get orders by both userId and email
+      const ordersByUser = await ticketsStorage.getOrdersByUserId(userId);
+      const ordersByEmail = await ticketsStorage.getOrdersByBuyer(user.email);
+      
+      // Combine and deduplicate orders
+      const orderMap = new Map();
+      [...ordersByUser, ...ordersByEmail].forEach(order => {
+        if (order.status === 'paid') {
+          orderMap.set(order.id, order);
+        }
+      });
+      
+      const orders = Array.from(orderMap.values());
+      
+      // Enrich orders with event details and ticket count
+      const ordersWithDetails = await Promise.all(orders.map(async (order) => {
+        const event = await ticketsStorage.getEventById(order.eventId);
+        if (!event) return null;
+        
+        const orderItems = await ticketsStorage.getOrderItems(order.id);
+        const ticketCount = orderItems.reduce((sum, item) => sum + item.quantity, 0);
+        
+        return {
+          id: order.id,
+          eventId: order.eventId,
+          buyerEmail: order.buyerEmail,
+          buyerName: order.buyerName,
+          status: order.status,
+          subtotalCents: order.subtotalCents,
+          totalCents: order.totalCents,
+          createdAt: order.createdAt,
+          event: {
+            id: event.id,
+            title: event.title,
+            startAt: event.startAt,
+            venue: event.venue,
+            city: event.city,
+            coverUrl: event.coverUrl
+          },
+          ticketCount
+        };
+      }));
+      
+      // Filter out nulls and sort by creation date (newest first)
+      const validOrders = ordersWithDetails
+        .filter(o => o !== null)
+        .sort((a, b) => new Date(b!.createdAt).getTime() - new Date(a!.createdAt).getTime());
+      
+      res.json({ 
+        ok: true, 
+        orders: validOrders
+      });
+    } catch (error) {
+      console.error('Error fetching user orders:', error);
+      res.status(500).json({ ok: false, error: 'Failed to fetch orders' });
+    }
+  });
+
   console.log('✓ Ticketing routes added');
 }
 
@@ -2077,513 +2152,6 @@ async function handlePaymentIntentFailed(paymentIntent: any) {
   }
 }
     try {
-      const { ticketId } = req.params;
-      const userId = req.session?.userId;
-      
-      // Get ticket
-      const ticket = await ticketsStorage.getTicketById(ticketId);
-      if (!ticket) {
-        return res.status(404).json({ ok: false, error: 'Ticket not found' });
-      }
-      
-      // Get order item and order to verify ownership
-      const orderItem = await ticketsStorage.getOrderItemById(ticket.orderItemId);
-      if (!orderItem) {
-        return res.status(404).json({ ok: false, error: 'Order information not found' });
-      }
-      
-      const order = await ticketsStorage.getOrderById(orderItem.orderId);
-      if (!order) {
-        return res.status(404).json({ ok: false, error: 'Order not found' });
-      }
-      
-      // Verify ownership (if logged in)
-      if (userId) {
-        const user = await ticketsStorage.getUserById(userId);
-        if (user && order.buyerEmail !== user.email && order.userId !== userId) {
-          return res.status(403).json({ ok: false, error: 'Access denied' });
-        }
-      }
-      
-      // Get event and tier details
-      const tier = await ticketsStorage.getTierById(ticket.tierId);
-      const event = await ticketsStorage.getEventById(order.eventId);
-      
-      if (!tier || !event) {
-        return res.status(404).json({ ok: false, error: 'Event information not found' });
-      }
-      
-      // Get organizer details
-      let organizer = null;
-      if (event.organizerId) {
-        organizer = await ticketsStorage.getOrganizerById(event.organizerId);
-      }
-      
-      res.json({
-        ok: true,
-        ticket: toCamelCase(ticket),
-        tier: toCamelCase(tier),
-        event: toCamelCase(event),
-        order: toCamelCase({
-          id: order.id,
-          buyerEmail: order.buyerEmail,
-          buyerName: order.buyerName,
-          totalCents: order.totalCents,
-          currency: order.currency,
-          placedAt: order.placedAt
-        }),
-        organizer: organizer ? {
-          businessName: organizer.businessName
-        } : null
-      });
-    } catch (error) {
-      console.error('Error fetching ticket details:', error);
-      res.status(500).json({ ok: false, error: 'Failed to fetch ticket details' });
-    }
-  });
-  
-  // Resend ticket email
-  app.post('/api/tickets/:ticketId/resend', requireTicketing, async (req: Request & { session?: any }, res: Response) => {
-    try {
-      const { ticketId } = req.params;
-      const userId = req.session?.userId;
-      
-      // Get ticket and order
-      const ticket = await ticketsStorage.getTicketById(ticketId);
-      if (!ticket) {
-        return res.status(404).json({ ok: false, error: 'Ticket not found' });
-      }
-      
-      const orderItem = await ticketsStorage.getOrderItemById(ticket.orderItemId);
-      const order = orderItem ? await ticketsStorage.getOrderById(orderItem.orderId) : null;
-      
-      if (!order) {
-        return res.status(404).json({ ok: false, error: 'Order not found' });
-      }
-      
-      // Verify ownership
-      if (userId) {
-        const user = await ticketsStorage.getUserById(userId);
-        if (user && order.buyerEmail !== user.email && order.userId !== userId) {
-          return res.status(403).json({ ok: false, error: 'Access denied' });
-        }
-      }
-      
-      // Import and use email service
-      const { sendTicketEmail } = await import('./email-service');
-      const emailSent = await sendTicketEmail(order.id, true);
-      
-      if (!emailSent) {
-        return res.status(500).json({ ok: false, error: 'Failed to send email' });
-      }
-      
-      res.json({ ok: true, message: 'Ticket email resent successfully' });
-    } catch (error) {
-      console.error('Error resending ticket email:', error);
-      res.status(500).json({ ok: false, error: 'Failed to resend email' });
-    }
-  });
-  
-  // Guest ticket lookup
-  app.post('/api/tickets/lookup', requireTicketing, async (req: Request, res: Response) => {
-    try {
-      const { email, orderId } = req.body;
-      
-      if (!email || !orderId) {
-        return res.status(400).json({ ok: false, error: 'Email and order ID are required' });
-      }
-      
-      // Get order
-      const order = await ticketsStorage.getOrderById(orderId);
-      if (!order || order.buyerEmail.toLowerCase() !== email.toLowerCase()) {
-        return res.status(404).json({ ok: false, error: 'Order not found or email does not match' });
-      }
-      
-      if (order.status !== 'paid') {
-        return res.status(400).json({ ok: false, error: 'Order is not completed' });
-      }
-      
-      // Get event
-      const event = await ticketsStorage.getEventById(order.eventId);
-      if (!event) {
-        return res.status(404).json({ ok: false, error: 'Event not found' });
-      }
-      
-      // Get tickets
-      const orderItems = await ticketsStorage.getOrderItems(order.id);
-      const tickets = [];
-      
-      for (const item of orderItems) {
-        const tier = await ticketsStorage.getTierById(item.tierId);
-        const itemTickets = await ticketsStorage.getTicketsByOrderItem(item.id);
-        
-        for (const ticket of itemTickets) {
-          tickets.push({
-            ticket: toCamelCase(ticket),
-            tier: toCamelCase(tier)
-          });
-        }
-      }
-      
-      res.json({
-        ok: true,
-        order: toCamelCase({
-          id: order.id,
-          buyerEmail: order.buyerEmail,
-          buyerName: order.buyerName,
-          totalCents: order.totalCents,
-          currency: order.currency,
-          placedAt: order.placedAt
-        }),
-        event: toCamelCase(event),
-        tickets
-      });
-    } catch (error) {
-      console.error('Error looking up tickets:', error);
-      res.status(500).json({ ok: false, error: 'Failed to lookup tickets' });
-    }
-  });
-  
-  // Download ticket as HTML
-  app.get('/api/tickets/:ticketId/download', requireTicketing, async (req: Request & { session?: any }, res: Response) => {
-    try {
-      const { ticketId } = req.params;
-      const userId = req.session?.userId;
-      
-      // Get ticket
-      const ticket = await ticketsStorage.getTicketById(ticketId);
-      if (!ticket) {
-        return res.status(404).json({ ok: false, error: 'Ticket not found' });
-      }
-      
-      // Get order to verify ownership
-      const orderItem = await ticketsStorage.getOrderItemById(ticket.orderItemId);
-      const order = orderItem ? await ticketsStorage.getOrderById(orderItem.orderId) : null;
-      
-      if (!order) {
-        return res.status(404).json({ ok: false, error: 'Order not found' });
-      }
-      
-      // Verify ownership if logged in
-      if (userId) {
-        const user = await ticketsStorage.getUserById(userId);
-        if (user && order.buyerEmail !== user.email && order.userId !== userId) {
-          return res.status(403).json({ ok: false, error: 'Access denied' });
-        }
-      }
-      
-      // Get event and tier
-      const tier = await ticketsStorage.getTierById(ticket.tierId);
-      const event = await ticketsStorage.getEventById(order.eventId);
-      
-      if (!tier || !event) {
-        return res.status(404).json({ ok: false, error: 'Event information not found' });
-      }
-      
-      // Generate QR code
-      const qrDataURL = await QRCode.toDataURL(JSON.stringify({
-        ticketId: ticket.id,
-        token: ticket.qrToken,
-        verifyUrl: `${process.env.VITE_BASE_URL || 'https://thehouseofjugnu.com'}/api/tickets/validate?token=${ticket.qrToken}`
-      }), {
-        errorCorrectionLevel: 'M',
-        width: 400,
-        margin: 2
-      });
-      
-      // Generate HTML ticket
-      const html = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ticket - ${event.title}</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      margin: 0;
-      padding: 20px;
-      background: #f5f5f5;
-    }
-    .ticket {
-      max-width: 600px;
-      margin: 0 auto;
-      background: white;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 30px;
-      text-align: center;
-    }
-    .content {
-      padding: 30px;
-    }
-    .qr-code {
-      text-align: center;
-      padding: 30px;
-      background: #f9fafb;
-      border-radius: 8px;
-      margin: 20px 0;
-    }
-    .qr-code img {
-      max-width: 300px;
-    }
-    .details {
-      margin: 20px 0;
-    }
-    .details h3 {
-      margin: 0 0 10px;
-      color: #4b5563;
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .details p {
-      margin: 0;
-      font-size: 18px;
-      font-weight: 600;
-    }
-    .footer {
-      background: #f9fafb;
-      padding: 20px;
-      text-align: center;
-      font-size: 12px;
-      color: #6b7280;
-    }
-    @media print {
-      body {
-        background: white;
-      }
-      .ticket {
-        box-shadow: none;
-      }
-    }
-  </style>
-</head>
-<body>
-  <div class="ticket">
-    <div class="header">
-      <h1>${event.title}</h1>
-      <p>${tier.name} • Ticket #${ticket.serial}</p>
-    </div>
-    <div class="content">
-      <div class="qr-code">
-        <img src="${qrDataURL}" alt="QR Code" />
-        <p>Show this code at the venue</p>
-      </div>
-      <div class="details">
-        <h3>Date & Time</h3>
-        <p>${format(new Date(event.startAt), 'EEEE, MMMM d, yyyy • h:mm a')}</p>
-      </div>
-      <div class="details">
-        <h3>Venue</h3>
-        <p>${event.venue || 'TBA'}, ${event.city}, ${event.province}</p>
-      </div>
-      <div class="details">
-        <h3>Ticket Holder</h3>
-        <p>${order.buyerName || order.buyerEmail}</p>
-      </div>
-      <div class="details">
-        <h3>Order ID</h3>
-        <p>${order.id.slice(0, 8).toUpperCase()}</p>
-      </div>
-    </div>
-    <div class="footer">
-      <p>Powered by Jugnu • thehouseofjugnu.com</p>
-    </div>
-  </div>
-</body>
-</html>
-      `;
-      
-      // Set headers for download
-      res.setHeader('Content-Type', 'text/html');
-      res.setHeader('Content-Disposition', `attachment; filename="ticket-${event.slug}-${ticket.serial}.html"`);
-      res.send(html);
-    } catch (error) {
-      console.error('Error downloading ticket:', error);
-      res.status(500).json({ ok: false, error: 'Failed to generate ticket download' });
-    }
-  });
-  
-  // QR Code validation endpoint
-  app.post('/api/tickets/validate-qr', requireTicketing, async (req: Request, res: Response) => {
-    try {
-      const { qrToken, eventId } = req.body;
-      if (!qrToken || !eventId) {
-        return res.status(400).json({ ok: false, error: 'QR token and event ID are required' });
-      }
-      const ticket = await ticketsStorage.getTicketByQR(qrToken);
-      if (!ticket) {
-        return res.status(404).json({ ok: false, error: 'Invalid QR code', status: 'invalid' });
-      }
-      const tier = await ticketsStorage.getTierById(ticket.tierId);
-      const event = await ticketsStorage.getEventById(tier?.eventId || '');
-      if (!tier || !event || event.id !== eventId) {
-        return res.status(404).json({ ok: false, error: 'Ticket not found for this event', status: 'invalid' });
-      }
-      if (ticket.status !== 'valid') {
-        return res.status(400).json({ ok: false, error: ticket.status === 'used' ? 'Ticket already used' : ticket.status === 'refunded' ? 'Ticket has been refunded' : 'Ticket is not valid', status: ticket.status });
-      }
-      const orderItem = await ticketsStorage.getOrderItemById(ticket.orderItemId);
-      if (!orderItem) {
-        return res.status(404).json({ ok: false, error: 'Order information not found', status: 'invalid' });
-      }
-      const order = await ticketsStorage.getOrderById(orderItem.orderId);
-      if (!order || order.status !== 'paid') {
-        return res.status(400).json({ ok: false, error: 'Order not confirmed', status: 'invalid' });
-      }
-      res.json({ ok: true, status: 'valid', ticket: { id: ticket.id, serial: ticket.serial, tierName: tier.name, eventTitle: event.title, buyerName: order.buyerName, buyerEmail: order.buyerEmail } });
-    } catch (error: any) {
-      console.error('QR validation error:', error);
-      res.status(500).json({ ok: false, error: 'Validation failed' });
-    }
-  });
-
-  // Mark ticket as used (check-in)
-  app.post('/api/tickets/check-in', async (req: Request, res: Response) => {
-    try {
-      const { qrToken, eventId, checkInBy } = req.body;
-      
-      if (!qrToken || !eventId) {
-        return res.status(400).json({ 
-          ok: false, 
-          error: 'QR token and event ID are required' 
-        });
-      }
-      
-      // Find and validate ticket first
-      const ticket = await ticketsStorage.getTicketByQrToken(qrToken);
-      if (!ticket) {
-        return res.status(404).json({
-          ok: false,
-          error: 'Ticket not found'
-        });
-      }
-      
-      if (ticket.status === 'used') {
-        return res.status(400).json({
-          ok: false,
-          error: 'Ticket already checked in'
-        });
-      }
-      
-      if (ticket.status !== 'valid') {
-        return res.status(400).json({
-          ok: false,
-          error: 'Invalid ticket status'
-        });
-      }
-      
-      // Check-in the ticket
-      await ticketsStorage.checkInTicket(ticket.id, checkInBy || 'staff');
-      
-      // Create audit log
-      await ticketsStorage.createAuditLog({
-        actorType: 'staff',
-        actorId: checkInBy || 'unknown',
-        action: 'ticket_checkin',
-        targetType: 'ticket',
-        targetId: ticket.id,
-        metaJson: { qrToken, eventId }
-      });
-      
-      res.json({
-        ok: true,
-        message: 'Ticket checked in successfully',
-        ticketId: ticket.id
-      });
-      
-    } catch (error: any) {
-      console.error('Check-in error:', error);
-      res.status(500).json({ ok: false, error: 'Check-in failed' });
-    }
-  });
-  
-  // Get event attendees list
-  app.get('/api/tickets/events/:eventId/attendees', async (req: Request, res: Response) => {
-    try {
-      const { eventId } = req.params;
-      const { status, search } = req.query;
-      
-      const filters = {
-        status: status as string,
-        search: search as string
-      };
-      
-      const attendees = await ticketsStorage.getEventAttendees(eventId, filters);
-      
-      // Convert to camelCase for frontend
-      const camelCaseAttendees = attendees.map(a => toCamelCase(a));
-      
-      res.json({ 
-        ok: true, 
-        attendees: camelCaseAttendees 
-      });
-      
-    } catch (error: any) {
-      console.error('Error fetching attendees:', error);
-      res.status(500).json({ ok: false, error: 'Failed to fetch attendees' });
-    }
-  });
-  
-  // Get check-in statistics
-  app.get('/api/tickets/events/:eventId/checkin-stats', async (req: Request, res: Response) => {
-    try {
-      const { eventId } = req.params;
-      
-      const stats = await ticketsStorage.getCheckInStats(eventId);
-      
-      // Convert to camelCase for frontend
-      const camelCaseStats = {
-        ...stats,
-        recentCheckIns: stats.recentCheckIns.map(c => toCamelCase(c))
-      };
-      
-      res.json({ 
-        ok: true, 
-        stats: camelCaseStats 
-      });
-      
-    } catch (error: any) {
-      console.error('Error fetching check-in stats:', error);
-      res.status(500).json({ ok: false, error: 'Failed to fetch statistics' });
-    }
-  });
-  
-  // Export attendees as CSV
-  app.get('/api/tickets/events/:eventId/attendees/export', async (req: Request, res: Response) => {
-    try {
-      const { eventId } = req.params;
-      
-      const attendees = await ticketsStorage.getEventAttendees(eventId, {});
-      
-      // Create CSV content
-      const csvHeader = 'Name,Email,Phone,Tier,Ticket ID,Status,Check-in Time,Checked in By\n';
-      const csvRows = attendees.map(a => {
-        const checkedInAt = a.checked_in_at ? new Date(a.checked_in_at).toISOString() : '';
-        const status = a.status === 'used' ? 'Checked In' : 'Not Checked In';
-        return `"${a.buyer_name || ''}","${a.buyer_email}","${a.buyer_phone || ''}","${a.tier_name}","${a.serial}","${status}","${checkedInAt}","${a.scanned_by || ''}"`;
-      }).join('\n');
-      
-      const csv = csvHeader + csvRows;
-      
-      // Set headers for file download
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="attendees-${eventId}.csv"`);
-      res.send(csv);
-      
-    } catch (error: any) {
-      console.error('Error exporting attendees:', error);
-      res.status(500).json({ ok: false, error: 'Failed to export attendees' });
-    }
-  });
-  
   // Send message to attendees
   app.post('/api/tickets/attendees/message', async (req: Request, res: Response) => {
     try {
@@ -2618,7 +2186,6 @@ async function handlePaymentIntentFailed(paymentIntent: any) {
       res.status(500).json({ ok: false, error: 'Failed to send message' });
     }
   });
-}
 
 // Helper function to create tickets for a paid order
 async function createTicketsForPaidOrder(orderId: string): Promise<void> {
@@ -2702,4 +2269,4 @@ async function createTicketsForPaidOrder(orderId: string): Promise<void> {
     console.error('[TicketCreation] Failed to send ticket email:', emailError);
     // Don't throw - tickets are created, email failure shouldn't break the flow
   }
-}
+}}
