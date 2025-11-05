@@ -1112,7 +1112,7 @@ export default function EnhancedCommunityDetailPage() {
   // Show error state
   if (error || !community) {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center">
+      <div className="premium-community-theme min-h-screen bg-bg flex items-center justify-center">
         <Card className="max-w-md w-full bg-premium-surface border-premium-border">
           <CardContent className="py-12 text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
@@ -1137,7 +1137,7 @@ export default function EnhancedCommunityDetailPage() {
   // Show join gate for non-members
   if (!isMember && !isOwner) {
     return (
-      <div className="min-h-screen bg-bg">
+      <div className="premium-community-theme min-h-screen bg-bg">
         {/* Community Header Preview */}
         <motion.div 
           className="relative h-72 sm:h-80 md:h-96 overflow-hidden"
