@@ -372,7 +372,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                 <CardHeader>
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1">
-                      <CardTitle className="font-fraunces text-xl md:text-2xl bg-gradient-to-r from-accent via-glow to-copper-500 bg-clip-text text-transparent font-bold">{poll.question}</CardTitle>
+                      <CardTitle className="font-fraunces text-xl md:text-2xl text-white font-bold">{poll.question}</CardTitle>
                       {poll.description && (
                         <CardDescription className="mt-2 text-text/90">{poll.description}</CardDescription>
                       )}
@@ -557,7 +557,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>
-                      <CardTitle className="font-fraunces text-xl md:text-2xl bg-gradient-to-r from-accent via-glow to-copper-500 bg-clip-text text-transparent font-bold">{poll.question}</CardTitle>
+                      <CardTitle className="font-fraunces text-xl md:text-2xl text-white font-bold">{poll.question}</CardTitle>
                       {poll.description && (
                         <CardDescription className="mt-2 text-text/90">{poll.description}</CardDescription>
                       )}

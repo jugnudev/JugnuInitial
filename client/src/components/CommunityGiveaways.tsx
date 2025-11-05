@@ -439,7 +439,7 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
                   <CardHeader>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
-                        <CardTitle className="text-xl md:text-2xl bg-gradient-to-r from-accent via-glow to-copper-500 bg-clip-text text-transparent font-bold flex items-center gap-2">
+                        <CardTitle className="text-xl md:text-2xl text-white font-bold flex items-center gap-2">
                           <Trophy className="h-5 w-5 md:h-6 md:w-6 text-glow" />
                           {giveaway.title}
                         </CardTitle>
