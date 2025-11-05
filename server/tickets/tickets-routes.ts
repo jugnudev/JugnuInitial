@@ -1507,14 +1507,14 @@ export function addTicketsRoutes(app: Express) {
       if (hasSoldTickets) {
         return res.status(400).json({ 
           ok: false, 
-          error: 'Cannot delete event with sold tickets. Please archive it instead.' 
+          error: 'Cannot delete event with sold tickets.' 
         });
       }
       
-      // Soft delete by setting status to archived
-      await ticketsStorage.updateEvent(req.params.id, { status: 'archived' });
+      // Hard delete if no tickets sold (safe to completely remove)
+      await ticketsStorage.deleteEvent(req.params.id);
       
-      res.json({ ok: true, message: 'Event archived successfully' });
+      res.json({ ok: true, message: 'Event deleted successfully' });
     } catch (error) {
       console.error('Delete event error:', error);
       res.status(500).json({ ok: false, error: 'Failed to delete event' });
