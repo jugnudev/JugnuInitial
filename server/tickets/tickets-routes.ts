@@ -739,6 +739,33 @@ export function addTicketsRoutes(app: Express) {
         
         console.log('[PaymentIntent] FREE tickets generated successfully');
         
+        // Send confirmation email for FREE tickets
+        try {
+          const { sendTicketEmail } = await import('../services/emailService');
+          const allTickets = await ticketsStorage.getTicketsByOrderId(order.id);
+          
+          await sendTicketEmail({
+            recipientEmail: order.buyerEmail,
+            buyerName: order.buyerName,
+            eventTitle: event.title,
+            eventVenue: event.venue || undefined,
+            eventDate: new Date(event.startAt).toLocaleDateString(),
+            eventTime: new Date(event.startAt).toLocaleTimeString(),
+            orderNumber: order.id,
+            tickets: allTickets.map(ticket => ({
+              id: ticket.id,
+              tierName: tierData.find(t => t.tier.id === ticket.tierId)?.tier.name || 'General Admission',
+              qrToken: ticket.qrToken,
+              serial: ticket.serial
+            })),
+            totalAmount: '$0.00'
+          });
+          console.log('[PaymentIntent] Confirmation email sent to:', order.buyerEmail);
+        } catch (emailError) {
+          console.error('[PaymentIntent] Failed to send confirmation email:', emailError);
+          // Don't fail the order if email fails
+        }
+        
         // Return special response for FREE tickets
         return res.json({
           ok: true,
