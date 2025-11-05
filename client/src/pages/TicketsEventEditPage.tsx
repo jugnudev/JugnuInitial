@@ -743,14 +743,14 @@ export function TicketsEventEditPage() {
                               </div>
                               
                               <div>
-                                <label className="text-sm font-medium">Price (CAD)</label>
+                                <label className="text-sm font-medium">Price (CAD) - Enter $0 for FREE tickets</label>
                                 <Input
                                   type="number"
                                   step="0.01"
                                   min="0"
-                                  value={tier.priceCents / 100}
+                                  value={(tier.priceCents ?? 0) / 100}
                                   onChange={(e) => updateTicketTier(index, { 
-                                    priceCents: Math.round(parseFloat(e.target.value) * 100)
+                                    priceCents: Math.round(parseFloat(e.target.value || '0') * 100)
                                   })}
                                   placeholder="0.00"
                                   data-testid={`input-tier-price-${index}`}

@@ -707,6 +707,43 @@ export function addTicketsRoutes(app: Express) {
         });
       }
       
+      // Check if this is a FREE ticket order (totalCents = 0)
+      if (pricing.totalCents === 0) {
+        console.log('[PaymentIntent] FREE ticket order detected - bypassing Stripe');
+        
+        // Mark order as confirmed immediately (no payment needed)
+        await ticketsStorage.updateOrder(order.id, {
+          status: 'confirmed',
+          paidAt: new Date()
+        });
+        
+        // Generate tickets immediately for FREE orders
+        console.log('[PaymentIntent] Generating tickets for FREE order:', order.id);
+        for (const item of tierData) {
+          for (let i = 0; i < item.quantity; i++) {
+            await ticketsStorage.createTicket({
+              orderId: order.id,
+              tierId: item.tier.id,
+              eventId: eventId,
+              buyerEmail: buyerEmail,
+              buyerName: buyerName,
+              status: 'valid'
+            });
+          }
+        }
+        
+        console.log('[PaymentIntent] FREE tickets generated successfully');
+        
+        // Return special response for FREE tickets
+        return res.json({
+          ok: true,
+          orderId: order.id,
+          isFree: true,
+          message: 'FREE tickets confirmed! Check your email for your tickets.'
+        });
+      }
+      
+      // For paid tickets, continue with Stripe Payment Intent
       console.log('[PaymentIntent] Creating Payment Intent for order:', order.id);
       console.log('[PaymentIntent] Stripe available:', !!stripe);
       
@@ -738,7 +775,8 @@ export function addTicketsRoutes(app: Express) {
         ok: true,
         orderId: order.id,
         clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id
+        paymentIntentId: paymentIntent.id,
+        isFree: false
       });
       
     } catch (error: any) {

@@ -112,7 +112,26 @@ export function TicketsEventDetailPage() {
     },
     onSuccess: (result: any) => {
       console.log('[EmbeddedCheckout] Payment Intent created successfully');
-      if (result?.clientSecret && result?.orderId) {
+      
+      // Handle FREE tickets (no payment required)
+      if (result?.isFree === true) {
+        console.log('[EmbeddedCheckout] FREE tickets confirmed');
+        toast({
+          title: "FREE Tickets Confirmed! 🎉",
+          description: result.message || "Check your email for your tickets.",
+          duration: 5000
+        });
+        setIsCheckingOut(false);
+        setCart([]);
+        // Redirect to order success page
+        if (result.orderId) {
+          setTimeout(() => {
+            window.location.href = `/tickets/order/success?orderId=${result.orderId}`;
+          }, 1500);
+        }
+      }
+      // Handle paid tickets (Stripe Payment Intent)
+      else if (result?.clientSecret && result?.orderId) {
         setPaymentClientSecret(result.clientSecret);
         setCurrentOrderId(result.orderId);
         setShowEmbeddedCheckout(true);

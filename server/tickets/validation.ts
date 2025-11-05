@@ -42,8 +42,8 @@ export const paymentIntentSchema = z.object({
 export const createEventSchema = z.object({
   title: z.string().min(1).max(200),
   description: z.string().max(5000).optional(),
-  startAt: z.string().datetime({ offset: true }), // Accept timezone offsets like -08:00
-  endAt: z.string().datetime({ offset: true }).optional(), // Accept timezone offsets
+  startAt: z.string().datetime({ offset: false }), // Accept HTML5 datetime-local format (no timezone offset)
+  endAt: z.string().datetime({ offset: false }).optional(), // Accept HTML5 datetime-local format
   venue: z.string().min(1).max(200),
   city: z.string().min(1).max(100),
   province: z.string().length(2),
