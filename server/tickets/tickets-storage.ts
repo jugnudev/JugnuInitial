@@ -73,6 +73,10 @@ export class TicketsStorage {
     return ticketsDB.getEventsByOrganizer(organizerId);
   }
 
+  async getPublishedEventsByOrganizer(organizerId: string): Promise<TicketsEvent[]> {
+    return ticketsDB.getPublishedEventsByOrganizer(organizerId);
+  }
+
   async updateEvent(id: string, data: Partial<InsertTicketsEvent>): Promise<TicketsEvent> {
     return ticketsDB.updateEvent(id, data);
   }
