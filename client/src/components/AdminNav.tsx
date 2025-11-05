@@ -27,13 +27,14 @@ export default function AdminNav() {
                   className={`
                     flex items-center gap-2 px-4 py-2 rounded-lg transition-all
                     ${isActive 
-                      ? 'bg-copper-500 text-black font-semibold' 
+                      ? 'bg-copper-500 !text-black font-semibold shadow-lg' 
                       : 'bg-white/5 text-white/80 hover:bg-white/10 hover:text-white'
                     }
                   `}
+                  data-testid={`nav-${item.path.split('/').pop()}`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span className="text-sm">{item.label}</span>
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-sm whitespace-nowrap">{item.label}</span>
                 </button>
               </Link>
             );

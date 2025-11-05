@@ -367,30 +367,43 @@ export default function AdminCommunitiesPage() {
   // Admin key entry form
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-black text-white p-8">
-        <div className="max-w-md mx-auto">
-          <Card className="bg-black/60 border-copper-500/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-copper-500">
-                <Shield className="w-5 h-5" />
-                Admin Access - Communities Management
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border border-copper-500/30 shadow-2xl shadow-copper-500/20">
+            <CardHeader className="space-y-1 pb-4">
+              <div className="flex items-center justify-center mb-4">
+                <div className="p-3 rounded-full bg-copper-500/20 ring-4 ring-copper-500/10">
+                  <Shield className="w-8 h-8 text-copper-500" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl font-bold text-center text-white">
+                Admin Access
               </CardTitle>
+              <p className="text-center text-gray-400 text-sm">
+                Communities Management
+              </p>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6 pt-2">
               <div className="space-y-2">
-                <Label htmlFor="adminKey">Admin Key</Label>
+                <Label htmlFor="adminKey" className="text-sm font-medium text-gray-300">
+                  Admin Key
+                </Label>
                 <Input
                   id="adminKey"
                   type="password"
                   value={adminKey}
                   onChange={(e) => setAdminKey(e.target.value)}
-                  placeholder="Enter admin key"
+                  onKeyDown={(e) => e.key === 'Enter' && adminKey.trim() && checkAuth()}
+                  placeholder="Enter your admin key"
+                  className="h-12 bg-black/40 border-gray-700 text-white placeholder:text-gray-500 focus:border-copper-500 focus:ring-2 focus:ring-copper-500/20"
                   data-testid="input-admin-key"
+                  autoComplete="off"
                 />
               </div>
               <Button 
                 onClick={() => checkAuth()} 
-                className="w-full bg-copper-500 hover:bg-copper-600 !text-black font-semibold shadow-lg"
+                disabled={!adminKey.trim()}
+                className="w-full h-12 bg-gradient-to-r from-copper-500 to-orange-600 hover:from-copper-600 hover:to-orange-700 !text-white font-bold text-base shadow-xl shadow-copper-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
                 data-testid="button-login"
               >
                 Access Admin Panel
