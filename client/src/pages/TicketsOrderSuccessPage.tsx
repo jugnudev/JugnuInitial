@@ -66,9 +66,9 @@ export function TicketsOrderSuccessPage() {
   const [qrCodes, setQrCodes] = useState<Record<string, string>>({});
   const [downloadingTickets, setDownloadingTickets] = useState(false);
   
-  // Parse query params
-  const params = new URLSearchParams(location.split('?')[1] || '');
-  const orderId = params.get('order_id');
+  // Parse query params from window.location.search (wouter's location doesn't include query string)
+  const params = new URLSearchParams(window.location.search);
+  const orderId = params.get('orderId') || params.get('order_id'); // Support both camelCase and snake_case
   const sessionId = params.get('session_id');
   const success = params.get('success') === 'true';
   const cancelled = params.get('cancelled') === 'true';

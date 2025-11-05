@@ -696,8 +696,9 @@ export function addTicketsRoutes(app: Express) {
       
       // Create order items for each tier (critical for webhook ticket creation)
       console.log('[PaymentIntent] Creating order items for order:', order.id);
+      const orderItems: any[] = [];
       for (const item of tierData) {
-        await ticketsStorage.createOrderItem({
+        const orderItem = await ticketsStorage.createOrderItem({
           orderId: order.id,
           tierId: item.tier.id,
           quantity: item.quantity,
@@ -705,28 +706,32 @@ export function addTicketsRoutes(app: Express) {
           taxCents: 0, // Tax is calculated at order level
           feesCents: 0  // Fees are calculated at order level
         });
+        orderItems.push({ orderItem, tierData: item });
       }
       
       // Check if this is a FREE ticket order (totalCents = 0)
       if (pricing.totalCents === 0) {
         console.log('[PaymentIntent] FREE ticket order detected - bypassing Stripe');
+        console.log('[PaymentIntent] Current order status:', order.status);
         
-        // Mark order as confirmed immediately (no payment needed)
-        await ticketsStorage.updateOrder(order.id, {
-          status: 'confirmed',
-          paidAt: new Date()
+        // Mark order as paid immediately (status must be 'paid', not 'confirmed' per DB constraint)
+        const updatedOrder = await ticketsStorage.updateOrder(order.id, {
+          status: 'paid'
         });
+        console.log('[PaymentIntent] Order updated to status:', updatedOrder.status);
         
         // Generate tickets immediately for FREE orders
         console.log('[PaymentIntent] Generating tickets for FREE order:', order.id);
-        for (const item of tierData) {
+        for (const { orderItem, tierData: item } of orderItems) {
           for (let i = 0; i < item.quantity; i++) {
+            const serial = `TKT-${nanoid(10).toUpperCase()}`;
+            const qrToken = nanoid(20);
+            
             await ticketsStorage.createTicket({
-              orderId: order.id,
+              orderItemId: orderItem.id,
               tierId: item.tier.id,
-              eventId: eventId,
-              buyerEmail: buyerEmail,
-              buyerName: buyerName,
+              serial,
+              qrToken,
               status: 'valid'
             });
           }
@@ -837,11 +842,15 @@ export function addTicketsRoutes(app: Express) {
       
       // Get order items with ticket details
       const orderItems = await ticketsStorage.getOrderItems(order.id);
+      console.log('[Orders] Found', orderItems.length, 'order items for order:', order.id);
       const tickets = [];
       
       for (const item of orderItems) {
+        console.log('[Orders] Processing item:', item.id, 'tierId:', item.tierId);
         const tier = await ticketsStorage.getTierById(item.tierId);
+        console.log('[Orders] Found tier:', tier?.id, tier?.name);
         const itemTickets = await ticketsStorage.getTicketsByOrderItem(item.id);
+        console.log('[Orders] Found', itemTickets.length, 'tickets for item:', item.id);
         
         for (const ticket of itemTickets) {
           tickets.push({
@@ -854,6 +863,8 @@ export function addTicketsRoutes(app: Express) {
           });
         }
       }
+      
+      console.log('[Orders] Total tickets found:', tickets.length);
       
       // Convert to camelCase for frontend
       const camelCaseOrder = toCamelCase({
