@@ -21,6 +21,28 @@ const toSnakeCase = (obj: any): any => {
     return result;
   }, {} as any);
 };
+
+// Helper function to convert snake_case to camelCase for database reads
+const toCamelCase = (obj: any): any => {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(toCamelCase);
+  }
+  
+  if (obj instanceof Date || typeof obj !== 'object') {
+    return obj;
+  }
+  
+  return Object.keys(obj).reduce((result, key) => {
+    const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    result[camelKey] = toCamelCase(obj[key]);
+    return result;
+  }, {} as any);
+};
+
 import { nanoid } from 'nanoid';
 import type {
   TicketsOrganizer,
@@ -180,7 +202,7 @@ export class TicketsSupabaseDB {
       .single();
     
     if (error) throw error;
-    return event;
+    return toCamelCase(event);
   }
 
   async getEventById(id: string): Promise<TicketsEvent | null> {
@@ -191,7 +213,7 @@ export class TicketsSupabaseDB {
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    return data ? toCamelCase(data) : null;
   }
 
   async getEventBySlug(slug: string): Promise<TicketsEvent | null> {
@@ -202,7 +224,7 @@ export class TicketsSupabaseDB {
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    return data ? toCamelCase(data) : null;
   }
 
   async getPublicEvents(): Promise<TicketsEvent[]> {
@@ -214,7 +236,7 @@ export class TicketsSupabaseDB {
       .order('start_at', { ascending: true });
     
     if (error) throw error;
-    return data || [];
+    return data ? data.map(toCamelCase) : [];
   }
 
   async getEventsByOrganizer(organizerId: string): Promise<TicketsEvent[]> {
@@ -225,7 +247,7 @@ export class TicketsSupabaseDB {
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data || [];
+    return data ? data.map(toCamelCase) : [];
   }
 
   async updateEvent(id: string, data: Partial<InsertTicketsEvent>): Promise<TicketsEvent> {
@@ -243,7 +265,7 @@ export class TicketsSupabaseDB {
       .single();
     
     if (error) throw error;
-    return event;
+    return toCamelCase(event);
   }
 
   // ============ TIERS ============
@@ -267,7 +289,7 @@ export class TicketsSupabaseDB {
       .single();
     
     if (error) throw error;
-    return tier;
+    return toCamelCase(tier);
   }
 
   async getTiersByEvent(eventId: string): Promise<TicketsTier[]> {
@@ -297,7 +319,7 @@ export class TicketsSupabaseDB {
       };
     }));
     
-    return tiersWithCounts;
+    return tiersWithCounts.map(toCamelCase);
   }
 
   async getTierById(id: string): Promise<TicketsTier | null> {
@@ -308,7 +330,7 @@ export class TicketsSupabaseDB {
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    return data ? toCamelCase(data) : null;
   }
 
   async getTierSoldCount(tierId: string): Promise<number> {
