@@ -133,6 +133,16 @@ export class TicketsDB {
     return result.rows;
   }
 
+  async getPublishedEventsByOrganizer(organizerId: string): Promise<TicketsEvent[]> {
+    const query = `
+      SELECT * FROM tickets_events 
+      WHERE organizer_id = $1 AND status = 'published'
+      ORDER BY start_at ASC
+    `;
+    const result = await pool.query(query, [organizerId]);
+    return result.rows;
+  }
+
   async updateEvent(id: string, data: Partial<InsertTicketsEvent>): Promise<TicketsEvent> {
     // Build dynamic update query
     const fields = [];

@@ -1215,6 +1215,32 @@ export function addTicketsRoutes(app: Express) {
     }
   });
 
+  // Get published events for an organizer (public endpoint for community members)
+  app.get('/api/tickets/organizers/:organizerId/published-events', requireTicketing, async (req: Request, res: Response) => {
+    try {
+      const { organizerId } = req.params;
+      
+      // Get published events with their tiers
+      const events = await ticketsStorage.getPublishedEventsByOrganizer(organizerId);
+      
+      // Fetch tiers for each event
+      const eventsWithTiers = await Promise.all(
+        events.map(async (event) => {
+          const tiers = await ticketsStorage.getTiersByEvent(event.id);
+          return {
+            ...event,
+            tiers: tiers
+          };
+        })
+      );
+      
+      res.json({ ok: true, events: toCamelCase(eventsWithTiers) });
+    } catch (error) {
+      console.error('Get published events error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to fetch published events' });
+    }
+  });
+
   // Get revenue summary for MoR model
   app.get('/api/tickets/organizers/revenue-summary', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
     try {

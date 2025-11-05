@@ -73,8 +73,9 @@ import {
   UserCog,
   ClockIcon,
   TrendingDown,
-  RefreshCw,
   Ticket,
+  Settings2,
+  RefreshCw,
   CreditCard,
   Vote,
   Gift,
@@ -94,6 +95,7 @@ import CommunityChat from "@/components/CommunityChat";
 import CommunityPolls from "@/components/CommunityPolls";
 import CommunityGiveaways from "@/components/CommunityGiveaways";
 import CommunityBilling from "@/components/CommunityBilling";
+import CommunityTicketedEvents from "@/components/CommunityTicketedEvents";
 import BillingCheckout from "@/components/BillingCheckout";
 import { BetaBadge } from "@/components/BetaBadge";
 import { NotificationPreferences } from "@/components/NotificationPreferences";
@@ -1398,9 +1400,18 @@ export default function EnhancedCommunityDetailPage() {
                   data-testid="events-tab"
                   className="flex-shrink-0"
                 >
-                  <Calendar className="h-4 w-4 mr-2" />
+                  <Ticket className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Events</span>
                   <span className="sm:hidden">Events</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="manage-events"
+                  data-testid="manage-events-tab"
+                  className="flex-shrink-0"
+                >
+                  <Settings2 className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Manage Events</span>
+                  <span className="sm:hidden">Manage</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="members"
@@ -1886,8 +1897,27 @@ export default function EnhancedCommunityDetailPage() {
               </Tabs>
             </TabsContent>
             
-            {/* Events Tab */}
+            {/* Events Tab - Public View */}
             <TabsContent value="events" className="space-y-4 md:space-y-6">
+              {organizerData?.organizer ? (
+                <CommunityTicketedEvents organizerId={organizerData.organizer.id} />
+              ) : (
+                <Card className="bg-gradient-to-br from-copper-900/50 via-primary-700/30 to-copper-900/50 backdrop-blur-xl border-copper-500/20">
+                  <CardContent className="py-12 md:py-16 text-center">
+                    <Ticket className="h-12 w-12 md:h-16 md:w-16 text-copper-500/50 mx-auto mb-4" />
+                    <h3 className="font-fraunces text-xl md:text-2xl font-semibold text-white mb-2">
+                      No Events Yet
+                    </h3>
+                    <p className="text-premium-text-secondary">
+                      This community hasn't set up ticketing yet. Check back later for events!
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+            
+            {/* Manage Events Tab - Owner/Moderator Only */}
+            <TabsContent value="manage-events" className="space-y-4 md:space-y-6">
               {/* Setup Status & Guidance */}
               {!organizerData?.organizer ? (
                 <Alert className="glass-card border-blue-500/50 bg-blue-500/10">
@@ -2646,10 +2676,10 @@ export default function EnhancedCommunityDetailPage() {
             </TabsContent>
           </Tabs>
         ) : (
-          // Member view - Posts, Chat, Polls, Giveaways, and Settings
+          // Member view - Posts, Chat, Polls, Giveaways, Events, and Settings
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <div className="w-full overflow-x-auto scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
-              <TabsList className="inline-flex md:grid w-full md:max-w-2xl md:grid-cols-5 bg-premium-surface border border-premium-border min-w-max md:min-w-0">
+              <TabsList className="inline-flex md:grid w-full md:max-w-3xl md:grid-cols-6 bg-premium-surface border border-premium-border min-w-max md:min-w-0">
                 <TabsTrigger 
                   value="announcements"
                   data-testid="member-posts-tab"
@@ -2685,6 +2715,15 @@ export default function EnhancedCommunityDetailPage() {
                   <Gift className="h-4 w-4 mr-2" />
                   <span className="hidden sm:inline">Giveaways</span>
                   <span className="sm:hidden">Giveaways</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="events"
+                  data-testid="member-events-tab"
+                  className="flex-shrink-0"
+                >
+                  <Ticket className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Events</span>
+                  <span className="sm:hidden">Events</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="settings"
@@ -2791,6 +2830,25 @@ export default function EnhancedCommunityDetailPage() {
                   userId: user?.id || ''
                 } : undefined}
               />
+            </TabsContent>
+
+            {/* Events Tab - Member view */}
+            <TabsContent value="events" className="space-y-6">
+              {organizerData?.organizer ? (
+                <CommunityTicketedEvents organizerId={organizerData.organizer.id} />
+              ) : (
+                <Card className="bg-gradient-to-br from-copper-900/50 via-primary-700/30 to-copper-900/50 backdrop-blur-xl border-copper-500/20">
+                  <CardContent className="py-12 md:py-16 text-center">
+                    <Ticket className="h-12 w-12 md:h-16 md:w-16 text-copper-500/50 mx-auto mb-4" />
+                    <h3 className="font-fraunces text-xl md:text-2xl font-semibold text-white mb-2">
+                      No Events Yet
+                    </h3>
+                    <p className="text-premium-text-secondary">
+                      This community hasn't set up ticketing yet. Check back later for events!
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
 
             {/* Settings Tab - Member notification preferences */}
