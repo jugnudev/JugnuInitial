@@ -2126,6 +2126,70 @@ export class CommunitiesSupabaseDB {
     }
   }
 
+  async getPollVoters(pollId: string, communityId: string): Promise<any> {
+    // Get poll info to check if it belongs to this community and if it's anonymous
+    const { data: poll, error: pollError } = await this.client
+      .from('community_polls')
+      .select('anonymous_voting, question, community_id')
+      .eq('id', pollId)
+      .single();
+
+    if (pollError) throw pollError;
+    
+    // Security check: Verify poll belongs to the requested community
+    if (poll.community_id !== communityId) {
+      throw new Error('Poll does not belong to this community');
+    }
+
+    // If anonymous voting, don't return voter details
+    if (poll.anonymous_voting) {
+      return {
+        isAnonymous: true,
+        voters: []
+      };
+    }
+
+    // Get all votes with user and option details
+    const { data: votes, error: votesError } = await this.client
+      .from('community_poll_votes')
+      .select(`
+        user_id,
+        option:option_id (
+          id,
+          text
+        ),
+        created_at,
+        user:user_id (
+          id,
+          first_name,
+          last_name,
+          profile_image_url
+        )
+      `)
+      .eq('poll_id', pollId)
+      .order('created_at', { ascending: true });
+
+    if (votesError) throw votesError;
+
+    // Group votes by user
+    const voterMap = new Map();
+    (votes || []).forEach((vote: any) => {
+      if (!voterMap.has(vote.user_id)) {
+        voterMap.set(vote.user_id, {
+          user: vote.user,
+          votes: [],
+          votedAt: vote.created_at
+        });
+      }
+      voterMap.get(vote.user_id).votes.push(vote.option);
+    });
+
+    return {
+      isAnonymous: false,
+      voters: Array.from(voterMap.values())
+    };
+  }
+
   // ============ GIVEAWAYS METHODS ============
   async createGiveaway(
     communityId: string,

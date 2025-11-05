@@ -15,6 +15,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DateTimePicker } from '@/components/DateTimePicker';
 import { 
   Plus, 
@@ -29,7 +30,8 @@ import {
   XCircle,
   Crown,
   Shield,
-  Activity
+  Activity,
+  UserCheck
 } from 'lucide-react';
 
 interface PollOption {
@@ -75,6 +77,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
   const [selectedPoll, setSelectedPoll] = useState<Poll | null>(null);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string[]>>({});
   const [activeTab, setActiveTab] = useState<'active' | 'closed'>('active');
+  const [viewVotersPollId, setViewVotersPollId] = useState<string | null>(null);
   
   // Poll creation form state
   const [question, setQuestion] = useState('');
@@ -190,6 +193,28 @@ export default function CommunityPolls({ communityId, currentMember }: Community
         description: "The poll has been closed."
       });
     }
+  });
+
+  // Query to fetch poll voters (owner/moderator only)
+  const { data: votersData, isLoading: isLoadingVoters } = useQuery<{ 
+    isAnonymous: boolean; 
+    voters: Array<{
+      user: {
+        id: string;
+        first_name: string;
+        last_name: string;
+        profile_image_url?: string;
+      };
+      votes: Array<{ id: string; text: string }>;
+      votedAt: string;
+    }>;
+  }>({
+    queryKey: ['/api/communities', communityId, 'polls', viewVotersPollId, 'voters'],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/communities/${communityId}/polls/${viewVotersPollId}/voters`);
+      return response.json();
+    },
+    enabled: !!viewVotersPollId && !!currentMember && (currentMember.role === 'owner' || currentMember.role === 'moderator'),
   });
   
   const resetForm = () => {
@@ -479,7 +504,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                   )}
                   
                   {/* Actions */}
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     {!hasVoted(poll) ? (
                       <Button 
                         onClick={() => handleVote(poll)}
@@ -511,6 +536,18 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                           </Button>
                         )}
                       </>
+                    )}
+                    {(currentMember.role === 'owner' || currentMember.role === 'moderator') && !poll.anonymous_voting && poll.unique_voters > 0 && (
+                      <Button 
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setViewVotersPollId(poll.id)}
+                        data-testid={`view-voters-button-${poll.id}`}
+                        className="bg-copper-500/10 border-copper-500/30 text-copper-400 hover:bg-copper-500/20 hover:text-copper-300"
+                      >
+                        <UserCheck className="w-4 h-4 mr-2" />
+                        View Voters ({poll.unique_voters})
+                      </Button>
                     )}
                     {currentMember.role === 'owner' && !poll.is_closed && (
                       <Button 
@@ -577,7 +614,7 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                     </span>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                   {/* Show final results */}
                   <div className="space-y-3">
                     {poll.options.map((option) => (
@@ -595,12 +632,106 @@ export default function CommunityPolls({ communityId, currentMember }: Community
                       </div>
                     ))}
                   </div>
+                  
+                  {/* View Voters Button for Closed Polls */}
+                  {(currentMember.role === 'owner' || currentMember.role === 'moderator') && !poll.anonymous_voting && poll.unique_voters > 0 && (
+                    <Button 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setViewVotersPollId(poll.id)}
+                      data-testid={`view-voters-button-closed-${poll.id}`}
+                      className="bg-copper-500/10 border-copper-500/30 text-copper-400 hover:bg-copper-500/20 hover:text-copper-300"
+                    >
+                      <UserCheck className="w-4 h-4 mr-2" />
+                      View Voters ({poll.unique_voters})
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ))
           )}
         </TabsContent>
       </Tabs>
+      
+      {/* View Voters Dialog */}
+      <Dialog open={!!viewVotersPollId} onOpenChange={(open) => !open && setViewVotersPollId(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col bg-gradient-to-br from-charcoal-900/95 via-charcoal-950 to-charcoal-900/95 border-2 border-copper-500/20">
+          <DialogHeader className="border-b border-copper-500/10 pb-4">
+            <DialogTitle className="text-2xl font-fraunces bg-gradient-to-r from-copper-400 to-copper-600 bg-clip-text text-transparent">
+              Poll Voters
+            </DialogTitle>
+            <p className="text-sm text-muted mt-2">
+              {votersData?.isAnonymous 
+                ? "This poll has anonymous voting enabled" 
+                : `${votersData?.voters.length || 0} ${(votersData?.voters.length || 0) === 1 ? 'person has' : 'people have'} voted`
+              }
+            </p>
+          </DialogHeader>
+          
+          <div className="flex-1 overflow-y-auto pr-2 mt-4 space-y-3">
+            {isLoadingVoters ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-4">
+                <div className="w-12 h-12 border-4 border-copper-500/30 border-t-copper-500 rounded-full animate-spin" />
+                <p className="text-text/80">Loading voters...</p>
+              </div>
+            ) : votersData?.isAnonymous ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <EyeOff className="w-16 h-16 text-copper-500/50" />
+                <p className="text-text/90 font-medium">Anonymous Poll</p>
+                <p className="text-sm text-muted text-center max-w-sm">
+                  Voter identities are hidden for this poll
+                </p>
+              </div>
+            ) : votersData?.voters && votersData.voters.length > 0 ? (
+              votersData.voters.map((voter, index) => (
+                <div 
+                  key={voter.user.id}
+                  data-testid={`voter-${voter.user.id}`}
+                  className="bg-gradient-to-br from-copper-900/20 via-primary-700/10 to-copper-900/20 backdrop-blur-xl border border-copper-500/20 rounded-xl p-4 hover:border-copper-500/40 transition-all duration-200 hover:shadow-lg hover:shadow-copper-500/10"
+                >
+                  <div className="flex items-start gap-3">
+                    <Avatar className="h-12 w-12 border-2 border-copper-500/30">
+                      <AvatarImage src={voter.user.profile_image_url} alt={`${voter.user.first_name} ${voter.user.last_name}`} />
+                      <AvatarFallback className="bg-copper-500/20 text-copper-400 font-semibold">
+                        {voter.user.first_name?.[0]}{voter.user.last_name?.[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <h4 className="font-semibold text-white text-base">
+                          {voter.user.first_name} {voter.user.last_name}
+                        </h4>
+                        <span className="text-xs text-muted">
+                          {format(new Date(voter.votedAt), 'MMM d, h:mm a')}
+                        </span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {voter.votes.map((vote) => (
+                          <div 
+                            key={vote.id}
+                            className="flex items-center gap-2 bg-copper-500/10 border border-copper-500/20 rounded-lg px-3 py-2"
+                          >
+                            <CheckCircle className="w-4 h-4 text-copper-400 flex-shrink-0" />
+                            <span className="text-sm text-text font-medium">{vote.text}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="flex flex-col items-center justify-center py-12 gap-3">
+                <Users className="w-16 h-16 text-copper-500/50" />
+                <p className="text-text/90 font-medium">No votes yet</p>
+                <p className="text-sm text-muted">
+                  Voters will appear here once they submit their votes
+                </p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* Create Poll Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>

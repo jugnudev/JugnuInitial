@@ -4150,6 +4150,43 @@ export function addCommunitiesRoutes(app: Express) {
     }
   });
 
+  /**
+   * GET /api/communities/:id/polls/:pollId/voters
+   * Get poll voters (owner/moderator only)
+   */
+  app.get('/api/communities/:id/polls/:pollId/voters', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id: communityId, pollId } = req.params;
+      const user = (req as any).user;
+
+      // Check membership and role
+      const membership = await communitiesStorage.getCommunityMembership(communityId, user.id);
+      if (!membership || membership.status !== 'approved') {
+        return res.status(403).json({ ok: false, error: 'Not a member of this community' });
+      }
+
+      if (membership.role !== 'owner' && membership.role !== 'moderator') {
+        return res.status(403).json({ ok: false, error: 'Only owners and moderators can view poll voters' });
+      }
+
+      // Pass communityId to verify poll belongs to this community (security check)
+      const votersData = await communitiesStorage.getPollVoters(pollId, communityId);
+
+      res.json({ ok: true, ...votersData });
+    } catch (error: any) {
+      console.error('Get poll voters error:', error);
+      // Return 404 for both non-existent polls and cross-community polls (security)
+      // This prevents leaking information about poll existence in other communities
+      if (error.message === 'Poll does not belong to this community' || 
+          error.code === 'PGRST116' || 
+          error.message?.includes('not found') ||
+          error.message?.includes('No rows')) {
+        return res.status(404).json({ ok: false, error: 'Poll not found' });
+      }
+      res.status(500).json({ ok: false, error: error.message || 'Failed to get poll voters' });
+    }
+  });
+
   // ============ GIVEAWAYS ROUTES ============
   /**
    * POST /api/communities/:id/giveaways
