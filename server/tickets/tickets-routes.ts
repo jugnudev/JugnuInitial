@@ -2115,6 +2115,9 @@ async function handlePaymentIntentFailed(paymentIntent: any) {
         const event = await ticketsStorage.getEventById(order.eventId);
         if (!event) continue;
         
+        // Get organizer information
+        const organizer = await ticketsStorage.getOrganizerById(event.organizerId);
+        
         const orderItems = await ticketsStorage.getOrderItems(order.id);
         
         for (const item of orderItems) {
@@ -2126,6 +2129,11 @@ async function handlePaymentIntentFailed(paymentIntent: any) {
               ticket: toCamelCase(ticket),
               tier: toCamelCase(tier),
               event: toCamelCase(event),
+              organizer: organizer ? toCamelCase({
+                id: organizer.id,
+                businessName: organizer.businessName,
+                businessWebsite: organizer.businessWebsite
+              }) : null,
               order: toCamelCase({
                 id: order.id,
                 buyerEmail: order.buyerEmail,

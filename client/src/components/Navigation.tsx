@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { useEvents, useGallery } from "@/lib/events";
 import logoImage from "@assets/Upscaled Logo copy_1754763190534.png";
 import { Button } from "@/components/ui/button";
-import { UserPlus, User, LogOut, Settings, Loader2, Shield, BarChart3 } from "lucide-react";
+import { UserPlus, User, LogOut, Settings, Loader2, Shield, BarChart3, Receipt } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
@@ -206,6 +206,12 @@ export default function Navigation() {
                       <Link href="/account/profile" className="flex items-center gap-2 cursor-pointer">
                         <User className="h-4 w-4" />
                         Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/tickets/my-tickets" className="flex items-center gap-2 cursor-pointer" data-testid="nav-my-orders">
+                        <Receipt className="h-4 w-4" />
+                        My Orders
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
