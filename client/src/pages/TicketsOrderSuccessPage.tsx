@@ -44,7 +44,7 @@ interface OrderDetails {
   subtotalCents: number;
   taxCents: number;
   totalCents: number;
-  placedAt: Date;
+  createdAt?: string;
   tickets: TicketDetails[];
   event: {
     id: string;
@@ -366,7 +366,7 @@ export function TicketsOrderSuccessPage() {
                   </div>
                 </div>
                 <Badge className="mt-2" variant="outline">
-                  Paid on {format(new Date(order.placedAt), 'MMM d, yyyy h:mm a')}
+                  Ordered on {order.createdAt ? format(new Date(order.createdAt), 'MMM d, yyyy h:mm a') : 'Just now'}
                 </Badge>
               </div>
             </CardContent>

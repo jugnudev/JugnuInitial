@@ -412,7 +412,7 @@ export class TicketsSupabaseDB {
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    return data ? toCamelCase(data) : null;
   }
 
   async markOrderPaid(orderId: string, paymentIntentId: string): Promise<TicketsOrder> {
@@ -458,7 +458,7 @@ export class TicketsSupabaseDB {
       console.log('Order found in Supabase:', data);
     }
     
-    return data;
+    return data ? toCamelCase(data) : null;
   }
 
   async getOrderByPaymentIntent(paymentIntentId: string): Promise<TicketsOrder | null> {
@@ -488,7 +488,7 @@ export class TicketsSupabaseDB {
       console.log('Order found in Supabase by Payment Intent:', data);
     }
     
-    return data;
+    return data ? toCamelCase(data) : null;
   }
 
   async updateOrder(orderId: string, data: Partial<Omit<InsertTicketsOrder, 'id'>>): Promise<TicketsOrder> {
@@ -505,7 +505,7 @@ export class TicketsSupabaseDB {
       .single();
     
     if (error) throw error;
-    return order;
+    return toCamelCase(order);
   }
 
   async getOrderItems(orderId: string): Promise<TicketsOrderItem[]> {
@@ -515,7 +515,7 @@ export class TicketsSupabaseDB {
       .eq('order_id', orderId);
     
     if (error) throw error;
-    return data || [];
+    return data ? data.map(item => toCamelCase(item)) : [];
   }
 
   async getTicketsByOrderItem(orderItemId: string): Promise<TicketsTicket[]> {
@@ -525,7 +525,7 @@ export class TicketsSupabaseDB {
       .eq('order_item_id', orderItemId);
     
     if (error) throw error;
-    return data || [];
+    return data ? data.map(ticket => toCamelCase(ticket)) : [];
   }
 
   async getTicketByQR(qrToken: string): Promise<TicketsTicket | null> {
@@ -536,7 +536,7 @@ export class TicketsSupabaseDB {
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    return data ? toCamelCase(data) : null;
   }
 
   async updateTicket(id: string, data: Partial<InsertTicketsTicket>): Promise<TicketsTicket> {
@@ -553,7 +553,7 @@ export class TicketsSupabaseDB {
       .single();
     
     if (error) throw error;
-    return ticket;
+    return toCamelCase(ticket);
   }
 
   async getOrderItemById(id: string): Promise<TicketsOrderItem | null> {
@@ -564,7 +564,7 @@ export class TicketsSupabaseDB {
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    return data ? toCamelCase(data) : null;
   }
 
   // ============ MISSING ADMIN FUNCTIONS ============

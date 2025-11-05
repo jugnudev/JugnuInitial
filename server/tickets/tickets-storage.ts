@@ -513,8 +513,7 @@ export class TicketsStorage {
   }
 
   async getTicketsByOrderItem(orderItemId: string): Promise<TicketsTicket[]> {
-    const { storageExtensions } = await import('./storage-extensions');
-    return storageExtensions.getTicketsByOrderItem(orderItemId);
+    return ticketsDB.getTicketsByOrderItem(orderItemId);
   }
 
   async getTicketById(id: string): Promise<TicketsTicket | null> {
