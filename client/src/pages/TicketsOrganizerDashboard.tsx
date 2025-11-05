@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { 
@@ -21,7 +22,8 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  MapPin
+  MapPin,
+  Search
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +38,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format, differenceInDays, formatDistanceToNow } from "date-fns";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -314,7 +317,28 @@ export function TicketsOrganizerDashboard() {
           </p>
         </div>
 
-        {/* Stripe Connect Status */}
+        {/* Main Tabs */}
+        <Tabs defaultValue="events" className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="events" data-testid="tab-events">Events</TabsTrigger>
+            <TabsTrigger value="manage" data-testid="tab-manage-events">Manage Events</TabsTrigger>
+          </TabsList>
+
+          {/* Events Tab - Public View */}
+          <TabsContent value="events">
+            <PublicEventsView events={events} />
+          </TabsContent>
+
+          {/* Manage Events Tab */}
+          <TabsContent value="manage">{renderManageEventsTab()}</TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+
+  function renderManageEventsTab() {
+    return (
+      <>
         {!organizer?.stripeOnboardingComplete ? (
           <div className="mb-8 glass-elevated rounded-xl p-6 border-2 animate-slideUp" style={{ borderColor: 'var(--copper)', background: 'var(--copper-glow)' }}>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -700,7 +724,175 @@ export function TicketsOrganizerDashboard() {
             </CardContent>
           </Card>
         </div>
+      </>
+    );
+  }
+}
+
+interface PublicEventsViewProps {
+  events: Event[];
+}
+
+function PublicEventsView({ events }: PublicEventsViewProps) {
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const publishedEvents = events.filter(e => e.status === 'published');
+
+  const upcomingEvents = publishedEvents
+    .filter(e => new Date(e.startAt) > new Date())
+    .sort((a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime());
+
+  const pastEvents = publishedEvents
+    .filter(e => new Date(e.startAt) <= new Date())
+    .sort((a, b) => new Date(b.startAt).getTime() - new Date(a.startAt).getTime());
+
+  const filteredEvents = useMemo(() => {
+    if (!searchQuery) return upcomingEvents;
+    const query = searchQuery.toLowerCase();
+    return upcomingEvents.filter(event =>
+      event.title?.toLowerCase().includes(query) ||
+      event.venue?.toLowerCase().includes(query) ||
+      event.city?.toLowerCase().includes(query)
+    );
+  }, [upcomingEvents, searchQuery]);
+
+  return (
+    <div className="space-y-6">
+      {/* Hero Section */}
+      <div className="glass-elevated rounded-xl p-8 text-center">
+        <h2 className="text-3xl font-fraunces font-bold mb-3" style={{ color: 'var(--neutral-50)' }}>
+          Our Events
+        </h2>
+        <p className="text-base" style={{ color: 'var(--neutral-300)' }}>
+          Discover and book tickets for our upcoming events
+        </p>
       </div>
+
+      {/* Search Bar */}
+      {upcomingEvents.length > 0 && (
+        <div className="glass-elevated rounded-xl p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4" style={{ color: 'var(--neutral-400)' }} />
+            <Input
+              type="text"
+              placeholder="Search events..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-transparent border-white/20 text-white placeholder:text-neutral-400"
+              data-testid="input-search-events"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Upcoming Events */}
+      <div className="glass-elevated rounded-xl p-6">
+        <h3 className="text-2xl font-fraunces font-bold mb-6" style={{ color: 'var(--neutral-50)' }}>
+          Upcoming Events
+        </h3>
+        
+        {filteredEvents.length === 0 ? (
+          <div className="text-center py-12">
+            <Calendar className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--neutral-600)' }} />
+            <p className="text-lg" style={{ color: 'var(--neutral-400)' }}>
+              {searchQuery ? 'No events match your search' : 'No upcoming events'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredEvents.map(event => (
+              <div
+                key={event.id}
+                className="glass-card rounded-xl overflow-hidden hover-lift cursor-pointer group"
+                onClick={() => setSelectedEvent(event)}
+                data-testid={`card-event-${event.id}`}
+              >
+                {event.coverUrl && (
+                  <div className="aspect-[16/9] overflow-hidden">
+                    <img
+                      src={event.coverUrl}
+                      alt={event.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                )}
+                <div className="p-5">
+                  <h4 className="text-lg font-fraunces font-bold mb-2" style={{ color: 'var(--neutral-50)' }}>
+                    {event.title}
+                  </h4>
+                  <div className="space-y-2 text-sm" style={{ color: 'var(--neutral-300)' }}>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>{format(new Date(event.startAt), 'PPP')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      <span>{format(new Date(event.startAt), 'p')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      <span>{event.venue}, {event.city}</span>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Link href={`/tickets/event/${event.slug}`}>
+                      <Button
+                        className="w-full bg-copper-gradient hover:shadow-glow-copper text-white"
+                        data-testid={`button-view-event-${event.id}`}
+                      >
+                        View Details
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Past Events */}
+      {pastEvents.length > 0 && (
+        <div className="glass-elevated rounded-xl p-6">
+          <h3 className="text-2xl font-fraunces font-bold mb-6" style={{ color: 'var(--neutral-50)' }}>
+            Past Events
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 opacity-60">
+            {pastEvents.slice(0, 6).map(event => (
+              <div
+                key={event.id}
+                className="glass-card rounded-xl overflow-hidden"
+              >
+                {event.coverUrl && (
+                  <div className="aspect-[16/9] overflow-hidden">
+                    <img
+                      src={event.coverUrl}
+                      alt={event.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <div className="p-5">
+                  <h4 className="text-lg font-fraunces font-bold mb-2" style={{ color: 'var(--neutral-50)' }}>
+                    {event.title}
+                  </h4>
+                  <div className="space-y-2 text-sm" style={{ color: 'var(--neutral-300)' }}>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      <span>{format(new Date(event.startAt), 'PPP')}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      <span>{event.venue}, {event.city}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
