@@ -1,0 +1,39 @@
+81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/api/notifications?limit=20&offset=0:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/api/tickets/events/133d8610-da1a-423b-bdae-deac1770ff96:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/api/tickets/events/76357aa4-221a-49ae-84d6-aa1ece2ee059:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/api/tickets/events/76357aa4-221a-49ae-84d6-aa1ece2ee059/analytics?period=last7days:1  Failed to load resource: the server responded with a status of 502 (Bad Gateway)Understand this error
+injected.js:27 Warning: Received NaN for the `value` attribute. If this is expected, cast the value to a string.
+    at input
+    at _c (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/src/components/ui/input.tsx:20:11)
+    at div
+    at div
+    at div
+    at _c9 (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/src/components/ui/card.tsx:114:12)
+    at div
+    at _c (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/src/components/ui/card.tsx:20:11)
+    at div
+    at div
+    at _c9 (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/src/components/ui/card.tsx:114:12)
+    at div
+    at _c (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/src/components/ui/card.tsx:20:11)
+    at div
+    at div
+    at form
+    at FormProvider (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-4BFJKWC4.js?v=8e18de34:102:11)
+    at div
+    at div
+    at TicketsEventEditPage (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/src/pages/TicketsEventEditPage.tsx:90:23)
+    at Route (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=8e18de34:323:16)
+    at Switch (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=8e18de34:379:17)
+    at main
+    at div
+    at Layout (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/src/components/Layout.tsx:20:34)
+    at Router (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/src/App.tsx?v=dCP8wdUQZpOIcyHSCYFMt:84:3)
+    at Provider (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-OXZDJRWN.js?v=8e18de34:38:15)
+    at TooltipProvider (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=8e18de34:64:5)
+    at QueryClientProvider (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=8e18de34:2805:3)
+    at _a (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/react-helmet-async.js?v=8e18de34:624:5)
+    at App (https://81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/src/App.tsx?v=dCP8wdUQZpOIcyHSCYFMt:431:3)
+(anonymous) @ injected.js:27Understand this error
+81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/api/tickets/events/133d8610-da1a-423b-bdae-deac1770ff96:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+81ef60cc-660b-424a-8567-e1a5b7bcc876-00-16syey5j84fz3.janeway.replit.dev/api/tickets/events/133d8610-da1a-423b-bdae-deac1770ff96:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
