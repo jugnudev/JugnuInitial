@@ -109,16 +109,71 @@
 }
 
 :root {
-  /* Jugnu Brand Colors */
-  --bg: hsl(0, 0%, 4.3%);
-  --text: hsl(31, 15%, 89%);
-  --muted: hsl(26, 13%, 69%);
+  /* Jugnu Brand Colors - Neutral for Admin Pages */
+  --bg: hsl(0, 0%, 100%);
+  --text: hsl(0, 0%, 10%);
+  --muted: hsl(0, 0%, 50%);
   --primary: hsl(28, 58%, 41%);
   --primary-700: hsl(29, 52%, 32%);
   --accent: hsl(28, 89%, 57%);
   --glow: hsl(46, 91%, 65%);
   
+  /* Premium Spacing Scale */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2.5rem;
+  --space-2xl: 3.5rem;
+  --space-3xl: 5rem;
+  
+  /* Premium Motion */
+  --motion-instant: 100ms;
+  --motion-fast: 150ms;
+  --motion-medium: 220ms;
+  --motion-slow: 450ms;
+  --motion-ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+  --motion-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --motion-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  
+  /* Premium Radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-pill: 9999px;
+
+  /* shadcn defaults for compatibility - Light theme for admin */
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(0, 0%, 10%);
+  --card: hsl(0, 0%, 98%);
+  --card-foreground: hsl(0, 0%, 10%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(0, 0%, 10%);
+  --secondary: hsl(0, 0%, 95%);
+  --secondary-foreground: hsl(0, 0%, 10%);
+  --muted-color: hsl(0, 0%, 95%);
+  --muted-foreground: hsl(0, 0%, 40%);
+  --accent-color: hsl(28, 89%, 57%);
+  --accent-foreground: hsl(0, 0%, 100%);
+  --destructive: hsl(0, 84%, 60%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(0, 0%, 85%);
+  --input: hsl(0, 0%, 95%);
+  --ring: hsl(28, 89%, 57%);
+  
+  --radius: 1rem;
+}
+
+/* Premium Community Theme - Scoped to community pages only */
+.premium-community-theme {
   /* Premium Copper-Charcoal Palette */
+  --bg: hsl(0, 0%, 4.3%);
+  --text: hsl(31, 15%, 89%);
+  --muted: hsl(26, 13%, 69%);
+  
   --charcoal: hsl(240, 6%, 4%);
   --charcoal-surface: hsl(240, 4%, 8%);
   --charcoal-elevated: hsl(235, 14%, 13%);
@@ -152,34 +207,7 @@
   --shadow-glow-copper: 0 0 24px hsla(19, 100%, 64%, 0.2), 0 0 12px hsla(19, 100%, 64%, 0.1);
   --shadow-glow-jade: 0 0 24px hsla(169, 77%, 42%, 0.2);
   
-  /* Premium Spacing Scale */
-  --space-xs: 0.25rem;   /* 4px */
-  --space-sm: 0.5rem;    /* 8px */
-  --space-md: 1rem;      /* 16px */
-  --space-lg: 1.5rem;    /* 24px */
-  --space-xl: 2.5rem;    /* 40px */
-  --space-2xl: 3.5rem;   /* 56px */
-  --space-3xl: 5rem;     /* 80px */
-  
-  /* Premium Motion */
-  --motion-instant: 100ms;
-  --motion-fast: 150ms;
-  --motion-medium: 220ms;
-  --motion-slow: 450ms;
-  --motion-ease-out: cubic-bezier(0.25, 1, 0.5, 1);
-  --motion-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
-  --motion-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
-  --motion-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
-  
-  /* Premium Radius */
-  --radius-sm: 0.5rem;   /* 8px */
-  --radius-md: 0.75rem;  /* 12px */
-  --radius-lg: 1rem;     /* 16px */
-  --radius-xl: 1.25rem;  /* 20px */
-  --radius-2xl: 1.5rem;  /* 24px */
-  --radius-pill: 9999px;
-
-  /* shadcn defaults for compatibility */
+  /* shadcn overrides for dark theme */
   --background: hsl(0, 0%, 4.3%);
   --foreground: hsl(31, 15%, 89%);
   --card: hsl(0, 0%, 8%);
@@ -197,8 +225,6 @@
   --border: hsl(0, 0%, 20%);
   --input: hsl(0, 0%, 15%);
   --ring: hsl(28, 89%, 57%);
-  
-  --radius: 1rem;
 }
 
 .dark {
@@ -230,6 +256,11 @@
   
   body {
     @apply bg-background text-foreground font-inter antialiased;
+  }
+  
+  /* Apply dark theme to premium community pages */
+  .premium-community-theme body,
+  body.premium-community-theme {
     background-color: var(--bg);
     color: var(--text);
   }

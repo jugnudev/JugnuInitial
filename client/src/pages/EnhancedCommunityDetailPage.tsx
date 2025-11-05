@@ -1220,7 +1220,7 @@ export default function EnhancedCommunityDetailPage() {
   // Member/Owner view - Full community experience
   return (
     <motion.div 
-      className="min-h-screen bg-bg"
+      className="premium-community-theme min-h-screen bg-bg"
       variants={pageAnimation}
       initial="initial"
       animate="animate"
