@@ -267,7 +267,7 @@ export default function AdminOrganizers() {
               </div>
               <Button 
                 onClick={() => checkAuth()} 
-                className="w-full bg-copper-500 hover:bg-copper-600 text-black"
+                className="w-full bg-copper-500 hover:bg-copper-600 !text-black font-semibold shadow-lg"
                 data-testid="button-login"
               >
                 Access Admin Panel

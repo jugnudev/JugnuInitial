@@ -723,7 +723,7 @@ export default function AdminPromote() {
             </div>
             <Button
               onClick={login}
-              className="w-full bg-copper-500 hover:bg-copper-600 text-black"
+              className="w-full bg-copper-500 hover:bg-copper-600 !text-black font-semibold shadow-lg"
               data-testid="admin-login-button"
             >
               Login

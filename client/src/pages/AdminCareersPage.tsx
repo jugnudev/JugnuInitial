@@ -400,7 +400,7 @@ export default function AdminCareersPage() {
                     checkAuth();
                   }
                 }}
-                className="w-full h-12 text-lg bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg text-white"
+                className="w-full h-12 text-lg bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 shadow-lg !text-white font-semibold"
                 disabled={!adminKey.trim()}
                 data-testid="button-login"
               >

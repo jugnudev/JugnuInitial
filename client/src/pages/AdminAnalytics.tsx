@@ -216,7 +216,7 @@ export default function AdminAnalytics() {
                 className="w-full px-4 py-2 bg-black/60 border border-copper-500/30 rounded-lg text-white"
                 required
               />
-              <Button type="submit" className="w-full bg-copper-600 hover:bg-copper-700">
+              <Button type="submit" className="w-full bg-copper-600 hover:bg-copper-700 !text-black font-semibold shadow-lg">
                 Access Analytics
               </Button>
             </form>
