@@ -95,7 +95,7 @@ export class TicketsSupabaseDB {
     console.log('[DEBUG] Inserting with snake_case data (auto UUID):', insertData);
     
     const { data: organizer, error: insertError } = await this.client
-      .from('tickets_organizers')
+      .from('organizers')
       .insert(insertData)
       .select()
       .single();
@@ -113,7 +113,7 @@ export class TicketsSupabaseDB {
     console.log('[DEBUG] getOrganizerById called with ID:', id);
     
     const { data, error } = await this.client
-      .from('tickets_organizers')
+      .from('organizers')
       .select('*')
       .eq('id', id)
       .single();
@@ -133,7 +133,7 @@ export class TicketsSupabaseDB {
       
       // Workaround: Fetch all organizers and filter client-side to bypass PostgREST cache issue
       const { data: allOrganizers, error } = await this.client
-        .from('tickets_organizers')
+        .from('organizers')
         .select('*');
       
       if (error) {
@@ -154,9 +154,9 @@ export class TicketsSupabaseDB {
 
   async getOrganizerByEmail(email: string): Promise<TicketsOrganizer | null> {
     const { data, error } = await this.client
-      .from('tickets_organizers')
+      .from('organizers')
       .select('*')
-      .eq('email', email)  // Use email column (has unique constraint)
+      .eq('business_email', email)  // Use business_email column from organizers table
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
@@ -165,7 +165,7 @@ export class TicketsSupabaseDB {
 
   async getOrganizerByStripeAccount(stripeAccountId: string): Promise<TicketsOrganizer | null> {
     const { data, error } = await this.client
-      .from('tickets_organizers')
+      .from('organizers')
       .select('*')
       .eq('stripe_account_id', stripeAccountId)
       .single();
@@ -182,7 +182,7 @@ export class TicketsSupabaseDB {
   async updateOrganizer(id: string, data: Partial<InsertTicketsOrganizer>): Promise<TicketsOrganizer> {
     const snakeCaseData = toSnakeCase(data);
     const { data: organizer, error } = await this.client
-      .from('tickets_organizers')
+      .from('organizers')
       .update(snakeCaseData)
       .eq('id', id)
       .select()
@@ -570,7 +570,7 @@ export class TicketsSupabaseDB {
   // ============ MISSING ADMIN FUNCTIONS ============
   async updateOrganizerStripeAccount(id: string, stripeAccountId: string): Promise<TicketsOrganizer> {
     const { data, error } = await this.client
-      .from('tickets_organizers')
+      .from('organizers')
       .update({ 
         stripe_account_id: stripeAccountId, 
         status: 'active',
@@ -1126,7 +1126,7 @@ export class TicketsSupabaseDB {
       .from('tickets_payouts')
       .select(`
         *,
-        organizer:tickets_organizers(business_name, business_email)
+        organizer:organizers(business_name)
       `)
       .in('status', ['draft', 'ready'])
       .order('created_at', { ascending: false });
