@@ -1490,6 +1490,37 @@ export function addTicketsRoutes(app: Express) {
     }
   });
 
+  // Delete event
+  app.delete('/api/tickets/events/:id', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
+    try {
+      const organizer = (req as any).organizer;
+      const event = await ticketsStorage.getEventById(req.params.id);
+      
+      if (!event || event.organizerId !== organizer.id) {
+        return res.status(404).json({ ok: false, error: 'Event not found' });
+      }
+      
+      // Check if event has sold tickets
+      const orders = await ticketsStorage.getOrdersByEvent(req.params.id);
+      const hasSoldTickets = orders.some((order: any) => order.status === 'paid');
+      
+      if (hasSoldTickets) {
+        return res.status(400).json({ 
+          ok: false, 
+          error: 'Cannot delete event with sold tickets. Please archive it instead.' 
+        });
+      }
+      
+      // Soft delete by setting status to archived
+      await ticketsStorage.updateEvent(req.params.id, { status: 'archived' });
+      
+      res.json({ ok: true, message: 'Event archived successfully' });
+    } catch (error) {
+      console.error('Delete event error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to delete event' });
+    }
+  });
+
   // Duplicate event
   app.post('/api/tickets/events/:eventId/duplicate', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
     try {

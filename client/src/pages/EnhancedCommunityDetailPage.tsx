@@ -2156,112 +2156,173 @@ export default function EnhancedCommunityDetailPage() {
                 </CardHeader>
                 <CardContent className="p-4 md:p-6">
                   {organizerData?.events && organizerData.events.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       {organizerData.events.map((event: any) => (
                         <motion.div
                           key={event.id}
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="group p-4 rounded-xl glass-card border border-premium-border hover:border-copper-500/50 transition-all cursor-pointer"
-                          onClick={() => setLocation(`/tickets/organizer/events/${event.id}/edit`)}
+                          className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-premium-surface-elevated/80 to-premium-surface/80 backdrop-blur-xl border border-premium-border hover:border-copper-500/50 shadow-lg hover:shadow-copper-500/20 transition-all duration-300"
                           data-testid={`event-card-${event.id}`}
                         >
-                          <div className="flex flex-col md:flex-row md:items-center gap-4">
-                            {/* Event Cover Image */}
-                            {event.coverUrl ? (
-                              <div className="w-full md:w-32 h-20 md:h-20 rounded-lg overflow-hidden flex-shrink-0 bg-premium-surface-elevated">
-                                <img 
-                                  src={event.coverUrl} 
-                                  alt={event.title}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            ) : (
-                              <div className="w-full md:w-32 h-20 md:h-20 rounded-lg bg-gradient-to-br from-copper-500/20 to-accent/20 flex items-center justify-center flex-shrink-0">
-                                <Calendar className="h-8 w-8 text-copper-400/50" />
-                              </div>
-                            )}
+                          {/* Gradient Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-copper-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          
+                          <div className="relative p-5 md:p-6">
+                            <div className="flex flex-col lg:flex-row lg:items-center gap-5">
+                              {/* Event Cover Image */}
+                              {event.coverUrl ? (
+                                <div className="w-full lg:w-40 h-28 lg:h-28 rounded-xl overflow-hidden flex-shrink-0 shadow-md ring-2 ring-premium-border/50 group-hover:ring-copper-500/50 transition-all">
+                                  <img 
+                                    src={event.coverUrl} 
+                                    alt={event.title}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-full lg:w-40 h-28 lg:h-28 rounded-xl bg-gradient-to-br from-copper-500/20 via-copper-600/20 to-accent/20 flex items-center justify-center flex-shrink-0 shadow-md ring-2 ring-copper-500/20 group-hover:ring-copper-500/40 transition-all">
+                                  <Calendar className="h-12 w-12 text-copper-400/60" />
+                                </div>
+                              )}
 
-                            {/* Event Info */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex-1 min-w-0">
-                                  <h3 className="font-semibold text-white truncate text-sm md:text-base">
-                                    {event.title}
-                                  </h3>
-                                  {event.summary && (
-                                    <p className="text-xs md:text-sm text-premium-text-muted mt-1 line-clamp-1">
-                                      {event.summary}
-                                    </p>
+                              {/* Event Info */}
+                              <div className="flex-1 min-w-0 space-y-3">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="font-bold text-white text-lg lg:text-xl group-hover:text-copper-400 transition-colors truncate">
+                                      {event.title}
+                                    </h3>
+                                    {event.summary && (
+                                      <p className="text-sm text-premium-text-muted mt-1.5 line-clamp-2">
+                                        {event.summary}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <Badge 
+                                    variant={event.status === 'published' ? 'default' : event.status === 'draft' ? 'secondary' : 'outline'}
+                                    className={`text-xs font-semibold px-3 py-1 flex-shrink-0 ${
+                                      event.status === 'published' ? 'bg-green-500/20 text-green-400 border-green-500/50 shadow-sm shadow-green-500/20' :
+                                      event.status === 'draft' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50 shadow-sm shadow-yellow-500/20' :
+                                      'bg-gray-500/20 text-gray-400 border-gray-500/50'
+                                    }`}
+                                  >
+                                    {event.status}
+                                  </Badge>
+                                </div>
+
+                                {/* Event Meta */}
+                                <div className="flex flex-wrap items-center gap-4 text-sm text-premium-text-muted">
+                                  <div className="flex items-center gap-2">
+                                    <div className="p-1.5 rounded-lg bg-blue-500/10">
+                                      <Clock className="h-4 w-4 text-blue-400" />
+                                    </div>
+                                    <span className="font-medium">{new Date(event.startAt).toLocaleDateString('en-US', { 
+                                      month: 'short', 
+                                      day: 'numeric',
+                                      year: 'numeric',
+                                      hour: 'numeric',
+                                      minute: '2-digit'
+                                    })}</span>
+                                  </div>
+                                  {event.venue && (
+                                    <div className="flex items-center gap-2">
+                                      <div className="p-1.5 rounded-lg bg-purple-500/10">
+                                        <Building2 className="h-4 w-4 text-purple-400" />
+                                      </div>
+                                      <span className="truncate max-w-[180px] font-medium">{event.venue}</span>
+                                    </div>
+                                  )}
+                                  {event.tiers && event.tiers.length > 0 && (
+                                    <div className="flex items-center gap-2">
+                                      <div className="p-1.5 rounded-lg bg-copper-500/10">
+                                        <Ticket className="h-4 w-4 text-copper-400" />
+                                      </div>
+                                      <span className="font-medium">{event.tiers.length} tier{event.tiers.length !== 1 ? 's' : ''}</span>
+                                    </div>
                                   )}
                                 </div>
-                                <Badge 
-                                  variant={event.status === 'published' ? 'default' : event.status === 'draft' ? 'secondary' : 'outline'}
-                                  className={`text-xs flex-shrink-0 ${
-                                    event.status === 'published' ? 'bg-green-500/20 text-green-400 border-green-500/50' :
-                                    event.status === 'draft' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/50' :
-                                    'bg-gray-500/20 text-gray-400 border-gray-500/50'
-                                  }`}
+                              </div>
+
+                              {/* Quick Actions */}
+                              <div className="flex lg:flex-col gap-2.5 lg:items-end">
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLocation(`/tickets/organizer/events/${event.id}/edit`);
+                                  }}
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 lg:flex-none lg:min-w-[100px] touch-target bg-premium-surface/50 border-premium-border hover:border-copper-500/50 hover:bg-copper-500/10 hover:text-copper-400 text-xs font-semibold shadow-sm"
+                                  data-testid={`button-edit-event-${event.id}`}
                                 >
-                                  {event.status}
-                                </Badge>
+                                  <Edit3 className="h-3.5 w-3.5 mr-1.5" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(`/events/${event.slug}`, '_blank');
+                                  }}
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 lg:flex-none lg:min-w-[100px] touch-target bg-premium-surface/50 border-premium-border hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-400 text-xs font-semibold shadow-sm"
+                                  data-testid={`button-view-event-${event.id}`}
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                                  View
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      onClick={(e) => e.stopPropagation()}
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex-1 lg:flex-none lg:min-w-[100px] touch-target bg-premium-surface/50 border-premium-border hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400 text-xs font-semibold shadow-sm"
+                                      data-testid={`button-delete-event-${event.id}`}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                                      Delete
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent className="bg-premium-surface border-premium-border">
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle className="text-white flex items-center gap-2">
+                                        <AlertTriangle className="h-5 w-5 text-red-400" />
+                                        Delete Event
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription className="text-premium-text-muted">
+                                        Are you sure you want to delete <span className="font-semibold text-white">"{event.title}"</span>? This action cannot be undone and will permanently remove the event and all associated data.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel className="bg-premium-surface border-premium-border hover:bg-premium-surface-elevated">
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={async () => {
+                                          try {
+                                            await apiRequest('DELETE', `/api/tickets/events/${event.id}`);
+                                            toast({
+                                              title: "Event deleted",
+                                              description: "The event has been permanently deleted.",
+                                            });
+                                            queryClient.invalidateQueries({ queryKey: ['/api/tickets/organizers/me'] });
+                                          } catch (error) {
+                                            toast({
+                                              title: "Delete failed",
+                                              description: "Failed to delete the event. Please try again.",
+                                              variant: "destructive",
+                                            });
+                                          }
+                                        }}
+                                        className="bg-red-600 hover:bg-red-700 text-white"
+                                      >
+                                        Delete Event
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
-
-                              {/* Event Meta */}
-                              <div className="flex flex-wrap items-center gap-3 md:gap-4 mt-3 text-xs text-premium-text-muted">
-                                <div className="flex items-center gap-1.5">
-                                  <Clock className="h-3.5 w-3.5" />
-                                  <span>{new Date(event.startAt).toLocaleDateString('en-US', { 
-                                    month: 'short', 
-                                    day: 'numeric',
-                                    year: 'numeric',
-                                    hour: 'numeric',
-                                    minute: '2-digit'
-                                  })}</span>
-                                </div>
-                                {event.venue && (
-                                  <div className="flex items-center gap-1.5">
-                                    <Building2 className="h-3.5 w-3.5" />
-                                    <span className="truncate max-w-[150px]">{event.venue}</span>
-                                  </div>
-                                )}
-                                {event.tiers && event.tiers.length > 0 && (
-                                  <div className="flex items-center gap-1.5">
-                                    <Ticket className="h-3.5 w-3.5" />
-                                    <span>{event.tiers.length} ticket tier{event.tiers.length !== 1 ? 's' : ''}</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Quick Actions */}
-                            <div className="flex md:flex-col gap-2 md:items-end">
-                              <Button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setLocation(`/tickets/organizer/events/${event.id}/edit`);
-                                }}
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 md:flex-none touch-target border-premium-border hover:border-copper-500/50 text-xs"
-                                data-testid={`button-edit-event-${event.id}`}
-                              >
-                                <Edit3 className="h-3.5 w-3.5 mr-1.5" />
-                                Edit
-                              </Button>
-                              <Button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.open(`/events/${event.slug}`, '_blank');
-                                }}
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 md:flex-none touch-target border-premium-border hover:border-blue-500/50 text-xs"
-                                data-testid={`button-view-event-${event.id}`}
-                              >
-                                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                                View
-                              </Button>
                             </div>
                           </div>
                         </motion.div>
