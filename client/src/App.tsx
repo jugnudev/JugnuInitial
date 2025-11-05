@@ -67,6 +67,7 @@ import BizLoyaltyIssue from "@/pages/BizLoyaltyIssue";
 import TicketsMyTickets from "@/pages/TicketsMyTickets";
 import TicketsViewTicket from "@/pages/TicketsViewTicket";
 import TicketsLookup from "@/pages/TicketsLookup";
+import { TicketsMyOrdersPage } from "@/pages/TicketsMyOrdersPage";
 
 function Router() {
   // Track page views when routes change - Google Analytics integration
@@ -133,6 +134,7 @@ function Router() {
             <Route path="/tickets/organizer/payouts" component={TicketsOrganizerPayouts} />
             <Route path="/tickets/organizer/settings" component={TicketsOrganizerSettings} />
             <Route path="/tickets/order/success" component={TicketsOrderSuccessPage} />
+            <Route path="/tickets/my-orders" component={TicketsMyOrdersPage} />
             <Route path="/my-tickets" component={TicketsMyTickets} />
             <Route path="/tickets/view/:ticketId" component={TicketsViewTicket} />
             <Route path="/tickets/lookup" component={TicketsLookup} />
