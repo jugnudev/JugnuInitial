@@ -1366,88 +1366,163 @@ export default function EnhancedCommunityDetailPage() {
         {isOwnerOrModerator ? (
           // Owner/Moderator Console with Tabs
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <div className="w-full overflow-x-auto scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
-              <TabsList className="inline-flex md:grid w-full md:max-w-2xl md:grid-cols-8 bg-premium-surface border border-premium-border min-w-max md:min-w-0">
+            {/* Mobile Dropdown Navigation */}
+            <div className="md:hidden">
+              <Select value={activeTab} onValueChange={setActiveTab}>
+                <SelectTrigger className="w-full glass-card border-copper-500/30 bg-gradient-to-r from-copper-900/30 to-primary-700/20 backdrop-blur-xl h-12 touch-target">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-premium-surface border-premium-border backdrop-blur-xl">
+                  <SelectItem value="announcements" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      <span>Posts</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="chat" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <MessageCircle className="h-4 w-4" />
+                      <span>Chat</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="polls" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <Vote className="h-4 w-4" />
+                      <span>Polls</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="giveaways" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <Gift className="h-4 w-4" />
+                      <span>Giveaways</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="events" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <Ticket className="h-4 w-4" />
+                      <span>Events</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="manage-events" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <Settings2 className="h-4 w-4" />
+                      <span>Manage Events</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="members" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      <span>Members</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="analytics" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      <span>Analytics</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="settings" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-4 w-4" />
+                      <span>Settings</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="billing" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-4 w-4" />
+                      <span>Billing</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Desktop Tab Navigation */}
+            <div className="hidden md:block">
+              <TabsList className="glass-elevated border-copper-500/20 bg-gradient-to-br from-copper-900/20 via-primary-700/10 to-copper-900/20 backdrop-blur-xl p-1.5 gap-1 h-auto grid grid-cols-5 w-full max-w-4xl mx-auto">
                 <TabsTrigger 
                   value="announcements"
                   data-testid="announcements-tab"
-                  className="flex-shrink-0"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Posts</span>
-                  <span className="sm:hidden">Posts</span>
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Posts</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="chat"
                   data-testid="chat-tab"
-                  className="flex-shrink-0"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Chat</span>
-                  <span className="sm:hidden">Chat</span>
+                  <MessageCircle className="h-4 w-4" />
+                  <span>Chat</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="polls"
                   data-testid="polls-tab"
-                  className="flex-shrink-0"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Polls</span>
-                  <span className="sm:hidden">Polls</span>
+                  <Vote className="h-4 w-4" />
+                  <span>Polls</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="giveaways"
+                  data-testid="giveaways-tab"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
+                >
+                  <Gift className="h-4 w-4" />
+                  <span>Giveaways</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="events"
-                  data-testid="events-tab"
-                  className="flex-shrink-0"
+                  data-testid="owner-events-tab"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <Ticket className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Events</span>
-                  <span className="sm:hidden">Events</span>
+                  <Ticket className="h-4 w-4" />
+                  <span>Events</span>
                 </TabsTrigger>
+              </TabsList>
+              
+              {/* Second Row - Management & Settings */}
+              <TabsList className="glass-elevated border-copper-500/20 bg-gradient-to-br from-copper-900/20 via-primary-700/10 to-copper-900/20 backdrop-blur-xl p-1.5 gap-1 h-auto grid grid-cols-5 w-full max-w-4xl mx-auto">
                 <TabsTrigger 
                   value="manage-events"
-                  data-testid="manage-events-tab"
-                  className="flex-shrink-0"
+                  data-testid="owner-manage-events-tab"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <Settings2 className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Manage Events</span>
-                  <span className="sm:hidden">Manage</span>
+                  <Settings2 className="h-4 w-4" />
+                  <span>Manage Events</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="members"
                   data-testid="members-tab"
-                  className="flex-shrink-0"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <Users className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Members</span>
-                  <span className="sm:hidden">Members</span>
+                  <Users className="h-4 w-4" />
+                  <span>Members</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="analytics"
                   data-testid="analytics-tab"
-                  className="flex-shrink-0"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <Activity className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Analytics</span>
-                  <span className="sm:hidden">Analytics</span>
+                  <BarChart3 className="h-4 w-4" />
+                  <span>Analytics</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="settings"
                   data-testid="settings-tab"
-                  className="flex-shrink-0"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <Settings className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Settings</span>
-                  <span className="sm:hidden">Settings</span>
+                  <Settings className="h-4 w-4" />
+                  <span>Settings</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="billing"
                   data-testid="billing-tab"
-                  className="relative flex-shrink-0"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Billing</span>
-                  <span className="sm:hidden">Billing</span>
+                  <CreditCard className="h-4 w-4" />
+                  <span>Billing</span>
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -2678,61 +2753,103 @@ export default function EnhancedCommunityDetailPage() {
         ) : (
           // Member view - Posts, Chat, Polls, Giveaways, Events, and Settings
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <div className="w-full overflow-x-auto scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
-              <TabsList className="inline-flex md:grid w-full md:max-w-3xl md:grid-cols-6 bg-premium-surface border border-premium-border min-w-max md:min-w-0">
+            {/* Mobile Dropdown Navigation */}
+            <div className="md:hidden">
+              <Select value={activeTab} onValueChange={setActiveTab}>
+                <SelectTrigger className="w-full glass-card border-copper-500/30 bg-gradient-to-r from-copper-900/30 to-primary-700/20 backdrop-blur-xl h-12 touch-target">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-premium-surface border-premium-border backdrop-blur-xl">
+                  <SelectItem value="announcements" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4" />
+                      <span>Posts</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="chat" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <MessageCircle className="h-4 w-4" />
+                      <span>Chat</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="polls" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <Vote className="h-4 w-4" />
+                      <span>Polls</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="giveaways" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <Gift className="h-4 w-4" />
+                      <span>Giveaways</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="events" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <Ticket className="h-4 w-4" />
+                      <span>Events</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="settings" className="touch-target">
+                    <div className="flex items-center gap-2">
+                      <Settings className="h-4 w-4" />
+                      <span>Settings</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Desktop Tab Navigation */}
+            <div className="hidden md:block">
+              <TabsList className="glass-elevated border-copper-500/20 bg-gradient-to-br from-copper-900/20 via-primary-700/10 to-copper-900/20 backdrop-blur-xl p-1.5 gap-1 h-auto grid grid-cols-6 w-full max-w-4xl mx-auto">
                 <TabsTrigger 
                   value="announcements"
                   data-testid="member-posts-tab"
-                  className="flex-shrink-0"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Posts</span>
-                  <span className="sm:hidden">Posts</span>
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Posts</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="chat"
                   data-testid="member-chat-tab"
-                  className="flex-shrink-0"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Chat</span>
-                  <span className="sm:hidden">Chat</span>
+                  <MessageCircle className="h-4 w-4" />
+                  <span>Chat</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="polls"
                   data-testid="member-polls-tab"
-                  className="flex-shrink-0"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <Vote className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Polls</span>
-                  <span className="sm:hidden">Polls</span>
+                  <Vote className="h-4 w-4" />
+                  <span>Polls</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="giveaways"
                   data-testid="member-giveaways-tab"
-                  className="flex-shrink-0"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <Gift className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Giveaways</span>
-                  <span className="sm:hidden">Giveaways</span>
+                  <Gift className="h-4 w-4" />
+                  <span>Giveaways</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="events"
                   data-testid="member-events-tab"
-                  className="flex-shrink-0"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <Ticket className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Events</span>
-                  <span className="sm:hidden">Events</span>
+                  <Ticket className="h-4 w-4" />
+                  <span>Events</span>
                 </TabsTrigger>
                 <TabsTrigger 
                   value="settings"
                   data-testid="member-settings-tab"
-                  className="flex-shrink-0"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-copper-600 data-[state=active]:to-copper-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 hover:bg-white/5 transition-all duration-200 px-4 py-3 gap-2 font-medium"
                 >
-                  <Settings className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Settings</span>
-                  <span className="sm:hidden">Settings</span>
+                  <Settings className="h-4 w-4" />
+                  <span>Settings</span>
                 </TabsTrigger>
               </TabsList>
             </div>
