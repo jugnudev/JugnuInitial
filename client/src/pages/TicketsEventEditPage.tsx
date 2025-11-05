@@ -220,6 +220,41 @@ export function TicketsEventEditPage() {
     }
   }, [data, form]);
 
+  const uploadImageMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      const response = await fetch('/api/tickets/events/upload-image', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      });
+      
+      if (!response.ok) throw new Error('Failed to upload image');
+      const data = await response.json();
+      
+      // Update form and state with the new image URL
+      setCoverImage(data.imageUrl);
+      form.setValue('coverUrl', data.imageUrl);
+      
+      return data.imageUrl;
+    },
+    onSuccess: (imageUrl) => {
+      toast({
+        title: "Image uploaded",
+        description: "Your cover image has been uploaded successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Upload failed",
+        description: error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive",
+      });
+    }
+  });
+
   const updateEventMutation = useMutation({
     mutationFn: async (values: FormValues & { tiers: TicketTier[] }) => {
       setIsSubmitting(true);
@@ -914,25 +949,12 @@ export function TicketsEventEditPage() {
                         </Button>
                       </div>
                     ) : (
-                      <div className="border-2 border-dashed rounded-lg p-6 text-center">
-                        <ImageIcon className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground mb-4">
-                          No image uploaded
-                        </p>
-                        <ObjectUploader
-                          onUploadComplete={(url) => {
-                            setCoverImage(url);
-                            form.setValue('coverUrl', url);
-                          }}
-                          accept="image/*"
-                          maxSizeMB={5}
-                        >
-                          <Button type="button" variant="outline" size="sm">
-                            <Upload className="w-4 h-4 mr-2" />
-                            Upload Image
-                          </Button>
-                        </ObjectUploader>
-                      </div>
+                      <ObjectUploader
+                        onUpload={uploadImageMutation.mutateAsync}
+                        accept="image/*"
+                        maxSizeMB={5}
+                        placeholder="Drop image here or click to upload"
+                      />
                     )}
                   </CardContent>
                 </Card>
