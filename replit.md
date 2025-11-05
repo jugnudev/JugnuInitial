@@ -18,6 +18,13 @@ The platform uses React 18 with TypeScript and Vite, styled with Tailwind CSS an
 - Animation system: Fade-in, slide-up, hover-lift effects with staggered transitions
 - Applied to: Ticketing system (organizer dashboard, event creation, event listings), Communities navigation
 
+**Community Navigation System:**
+- Mobile: Select dropdown navigation (eliminates horizontal scroll) with glassmorphism and copper gradient styling
+- Desktop Owner/Moderator: 2-row grid layout (Row 1: Posts/Chat/Polls/Giveaways/Events, Row 2: Manage Events/Members/Analytics/Settings/Billing) for optimal spacing
+- Desktop Member: Single-row grid (Posts/Chat/Polls/Giveaways/Events/Settings)
+- Active tabs: Copper gradient highlight with shadow effects
+- Consistent premium styling across all views
+
 ### Technical Implementations
 The backend is built with Express.js and TypeScript, utilizing `cookie-parser` and `express-session` for session management. Authentication uses a hybrid middleware supporting both community auth tokens and platform sessions. Drizzle ORM is used for PostgreSQL, and TanStack Query for server state management. Wouter handles client-side routing. Security features include rate limiting, input sanitization, CSRF protection, IP blocking, and environment variables. Performance is optimized with in-memory caching, query optimization, code splitting, lazy loading, and React memoization. SEO is managed with `react-helmet-async` for meta tags and structured data. Data management involves static JSON data, automated Google Calendar ICS feed synchronization, and cleanup jobs. SendGrid is integrated for email communications, including verification, welcome, and notification emails, processed by a cron-based worker.
 
