@@ -154,25 +154,8 @@ export class TicketsStorage {
     return ticketsDB.getOrderByPaymentIntent(paymentIntentId);
   }
 
-  async getOrdersByEvent(eventId: string): Promise<TicketsOrder[]> {
-    return ticketsDB.getOrdersByEvent(eventId);
-  }
-
-  async getOrdersByBuyer(email: string): Promise<TicketsOrder[]> {
-    return ticketsDB.getOrdersByBuyer(email);
-  }
-
-  async getOrdersByUserId(userId: string): Promise<TicketsOrder[]> {
-    return ticketsDB.getOrdersByUserId(userId);
-  }
-  
-  async getUserById(userId: string): Promise<any> {
-    return ticketsDB.getUserById(userId);
-  }
-  
-  async getTicketById(ticketId: string): Promise<TicketsTicket | null> {
-    return ticketsDB.getTicketById(ticketId);
-  }
+  // Note: getOrdersByEvent, getOrdersByBuyer, getOrdersByUserId, getUserById, getTicketById
+  // are defined below in the EXTENDED METHODS section using storage-extensions
   
   async getTicketsByOrderId(orderId: string): Promise<TicketsTicket[]> {
     return ticketsDB.getTicketsByOrderId(orderId);
