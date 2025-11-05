@@ -301,42 +301,7 @@ export function TicketsOrganizerDashboard() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-charcoal-gradient">
-      <div className="container mx-auto px-4 md:px-6 py-8 md:py-12">
-        {/* Premium Header */}
-        <div className="mb-8 md:mb-12 animate-fadeIn">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-1.5 h-8 bg-copper-gradient rounded-full" />
-            <h1 className="text-3xl md:text-5xl font-fraunces font-bold" style={{ color: 'var(--neutral-50)' }}>
-              Organizer <span className="text-copper-gradient">Dashboard</span>
-            </h1>
-          </div>
-          <p className="text-base md:text-lg ml-5" style={{ color: 'var(--neutral-300)' }}>
-            Welcome back, {organizer?.businessName}
-          </p>
-        </div>
-
-        {/* Main Tabs */}
-        <Tabs defaultValue="events" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="events" data-testid="tab-events">Events</TabsTrigger>
-            <TabsTrigger value="manage" data-testid="tab-manage-events">Manage Events</TabsTrigger>
-          </TabsList>
-
-          {/* Events Tab - Public View */}
-          <TabsContent value="events">
-            <PublicEventsView events={events} />
-          </TabsContent>
-
-          {/* Manage Events Tab */}
-          <TabsContent value="manage">{renderManageEventsTab()}</TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  );
-
-  function renderManageEventsTab() {
+  const renderManageEventsTab = () => {
     return (
       <>
         {!organizer?.stripeOnboardingComplete ? (
@@ -726,7 +691,42 @@ export function TicketsOrganizerDashboard() {
         </div>
       </>
     );
-  }
+  };
+
+  return (
+    <div className="min-h-screen bg-charcoal-gradient">
+      <div className="container mx-auto px-4 md:px-6 py-8 md:py-12">
+        {/* Premium Header */}
+        <div className="mb-8 md:mb-12 animate-fadeIn">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-1.5 h-8 bg-copper-gradient rounded-full" />
+            <h1 className="text-3xl md:text-5xl font-fraunces font-bold" style={{ color: 'var(--neutral-50)' }}>
+              Organizer <span className="text-copper-gradient">Dashboard</span>
+            </h1>
+          </div>
+          <p className="text-base md:text-lg ml-5" style={{ color: 'var(--neutral-300)' }}>
+            Welcome back, {organizer?.businessName}
+          </p>
+        </div>
+
+        {/* Main Tabs */}
+        <Tabs defaultValue="events" className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="events" data-testid="tab-events">Events</TabsTrigger>
+            <TabsTrigger value="manage" data-testid="tab-manage-events">Manage Events</TabsTrigger>
+          </TabsList>
+
+          {/* Events Tab - Public View */}
+          <TabsContent value="events">
+            <PublicEventsView events={events} />
+          </TabsContent>
+
+          {/* Manage Events Tab */}
+          <TabsContent value="manage">{renderManageEventsTab()}</TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
 }
 
 interface PublicEventsViewProps {
@@ -734,7 +734,6 @@ interface PublicEventsViewProps {
 }
 
 function PublicEventsView({ events }: PublicEventsViewProps) {
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const publishedEvents = events.filter(e => e.status === 'published');
@@ -804,8 +803,7 @@ function PublicEventsView({ events }: PublicEventsViewProps) {
             {filteredEvents.map(event => (
               <div
                 key={event.id}
-                className="glass-card rounded-xl overflow-hidden hover-lift cursor-pointer group"
-                onClick={() => setSelectedEvent(event)}
+                className="glass-card rounded-xl overflow-hidden hover-lift group"
                 data-testid={`card-event-${event.id}`}
               >
                 {event.coverUrl && (
