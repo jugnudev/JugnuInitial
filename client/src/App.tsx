@@ -133,7 +133,7 @@ function Router() {
             <Route path="/tickets/organizer/payouts" component={TicketsOrganizerPayouts} />
             <Route path="/tickets/organizer/settings" component={TicketsOrganizerSettings} />
             <Route path="/tickets/order/success" component={TicketsOrderSuccessPage} />
-            <Route path="/my-tickets" component={TicketsMyTickets} />
+            <Route path="/tickets/my-tickets" component={TicketsMyTickets} />
             <Route path="/tickets/view/:ticketId" component={TicketsViewTicket} />
             <Route path="/tickets/lookup" component={TicketsLookup} />
           </>

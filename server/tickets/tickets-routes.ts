@@ -122,6 +122,9 @@ export function addTicketsRoutes(app: Express) {
   // Add analytics and communication routes
   addAnalyticsRoutes(app);
   
+  // Add my tickets routes
+  addMyTicketsRoutes(app);
+  
   // ============ IMAGE UPLOAD ENDPOINT ============
   
   // Upload event cover image
@@ -2075,9 +2078,10 @@ async function handlePaymentIntentFailed(paymentIntent: any) {
     console.error('Error handling Payment Intent failed:', error);
     throw error;
   }
+}
 
-  // ============ MY TICKETS ENDPOINTS ============
-  
+// ============ MY TICKETS ENDPOINTS ============
+function addMyTicketsRoutes(app: Express) {
   // Get all tickets for logged-in user
   app.get('/api/tickets/my-tickets', requireTicketing, async (req: Request & { session?: any }, res: Response) => {
     try {
