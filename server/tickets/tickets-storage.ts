@@ -480,18 +480,15 @@ export class TicketsStorage {
   }
 
   async getOrdersByEvent(eventId: string): Promise<TicketsOrder[]> {
-    const { storageExtensions } = await import('./storage-extensions');
-    return storageExtensions.getOrdersByEvent(eventId);
+    return ticketsDB.getOrdersByEvent(eventId);
   }
 
   async getOrdersByBuyer(email: string): Promise<TicketsOrder[]> {
-    const { storageExtensions } = await import('./storage-extensions');
-    return storageExtensions.getOrdersByBuyer(email);
+    return ticketsDB.getOrdersByBuyer(email);
   }
 
   async getOrdersByUserId(userId: string): Promise<TicketsOrder[]> {
-    const { storageExtensions } = await import('./storage-extensions');
-    return storageExtensions.getOrdersByUserId(userId);
+    return ticketsDB.getOrdersByUserId(userId);
   }
 
   async getTicketsByEvent(eventId: string): Promise<TicketsTicket[]> {
