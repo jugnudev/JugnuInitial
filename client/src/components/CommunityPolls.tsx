@@ -379,21 +379,21 @@ export default function CommunityPolls({ communityId, currentMember }: Community
         
         <TabsContent value="active" className="space-y-4 md:space-y-6">
           {isLoading ? (
-            <Card className="p-12 text-center bg-gradient-to-br from-copper-900/40 via-primary-700/30 to-copper-900/40 backdrop-blur-xl border-copper-500/20">
+            <Card className="p-12 text-center bg-charcoal-800/50 backdrop-blur-xl border-white/10">
               <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 border-4 border-copper-500/30 border-t-copper-500 rounded-full animate-spin" />
                 <p className="text-text font-medium">Loading polls...</p>
               </div>
             </Card>
           ) : !pollsData?.polls || pollsData.polls.length === 0 ? (
-            <Card className="p-12 text-center bg-gradient-to-br from-copper-900/40 via-primary-700/30 to-copper-900/40 backdrop-blur-xl border-copper-500/20">
+            <Card className="p-12 text-center bg-charcoal-800/50 backdrop-blur-xl border-white/10">
               <Vote className="w-16 h-16 mx-auto mb-4 text-copper-500/50" />
               <p className="text-text font-medium text-lg">No active polls</p>
               <p className="text-muted text-sm mt-2">Create a poll to engage with your community</p>
             </Card>
           ) : (
             pollsData.polls.map((poll: Poll) => (
-              <Card key={poll.id} data-testid={`poll-${poll.id}`} className="bg-gradient-to-br from-copper-900/50 via-primary-700/30 to-copper-900/50 backdrop-blur-xl border-copper-500/20 hover:border-copper-500/40 transition-all duration-300 hover:shadow-2xl hover:shadow-copper-500/20 hover:scale-[1.01]">
+              <Card key={poll.id} data-testid={`poll-${poll.id}`} className="bg-charcoal-800/50 backdrop-blur-xl border-white/10 hover:border-copper-500/30 transition-all duration-300 hover:shadow-lg hover:scale-[1.01]">
                 <CardHeader>
                   <div className="flex justify-between items-start gap-4">
                     <div className="flex-1">
@@ -576,21 +576,21 @@ export default function CommunityPolls({ communityId, currentMember }: Community
         
         <TabsContent value="closed" className="space-y-4 md:space-y-6">
           {isLoading ? (
-            <Card className="p-12 text-center bg-gradient-to-br from-copper-900/40 via-primary-700/30 to-copper-900/40 backdrop-blur-xl border-copper-500/20">
+            <Card className="p-12 text-center bg-charcoal-800/50 backdrop-blur-xl border-white/10">
               <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 border-4 border-copper-500/30 border-t-copper-500 rounded-full animate-spin" />
                 <p className="text-text font-medium">Loading polls...</p>
               </div>
             </Card>
           ) : !pollsData?.polls || pollsData.polls.length === 0 ? (
-            <Card className="p-12 text-center bg-gradient-to-br from-copper-900/40 via-primary-700/30 to-copper-900/40 backdrop-blur-xl border-copper-500/20">
+            <Card className="p-12 text-center bg-charcoal-800/50 backdrop-blur-xl border-white/10">
               <XCircle className="w-16 h-16 mx-auto mb-4 text-copper-500/50" />
               <p className="text-text font-medium text-lg">No closed polls</p>
               <p className="text-muted text-sm mt-2">Closed polls will appear here</p>
             </Card>
           ) : (
             pollsData.polls.map((poll: Poll) => (
-              <Card key={poll.id} data-testid={`poll-${poll.id}`} className="bg-gradient-to-br from-copper-900/50 via-primary-700/30 to-copper-900/50 backdrop-blur-xl border-copper-500/20 opacity-90">
+              <Card key={poll.id} data-testid={`poll-${poll.id}`} className="bg-charcoal-800/50 backdrop-blur-xl border-white/10 opacity-90">
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <div>

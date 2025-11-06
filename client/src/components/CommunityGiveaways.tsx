@@ -407,14 +407,14 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
         
         <TabsContent value="active" className="space-y-4 md:space-y-6">
           {isLoading ? (
-            <Card className="p-12 text-center bg-gradient-to-br from-copper-900/40 via-primary-700/30 to-copper-900/40 backdrop-blur-xl border-copper-500/20">
+            <Card className="p-12 text-center bg-charcoal-800/50 backdrop-blur-xl border-white/10">
               <div className="flex flex-col items-center gap-4">
                 <div className="w-12 h-12 border-4 border-copper-500/30 border-t-copper-500 rounded-full animate-spin" />
                 <p className="text-text font-medium">Loading giveaways...</p>
               </div>
             </Card>
           ) : giveaways.length === 0 ? (
-            <Card className="p-12 text-center bg-gradient-to-br from-copper-900/40 via-primary-700/30 to-copper-900/40 backdrop-blur-xl border-copper-500/20">
+            <Card className="p-12 text-center bg-charcoal-800/50 backdrop-blur-xl border-white/10">
               <Gift className="w-16 h-16 mx-auto mb-4 text-copper-500/50" />
               <p className="text-text font-medium text-lg" data-testid="text-no-active-giveaways">No active giveaways</p>
               <p className="text-muted text-sm mt-2">Create exciting giveaways to engage your community</p>
@@ -433,7 +433,7 @@ export default function CommunityGiveaways({ communityId, currentMember }: Commu
               {giveaways.map((giveaway) => (
                 <Card 
                   key={giveaway.id} 
-                  className="bg-gradient-to-br from-copper-900/50 via-primary-700/30 to-copper-900/50 backdrop-blur-xl border-copper-500/20 hover:border-copper-500/40 transition-all duration-300 hover:shadow-2xl hover:shadow-copper-500/20 hover:scale-[1.01]"
+                  className="bg-charcoal-800/50 backdrop-blur-xl border-white/10 hover:border-copper-500/30 transition-all duration-300 hover:shadow-lg hover:scale-[1.01]"
                   data-testid={`card-giveaway-${giveaway.id}`}
                 >
                   <CardHeader>
