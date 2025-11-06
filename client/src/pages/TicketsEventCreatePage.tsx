@@ -163,13 +163,20 @@ export function TicketsEventCreatePage() {
 
   const createEventMutation = useMutation({
     mutationFn: async (data: { event: EventCreateForm; tiers: TicketTier[]; requestedStatus: 'draft' | 'published' }) => {
+      // Convert datetime-local format to ISO 8601 for backend validation
+      const eventPayload = {
+        ...data.event,
+        startAt: data.event.startAt ? new Date(data.event.startAt).toISOString() : '',
+        endAt: data.event.endAt ? new Date(data.event.endAt).toISOString() : ''
+      };
+      
       const response = await fetch('/api/tickets/events', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-organizer-id': organizerId || ''
         },
-        body: JSON.stringify({ event: data.event, tiers: data.tiers })
+        body: JSON.stringify({ event: eventPayload, tiers: data.tiers })
       });
       if (!response.ok) throw new Error('Failed to create event');
       const result = await response.json();

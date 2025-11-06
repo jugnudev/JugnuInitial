@@ -258,11 +258,17 @@ export function TicketsEventEditPage() {
   const updateEventMutation = useMutation({
     mutationFn: async (values: FormValues & { tiers: TicketTier[] }) => {
       setIsSubmitting(true);
-      const response = await apiRequest('PATCH', `/api/tickets/events/${eventId}`, {
+      
+      // Convert datetime-local format to ISO 8601 for backend validation
+      const payload = {
         ...values,
+        startAt: values.startAt ? new Date(values.startAt).toISOString() : undefined,
+        endAt: values.endAt ? new Date(values.endAt).toISOString() : undefined,
         coverUrl: coverImage || values.coverUrl,
         tiers: values.tiers
-      });
+      };
+      
+      const response = await apiRequest('PATCH', `/api/tickets/events/${eventId}`, payload);
       
       if (!response.ok) {
         const error = await response.json();
