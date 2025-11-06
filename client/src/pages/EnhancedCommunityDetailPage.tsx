@@ -1470,7 +1470,7 @@ export default function EnhancedCommunityDetailPage() {
             {/* Desktop Tab Navigation */}
             <div className="hidden md:block space-y-3">
               {/* First Row - Main Features */}
-              <div className="bg-gradient-to-br from-charcoal-900/80 via-charcoal-950/90 to-charcoal-900/80 backdrop-blur-2xl rounded-2xl p-2 border-2 border-copper-500/20 shadow-xl shadow-black/20">
+              <div className="bg-gradient-to-br from-charcoal-900/80 via-charcoal-950/90 to-charcoal-900/80 backdrop-blur-2xl rounded-2xl p-3 border-2 border-copper-500/20 shadow-xl shadow-black/20 overflow-hidden">
                 <TabsList className="grid grid-cols-5 gap-2 bg-transparent w-full p-0">
                   <TabsTrigger 
                     value="announcements"
@@ -1516,7 +1516,7 @@ export default function EnhancedCommunityDetailPage() {
               </div>
               
               {/* Second Row - Management & Settings */}
-              <div className="bg-gradient-to-br from-charcoal-900/80 via-charcoal-950/90 to-charcoal-900/80 backdrop-blur-2xl rounded-2xl p-2 border-2 border-copper-500/20 shadow-xl shadow-black/20">
+              <div className="bg-gradient-to-br from-charcoal-900/80 via-charcoal-950/90 to-charcoal-900/80 backdrop-blur-2xl rounded-2xl p-3 border-2 border-copper-500/20 shadow-xl shadow-black/20 overflow-hidden">
                 <TabsList className="grid grid-cols-5 gap-2 bg-transparent w-full p-0">
                   <TabsTrigger 
                     value="manage-events"
