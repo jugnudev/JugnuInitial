@@ -1,5 +1,4 @@
 import { ticketsDB } from './tickets-supabase';
-import { pool } from './tickets-db';
 import type { 
   InsertTicketsOrganizer,
   InsertTicketsEvent,
