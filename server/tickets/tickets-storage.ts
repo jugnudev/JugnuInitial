@@ -82,8 +82,11 @@ export class TicketsStorage {
   }
 
   async deleteEvent(id: string): Promise<void> {
-    // Soft delete by archiving
-    await ticketsDB.updateEvent(id, { status: 'archived' });
+    // Hard delete the event and its tiers (cascade will handle related records)
+    await ticketsDB.pool.query(
+      'DELETE FROM tickets_events WHERE id = $1',
+      [id]
+    );
   }
 
   // ============ TIERS ============
