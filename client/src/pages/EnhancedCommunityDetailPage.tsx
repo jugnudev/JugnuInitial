@@ -272,7 +272,13 @@ export default function EnhancedCommunityDetailPage() {
   const [match, params] = useRoute("/communities/:slug");
   const communitySlug = params?.slug || '';  // Use URL slug directly
   
-  const [activeTab, setActiveTab] = useState("announcements");
+  // Read initial tab from URL query parameter
+  const getTabFromUrl = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    return searchParams.get('tab') || 'announcements';
+  };
+  
+  const [activeTab, setActiveTab] = useState(getTabFromUrl());
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -348,7 +354,7 @@ export default function EnhancedCommunityDetailPage() {
   });
 
   // Navigation hook for routing
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
   // Handle Stripe Connect return with ticketing=success param
   useEffect(() => {
@@ -409,6 +415,26 @@ export default function EnhancedCommunityDetailPage() {
       });
     }
   }, [community?.id]);
+
+  // Sync activeTab with URL query parameter (on mount and URL changes)
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const tabFromUrl = searchParams.get('tab');
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [location]);
+
+  // Update URL when tab changes (but preserve other query params)
+  const handleTabChange = (newTab: string) => {
+    setActiveTab(newTab);
+    
+    // Update URL with new tab
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set('tab', newTab);
+    const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
+    window.history.pushState({}, '', newUrl);
+  };
 
   // Get analytics data (only if member/owner and analytics tab is active)
   const { data: analyticsData } = useQuery<{
@@ -1365,10 +1391,10 @@ export default function EnhancedCommunityDetailPage() {
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
         {isOwnerOrModerator ? (
           // Owner/Moderator Console with Tabs
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             {/* Mobile Dropdown Navigation */}
             <div className="md:hidden">
-              <Select value={activeTab} onValueChange={setActiveTab}>
+              <Select value={activeTab} onValueChange={handleTabChange}>
                 <SelectTrigger className="w-full h-14 bg-gradient-to-r from-copper-500/10 via-primary-900/20 to-copper-600/10 border-2 border-copper-500/30 hover:border-copper-400/50 backdrop-blur-2xl shadow-lg shadow-copper-500/10 rounded-2xl transition-all duration-300 text-white font-semibold text-lg">
                   <SelectValue />
                 </SelectTrigger>
@@ -2108,7 +2134,7 @@ export default function EnhancedCommunityDetailPage() {
                         <span className="sm:hidden">New</span>
                       </Button>
                       <Button
-                        onClick={() => setActiveTab('settings')}
+                        onClick={() => handleTabChange('settings')}
                         variant="outline"
                         className="touch-target border-premium-border hover:border-copper-500/50"
                         data-testid="button-go-to-settings"
@@ -2813,10 +2839,10 @@ export default function EnhancedCommunityDetailPage() {
           </Tabs>
         ) : (
           // Member view - Posts, Chat, Polls, Giveaways, Events, and Settings
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             {/* Mobile Dropdown Navigation */}
             <div className="md:hidden">
-              <Select value={activeTab} onValueChange={setActiveTab}>
+              <Select value={activeTab} onValueChange={handleTabChange}>
                 <SelectTrigger className="w-full h-14 bg-gradient-to-r from-copper-500/10 via-primary-900/20 to-copper-600/10 border-2 border-copper-500/30 hover:border-copper-400/50 backdrop-blur-2xl shadow-lg shadow-copper-500/10 rounded-2xl transition-all duration-300 text-white font-semibold text-lg">
                   <SelectValue />
                 </SelectTrigger>
