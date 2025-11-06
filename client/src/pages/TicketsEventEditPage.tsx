@@ -222,6 +222,7 @@ export function TicketsEventEditPage() {
 
   const uploadImageMutation = useMutation({
     mutationFn: async (file: File) => {
+      console.log('[Image Upload] Starting upload for file:', file.name);
       const formData = new FormData();
       formData.append('image', file);
       
@@ -233,14 +234,17 @@ export function TicketsEventEditPage() {
       
       if (!response.ok) throw new Error('Failed to upload image');
       const data = await response.json();
+      console.log('[Image Upload] Upload successful, image URL:', data.imageUrl);
       
       // Update form and state with the new image URL
       setCoverImage(data.imageUrl);
       form.setValue('coverUrl', data.imageUrl);
+      console.log('[Image Upload] Updated coverImage state and form value');
       
       return data.imageUrl;
     },
     onSuccess: (imageUrl) => {
+      console.log('[Image Upload] onSuccess called with URL:', imageUrl);
       toast({
         title: "Image uploaded",
         description: "Your cover image has been uploaded successfully.",

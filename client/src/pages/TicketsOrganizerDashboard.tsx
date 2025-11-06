@@ -41,14 +41,17 @@ export function TicketsOrganizerDashboard() {
     console.log('[Dashboard Redirect] Found', communities.length, 'communities');
     
     // Find first community where user is owner or moderator
+    // Note: role is nested in membership object
     const manageableCommunity = communities.find((c: any) => 
-      c.role === 'owner' || c.role === 'moderator'
+      c.membership?.role === 'owner' || c.membership?.role === 'moderator'
     );
     
     console.log('[Dashboard Redirect] Manageable community:', manageableCommunity);
     
-    if (manageableCommunity?.slug) {
-      const redirectUrl = `/communities/${manageableCommunity.slug}?tab=manage-events`;
+    if (manageableCommunity) {
+      // Use slug if available, otherwise use ID (backend supports both)
+      const identifier = manageableCommunity.slug || manageableCommunity.id;
+      const redirectUrl = `/communities/${identifier}?tab=manage-events`;
       console.log('[Dashboard Redirect] Redirecting to:', redirectUrl);
       setLocation(redirectUrl);
     } else {
