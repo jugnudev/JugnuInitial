@@ -1421,15 +1421,22 @@ export function addTicketsRoutes(app: Express) {
   // Update event
   app.patch('/api/tickets/events/:id', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
     try {
+      console.log(`[Update Event] Starting update for eventId: ${req.params.id}`);
       const organizer = (req as any).organizer;
+      console.log(`[Update Event] Organizer ID: ${organizer.id}, Business: ${organizer.businessName}`);
+      
       const event = await ticketsStorage.getEventById(req.params.id);
+      console.log(`[Update Event] Event found:`, event ? `Yes (title: "${event.title}")` : 'No');
       
       if (!event || event.organizerId !== organizer.id) {
+        console.log(`[Update Event] Access denied - Event ${event ? 'ownership mismatch' : 'not found'}`);
         return res.status(404).json({ ok: false, error: 'Event not found' });
       }
       
       // Extract tiers from body before validation
       const { tiers, ...eventData } = req.body;
+      console.log(`[Update Event] Update payload keys:`, Object.keys(eventData));
+      console.log(`[Update Event] Number of tiers:`, tiers?.length || 0);
       
       const validated = updateEventSchema.parse(eventData);
       
@@ -1489,9 +1496,12 @@ export function addTicketsRoutes(app: Express) {
       const updatedTiers = await ticketsStorage.getTiersByEvent(req.params.id);
       const eventWithTiers = { ...updated, tiers: updatedTiers };
       
+      console.log(`[Update Event] Successfully updated event ${req.params.id}`);
+      console.log(`[Update Event] Updated event title: "${updated.title}", status: ${updated.status}`);
+      
       res.json({ ok: true, event: toCamelCase(eventWithTiers) });
     } catch (error) {
-      console.error('Update event error:', error);
+      console.error('[Update Event] Error:', error);
       res.status(500).json({ ok: false, error: 'Failed to update event' });
     }
   });

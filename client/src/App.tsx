@@ -36,10 +36,7 @@ import { TicketsEventDetailPage } from "@/pages/TicketsEventDetailPage";
 import { TicketsEventCreatePage } from "@/pages/TicketsEventCreatePage";
 import { TicketsEventEditPage } from "@/pages/TicketsEventEditPage";
 import { TicketsEventManagePage } from "@/pages/TicketsEventManagePage";
-// REMOVED: Old standalone organizer dashboard - now integrated into community tabs
-// import { TicketsOrganizerDashboard } from "@/pages/TicketsOrganizerDashboard";
-// REMOVED: Separate organizer signup - now using /business-signup flow
-// import { TicketsOrganizerSignup } from "@/pages/TicketsOrganizerSignup";
+import { TicketsOrganizerDashboard } from "@/pages/TicketsOrganizerDashboard";
 import { TicketsOrganizerConnect } from "@/pages/TicketsOrganizerConnect";
 import { TicketsCheckinPage } from "@/pages/TicketsCheckinPage";
 import { TicketsCheckinDashboard } from "@/pages/TicketsCheckinDashboard";
@@ -120,8 +117,7 @@ function Router() {
           <>
             <Route path="/tickets" component={TicketsEventListPage} />
             <Route path="/tickets/event/:slug" component={TicketsEventDetailPage} />
-            {/* REMOVED: Old standalone dashboard - ticketing now in community tabs */}
-            {/* <Route path="/tickets/organizer/dashboard" component={TicketsOrganizerDashboard} /> */}
+            <Route path="/tickets/organizer/dashboard" component={TicketsOrganizerDashboard} />
             <Route path="/tickets/organizer/events/new" component={TicketsEventCreatePage} />
             <Route path="/tickets/organizer/events/:eventId/edit" component={TicketsEventEditPage} />
             <Route path="/tickets/organizer/events/:id" component={TicketsEventManagePage} />
