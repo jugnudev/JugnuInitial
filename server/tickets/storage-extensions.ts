@@ -1,4 +1,3 @@
-import { Pool } from 'pg';
 import type { 
   InsertTicketsTicket,
   InsertTicketsOrder,
@@ -6,12 +5,10 @@ import type {
   TicketsTicket,
   TicketsOrder
 } from '@shared/schema';
+import { ticketsDB } from './tickets-db';
 
-// Create a pool using DATABASE_URL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+// Use the pool from tickets-db to avoid connection issues
+const pool = ticketsDB.pool;
 
 export class StorageExtensions {
   
