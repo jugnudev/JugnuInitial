@@ -83,11 +83,7 @@ export class TicketsStorage {
   }
 
   async deleteEvent(id: string): Promise<void> {
-    // Hard delete the event and its tiers (cascade will handle related records)
-    await pool.query(
-      'DELETE FROM tickets_events WHERE id = $1',
-      [id]
-    );
+    return ticketsDB.deleteEvent(id);
   }
 
   // ============ TIERS ============

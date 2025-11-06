@@ -280,6 +280,15 @@ export class TicketsSupabaseDB {
     return toCamelCase(event);
   }
 
+  async deleteEvent(id: string): Promise<void> {
+    const { error } = await this.client
+      .from('tickets_events')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+  }
+
   // ============ TIERS ============
   async createTier(data: InsertTicketsTier): Promise<TicketsTier> {
     // Convert camelCase to snake_case for Supabase
