@@ -1,8 +1,7 @@
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
 import { ArrowLeft, BarChart3, DollarSign, Users, TrendingUp } from "lucide-react";
 
 interface AnalyticsData {
@@ -14,6 +13,7 @@ interface AnalyticsData {
 
 export function TicketsEventAnalyticsPage() {
   const { id } = useParams();
+  const [, setLocation] = useLocation();
   const organizerId = localStorage.getItem('ticketsOrganizerId');
   
   // For now, we'll use placeholder data
@@ -28,12 +28,15 @@ export function TicketsEventAnalyticsPage() {
     <div className="min-h-screen bg-black text-white">
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center gap-4 mb-8">
-          <Link href="/tickets/organizer/dashboard">
-            <Button variant="outline" size="sm" data-testid="button-back-dashboard">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </Link>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            data-testid="button-back-dashboard"
+            onClick={() => setLocation('/tickets')}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Events
+          </Button>
           <h1 className="text-3xl font-fraunces">Event Analytics</h1>
         </div>
 

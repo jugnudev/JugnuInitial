@@ -328,16 +328,22 @@ export function TicketsEventCreatePage() {
       <div className="container mx-auto px-4 py-6 md:py-12 max-w-5xl">
         {/* Premium Header */}
         <div className="mb-8 animate-fadeIn">
-          <Link href="/tickets/organizer/dashboard">
-            <Button 
-              variant="ghost" 
-              className="mb-6 text-neutral-300 hover:text-copper-500 transition-colors -ml-3"
-              data-testid="button-back-dashboard"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            className="mb-6 text-neutral-300 hover:text-copper-500 transition-colors -ml-3"
+            data-testid="button-back-dashboard"
+            onClick={() => {
+              const communitySlug = organizer?.communitySlug;
+              if (communitySlug) {
+                setLocation(`/communities/${communitySlug}?tab=manage-events`);
+              } else {
+                setLocation('/tickets');
+              }
+            }}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Events
+          </Button>
           
           <div className="flex items-start gap-4 mb-6">
             <div className="w-1.5 h-16 bg-copper-gradient rounded-full flex-shrink-0" />
@@ -364,11 +370,20 @@ export function TicketsEventCreatePage() {
                 <p className="text-sm text-neutral-300 mb-4">
                   You can create and save drafts, but you'll need to connect Stripe before publishing.
                 </p>
-                <Link href="/tickets/organizer/dashboard">
-                  <Button size="sm" className="bg-copper-gradient hover:shadow-glow-copper text-white font-semibold touch-target">
-                    Complete Setup
-                  </Button>
-                </Link>
+                <Button 
+                  size="sm" 
+                  className="bg-copper-gradient hover:shadow-glow-copper text-white font-semibold touch-target"
+                  onClick={() => {
+                    const communitySlug = organizer?.communitySlug;
+                    if (communitySlug) {
+                      setLocation(`/communities/${communitySlug}?tab=settings`);
+                    } else {
+                      setLocation('/tickets');
+                    }
+                  }}
+                >
+                  Complete Setup
+                </Button>
               </div>
             </div>
           </div>

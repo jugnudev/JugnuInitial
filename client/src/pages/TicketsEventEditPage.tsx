@@ -192,8 +192,8 @@ export function TicketsEventEditPage() {
         title: event.title,
         summary: event.summary || "",
         description: event.description || "",
-        startAt: event.startAt ? format(new Date(event.startAt), "yyyy-MM-dd'T'HH:mm") : "",
-        endAt: event.endAt ? format(new Date(event.endAt), "yyyy-MM-dd'T'HH:mm") : "",
+        startAt: event.startAt ? format(new Date(event.startAt), "yyyy-MM-dd'T'HH:mm:ss") : "",
+        endAt: event.endAt ? format(new Date(event.endAt), "yyyy-MM-dd'T'HH:mm:ss") : "",
         venue: event.venue,
         address: event.address || "",
         city: event.city,
@@ -411,10 +411,11 @@ export function TicketsEventEditPage() {
           if (communitySlug) {
             setLocation(`/communities/${communitySlug}?tab=manage-events`);
           } else {
-            setLocation('/tickets/organizer/dashboard');
+            // Fallback: go to tickets home page if no community
+            setLocation('/tickets');
           }
         }}>
-          Back to Dashboard
+          Back to Events
         </Button>
       </div>
     );
@@ -434,14 +435,15 @@ export function TicketsEventEditPage() {
               if (communitySlug) {
                 setLocation(`/communities/${communitySlug}?tab=manage-events`);
               } else {
-                setLocation('/tickets/organizer/dashboard');
+                // Fallback: go to tickets home page if no community
+                setLocation('/tickets');
               }
             }}
             className="mb-4"
             data-testid="button-back"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
+            Back to Events
           </Button>
           
           <div className="flex items-center justify-between">
