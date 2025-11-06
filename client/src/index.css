@@ -130,6 +130,13 @@
   --copper-dark: hsl(16, 77%, 38%);
   --copper-glow: hsla(19, 100%, 64%, 0.2);
   
+  /* Copper scale for Tailwind */
+  --copper-400: hsl(19, 100%, 64%);
+  --copper-500: hsl(16, 77%, 48%);
+  --copper-600: hsl(16, 77%, 38%);
+  --copper-900: hsl(16, 77%, 28%);
+  --copper-950: hsl(16, 77%, 18%);
+  
   --jade: hsl(169, 77%, 42%);
   --jade-light: hsl(169, 77%, 52%);
   

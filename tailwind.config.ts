@@ -22,11 +22,17 @@ export default {
         accent: "var(--accent)",
         glow: "var(--glow)",
         copper: {
-          400: "var(--copper-400)",
-          500: "var(--copper-500)",
-          600: "var(--copper-600)",
-          900: "var(--copper-900)",
-          950: "var(--copper-950)",
+          400: "hsl(19, 100%, 64%)",
+          500: "hsl(16, 77%, 48%)",
+          600: "hsl(16, 77%, 38%)",
+          900: "hsl(16, 77%, 28%)",
+          950: "hsl(16, 77%, 18%)",
+        },
+        premium: {
+          border: "hsl(240, 4%, 12%)",
+          surface: "hsl(240, 4%, 8%)",
+          "surface-elevated": "hsl(235, 14%, 13%)",
+          "text-muted": "hsl(26, 13%, 69%)",
         },
         charcoal: {
           DEFAULT: "var(--charcoal)",
