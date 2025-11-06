@@ -1961,6 +1961,17 @@ export default function EnhancedCommunityDetailPage() {
               />
             </TabsContent>
             
+            {/* Giveaways Tab */}
+            <TabsContent value="giveaways" className="space-y-4 md:space-y-6">
+              <CommunityGiveaways 
+                communityId={community.id}
+                currentMember={currentMember && currentMember.status === 'approved' ? {
+                  role: currentMember.role,
+                  userId: user?.id || ''
+                } : undefined}
+              />
+            </TabsContent>
+            
             {/* Events Tab - Public View */}
             <TabsContent value="events" className="space-y-4 md:space-y-6">
               {organizerData?.organizer ? (
