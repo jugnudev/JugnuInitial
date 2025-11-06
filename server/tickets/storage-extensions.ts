@@ -5,10 +5,7 @@ import type {
   TicketsTicket,
   TicketsOrder
 } from '@shared/schema';
-import { ticketsDB } from './tickets-db';
-
-// Use the pool from tickets-db to avoid connection issues
-const pool = ticketsDB.pool;
+import { pool } from './tickets-db';
 
 export class StorageExtensions {
   

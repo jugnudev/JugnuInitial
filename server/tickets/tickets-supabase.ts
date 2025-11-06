@@ -250,6 +250,18 @@ export class TicketsSupabaseDB {
     return data ? data.map(toCamelCase) : [];
   }
 
+  async getPublishedEventsByOrganizer(organizerId: string): Promise<TicketsEvent[]> {
+    const { data, error } = await this.client
+      .from('tickets_events')
+      .select('*')
+      .eq('organizer_id', organizerId)
+      .eq('status', 'published')
+      .order('start_at', { ascending: true });
+    
+    if (error) throw error;
+    return data ? data.map(toCamelCase) : [];
+  }
+
   async updateEvent(id: string, data: Partial<InsertTicketsEvent>): Promise<TicketsEvent> {
     // Convert camelCase to snake_case for Supabase
     const snakeCaseData = toSnakeCase({

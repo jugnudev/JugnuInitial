@@ -751,3 +751,6 @@ export class TicketsDB {
 
 // Export singleton instance
 export const ticketsDB = new TicketsDB();
+
+// Export pool for direct queries
+export { pool };

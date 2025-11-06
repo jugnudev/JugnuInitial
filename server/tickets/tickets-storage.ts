@@ -1,4 +1,5 @@
 import { ticketsDB } from './tickets-supabase';
+import { pool } from './tickets-db';
 import type { 
   InsertTicketsOrganizer,
   InsertTicketsEvent,
@@ -83,7 +84,7 @@ export class TicketsStorage {
 
   async deleteEvent(id: string): Promise<void> {
     // Hard delete the event and its tiers (cascade will handle related records)
-    await ticketsDB.pool.query(
+    await pool.query(
       'DELETE FROM tickets_events WHERE id = $1',
       [id]
     );
