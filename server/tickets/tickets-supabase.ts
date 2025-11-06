@@ -600,10 +600,7 @@ export class TicketsSupabaseDB {
   // Use updateOrganizer() to modify organizer settings instead
 
   async updateTier(id: string, data: Partial<InsertTicketsTier>): Promise<TicketsTier> {
-    const snakeCaseData = toSnakeCase({
-      ...data,
-      updated_at: new Date().toISOString()
-    });
+    const snakeCaseData = toSnakeCase(data);
 
     const { data: tier, error } = await this.client
       .from('tickets_tiers')
