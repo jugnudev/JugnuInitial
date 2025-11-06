@@ -280,9 +280,14 @@ export function TicketsEventEditPage() {
       });
       setIsSubmitting(false);
       
-      // Redirect to dashboard after successful update
+      // Redirect to community manage events tab after successful update
       setTimeout(() => {
-        setLocation('/tickets/organizer/dashboard');
+        const communitySlug = organizer?.communitySlug;
+        if (communitySlug) {
+          setLocation(`/communities/${communitySlug}?tab=manage-events`);
+        } else {
+          setLocation('/tickets/organizer/dashboard');
+        }
       }, 1000);
     },
     onError: (error: Error) => {
@@ -358,7 +363,14 @@ export function TicketsEventEditPage() {
         <p className="text-lg text-muted-foreground mb-8">
           Please sign in as an organizer to edit events
         </p>
-        <Button onClick={() => setLocation('/tickets/organizer/dashboard')}>
+        <Button onClick={() => {
+          const communitySlug = organizer?.communitySlug;
+          if (communitySlug) {
+            setLocation(`/communities/${communitySlug}?tab=manage-events`);
+          } else {
+            setLocation('/tickets/organizer/dashboard');
+          }
+        }}>
           Go to Dashboard
         </Button>
       </div>
@@ -394,7 +406,14 @@ export function TicketsEventEditPage() {
       <div className="container mx-auto px-4 py-16 text-center">
         <h1 className="text-2xl font-fraunces mb-4">Event not found</h1>
         <p className="text-muted-foreground mb-4">Unable to load event details</p>
-        <Button onClick={() => setLocation('/tickets/organizer/dashboard')}>
+        <Button onClick={() => {
+          const communitySlug = organizer?.communitySlug;
+          if (communitySlug) {
+            setLocation(`/communities/${communitySlug}?tab=manage-events`);
+          } else {
+            setLocation('/tickets/organizer/dashboard');
+          }
+        }}>
           Back to Dashboard
         </Button>
       </div>
@@ -410,7 +429,14 @@ export function TicketsEventEditPage() {
         <div className="mb-8">
           <Button
             variant="ghost"
-            onClick={() => setLocation('/tickets/organizer/dashboard')}
+            onClick={() => {
+              const communitySlug = organizer?.communitySlug;
+              if (communitySlug) {
+                setLocation(`/communities/${communitySlug}?tab=manage-events`);
+              } else {
+                setLocation('/tickets/organizer/dashboard');
+              }
+            }}
             className="mb-4"
             data-testid="button-back"
           >
@@ -1060,7 +1086,14 @@ export function TicketsEventEditPage() {
                       type="button"
                       variant="outline"
                       className="w-full"
-                      onClick={() => setLocation('/tickets/organizer/dashboard')}
+                      onClick={() => {
+                        const communitySlug = organizer?.communitySlug;
+                        if (communitySlug) {
+                          setLocation(`/communities/${communitySlug}?tab=manage-events`);
+                        } else {
+                          setLocation('/tickets/organizer/dashboard');
+                        }
+                      }}
                       disabled={isSubmitting}
                       data-testid="button-cancel"
                     >

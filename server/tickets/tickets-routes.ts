@@ -1199,14 +1199,20 @@ export function addTicketsRoutes(app: Express) {
       // Get events for this organizer (if they have any)
       const events = await ticketsStorage.getEventsByOrganizer(organizer.id);
       
+      // Get community for this organizer to include slug for navigation
+      const community = await communitiesStorage.getCommunityByOrganizerId(organizer.id);
+      
       console.log('[DEBUG] Events before toCamelCase:', events.length > 0 ? JSON.stringify(events[0], null, 2).slice(0, 300) : 'No events');
       
       // Convert events and organizer to camelCase for frontend consistency
       const camelCaseEvents = toCamelCase(events);
-      const camelCaseOrganizer = toCamelCase(organizer);
+      const camelCaseOrganizer = {
+        ...toCamelCase(organizer),
+        communitySlug: community?.slug || null
+      };
       
       console.log('[DEBUG] Events after toCamelCase:', camelCaseEvents.length > 0 ? JSON.stringify(camelCaseEvents[0], null, 2).slice(0, 300) : 'No events');
-      console.log('[Ticketing] Found organizer:', { id: organizer.id, businessName: organizer.business_name, status: organizer.status });
+      console.log('[Ticketing] Found organizer:', { id: organizer.id, businessName: organizer.business_name, status: organizer.status, communitySlug: community?.slug });
       
       res.json({ ok: true, organizer: camelCaseOrganizer, events: camelCaseEvents });
     } catch (error) {
