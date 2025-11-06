@@ -41,13 +41,24 @@ export const paymentIntentSchema = z.object({
 // Event creation/update validation
 export const createEventSchema = z.object({
   title: z.string().min(1).max(200),
+  summary: z.string().max(500).optional(),
   description: z.string().max(5000).optional(),
   startAt: z.string().datetime(), // Accept ISO 8601 datetime with timezone
   endAt: z.string().datetime().optional(), // Accept ISO 8601 datetime with timezone
   venue: z.string().min(1).max(200),
+  address: z.string().max(500).optional(),
   city: z.string().min(1).max(100),
   province: z.string().length(2),
-  status: z.enum(['draft', 'published', 'archived']).default('draft')
+  country: z.string().max(100).optional(),
+  postalCode: z.string().max(20).optional(),
+  coverUrl: z.string().url().optional(),
+  capacity: z.number().int().min(1).optional(),
+  status: z.enum(['draft', 'published', 'archived']).default('draft'),
+  isGstApplied: z.boolean().optional(),
+  isPstApplied: z.boolean().optional(),
+  gstRate: z.number().min(0).max(100).optional(),
+  pstRate: z.number().min(0).max(100).optional(),
+  buyerPaysServiceFee: z.boolean().optional()
 });
 
 export const updateEventSchema = createEventSchema.partial();
