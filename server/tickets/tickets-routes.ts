@@ -1499,30 +1499,41 @@ export function addTicketsRoutes(app: Express) {
   // Delete event
   app.delete('/api/tickets/events/:id', requireTicketing, requireOrganizer, async (req: Request, res: Response) => {
     try {
+      console.log(`[Delete Event] Starting delete for eventId: ${req.params.id}`);
       const organizer = (req as any).organizer;
+      console.log(`[Delete Event] Organizer ID: ${organizer.id}`);
+      
       const event = await ticketsStorage.getEventById(req.params.id);
+      console.log(`[Delete Event] Event found:`, event ? `Yes (organizerId: ${event.organizerId})` : 'No');
       
       if (!event || event.organizerId !== organizer.id) {
+        console.log(`[Delete Event] Access denied - Event not found or ownership mismatch`);
         return res.status(404).json({ ok: false, error: 'Event not found' });
       }
       
       // Check if event has sold tickets
+      console.log(`[Delete Event] Checking for sold tickets...`);
       const orders = await ticketsStorage.getOrdersByEvent(req.params.id);
+      console.log(`[Delete Event] Found ${orders.length} orders`);
       const hasSoldTickets = orders.some((order: any) => order.status === 'paid');
+      console.log(`[Delete Event] Has sold tickets: ${hasSoldTickets}`);
       
       if (hasSoldTickets) {
+        console.log(`[Delete Event] Cannot delete - has sold tickets`);
         return res.status(400).json({ 
           ok: false, 
           error: 'Cannot delete event with sold tickets.' 
         });
       }
       
+      console.log(`[Delete Event] Proceeding with deletion...`);
       // Hard delete if no tickets sold (safe to completely remove)
       await ticketsStorage.deleteEvent(req.params.id);
+      console.log(`[Delete Event] Successfully deleted event ${req.params.id}`);
       
       res.json({ ok: true, message: 'Event deleted successfully' });
     } catch (error) {
-      console.error('Delete event error:', error);
+      console.error('[Delete Event] Error:', error);
       res.status(500).json({ ok: false, error: 'Failed to delete event' });
     }
   });
