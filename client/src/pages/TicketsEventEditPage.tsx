@@ -292,7 +292,7 @@ export function TicketsEventEditPage() {
         if (communitySlug) {
           setLocation(`/communities/${communitySlug}?tab=manage-events`);
         } else {
-          setLocation('/tickets');
+          setLocation('/tickets/organizer/dashboard');
         }
       }, 1000);
     },
@@ -374,7 +374,7 @@ export function TicketsEventEditPage() {
           if (communitySlug) {
             setLocation(`/communities/${communitySlug}?tab=manage-events`);
           } else {
-            setLocation('/tickets');
+            setLocation('/tickets/organizer/dashboard');
           }
         }}>
           Go to Dashboard
@@ -417,8 +417,7 @@ export function TicketsEventEditPage() {
           if (communitySlug) {
             setLocation(`/communities/${communitySlug}?tab=manage-events`);
           } else {
-            // Fallback: go to tickets home page if no community
-            setLocation('/tickets');
+            setLocation('/tickets/organizer/dashboard');
           }
         }}>
           Back to Events
@@ -441,8 +440,7 @@ export function TicketsEventEditPage() {
               if (communitySlug) {
                 setLocation(`/communities/${communitySlug}?tab=manage-events`);
               } else {
-                // Fallback: go to tickets home page if no community
-                setLocation('/tickets');
+                setLocation('/tickets/organizer/dashboard');
               }
             }}
             className="mb-4"
@@ -1099,7 +1097,7 @@ export function TicketsEventEditPage() {
                         if (communitySlug) {
                           setLocation(`/communities/${communitySlug}?tab=manage-events`);
                         } else {
-                          setLocation('/tickets');
+                          setLocation('/tickets/organizer/dashboard');
                         }
                       }}
                       disabled={isSubmitting}

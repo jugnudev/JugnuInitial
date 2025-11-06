@@ -30,7 +30,7 @@ export function TicketsEventManagePage() {
             variant="outline" 
             size="sm" 
             data-testid="button-back-dashboard"
-            onClick={() => setLocation('/tickets')}
+            onClick={() => setLocation('/tickets/organizer/dashboard')}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Events

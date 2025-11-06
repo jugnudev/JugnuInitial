@@ -344,7 +344,7 @@ export function TicketsEventCreatePage() {
               if (communitySlug) {
                 setLocation(`/communities/${communitySlug}?tab=manage-events`);
               } else {
-                setLocation('/tickets');
+                setLocation('/tickets/organizer/dashboard');
               }
             }}
           >
@@ -385,7 +385,7 @@ export function TicketsEventCreatePage() {
                     if (communitySlug) {
                       setLocation(`/communities/${communitySlug}?tab=settings`);
                     } else {
-                      setLocation('/tickets');
+                      setLocation('/tickets/organizer/dashboard');
                     }
                   }}
                 >
