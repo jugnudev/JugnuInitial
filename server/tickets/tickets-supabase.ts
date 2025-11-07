@@ -1289,7 +1289,7 @@ export class TicketsSupabaseDB {
             buyer_email,
             buyer_name,
             buyer_phone,
-            placed_at
+            created_at
           )
         )
       `)
@@ -1305,7 +1305,7 @@ export class TicketsSupabaseDB {
       query = query.or(`buyer_name.ilike.${searchTerm},buyer_email.ilike.${searchTerm},serial.ilike.${searchTerm}`);
     }
     
-    query = query.order('placed_at', { ascending: false });
+    query = query.order('created_at', { ascending: false });
     
     const { data, error } = await query;
     
@@ -1323,7 +1323,7 @@ export class TicketsSupabaseDB {
       buyer_email: item.order_item?.order?.buyer_email,
       buyer_name: item.order_item?.order?.buyer_name,
       buyer_phone: item.order_item?.order?.buyer_phone,
-      placed_at: item.order_item?.order?.placed_at
+      placed_at: item.order_item?.order?.created_at
     }));
   }
 
