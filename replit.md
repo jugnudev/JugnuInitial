@@ -18,6 +18,15 @@ The platform uses React 18 with TypeScript and Vite, styled with Tailwind CSS an
 - Animation system: Fade-in, slide-up, hover-lift effects with staggered transitions
 - Applied to: Ticketing system (organizer dashboard, event creation, event listings), Communities navigation
 
+**Mobile-Optimized Post Cards:**
+- **Compact Header**: 32px avatar on mobile (vs 40px desktop), single-line layout with inline badges, copper separators (•), smaller text (text-sm for name, text-[10px] for badges, text-[11px] for timestamp)
+- **Horizontal-Scroll Reactions**: ReactionsBar uses flex-nowrap with overflow-x-auto, px-0.5 padding for breathing room, smaller sizing on mobile (text-sm emoji, text-[10px] count)
+- **Compact Interaction Bar**: Mobile-specific layout with h-8 buttons, 3.5px icons, text-xs labels, gap-1.5 spacing
+- **Tighter Spacing**: Mobile uses space-y-3, px-4, py-3 (vs desktop space-y-4, px-6, py-6)
+- **Glassmorphism**: backdrop-blur-sm on cards for premium frosted glass effect
+- **Responsive Typography**: Mobile text-xl titles (vs desktop text-2xl)
+- **Test IDs**: All interactive elements have data-testid attributes (reaction-button-{type}-{postId})
+
 **Community Navigation System:**
 - Mobile: Select dropdown navigation (eliminates horizontal scroll) with glassmorphism and copper gradient styling
 - Desktop Owner/Moderator: 2-row grid layout (Row 1: Posts/Chat/Polls/Giveaways/Events, Row 2: Manage Events/Members/Analytics/Settings/Billing) for optimal spacing
