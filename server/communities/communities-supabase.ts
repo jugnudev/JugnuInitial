@@ -935,12 +935,13 @@ export class CommunitiesSupabaseDB {
 
   // ============ COMMUNITY MEMBERSHIPS ============
   async createMembership(data: InsertCommunityMembership): Promise<CommunityMembership> {
+    const status = data.status || 'pending';
     const { data: membership, error } = await this.client
       .from('community_memberships')
       .insert({
         community_id: data.communityId,
         user_id: data.userId,
-        status: data.status || 'pending',
+        status,
         requested_at: data.requestedAt || new Date().toISOString(),
         approved_at: data.approvedAt,
         approved_by: data.approvedBy,
@@ -950,6 +951,12 @@ export class CommunitiesSupabaseDB {
       .single();
 
     if (error) throw error;
+    
+    // Update member count if membership is approved
+    if (status === 'approved') {
+      await this.updateCommunityMemberCount(data.communityId);
+    }
+    
     return this.mapMembershipFromDb(membership);
   }
 
