@@ -123,7 +123,7 @@ export function ReactionsBar({
     <div className={`relative flex items-center gap-2 ${className}`}>
       {/* Active Reactions Display */}
       {activeReactions.length > 0 && (
-        <div className="flex items-center gap-1 flex-nowrap overflow-x-auto scrollbar-hide max-w-full">
+        <div className="flex items-center gap-1 flex-nowrap overflow-x-auto scrollbar-hide max-w-full px-0.5">
           {activeReactions.map((reaction, idx) => (
             <button
               key={reaction.type}
@@ -137,7 +137,7 @@ export function ReactionsBar({
                 }
                 hover:scale-105 active:scale-95 touch-target
               `}
-              data-testid={`reaction-${reaction.type}-${postId}`}
+              data-testid={`reaction-button-${reaction.type}-${postId}`}
             >
               <span className="text-sm md:text-lg">{reaction.emoji}</span>
               <span className="text-[10px] md:text-xs font-medium min-w-[12px] text-center">{getReactionCount(reaction.type)}</span>

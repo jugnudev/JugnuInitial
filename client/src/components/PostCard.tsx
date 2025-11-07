@@ -579,15 +579,17 @@ export function PostCard({
                     <span className="text-xs">{comments.length}</span>
                   </Button>
                   
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onShare}
-                    className="h-8 px-2 text-premium-text-muted hover:text-accent"
-                    data-testid={`share-post-${id}`}
-                  >
-                    <Share2 className="h-3.5 w-3.5" />
-                  </Button>
+                  {onShare && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onShare}
+                      className="h-8 px-2 text-premium-text-muted hover:text-accent"
+                      data-testid={`share-post-${id}`}
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
                 
                 {totalReactions > 0 && (
@@ -612,16 +614,18 @@ export function PostCard({
                   {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
                 </Button>
                 
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={onShare}
-                  className="text-premium-text-muted hover:text-accent"
-                  data-testid={`share-post-${id}`}
-                >
-                  <Share2 className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
+                {onShare && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onShare}
+                    className="text-premium-text-muted hover:text-accent"
+                    data-testid={`share-post-${id}`}
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    Share
+                  </Button>
+                )}
               </div>
               
               {totalReactions > 0 && (
