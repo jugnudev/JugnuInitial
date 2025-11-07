@@ -123,24 +123,24 @@ export function ReactionsBar({
     <div className={`relative flex items-center gap-2 ${className}`}>
       {/* Active Reactions Display */}
       {activeReactions.length > 0 && (
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex items-center gap-1 flex-nowrap overflow-x-auto scrollbar-hide max-w-full">
           {activeReactions.map((reaction, idx) => (
             <button
               key={reaction.type}
               onClick={() => handleReaction(reaction.type)}
               className={`
-                relative flex items-center gap-1 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full
-                border transition-all duration-150
+                relative flex items-center gap-0.5 md:gap-1 px-1.5 md:px-2.5 py-1 md:py-1.5 rounded-full
+                border transition-all duration-150 flex-shrink-0
                 ${hasReacted(reaction.type) 
                   ? `${reaction.bgColorActive} ${reaction.borderColorActive} ${reaction.color}` 
                   : 'bg-premium-surface/50 border-premium-border hover:border-premium-border-hover text-premium-text-muted'
                 }
-                hover:scale-105 active:scale-95
+                hover:scale-105 active:scale-95 touch-target
               `}
               data-testid={`reaction-${reaction.type}-${postId}`}
             >
-              <span className="text-base sm:text-lg">{reaction.emoji}</span>
-              <span className="text-xs font-medium min-w-[12px] text-center">{getReactionCount(reaction.type)}</span>
+              <span className="text-sm md:text-lg">{reaction.emoji}</span>
+              <span className="text-[10px] md:text-xs font-medium min-w-[12px] text-center">{getReactionCount(reaction.type)}</span>
               
             </button>
           ))}
@@ -148,16 +148,16 @@ export function ReactionsBar({
       )}
       
       {/* Add Reaction Button */}
-      <div className="relative">
+      <div className="relative flex-shrink-0">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setShowPicker(!showPicker)}
-          className="h-8 px-3 text-premium-text-muted hover:text-accent hover:bg-accent/10 transition-all duration-200 whitespace-nowrap"
+          className="h-7 md:h-8 px-2 md:px-3 text-premium-text-muted hover:text-accent hover:bg-accent/10 transition-all duration-200 whitespace-nowrap"
           data-testid={`add-reaction-${postId}`}
         >
-          <Sparkles className="h-4 w-4 sm:mr-1.5" />
-          <span className="hidden sm:inline">React</span>
+          <Sparkles className="h-3.5 md:h-4 w-3.5 md:w-4 sm:mr-1.5" />
+          <span className="hidden sm:inline text-xs md:text-sm">React</span>
         </Button>
         
         {/* Reaction Picker */}

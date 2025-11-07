@@ -218,7 +218,7 @@ export function PostCard({
       >
         <Card 
           className={`
-            relative overflow-hidden
+            relative overflow-hidden backdrop-blur-sm
             ${postTypeStyle.card.background}
             ${postTypeStyle.card.border}
             transition-all duration-300 shadow-lg ${postTypeStyle.card.shadow}
@@ -233,8 +233,109 @@ export function PostCard({
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500" />
           )}
           
-          <CardHeader className="pb-4">
-            <div className="flex items-start justify-between gap-4">
+          <CardHeader className="pb-3 md:pb-4">
+            {/* Mobile Compact Header */}
+            <div className="md:hidden">
+              {/* Single Line: Avatar + Name + Role + Type + Menu */}
+              <div className="flex items-center gap-2 mb-2">
+                <Avatar className="h-8 w-8 ring-2 ring-premium-border flex-shrink-0">
+                  {authorAvatar ? (
+                    <AvatarImage src={authorAvatar} alt={authorName} />
+                  ) : null}
+                  <AvatarFallback className="bg-gradient-to-br from-copper-500 to-copper-900 text-white text-xs">
+                    {authorAvatar ? (
+                      authorName.substring(0, 2).toUpperCase()
+                    ) : (
+                      <Building2 className="h-4 w-4" />
+                    )}
+                  </AvatarFallback>
+                </Avatar>
+                
+                <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
+                  <span className="font-semibold text-sm text-premium-text-primary truncate">
+                    {authorName}
+                  </span>
+                  
+                  {authorRole === 'owner' && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-amber-500/10 text-amber-400 border-amber-500/30 flex-shrink-0">
+                      Owner
+                    </Badge>
+                  )}
+                  {authorRole === 'moderator' && (
+                    <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-blue-500/10 text-blue-400 border-blue-500/30 flex-shrink-0">
+                      Mod
+                    </Badge>
+                  )}
+                  
+                  <span className="text-copper-500/50">•</span>
+                  <Badge className={`${postTypeStyle.badge.color} backdrop-blur-sm text-[10px] px-1.5 py-0 h-4 flex-shrink-0`}>
+                    <postTypeStyle.badge.icon className="h-2.5 w-2.5 mr-0.5" />
+                    {postTypeStyle.badge.label}
+                  </Badge>
+                  
+                  {isPinned && (
+                    <>
+                      <span className="text-copper-500/50">•</span>
+                      <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/30 text-[10px] px-1.5 py-0 h-4 flex-shrink-0">
+                        <Pin className="h-2.5 w-2.5 mr-0.5" />
+                        Pinned
+                      </Badge>
+                    </>
+                  )}
+                </div>
+                
+                {(canEdit || canDelete) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="h-7 w-7 p-0 flex-shrink-0"
+                        data-testid={`post-menu-${id}`}
+                      >
+                        <MoreVertical className="h-3.5 w-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      {canEdit && (
+                        <DropdownMenuItem 
+                          onClick={onEdit}
+                          data-testid={`edit-post-${id}`}
+                        >
+                          Edit Post
+                        </DropdownMenuItem>
+                      )}
+                      {canDelete && (
+                        <DropdownMenuItem 
+                          onClick={onDelete}
+                          className="text-red-400"
+                          data-testid={`delete-post-${id}`}
+                        >
+                          Delete Post
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+              
+              {/* Second Line: Timestamp + Views */}
+              <div className="flex items-center gap-1.5 text-[11px] text-premium-text-muted ml-10">
+                <span>{formatDistanceToNow(new Date(createdAt))} ago</span>
+                {viewCount > 0 && (
+                  <>
+                    <span className="text-copper-500/50">•</span>
+                    <div className="flex items-center gap-0.5">
+                      <Eye className="h-3 w-3" />
+                      <span>{viewCount}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Desktop Header */}
+            <div className="hidden md:flex items-start justify-between gap-4">
               {/* Author Info */}
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10 ring-2 ring-premium-border">
@@ -332,9 +433,9 @@ export function PostCard({
             </div>
           </CardHeader>
           
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3 md:space-y-4 px-4 md:px-6 py-3 md:py-6">
             {/* Title */}
-            <h3 className="font-fraunces text-2xl font-bold text-premium-text-primary">
+            <h3 className="font-fraunces text-xl md:text-2xl font-bold text-premium-text-primary leading-tight">
               {title}
             </h3>
             
@@ -463,8 +564,42 @@ export function PostCard({
               onReaction={onReaction}
             />
             
-            {/* Interaction Bar */}
-            <div className="flex items-center justify-between pt-4 border-t border-premium-border">
+            {/* Interaction Bar - Mobile Compact */}
+            <div className="md:hidden">
+              <div className="flex items-center justify-between pt-3 border-t border-premium-border/50">
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowComments(!showComments)}
+                    className="h-8 px-2 text-premium-text-muted hover:text-accent"
+                    data-testid={`toggle-comments-${id}`}
+                  >
+                    <MessageCircle className="h-3.5 w-3.5 mr-1" />
+                    <span className="text-xs">{comments.length}</span>
+                  </Button>
+                  
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onShare}
+                    className="h-8 px-2 text-premium-text-muted hover:text-accent"
+                    data-testid={`share-post-${id}`}
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                
+                {totalReactions > 0 && (
+                  <div className="text-[11px] text-premium-text-muted">
+                    {totalReactions} {totalReactions === 1 ? 'reaction' : 'reactions'}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Interaction Bar - Desktop */}
+            <div className="hidden md:flex items-center justify-between pt-4 border-t border-premium-border">
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
