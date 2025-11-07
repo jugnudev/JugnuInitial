@@ -1231,6 +1231,168 @@ export class TicketsSupabaseDB {
     if (error && error.code !== 'PGRST116') throw error;
     return data;
   }
+
+  // ============ CHECK-IN OPERATIONS ============
+  async getTicketByQrToken(qrToken: string): Promise<TicketsTicket | null> {
+    const { data, error } = await this.client
+      .from('tickets_tickets')
+      .select('*')
+      .eq('qr_token', qrToken)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  async checkInTicket(ticketId: string, checkInBy: string): Promise<void> {
+    const { error } = await this.client
+      .from('tickets_tickets')
+      .update({
+        status: 'used',
+        used_at: new Date().toISOString(),
+        scanned_by: checkInBy
+      })
+      .eq('id', ticketId);
+    
+    if (error) throw error;
+  }
+
+  async getOrderItemById(id: string): Promise<TicketsOrderItem | null> {
+    const { data, error } = await this.client
+      .from('tickets_order_items')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  async getEventAttendees(eventId: string, filters: { status?: string; search?: string }): Promise<any[]> {
+    // Build the query with joins
+    let query = this.client
+      .from('tickets_tickets')
+      .select(`
+        id:id,
+        ticket_id:id,
+        serial,
+        qr_token,
+        status,
+        checked_in_at:used_at,
+        scanned_by,
+        tier:tickets_tiers!inner(
+          name,
+          event_id
+        ),
+        order_item:tickets_order_items!inner(
+          order:tickets_orders(
+            buyer_email,
+            buyer_name,
+            buyer_phone,
+            placed_at
+          )
+        )
+      `)
+      .eq('tickets_tiers.event_id', eventId);
+    
+    // Apply filters
+    if (filters.status) {
+      query = query.eq('status', filters.status);
+    }
+    
+    if (filters.search) {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      query = query.or(`buyer_name.ilike.${searchTerm},buyer_email.ilike.${searchTerm},serial.ilike.${searchTerm}`);
+    }
+    
+    query = query.order('placed_at', { ascending: false });
+    
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    
+    // Flatten the nested structure to match expected format
+    return (data || []).map((item: any) => ({
+      ticket_id: item.ticket_id,
+      serial: item.serial,
+      qr_token: item.qr_token,
+      status: item.status,
+      checked_in_at: item.checked_in_at,
+      scanned_by: item.scanned_by,
+      tier_name: item.tier?.name,
+      buyer_email: item.order_item?.order?.buyer_email,
+      buyer_name: item.order_item?.order?.buyer_name,
+      buyer_phone: item.order_item?.order?.buyer_phone,
+      placed_at: item.order_item?.order?.placed_at
+    }));
+  }
+
+  async getCheckInStats(eventId: string): Promise<{
+    totalTickets: number;
+    checkedIn: number;
+    remaining: number;
+    recentCheckIns: any[];
+  }> {
+    // Get total and checked-in counts
+    const { data: statsData, error: statsError } = await this.client
+      .from('tickets_tickets')
+      .select(`
+        status,
+        tier:tickets_tiers!inner(event_id)
+      `)
+      .eq('tickets_tiers.event_id', eventId)
+      .in('status', ['valid', 'used']);
+    
+    if (statsError) throw statsError;
+    
+    const totalTickets = statsData?.length || 0;
+    const checkedIn = statsData?.filter((t: any) => t.status === 'used').length || 0;
+    
+    // Get recent check-ins
+    const { data: recentData, error: recentError } = await this.client
+      .from('tickets_tickets')
+      .select(`
+        id,
+        serial,
+        used_at,
+        scanned_by,
+        tier:tickets_tiers!inner(
+          name,
+          event_id
+        ),
+        order_item:tickets_order_items!inner(
+          order:tickets_orders(
+            buyer_name,
+            buyer_email
+          )
+        )
+      `)
+      .eq('tickets_tiers.event_id', eventId)
+      .eq('status', 'used')
+      .not('used_at', 'is', null)
+      .order('used_at', { ascending: false })
+      .limit(10);
+    
+    if (recentError) throw recentError;
+    
+    // Flatten the nested structure
+    const recentCheckIns = (recentData || []).map((item: any) => ({
+      id: item.id,
+      serial: item.serial,
+      used_at: item.used_at,
+      scanned_by: item.scanned_by,
+      tier_name: item.tier?.name,
+      buyer_name: item.order_item?.order?.buyer_name,
+      buyer_email: item.order_item?.order?.buyer_email
+    }));
+    
+    return {
+      totalTickets,
+      checkedIn,
+      remaining: totalTickets - checkedIn,
+      recentCheckIns
+    };
+  }
 }
 
 export const ticketsDB = new TicketsSupabaseDB();

@@ -81,7 +81,8 @@ import {
   Gift,
   Copy,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  QrCode
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { Link, useLocation } from "wouter";
@@ -2262,6 +2263,21 @@ export default function EnhancedCommunityDetailPage() {
                                   <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
                                   View
                                 </Button>
+                                {event.status === 'published' && (
+                                  <Button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLocation(`/tickets/organizer/events/${event.id}/checkin`);
+                                    }}
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 lg:flex-none lg:min-w-[100px] touch-target bg-premium-surface/50 border-premium-border hover:border-green-500/50 hover:bg-green-500/10 hover:text-green-400 text-xs font-semibold shadow-sm"
+                                    data-testid={`button-checkin-event-${event.id}`}
+                                  >
+                                    <QrCode className="h-3.5 w-3.5 mr-1.5" />
+                                    Check In
+                                  </Button>
+                                )}
                                 <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                     <Button
