@@ -263,12 +263,18 @@ export function TicketsEventEditPage() {
     mutationFn: async (values: FormValues & { tiers: TicketTier[] }) => {
       setIsSubmitting(true);
       
-      // Convert datetime-local format to ISO 8601 for backend validation
+      // Only send fields that exist in the database schema
       const payload = {
-        ...values,
+        title: values.title,
+        summary: values.summary,
+        description: values.description,
         startAt: values.startAt ? new Date(values.startAt).toISOString() : undefined,
         endAt: values.endAt ? new Date(values.endAt).toISOString() : undefined,
+        venue: values.venue,
+        city: values.city,
+        province: values.province,
         coverUrl: coverImage || values.coverUrl,
+        status: values.status,
         tiers: values.tiers
       };
       

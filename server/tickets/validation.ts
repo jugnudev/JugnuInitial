@@ -46,19 +46,10 @@ export const createEventSchema = z.object({
   startAt: z.string().datetime(), // Accept ISO 8601 datetime with timezone
   endAt: z.string().datetime().optional(), // Accept ISO 8601 datetime with timezone
   venue: z.string().min(1).max(200),
-  address: z.string().max(500).optional(),
   city: z.string().min(1).max(100),
   province: z.string().length(2),
-  country: z.string().max(100).optional(),
-  postalCode: z.string().max(20).optional(),
   coverUrl: z.string().url().optional(),
-  capacity: z.number().int().min(1).optional(),
-  status: z.enum(['draft', 'published', 'archived']).default('draft'),
-  isGstApplied: z.boolean().optional(),
-  isPstApplied: z.boolean().optional(),
-  gstRate: z.number().min(0).max(100).optional(),
-  pstRate: z.number().min(0).max(100).optional(),
-  buyerPaysServiceFee: z.boolean().optional()
+  status: z.enum(['draft', 'published', 'archived']).default('draft')
 });
 
 export const updateEventSchema = createEventSchema.partial();
