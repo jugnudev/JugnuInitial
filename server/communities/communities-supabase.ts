@@ -1031,20 +1031,39 @@ export class CommunitiesSupabaseDB {
       .single();
 
     if (error) throw error;
+    
+    // Update member count if status changed
+    if (data.status !== undefined && membership.community_id) {
+      await this.updateCommunityMemberCount(membership.community_id);
+    }
+    
     return this.mapMembershipFromDb(membership);
   }
 
   async deleteMembership(id: string): Promise<void> {
+    // Get membership first to get community ID
+    const { data: membership } = await this.client
+      .from('community_memberships')
+      .select('community_id')
+      .eq('id', id)
+      .single();
+    
     const { error } = await this.client
       .from('community_memberships')
       .delete()
       .eq('id', id);
 
     if (error) throw error;
+    
+    // Update member count
+    if (membership?.community_id) {
+      await this.updateCommunityMemberCount(membership.community_id);
+    }
   }
 
   // ============ COMMUNITY POSTS ============
   async createPost(data: InsertCommunityPost): Promise<CommunityPost> {
+    const status = data.status || 'published';
     const { data: post, error } = await this.client
       .from('community_posts')
       .insert({
@@ -1061,12 +1080,18 @@ export class CommunitiesSupabaseDB {
         post_type: data.postType || 'announcement',
         is_pinned: data.isPinned || false,
         post_as_business: data.postAsBusiness !== undefined ? data.postAsBusiness : true,
-        status: data.status || 'published'
+        status
       })
       .select()
       .single();
 
     if (error) throw error;
+    
+    // Update post count if post is published
+    if (status === 'published') {
+      await this.updateCommunityPostCount(data.communityId);
+    }
+    
     return this.mapPostFromDb(post);
   }
 
@@ -1251,16 +1276,34 @@ export class CommunitiesSupabaseDB {
       .single();
 
     if (error) throw error;
+    
+    // Update post count if status changed
+    if (data.status !== undefined && post.community_id) {
+      await this.updateCommunityPostCount(post.community_id);
+    }
+    
     return this.mapPostFromDb(post);
   }
 
   async deletePost(id: string): Promise<void> {
+    // Get post first to get community ID
+    const { data: post } = await this.client
+      .from('community_posts')
+      .select('community_id')
+      .eq('id', id)
+      .single();
+    
     const { error } = await this.client
       .from('community_posts')
       .delete()
       .eq('id', id);
 
     if (error) throw error;
+    
+    // Update post count
+    if (post?.community_id) {
+      await this.updateCommunityPostCount(post.community_id);
+    }
   }
 
   // ============ COMMUNITY POST IMAGES ============
@@ -1639,6 +1682,46 @@ export class CommunitiesSupabaseDB {
 
     if (error) throw error;
     return data || [];
+  }
+
+  // ============ COUNT UPDATE HELPERS ============
+  async updateCommunityMemberCount(communityId: string): Promise<void> {
+    try {
+      const memberships = await this.getMembershipsByCommunityId(communityId);
+      const approvedCount = memberships.filter(m => m.status === 'approved').length;
+      
+      await this.client
+        .from('communities')
+        .update({ 
+          total_members: approvedCount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', communityId);
+    } catch (error) {
+      console.error('Failed to update community member count:', error);
+    }
+  }
+
+  async updateCommunityPostCount(communityId: string): Promise<void> {
+    try {
+      const { count, error } = await this.client
+        .from('community_posts')
+        .select('*', { count: 'exact', head: true })
+        .eq('community_id', communityId)
+        .eq('status', 'published');
+      
+      if (error) throw error;
+      
+      await this.client
+        .from('communities')
+        .update({ 
+          total_posts: count || 0,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', communityId);
+    } catch (error) {
+      console.error('Failed to update community post count:', error);
+    }
   }
 
   // ============ MAPPING HELPERS ============
