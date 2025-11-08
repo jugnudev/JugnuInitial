@@ -1494,98 +1494,116 @@ export default function EnhancedCommunityDetailPage() {
               </Select>
             </div>
 
-            {/* Desktop Tab Navigation */}
+            {/* Desktop Tab Navigation - Premium Redesign */}
             <div className="hidden md:block space-y-3">
               {/* First Row - Main Features */}
-              <div className="bg-gradient-to-br from-charcoal-900/80 via-charcoal-950/90 to-charcoal-900/80 backdrop-blur-2xl rounded-2xl p-3 border-2 border-copper-500/20 shadow-xl shadow-black/20 overflow-hidden">
-                <TabsList className="grid grid-cols-5 gap-2 bg-transparent w-full p-0">
-                  <TabsTrigger 
-                    value="announcements"
-                    data-testid="announcements-tab"
-                    className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/50 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 flex items-center justify-center gap-2"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    <span>Posts</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="chat"
-                    data-testid="chat-tab"
-                    className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/50 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 flex items-center justify-center gap-2"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    <span>Chat</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="polls"
-                    data-testid="polls-tab"
-                    className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/50 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 flex items-center justify-center gap-2"
-                  >
-                    <Vote className="h-4 w-4" />
-                    <span>Polls</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="giveaways"
-                    data-testid="giveaways-tab"
-                    className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/50 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 flex items-center justify-center gap-2"
-                  >
-                    <Gift className="h-4 w-4" />
-                    <span>Giveaways</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="events"
-                    data-testid="owner-events-tab"
-                    className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/50 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 flex items-center justify-center gap-2"
-                  >
-                    <Ticket className="h-4 w-4" />
-                    <span>Events</span>
-                  </TabsTrigger>
-                </TabsList>
+              <div className="relative overflow-hidden rounded-2xl border border-copper-500/30 shadow-2xl shadow-black/30">
+                {/* Glassmorphism Background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-charcoal-900/95 via-charcoal-950/98 to-charcoal-900/95 backdrop-blur-3xl" />
+                
+                {/* Subtle Glow Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-copper-500/5 via-transparent to-copper-500/5" />
+                
+                {/* Content */}
+                <div className="relative p-2">
+                  <TabsList className="grid grid-cols-5 gap-1.5 bg-transparent w-full p-0">
+                    <TabsTrigger 
+                      value="announcements"
+                      data-testid="announcements-tab"
+                      className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      <span>Posts</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="chat"
+                      data-testid="chat-tab"
+                      className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      <span>Chat</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="polls"
+                      data-testid="polls-tab"
+                      className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
+                    >
+                      <Vote className="h-4 w-4" />
+                      <span>Polls</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="giveaways"
+                      data-testid="giveaways-tab"
+                      className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
+                    >
+                      <Gift className="h-4 w-4" />
+                      <span>Giveaways</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="events"
+                      data-testid="owner-events-tab"
+                      className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
+                    >
+                      <Ticket className="h-4 w-4" />
+                      <span>Events</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
               </div>
               
               {/* Second Row - Management & Settings */}
-              <div className="bg-gradient-to-br from-charcoal-900/80 via-charcoal-950/90 to-charcoal-900/80 backdrop-blur-2xl rounded-2xl p-3 border-2 border-copper-500/20 shadow-xl shadow-black/20 overflow-hidden">
-                <TabsList className="grid grid-cols-5 gap-2 bg-transparent w-full p-0">
-                  <TabsTrigger 
-                    value="manage-events"
-                    data-testid="owner-manage-events-tab"
-                    className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/50 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 flex items-center justify-center gap-2"
-                  >
-                    <Settings2 className="h-4 w-4" />
-                    <span>Manage Events</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="members"
-                    data-testid="members-tab"
-                    className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/50 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 flex items-center justify-center gap-2"
-                  >
-                    <Users className="h-4 w-4" />
-                    <span>Members</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="analytics"
-                    data-testid="analytics-tab"
-                    className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/50 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 flex items-center justify-center gap-2"
-                  >
-                    <BarChart3 className="h-4 w-4" />
-                    <span>Analytics</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="settings"
-                    data-testid="settings-tab"
-                    className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/50 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 flex items-center justify-center gap-2"
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span>Settings</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="billing"
-                    data-testid="billing-tab"
-                    className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/50 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 flex items-center justify-center gap-2"
-                  >
-                    <CreditCard className="h-4 w-4" />
-                    <span>Billing</span>
-                  </TabsTrigger>
-                </TabsList>
+              <div className="relative overflow-hidden rounded-2xl border border-copper-500/30 shadow-2xl shadow-black/30">
+                {/* Glassmorphism Background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-charcoal-900/95 via-charcoal-950/98 to-charcoal-900/95 backdrop-blur-3xl" />
+                
+                {/* Subtle Glow Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-copper-500/5 via-transparent to-copper-500/5" />
+                
+                {/* Content */}
+                <div className="relative p-2">
+                  <TabsList className="grid grid-cols-5 gap-1.5 bg-transparent w-full p-0">
+                    <TabsTrigger 
+                      value="manage-events"
+                      data-testid="owner-manage-events-tab"
+                      className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
+                    >
+                      <Settings2 className="h-4 w-4" />
+                      <span>Manage Events</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="members"
+                      data-testid="members-tab"
+                      className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
+                    >
+                      <Users className="h-4 w-4" />
+                      <span>Members</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="analytics"
+                      data-testid="analytics-tab"
+                      className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
+                    >
+                      <BarChart3 className="h-4 w-4" />
+                      <span>Analytics</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="settings"
+                      data-testid="settings-tab"
+                      className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
+                    >
+                      <Settings className="h-4 w-4" />
+                      <span>Settings</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
+                      value="billing"
+                      data-testid="billing-tab"
+                      className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
+                    >
+                      <CreditCard className="h-4 w-4" />
+                      <span>Billing</span>
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
               </div>
             </div>
             
