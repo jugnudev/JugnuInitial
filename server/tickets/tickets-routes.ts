@@ -748,26 +748,13 @@ export function addTicketsRoutes(app: Express) {
         
         // Send confirmation email for FREE tickets
         try {
-          const { sendTicketEmail } = await import('../services/emailService');
-          const allTickets = await ticketsStorage.getTicketsByOrderId(order.id);
-          
-          await sendTicketEmail({
-            recipientEmail: order.buyerEmail,
-            buyerName: order.buyerName,
-            eventTitle: event.title,
-            eventVenue: event.venue || undefined,
-            eventDate: new Date(event.startAt).toLocaleDateString(),
-            eventTime: new Date(event.startAt).toLocaleTimeString(),
-            orderNumber: order.id,
-            tickets: allTickets.map(ticket => ({
-              id: ticket.id,
-              tierName: tierData.find(t => t.tier.id === ticket.tierId)?.tier.name || 'General Admission',
-              qrToken: ticket.qrToken,
-              serial: ticket.serial
-            })),
-            totalAmount: '$0.00'
-          });
-          console.log('[PaymentIntent] Confirmation email sent to:', order.buyerEmail);
+          const { sendTicketEmail } = await import('./email-service');
+          const emailSent = await sendTicketEmail(order.id, false);
+          if (emailSent) {
+            console.log('[PaymentIntent] Confirmation email sent to:', order.buyerEmail);
+          } else {
+            console.warn('[PaymentIntent] Email sending returned false - check SendGrid configuration');
+          }
         } catch (emailError) {
           console.error('[PaymentIntent] Failed to send confirmation email:', emailError);
           // Don't fail the order if email fails
@@ -2865,32 +2852,13 @@ async function createTicketsForPaidOrder(orderId: string): Promise<void> {
   
   // Send ticket email confirmation
   try {
-    const { sendTicketEmail } = await import('../services/emailService');
-    
-    const emailData = {
-      recipientEmail: order.buyerEmail,
-      buyerName: order.buyerName || 'Guest',
-      eventTitle: event.title,
-      eventVenue: event.venue,
-      eventDate: new Date(event.startAt).toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      }),
-      eventTime: new Date(event.startAt).toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      }),
-      orderNumber: order.id.slice(0, 8).toUpperCase(),
-      tickets: createdTickets,
-      totalAmount: `$${(order.totalCents / 100).toFixed(2)} CAD`,
-      refundPolicy: event.refundPolicy || 'Refunds are available up to 24 hours before the event.'
-    };
-    
-    await sendTicketEmail(emailData);
-    console.log(`[TicketCreation] Sent ticket email to ${order.buyerEmail}`);
+    const { sendTicketEmail } = await import('./email-service');
+    const emailSent = await sendTicketEmail(orderId, false);
+    if (emailSent) {
+      console.log(`[TicketCreation] Sent ticket email to ${order.buyerEmail}`);
+    } else {
+      console.warn(`[TicketCreation] Email sending returned false - check SendGrid configuration`);
+    }
   } catch (emailError) {
     console.error('[TicketCreation] Failed to send ticket email:', emailError);
     // Don't throw - tickets are created, email failure shouldn't break the flow
