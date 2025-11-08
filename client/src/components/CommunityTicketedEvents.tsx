@@ -41,7 +41,28 @@ export default function CommunityTicketedEvents({ organizerId }: CommunityTicket
     queryKey: ['/api/tickets/organizers', organizerId, 'published-events'],
   });
 
-  const events = data?.events || [];
+  const allEvents = data?.events || [];
+  
+  // Helper to determine event status
+  const getEventStatus = (event: TicketedEvent): 'upcoming' | 'ongoing' | 'ended' => {
+    const now = new Date();
+    const startTime = new Date(event.startAt);
+    const endTime = event.endAt ? new Date(event.endAt) : null;
+    
+    if (now < startTime) {
+      return 'upcoming';
+    }
+    
+    if (endTime && now > endTime) {
+      return 'ended';
+    }
+    
+    // If we're past start time and either no end time or before end time
+    return 'ongoing';
+  };
+  
+  // Filter out ended events from the public-facing Events tab
+  const events = allEvents.filter(event => getEventStatus(event) !== 'ended');
 
   if (isLoading) {
     return (
@@ -49,14 +70,14 @@ export default function CommunityTicketedEvents({ organizerId }: CommunityTicket
         <div className="text-center animate-fadeIn">
           <div className="inline-block mb-4">
             <Badge variant="outline" className="border-copper-500/50 text-copper-400 bg-copper-500/10 px-4 py-1.5 text-sm font-semibold tracking-wide">
-              UPCOMING EXPERIENCES
+              CURATED SESSIONS
             </Badge>
           </div>
           <h2 className="font-fraunces text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 tracking-tight">
-            Upcoming Events
+            Live & Coming Up
           </h2>
           <p className="text-lg md:text-xl text-neutral-400 max-w-2xl mx-auto leading-relaxed">
-            Where strangers sync and the room finds one frequency
+            From the beat of the city to the rhythm of the room
           </p>
         </div>
         
@@ -95,14 +116,14 @@ export default function CommunityTicketedEvents({ organizerId }: CommunityTicket
         <div className="text-center animate-fadeIn">
           <div className="inline-block mb-4">
             <Badge variant="outline" className="border-copper-500/50 text-copper-400 bg-copper-500/10 px-4 py-1.5 text-sm font-semibold tracking-wide">
-              UPCOMING EXPERIENCES
+              CURATED SESSIONS
             </Badge>
           </div>
           <h2 className="font-fraunces text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 tracking-tight">
-            Upcoming Events
+            Live & Coming Up
           </h2>
           <p className="text-lg md:text-xl text-neutral-400 max-w-2xl mx-auto leading-relaxed">
-            Where strangers sync and the room finds one frequency
+            From the beat of the city to the rhythm of the room
           </p>
         </div>
 
@@ -159,14 +180,14 @@ export default function CommunityTicketedEvents({ organizerId }: CommunityTicket
       <div className="text-center">
         <div className="inline-block mb-4 animate-slideUp">
           <Badge variant="outline" className="border-copper-500/50 text-copper-400 bg-copper-500/10 px-4 py-1.5 text-sm font-semibold tracking-wide">
-            UPCOMING EXPERIENCES
+            CURATED SESSIONS
           </Badge>
         </div>
         <h2 className="font-fraunces text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 md:mb-6 tracking-tight animate-slideUp" style={{animationDelay: '0.1s'}}>
-          Upcoming Events
+          Live & Coming Up
         </h2>
         <p className="text-lg md:text-xl text-neutral-400 max-w-2xl mx-auto leading-relaxed animate-slideUp" style={{animationDelay: '0.2s'}}>
-          Where strangers sync and the room finds one frequency
+          From the beat of the city to the rhythm of the room
         </p>
       </div>
 
@@ -177,11 +198,17 @@ export default function CommunityTicketedEvents({ organizerId }: CommunityTicket
           const available = hasAvailableTickets(event);
           const soldPercentage = getSoldPercentage(event);
           const isHighDemand = soldPercentage > 70;
+          const eventStatus = getEventStatus(event);
+          const isOngoing = eventStatus === 'ongoing';
           
           return (
             <Card 
               key={event.id}
-              className="group glass-elevated hover:glass-card border-copper-500/20 hover:border-copper-500/40 transition-all duration-500 overflow-hidden hover:shadow-2xl hover:shadow-copper-500/20 hover:-translate-y-1 animate-slideUp"
+              className={`group glass-elevated hover:glass-card transition-all duration-500 overflow-hidden hover:shadow-2xl hover:-translate-y-1 animate-slideUp ${
+                isOngoing 
+                  ? 'border-2 border-copper-500/60 shadow-2xl shadow-copper-500/30 hover:border-copper-500/80 hover:shadow-copper-500/40' 
+                  : 'border-copper-500/20 hover:border-copper-500/40 hover:shadow-copper-500/20'
+              }`}
               style={{animationDelay: `${index * 0.1}s`}}
               data-testid={`card-event-${event.slug}`}
             >
@@ -204,6 +231,11 @@ export default function CommunityTicketedEvents({ organizerId }: CommunityTicket
                 
                 {/* Status Badges */}
                 <div className="absolute top-4 right-4 flex flex-col gap-2">
+                  {isOngoing && (
+                    <Badge className="bg-gradient-to-r from-copper-500 to-copper-600 backdrop-blur-xl border-0 text-white font-bold px-3 py-1 shadow-lg shadow-copper-500/50 animate-pulse">
+                      ● LIVE NOW
+                    </Badge>
+                  )}
                   {!available ? (
                     <Badge className="bg-red-500/90 hover:bg-red-500 backdrop-blur-xl border-0 text-white font-bold px-3 py-1 shadow-lg">
                       SOLD OUT
