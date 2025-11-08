@@ -194,21 +194,21 @@ export function TicketsCheckinDashboard() {
     
     // Calculate optimal QR box size based on screen width
     const qrboxSize = isMobile 
-      ? Math.min(window.innerWidth * 0.85, 350) // 85% of screen width on mobile, max 350px
+      ? Math.min(window.innerWidth * 0.75, 300) // 75% of screen width on mobile, max 300px
       : 280; // Fixed 280px on desktop
     
     const scanner = new Html5QrcodeScanner(
       "qr-reader",
       { 
-        fps: 10,
+        fps: isMobile ? 5 : 10, // Reduced FPS on mobile for better performance
         qrbox: { width: qrboxSize, height: qrboxSize },
         aspectRatio: 1.0,
         showTorchButtonIfSupported: true,
         rememberLastUsedCamera: true,
         videoConstraints: {
           facingMode: "environment",
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          width: { ideal: isMobile ? 1280 : 1920 }, // Lower resolution on mobile
+          height: { ideal: isMobile ? 720 : 1080 }
         }
       },
       false
