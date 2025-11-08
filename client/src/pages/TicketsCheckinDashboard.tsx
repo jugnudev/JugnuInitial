@@ -435,94 +435,62 @@ export function TicketsCheckinDashboard() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {/* Mobile Full-Screen Scanner */}
-                <div className="md:hidden fixed inset-0 z-50 bg-black">
-                  {/* Top Bar */}
-                  <div className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/90 to-transparent p-4">
-                    <div className="flex items-center justify-between">
+                {/* Mobile-Optimized Scanner */}
+                <Card className="md:hidden border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden">
+                  <CardContent className="p-0">
+                    {/* Top controls bar */}
+                    <div className="flex items-center justify-between p-4 border-b border-[#c0580f]/20">
                       <Button
                         onClick={() => setScannerEnabled(false)}
                         variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60"
+                        size="sm"
+                        className="text-white/80 hover:text-white hover:bg-white/10"
                         data-testid="button-close-scanner"
                       >
-                        <X className="h-5 w-5" />
+                        <X className="h-5 w-5 mr-2" />
+                        Close
                       </Button>
-                      <div className="text-sm font-medium text-white/90 bg-black/40 backdrop-blur-sm px-4 py-2 rounded-full">
-                        {scannerEnabled ? 'Scanning...' : 'Ready'}
+                      <div className="text-sm font-medium text-[#17C0A9]">
+                        Scanning...
                       </div>
                       <Button
                         onClick={() => setSoundEnabled(!soundEnabled)}
                         variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60"
+                        size="sm"
+                        className="text-white/80 hover:text-white hover:bg-white/10"
                       >
                         {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
                       </Button>
                     </div>
-                  </div>
-                  
-                  {/* Scanner Frame */}
-                  <div className="h-full w-full flex items-center justify-center">
-                    <div className="relative w-full max-w-md">
-                      {/* Scan frame corners */}
-                      <div className="absolute inset-0 pointer-events-none">
-                        {/* Top left */}
-                        <div className="absolute top-0 left-0 w-16 h-16 border-t-4 border-l-4 border-[#c0580f] rounded-tl-2xl" />
-                        {/* Top right */}
-                        <div className="absolute top-0 right-0 w-16 h-16 border-t-4 border-r-4 border-[#c0580f] rounded-tr-2xl" />
-                        {/* Bottom left */}
-                        <div className="absolute bottom-0 left-0 w-16 h-16 border-b-4 border-l-4 border-[#c0580f] rounded-bl-2xl" />
-                        {/* Bottom right */}
-                        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-4 border-r-4 border-[#c0580f] rounded-br-2xl" />
-                        
-                        {/* Scanning line animation */}
-                        <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#17C0A9] to-transparent animate-scan" 
-                             style={{ top: '50%', animation: 'scan 2s ease-in-out infinite' }} />
-                      </div>
-                      
-                      {/* Scanner container */}
-                      <div id="qr-reader" className="w-full rounded-2xl overflow-hidden" />
+                    
+                    {/* Scanner viewport */}
+                    <div className="relative bg-black">
+                      <div id="qr-reader" className="w-full min-h-[60vh]" />
                     </div>
-                  </div>
-                  
-                  {/* Bottom Controls */}
-                  <div className="absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black/90 to-transparent p-6 pb-safe pb-8">
-                    {/* Success/Error Toast */}
-                    {lastScannedTicket && (
-                      <div className="mb-4 mx-auto max-w-sm">
-                        <div className="bg-[#17C0A9] text-[#0B0B0F] rounded-2xl p-4 shadow-2xl animate-slideUp">
-                          <div className="flex items-start gap-3">
-                            <CheckCircle2 className="h-6 w-6 flex-shrink-0 mt-0.5" />
-                            <div className="flex-1">
-                              <p className="font-semibold mb-1">Valid Ticket</p>
-                              <p className="text-sm opacity-90">
-                                {lastScannedTicket.tierName} • {lastScannedTicket.serial}
-                              </p>
+                    
+                    {/* Bottom info */}
+                    <div className="p-4 bg-gradient-to-t from-[#c0580f]/10 to-transparent">
+                      {lastScannedTicket && (
+                        <div className="mb-3">
+                          <div className="bg-[#17C0A9] text-[#0B0B0F] rounded-xl p-3 shadow-lg">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm">Valid Ticket</p>
+                                <p className="text-xs opacity-90 truncate">
+                                  {lastScannedTicket.tierName} • {lastScannedTicket.serial}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center justify-center gap-4">
-                      <Button
-                        onClick={() => setScannerEnabled(false)}
-                        size="lg"
-                        className="h-14 px-8 bg-white/10 backdrop-blur-sm text-white border border-white/20 hover:bg-white/20 hover:border-white/30 rounded-2xl font-medium"
-                        data-testid="button-stop-scanner"
-                      >
-                        <Square className="h-5 w-5 mr-2" />
-                        Stop Scanner
-                      </Button>
+                      )}
+                      <p className="text-center text-white/60 text-sm">
+                        Point camera at QR code to scan
+                      </p>
                     </div>
-                    
-                    <p className="text-center text-white/60 text-sm mt-4">
-                      Point camera at QR code to scan
-                    </p>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
                 
                 {/* Desktop Scanner Card */}
                 <Card className="hidden md:block border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden">
