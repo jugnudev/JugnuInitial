@@ -4,69 +4,55 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Full-Screen Mobile Scanner - Complete Suppression of Library UI */
+/* Full-Screen Mobile Scanner - Let Library Render, Just Hide UI */
 
-/* Main QR Reader Container - Absolute Full Screen */
+/* Main QR Reader Container - Full Width, Let Library Control Height */
 #qr-reader {
   width: 100% !important;
-  height: 100% !important;
   max-width: none !important;
   margin: 0 !important;
   padding: 0 !important;
-  position: absolute !important;
-  inset: 0 !important;
+  position: relative !important;
 }
 
-/* Video Container - Fill Parent Completely */
+/* Video Container - Full Width, Natural Height */
 #qr-reader__scan_region {
   width: 100% !important;
-  height: 100% !important;
   max-width: none !important;
   border: none !important;
   border-radius: 0 !important;
   overflow: hidden !important;
   margin: 0 !important;
   padding: 0 !important;
-  position: absolute !important;
-  inset: 0 !important;
+  position: relative !important;
 }
 
-/* Video Element - Cover Full Screen */
+/* Video Element - Fill Container, Cover Mode for Better Mobile Experience */
 #qr-reader__scan_region video {
   width: 100% !important;
-  height: 100% !important;
+  min-height: 70vh !important;
+  max-height: 90vh !important;
   object-fit: cover !important;
   display: block !important;
-  position: absolute !important;
-  inset: 0 !important;
 }
 
 /* Hide Library Dashboard UI ONLY When Video is Active on Mobile */
 @media (max-width: 767px) {
-  /* Hide dashboard controls only when video is playing (scanning is active) */
-  #qr-reader__scan_region:has(video) ~ #qr-reader__dashboard_section,
-  #qr-reader__scan_region:has(video) ~ div #qr-reader__dashboard_section_csr,
-  #qr-reader__scan_region:has(video) ~ div #qr-reader__dashboard_section_swaplink,
-  #qr-reader__scan_region:has(video) ~ div #qr-reader__dashboard_section_fsr,
-  #qr-reader__scan_region:has(video) ~ div #qr-reader__camera_selection {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    position: absolute !important;
+  /* Position dashboard off-screen when video is active, but keep in DOM */
+  #qr-reader:has(video) #qr-reader__dashboard_section {
+    position: fixed !important;
+    top: -9999px !important;
     left: -9999px !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
   }
   
-  /* Alternative: Hide when scanner is in active scanning state */
-  #qr-reader:has(video) #qr-reader__dashboard_section,
-  #qr-reader:has(video) #qr-reader__dashboard_section_csr,
-  #qr-reader:has(video) #qr-reader__dashboard_section_swaplink,
-  #qr-reader:has(video) #qr-reader__dashboard_section_fsr,
-  #qr-reader:has(video) #qr-reader__camera_selection {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    position: absolute !important;
-    left: -9999px !important;
+  /* Keep dashboard visible before scanning starts */
+  #qr-reader:not(:has(video)) #qr-reader__dashboard_section {
+    position: relative !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
   
   /* Show buttons before scanning starts */

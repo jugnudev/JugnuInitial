@@ -266,17 +266,17 @@ export function TicketsCheckinDashboard() {
   
   if (!eventId) return null;
   
-  // Full-screen mobile scanner layout
-  if (isActiveScan && scannerEnabled) {
-    return (
-      <div className="fixed inset-0 bg-[#0B0B0F] flex flex-col z-50" style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        {/* Full-screen camera container */}
-        <div className="relative flex-1 w-full overflow-hidden">
-          {/* Scanner */}
-          <div id="qr-reader" className="w-full h-full" style={{ minHeight: '100%' }} />
-          
+  // Note: We don't return a separate layout for mobile full-screen anymore
+  // Instead, we use conditional styling to make the scanner full-screen on mobile
+  // This keeps the #qr-reader element in the same DOM location so the library works properly
+  
+  return (
+    <div className={`min-h-screen bg-background ${isActiveScan ? 'fixed inset-0 z-50 bg-[#0B0B0F]' : ''}`}>
+      {/* Full-screen overlay controls - only show when isActiveScan is true */}
+      {isActiveScan && scannerEnabled && (
+        <>
           {/* Overlay Controls - Top Bar */}
-          <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent">
+          <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
             {/* Back/Close button */}
             <Button
               onClick={() => setScannerEnabled(false)}
@@ -419,7 +419,7 @@ export function TicketsCheckinDashboard() {
           
           {/* Last scanned ticket - Success overlay */}
           {lastScannedTicket && (
-            <div className="absolute bottom-24 left-4 right-4 z-50 animate-in slide-in-from-bottom-4 duration-300">
+            <div className="fixed bottom-24 left-4 right-4 z-50 animate-in slide-in-from-bottom-4 duration-300">
               <div className="p-5 rounded-2xl bg-[#17C0A9]/10 backdrop-blur-xl border-2 border-[#17C0A9]/50 shadow-2xl">
                 <div className="flex items-start gap-3 mb-4">
                   <CheckCircle2 className="h-7 w-7 text-[#17C0A9] flex-shrink-0" />
@@ -439,15 +439,11 @@ export function TicketsCheckinDashboard() {
               </div>
             </div>
           )}
-        </div>
-      </div>
-    );
-  }
-  
-  // Normal dashboard layout
-  return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+        </>
+      )}
+      
+      {/* Normal dashboard content - hide when full-screen scanner is active */}
+      <div className={`container mx-auto px-4 py-8 ${isActiveScan ? 'hidden' : ''}`}>
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
