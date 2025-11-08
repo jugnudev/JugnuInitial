@@ -172,9 +172,21 @@ export function TicketsCheckinDashboard() {
     
     scanner.render(
       (decodedText) => {
-        validateMutation.mutate(decodedText);
-        scanner.pause();
-        setTimeout(() => scanner.resume(), 2000); // Prevent rapid re-scans
+        // Only pause if we successfully validate
+        validateMutation.mutate(decodedText, {
+          onSuccess: (data) => {
+            if (data.ok) {
+              scanner.pause();
+              setTimeout(() => {
+                try {
+                  scanner.resume();
+                } catch (e) {
+                  // Scanner might be cleared
+                }
+              }, 3000);
+            }
+          }
+        });
       },
       (error) => {
         // Ignore scan errors (common when camera is moving)

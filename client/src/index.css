@@ -4,6 +4,93 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Mobile-Optimized QR Scanner Buttons */
+#qr-reader__dashboard_section {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  padding: 16px 0 !important;
+  align-items: center !important;
+}
+
+#qr-reader__dashboard_section_csr {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  width: 100% !important;
+  max-width: 400px !important;
+  margin: 0 auto !important;
+}
+
+#qr-reader__dashboard_section_csr > button,
+#qr-reader__dashboard_section_csr > span > button {
+  min-height: 56px !important;
+  height: auto !important;
+  padding: 14px 24px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border-radius: 12px !important;
+  border: 2px solid rgba(192, 88, 15, 0.3) !important;
+  background: linear-gradient(135deg, #c0580f 0%, #d3541e 100%) !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(192, 88, 15, 0.25) !important;
+  transition: all 0.3s ease !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+}
+
+#qr-reader__dashboard_section_csr > button:hover,
+#qr-reader__dashboard_section_csr > span > button:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(192, 88, 15, 0.35) !important;
+  background: linear-gradient(135deg, #d3541e 0%, #c0580f 100%) !important;
+}
+
+#qr-reader__dashboard_section_csr > button:active,
+#qr-reader__dashboard_section_csr > span > button:active {
+  transform: translateY(0) !important;
+}
+
+#qr-reader__camera_selection {
+  width: 100% !important;
+  max-width: 400px !important;
+}
+
+#qr-reader__camera_selection > select {
+  min-height: 56px !important;
+  padding: 14px 16px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  border-radius: 12px !important;
+  border: 2px solid rgba(255, 255, 255, 0.1) !important;
+  background: rgba(11, 11, 15, 0.8) !important;
+  color: white !important;
+  width: 100% !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+#qr-reader__scan_region {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+}
+
+#qr-reader__status_span {
+  font-size: 14px !important;
+  padding: 8px 16px !important;
+  border-radius: 8px !important;
+  background: rgba(192, 88, 15, 0.1) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(192, 88, 15, 0.3) !important;
+}
+
+/* Hide library's default styles we don't want */
+#qr-reader__dashboard_section_fsr {
+  margin-top: 16px !important;
+}
+
 /* Accessibility enhancements */
 @layer base {
   /* Focus ring styles for accessibility */
