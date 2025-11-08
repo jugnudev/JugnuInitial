@@ -1172,6 +1172,22 @@ export class CommunitiesSupabaseDB {
 
     if (reactionsError) throw reactionsError;
 
+    // Get view counts for these posts
+    const { data: analyticsData, error: analyticsError } = await this.client
+      .from('community_post_analytics')
+      .select('post_id, views')
+      .in('post_id', postIds);
+
+    if (analyticsError) console.error('[Posts] Error fetching analytics:', analyticsError);
+
+    // Create view count lookup map
+    const viewCountsByPost: Record<string, number> = {};
+    if (analyticsData) {
+      analyticsData.forEach(analytics => {
+        viewCountsByPost[analytics.post_id] = analytics.views || 0;
+      });
+    }
+
     // Get comment counts for these posts (only if there are posts)
     let commentsData: any[] = [];
     if (postIds.length > 0) {
@@ -1217,11 +1233,12 @@ export class CommunitiesSupabaseDB {
       });
     }
 
-    // Map posts and include reactions, comments, and author info
+    // Map posts and include reactions, comments, view counts, and author info
     const postsWithReactions = data.map(post => {
       const mappedPost = this.mapPostFromDb(post);
       const postReactions = reactionsByPost[post.id] || {};
       const commentCount = commentCountsByPost[post.id] || 0;
+      const viewCount = viewCountsByPost[post.id] || 0;
       const author = authorsById[post.author_id];
       
       // Convert to array format expected by frontend
@@ -1238,7 +1255,8 @@ export class CommunitiesSupabaseDB {
         ...mappedPost,
         author: author || null,
         reactions,
-        comments
+        comments,
+        viewCount
       };
     });
     
