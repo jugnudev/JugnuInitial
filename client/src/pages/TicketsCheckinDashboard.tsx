@@ -466,23 +466,23 @@ export function TicketsCheckinDashboard() {
                     {/* Dimmed Backdrop */}
                     <div className="absolute inset-0 bg-gradient-to-b from-black/95 via-black/90 to-black/95" />
                     
-                    {/* Top Control Bar - Consolidated */}
+                    {/* Top Control Bar - Premium Frosted Capsules */}
                     <div 
-                      className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent"
-                      style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)' }}
+                      className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/90 via-black/70 to-transparent"
+                      style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}
                     >
                       <Button
                         onClick={() => setScannerEnabled(false)}
                         variant="ghost"
                         size="icon"
-                        className="h-11 w-11 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 shadow-lg transition-all"
+                        className="h-12 w-12 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-xl text-white border-2 border-white/30 hover:border-white/50 shadow-2xl shadow-black/50 transition-all duration-300 hover:scale-105"
                         data-testid="button-close-scanner-mobile"
                       >
                         <X className="h-5 w-5" />
                       </Button>
                       
-                      <div className="flex-1 mx-3 text-center">
-                        <p className="text-white font-semibold text-sm line-clamp-1 drop-shadow-lg">
+                      <div className="flex-1 mx-4 text-center">
+                        <p className="text-white font-fraunces font-semibold text-base line-clamp-1 drop-shadow-2xl">
                           {eventTitle}
                         </p>
                       </div>
@@ -490,7 +490,6 @@ export function TicketsCheckinDashboard() {
                       <Button
                         onClick={() => {
                           setSoundEnabled(!soundEnabled);
-                          // Visual feedback
                           toast({
                             title: soundEnabled ? "Sound Off" : "Sound On",
                             duration: 1000
@@ -498,24 +497,24 @@ export function TicketsCheckinDashboard() {
                         }}
                         variant="ghost"
                         size="icon"
-                        className="h-11 w-11 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 shadow-lg transition-all"
+                        className="h-12 w-12 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-xl text-white border-2 border-white/30 hover:border-white/50 shadow-2xl shadow-black/50 transition-all duration-300 hover:scale-105"
                         data-testid="button-toggle-sound-mobile"
                       >
                         {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
                       </Button>
                     </div>
                     
-                    {/* Bottom Manual Check-in Sheet Trigger */}
-                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden">
+                    {/* Bottom Manual Check-in Sheet Trigger - Premium Pill */}
+                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 md:hidden animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.3s' }}>
                       <Sheet open={showManualSheet} onOpenChange={setShowManualSheet}>
                         <SheetTrigger asChild>
                           <Button
                             variant="outline"
                             size="lg"
-                            className="h-14 px-6 rounded-full bg-black/60 backdrop-blur-md hover:bg-black/80 text-white border-2 border-white/30 hover:border-white/50 shadow-xl"
+                            className="h-16 px-8 rounded-full bg-gradient-to-r from-black/70 to-black/60 backdrop-blur-2xl hover:from-black/90 hover:to-black/80 text-white border-2 border-white/40 hover:border-[#c0580f]/60 shadow-2xl shadow-black/60 transition-all duration-300 hover:scale-105 font-inter font-medium text-base"
                             data-testid="button-open-manual-mobile"
                           >
-                            <List className="h-5 w-5 mr-2" />
+                            <List className="h-5 w-5 mr-3" />
                             Manual Check-in
                           </Button>
                         </SheetTrigger>
@@ -608,34 +607,41 @@ export function TicketsCheckinDashboard() {
                       </Sheet>
                     </div>
                     
-                    {/* Camera Viewport - Centered */}
-                    <div className="absolute inset-0 flex items-center justify-center z-10">
+                    {/* Camera Viewport - Centered with Premium Styling */}
+                    <div className="absolute inset-0 flex items-center justify-center z-10 px-4">
                       <div 
-                        className="relative w-full max-w-md mx-auto"
-                        style={{ height: 'calc(100dvh - 180px)' }}
+                        className="relative w-full max-w-md mx-auto animate-in fade-in duration-500"
+                        style={{ 
+                          height: 'calc(100dvh - 180px)',
+                          animation: 'scale-in 0.4s ease-out'
+                        }}
                       >
-                        {/* QR Reader Container */}
-                        <div className="relative bg-black/60 rounded-3xl overflow-hidden border-2 border-[#c0580f]/40 shadow-2xl h-full flex items-center justify-center">
+                        {/* QR Reader Container with Glassmorphism & Copper Glow */}
+                        <div className="relative bg-gradient-to-br from-black/70 via-black/60 to-black/70 rounded-3xl overflow-hidden border-3 border-[#c0580f]/50 shadow-2xl h-full flex items-center justify-center scanner-viewport-glow backdrop-blur-xl">
+                          {/* Animated Scanning Sweep Line */}
+                          <div className="scanner-sweep-line" />
+                          
+                          {/* Camera Feed */}
                           <div id="qr-reader" className="w-full h-full" />
                           
-                          {/* Corner brackets - Responsive sizing */}
-                          <div className="absolute top-8 left-8 w-16 h-16 border-t-4 border-l-4 border-[#c0580f] rounded-tl-2xl animate-pulse" style={{ animationDuration: '2s' }} />
-                          <div className="absolute top-8 right-8 w-16 h-16 border-t-4 border-r-4 border-[#c0580f] rounded-tr-2xl animate-pulse" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
-                          <div className="absolute bottom-8 left-8 w-16 h-16 border-b-4 border-l-4 border-[#c0580f] rounded-bl-2xl animate-pulse" style={{ animationDuration: '2s', animationDelay: '1s' }} />
-                          <div className="absolute bottom-8 right-8 w-16 h-16 border-b-4 border-r-4 border-[#c0580f] rounded-br-2xl animate-pulse" style={{ animationDuration: '2s', animationDelay: '1.5s' }} />
+                          {/* Corner brackets - Premium Copper Gradient */}
+                          <div className="absolute top-6 left-6 w-20 h-20 border-t-[5px] border-l-[5px] border-[#c0580f] rounded-tl-3xl animate-pulse shadow-[0_0_15px_rgba(192,88,15,0.5)]" style={{ animationDuration: '2s' }} />
+                          <div className="absolute top-6 right-6 w-20 h-20 border-t-[5px] border-r-[5px] border-[#c0580f] rounded-tr-3xl animate-pulse shadow-[0_0_15px_rgba(192,88,15,0.5)]" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+                          <div className="absolute bottom-6 left-6 w-20 h-20 border-b-[5px] border-l-[5px] border-[#c0580f] rounded-bl-3xl animate-pulse shadow-[0_0_15px_rgba(192,88,15,0.5)]" style={{ animationDuration: '2s', animationDelay: '1s' }} />
+                          <div className="absolute bottom-6 right-6 w-20 h-20 border-b-[5px] border-r-[5px] border-[#c0580f] rounded-br-3xl animate-pulse shadow-[0_0_15px_rgba(192,88,15,0.5)]" style={{ animationDuration: '2s', animationDelay: '1.5s' }} />
                           
-                          {/* Scanning status badge */}
-                          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30">
-                            <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#c0580f]/30 backdrop-blur-xl border-2 border-[#c0580f]/60 shadow-xl">
-                              <div className="w-2.5 h-2.5 bg-[#c0580f] rounded-full animate-pulse" />
-                              <span className="text-sm font-bold text-white tracking-wide">SCANNING...</span>
+                          {/* Scanning status badge - Improved Typography */}
+                          <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30">
+                            <div className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-gradient-to-r from-[#c0580f]/40 to-[#d3541e]/40 backdrop-blur-2xl border-2 border-[#c0580f]/70 shadow-2xl shadow-[#c0580f]/30">
+                              <div className="w-3 h-3 bg-gradient-to-br from-[#c0580f] to-[#d3541e] rounded-full animate-pulse shadow-lg shadow-[#c0580f]/50" />
+                              <span className="text-sm font-fraunces font-semibold text-white tracking-wider uppercase">Scanning...</span>
                             </div>
                           </div>
                           
-                          {/* Scan instruction */}
-                          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 px-4 max-w-[90%]">
-                            <p className="text-white text-center text-sm font-medium bg-black/60 backdrop-blur-sm px-5 py-2.5 rounded-full border border-white/20 shadow-lg">
-                              Position QR code within frame
+                          {/* Scan instruction - Better Typography & Glassmorphism */}
+                          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 px-4 max-w-[90%]">
+                            <p className="text-white text-center text-sm font-medium bg-black/70 backdrop-blur-lg px-6 py-3 rounded-full border-2 border-white/30 shadow-xl">
+                              <span className="font-inter">Position QR code within frame</span>
                             </p>
                           </div>
                         </div>
