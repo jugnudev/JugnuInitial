@@ -100,7 +100,7 @@ export function TicketsCheckinDashboard() {
     refetchInterval: 5000 // Auto-refresh every 5 seconds
   });
   
-  // Fetch attendees list - only when sheet is open
+  // Fetch attendees list - fetch when needed
   const { data: attendeesData, refetch: refetchAttendees, isLoading: attendeesLoading } = useQuery<{ attendees: Attendee[] }>({
     queryKey: ['/api/tickets/events', eventId, 'attendees', filterStatus, manualSearch],
     queryFn: async () => {
@@ -112,7 +112,7 @@ export function TicketsCheckinDashboard() {
       if (!response.ok) throw new Error('Failed to fetch attendees');
       return response.json();
     },
-    enabled: !!eventId && showManualSheet,
+    enabled: !!eventId,
     staleTime: 10000 // Cache for 10 seconds
   });
   
@@ -834,85 +834,172 @@ export function TicketsCheckinDashboard() {
           
           {/* Manual Check-in Tab */}
           <TabsContent value="manual" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Manual Check-in</CardTitle>
-                <CardDescription>
+            <Card className="border-[#c0580f]/20 bg-[#0B0B0F]">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white font-fraunces">Manual Check-in</CardTitle>
+                <CardDescription className="text-white/60">
                   Search and check in attendees by name, email, or ticket ID
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex gap-2">
+                {/* Search and Filters - Mobile Optimized */}
+                <div className="flex flex-col md:flex-row gap-3">
                   <div className="flex-1">
                     <Input
                       placeholder="Search by name, email, or ticket ID..."
                       value={manualSearch}
                       onChange={(e) => setManualSearch(e.target.value)}
+                      className="h-12 bg-white/5 border-white/20 text-white placeholder:text-white/40"
                       data-testid="input-manual-search"
                     />
                   </div>
-                  <Select value={filterStatus} onValueChange={setFilterStatus}>
-                    <SelectTrigger className="w-[180px]" data-testid="select-filter-status">
-                      <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Tickets</SelectItem>
-                      <SelectItem value="valid">Not Checked In</SelectItem>
-                      <SelectItem value="used">Checked In</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button onClick={handleExport} variant="outline" data-testid="button-export">
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
+                  <div className="flex gap-2">
+                    <Select value={filterStatus} onValueChange={setFilterStatus}>
+                      <SelectTrigger className="h-12 flex-1 md:w-[180px] bg-white/5 border-white/20 text-white" data-testid="select-filter-status">
+                        <SelectValue placeholder="Filter by status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Tickets</SelectItem>
+                        <SelectItem value="valid">Not Checked In</SelectItem>
+                        <SelectItem value="used">Checked In</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={handleExport} variant="outline" className="h-12 hidden md:flex border-white/20 hover:bg-white/5" data-testid="button-export">
+                      <Download className="h-4 w-4 mr-2" />
+                      Export
+                    </Button>
+                    <Button onClick={handleExport} variant="outline" size="icon" className="h-12 w-12 md:hidden border-white/20 hover:bg-white/5" data-testid="button-export-mobile">
+                      <Download className="h-5 w-5" />
+                    </Button>
+                  </div>
                 </div>
                 
-                <ScrollArea className="h-[500px]">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Tier</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Check-in Time</TableHead>
-                        <TableHead>Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {attendeesData?.attendees?.map((attendee) => (
-                        <TableRow key={attendee.ticketId}>
-                          <TableCell>{attendee.buyerName || 'N/A'}</TableCell>
-                          <TableCell>{attendee.buyerEmail}</TableCell>
-                          <TableCell>{attendee.tierName}</TableCell>
-                          <TableCell>
-                            <Badge variant={attendee.status === 'used' ? 'default' : 'outline'}>
-                              {attendee.status === 'used' ? 'Checked In' : 'Not Checked In'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {attendee.checkedInAt 
-                              ? format(new Date(attendee.checkedInAt), 'MMM dd, HH:mm')
-                              : '-'
-                            }
-                          </TableCell>
-                          <TableCell>
+                {/* Mobile: Card Layout */}
+                <div className="md:hidden space-y-3">
+                  <ScrollArea className="h-[calc(100vh-400px)]">
+                    {attendeesLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="text-white/60">Loading attendees...</div>
+                      </div>
+                    ) : !attendeesData?.attendees || attendeesData.attendees.length === 0 ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="text-center text-white/60">
+                          <UserCheck className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                          <p>{manualSearch ? 'No attendees found matching your search' : 'No attendees found'}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 pb-4">
+                        {attendeesData.attendees.map((attendee) => (
+                          <div 
+                            key={attendee.ticketId}
+                            className="glass-card p-4 rounded-xl border border-[#c0580f]/20 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-sm"
+                          >
+                            {/* Header */}
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-white font-semibold text-base mb-1 truncate">{attendee.buyerName || 'N/A'}</h3>
+                                <p className="text-white/50 text-sm truncate">{attendee.buyerEmail}</p>
+                              </div>
+                              <Badge 
+                                variant={attendee.status === 'used' ? 'default' : 'outline'}
+                                className={attendee.status === 'used' 
+                                  ? 'bg-[#17C0A9]/20 text-[#17C0A9] border-[#17C0A9]/30 ml-2' 
+                                  : 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30 ml-2'
+                                }
+                              >
+                                {attendee.status === 'used' ? 'Checked In' : 'Pending'}
+                              </Badge>
+                            </div>
+                            
+                            {/* Details */}
+                            <div className="flex items-center justify-between text-sm mb-3">
+                              <div className="text-white/70">
+                                <span className="text-white/50">Tier:</span> {attendee.tierName}
+                              </div>
+                              <div className="text-white/70">
+                                {attendee.checkedInAt 
+                                  ? format(new Date(attendee.checkedInAt), 'MMM dd, HH:mm')
+                                  : <span className="text-white/40">Not checked in</span>
+                                }
+                              </div>
+                            </div>
+                            
+                            {/* Action */}
                             {attendee.status !== 'used' && (
                               <Button
-                                size="sm"
                                 onClick={() => checkinMutation.mutate(attendee.qrToken)}
                                 disabled={checkinMutation.isPending}
+                                className="w-full h-11 bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white font-medium shadow-lg"
                                 data-testid={`button-checkin-${attendee.ticketId}`}
                               >
+                                <UserCheck className="h-4 w-4 mr-2" />
                                 Check In
                               </Button>
                             )}
-                          </TableCell>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </div>
+                
+                {/* Desktop: Table Layout */}
+                <div className="hidden md:block">
+                  <ScrollArea className="h-[500px]">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="border-white/10 hover:bg-transparent">
+                          <TableHead className="text-white/70">Name</TableHead>
+                          <TableHead className="text-white/70">Email</TableHead>
+                          <TableHead className="text-white/70">Tier</TableHead>
+                          <TableHead className="text-white/70">Status</TableHead>
+                          <TableHead className="text-white/70">Check-in Time</TableHead>
+                          <TableHead className="text-white/70">Action</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
+                      </TableHeader>
+                      <TableBody>
+                        {attendeesData?.attendees?.map((attendee) => (
+                          <TableRow key={attendee.ticketId} className="border-white/10">
+                            <TableCell className="text-white">{attendee.buyerName || 'N/A'}</TableCell>
+                            <TableCell className="text-white/80">{attendee.buyerEmail}</TableCell>
+                            <TableCell className="text-white/80">{attendee.tierName}</TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={attendee.status === 'used' ? 'default' : 'outline'}
+                                className={attendee.status === 'used' 
+                                  ? 'bg-[#17C0A9]/20 text-[#17C0A9] border-[#17C0A9]/30' 
+                                  : 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30'
+                                }
+                              >
+                                {attendee.status === 'used' ? 'Checked In' : 'Not Checked In'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-white/70">
+                              {attendee.checkedInAt 
+                                ? format(new Date(attendee.checkedInAt), 'MMM dd, HH:mm')
+                                : '-'
+                              }
+                            </TableCell>
+                            <TableCell>
+                              {attendee.status !== 'used' && (
+                                <Button
+                                  size="sm"
+                                  onClick={() => checkinMutation.mutate(attendee.qrToken)}
+                                  disabled={checkinMutation.isPending}
+                                  className="bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f]"
+                                  data-testid={`button-checkin-${attendee.ticketId}`}
+                                >
+                                  Check In
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
