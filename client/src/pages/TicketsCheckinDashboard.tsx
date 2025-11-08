@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { 
   QrCode, Users, CheckCircle2, XCircle, Clock, Search, 
   Download, RefreshCw, Camera, Volume2, VolumeX,
-  UserCheck, AlertCircle, TrendingUp
+  UserCheck, AlertCircle, TrendingUp, X, Square
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -231,18 +231,19 @@ export function TicketsCheckinDashboard() {
   
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+      <div className={`container mx-auto px-4 py-8 ${scannerEnabled ? 'md:block hidden' : ''}`}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6 md:mb-8">
           <div>
-            <h1 className="text-3xl font-fraunces mb-2">Check-in Dashboard</h1>
-            <p className="text-muted-foreground">{(event as any)?.event?.title}</p>
+            <h1 className="text-2xl md:text-3xl font-fraunces mb-1 md:mb-2">Check-in Dashboard</h1>
+            <p className="text-sm md:text-base text-muted-foreground">{(event as any)?.event?.title}</p>
           </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
               onClick={() => setSoundEnabled(!soundEnabled)}
               size="icon"
+              className="h-9 w-9 md:h-10 md:w-10"
               data-testid="button-toggle-sound"
             >
               {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
@@ -253,16 +254,54 @@ export function TicketsCheckinDashboard() {
                 refetchStats();
                 refetchAttendees();
               }}
+              className="hidden md:flex"
               data-testid="button-refresh"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                refetchStats();
+                refetchAttendees();
+              }}
+              size="icon"
+              className="md:hidden h-9 w-9"
+              data-testid="button-refresh-mobile"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
         </div>
         
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        {/* Compact Stats for Mobile */}
+        <div className="md:hidden grid grid-cols-2 gap-3 mb-6">
+          <Card className="border-[#c0580f]/20 bg-[#0B0B0F]/50">
+            <CardContent className="p-4">
+              <div className="text-xs text-muted-foreground mb-1">Checked In</div>
+              <div className="text-2xl font-bold text-[#17C0A9]">
+                {stats?.stats?.checkedIn || 0}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                of {stats?.stats?.totalTickets || 0}
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-[#c0580f]/20 bg-[#0B0B0F]/50">
+            <CardContent className="p-4">
+              <div className="text-xs text-muted-foreground mb-1">Progress</div>
+              <div className="text-2xl font-bold text-[#c0580f]">
+                {progressPercentage.toFixed(0)}%
+              </div>
+              <Progress value={progressPercentage} className="mt-2 h-1.5" />
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Desktop Stats Cards */}
+        <div className="hidden md:grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -396,8 +435,97 @@ export function TicketsCheckinDashboard() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {/* Scanner Card */}
-                <Card className="border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden">
+                {/* Mobile Full-Screen Scanner */}
+                <div className="md:hidden fixed inset-0 z-50 bg-black">
+                  {/* Top Bar */}
+                  <div className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/90 to-transparent p-4">
+                    <div className="flex items-center justify-between">
+                      <Button
+                        onClick={() => setScannerEnabled(false)}
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60"
+                        data-testid="button-close-scanner"
+                      >
+                        <X className="h-5 w-5" />
+                      </Button>
+                      <div className="text-sm font-medium text-white/90 bg-black/40 backdrop-blur-sm px-4 py-2 rounded-full">
+                        {scannerEnabled ? 'Scanning...' : 'Ready'}
+                      </div>
+                      <Button
+                        onClick={() => setSoundEnabled(!soundEnabled)}
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 rounded-full bg-black/40 backdrop-blur-sm text-white hover:bg-black/60"
+                      >
+                        {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Scanner Frame */}
+                  <div className="h-full w-full flex items-center justify-center">
+                    <div className="relative w-full max-w-md">
+                      {/* Scan frame corners */}
+                      <div className="absolute inset-0 pointer-events-none">
+                        {/* Top left */}
+                        <div className="absolute top-0 left-0 w-16 h-16 border-t-4 border-l-4 border-[#c0580f] rounded-tl-2xl" />
+                        {/* Top right */}
+                        <div className="absolute top-0 right-0 w-16 h-16 border-t-4 border-r-4 border-[#c0580f] rounded-tr-2xl" />
+                        {/* Bottom left */}
+                        <div className="absolute bottom-0 left-0 w-16 h-16 border-b-4 border-l-4 border-[#c0580f] rounded-bl-2xl" />
+                        {/* Bottom right */}
+                        <div className="absolute bottom-0 right-0 w-16 h-16 border-b-4 border-r-4 border-[#c0580f] rounded-br-2xl" />
+                        
+                        {/* Scanning line animation */}
+                        <div className="absolute left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#17C0A9] to-transparent animate-scan" 
+                             style={{ top: '50%', animation: 'scan 2s ease-in-out infinite' }} />
+                      </div>
+                      
+                      {/* Scanner container */}
+                      <div id="qr-reader" className="w-full rounded-2xl overflow-hidden" />
+                    </div>
+                  </div>
+                  
+                  {/* Bottom Controls */}
+                  <div className="absolute bottom-0 left-0 right-0 z-50 bg-gradient-to-t from-black/90 to-transparent p-6 pb-safe pb-8">
+                    {/* Success/Error Toast */}
+                    {lastScannedTicket && (
+                      <div className="mb-4 mx-auto max-w-sm">
+                        <div className="bg-[#17C0A9] text-[#0B0B0F] rounded-2xl p-4 shadow-2xl animate-slideUp">
+                          <div className="flex items-start gap-3">
+                            <CheckCircle2 className="h-6 w-6 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1">
+                              <p className="font-semibold mb-1">Valid Ticket</p>
+                              <p className="text-sm opacity-90">
+                                {lastScannedTicket.tierName} • {lastScannedTicket.serial}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center justify-center gap-4">
+                      <Button
+                        onClick={() => setScannerEnabled(false)}
+                        size="lg"
+                        className="h-14 px-8 bg-white/10 backdrop-blur-sm text-white border border-white/20 hover:bg-white/20 hover:border-white/30 rounded-2xl font-medium"
+                        data-testid="button-stop-scanner"
+                      >
+                        <Square className="h-5 w-5 mr-2" />
+                        Stop Scanner
+                      </Button>
+                    </div>
+                    
+                    <p className="text-center text-white/60 text-sm mt-4">
+                      Point camera at QR code to scan
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Desktop Scanner Card */}
+                <Card className="hidden md:block border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden">
                   <CardContent className="p-4 md:p-6">
                     {/* Scanner viewport */}
                     <div className="relative">
