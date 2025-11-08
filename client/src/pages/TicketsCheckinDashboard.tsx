@@ -155,16 +155,24 @@ export function TicketsCheckinDashboard() {
   useEffect(() => {
     if (!scannerEnabled) return;
     
+    // Calculate optimal QR box size based on screen width
+    const isMobile = window.innerWidth < 768;
+    const qrboxSize = isMobile 
+      ? Math.min(window.innerWidth * 0.7, 300) // 70% of screen width on mobile, max 300px
+      : 280; // Fixed 280px on desktop
+    
     const scanner = new Html5QrcodeScanner(
       "qr-reader",
       { 
         fps: 10,
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
+        qrbox: { width: qrboxSize, height: qrboxSize },
+        aspectRatio: isMobile ? 16/9 : 1.0, // Wider aspect on mobile for better camera view
         showTorchButtonIfSupported: true,
         rememberLastUsedCamera: true,
         videoConstraints: {
-          facingMode: "environment"
+          facingMode: "environment",
+          width: { ideal: isMobile ? 1920 : 1280 },
+          height: { ideal: isMobile ? 1080 : 720 }
         }
       },
       false
@@ -345,45 +353,45 @@ export function TicketsCheckinDashboard() {
             {!scannerEnabled ? (
               <Card className="border-[#c0580f]/20 bg-gradient-to-br from-[#0B0B0F] to-[#1a1a1f] overflow-hidden">
                 <CardContent className="p-0">
-                  <div className="relative min-h-[400px] md:min-h-[500px] flex flex-col items-center justify-center p-8">
+                  <div className="relative min-h-[500px] md:min-h-[500px] flex flex-col items-center justify-center p-8 md:p-12">
                     {/* Animated background gradient */}
                     <div className="absolute inset-0 bg-gradient-to-br from-[#c0580f]/5 via-transparent to-[#17C0A9]/5 animate-pulse" />
                     
                     {/* Content */}
-                    <div className="relative z-10 text-center space-y-6 max-w-md mx-auto">
+                    <div className="relative z-10 text-center space-y-8 max-w-md mx-auto w-full">
                       {/* Animated camera icon */}
                       <div className="relative inline-block">
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#c0580f] to-[#d3541e] rounded-full blur-2xl opacity-30 animate-pulse" />
-                        <div className="relative bg-gradient-to-br from-[#c0580f]/20 to-[#d3541e]/20 p-8 rounded-full border-2 border-[#c0580f]/30 backdrop-blur-sm">
-                          <Camera className="h-16 w-16 md:h-20 md:w-20 text-[#c0580f]" />
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#c0580f] to-[#d3541e] rounded-full blur-3xl opacity-40 animate-pulse" />
+                        <div className="relative bg-gradient-to-br from-[#c0580f]/20 to-[#d3541e]/20 p-10 md:p-12 rounded-full border-2 border-[#c0580f]/30 backdrop-blur-sm">
+                          <Camera className="h-20 w-20 md:h-24 md:w-24 text-[#c0580f]" />
                         </div>
                       </div>
                       
                       {/* Title and description */}
-                      <div className="space-y-2">
-                        <h3 className="text-2xl md:text-3xl font-fraunces text-white">
+                      <div className="space-y-3">
+                        <h3 className="text-3xl md:text-4xl font-fraunces text-white">
                           QR Code Scanner
                         </h3>
-                        <p className="text-white/60 text-sm md:text-base">
+                        <p className="text-white/70 text-base md:text-lg">
                           Scan attendee tickets for instant check-in
                         </p>
                       </div>
                       
-                      {/* Start button */}
+                      {/* Start button - Large touch target */}
                       <Button
                         onClick={() => setScannerEnabled(true)}
                         size="lg"
                         data-testid="button-start-scanner"
-                        className="w-full h-14 md:h-16 text-base md:text-lg font-medium bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white shadow-lg shadow-[#c0580f]/30 transition-all duration-300 hover:shadow-xl hover:shadow-[#c0580f]/40 hover:scale-[1.02]"
+                        className="w-full h-16 md:h-18 text-lg md:text-xl font-medium bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white shadow-lg shadow-[#c0580f]/30 transition-all duration-300 hover:shadow-xl hover:shadow-[#c0580f]/40 hover:scale-[1.02] touch-target"
                       >
-                        <Camera className="h-6 w-6 mr-2" />
+                        <Camera className="h-7 w-7 mr-3" />
                         Start Scanner
                       </Button>
                       
                       {/* Instructions */}
-                      <div className="flex items-start gap-3 p-4 rounded-lg bg-white/5 border border-white/10 backdrop-blur-sm text-left">
-                        <AlertCircle className="h-5 w-5 text-[#17C0A9] flex-shrink-0 mt-0.5" />
-                        <div className="text-sm text-white/70 space-y-1">
+                      <div className="flex items-start gap-4 p-5 md:p-6 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm text-left">
+                        <AlertCircle className="h-6 w-6 text-[#17C0A9] flex-shrink-0 mt-0.5" />
+                        <div className="text-sm md:text-base text-white/70 space-y-2">
                           <p className="font-medium text-white/90">Before you start:</p>
                           <p>• Allow camera access when prompted</p>
                           <p>• Hold steady and point at the QR code</p>
@@ -395,58 +403,69 @@ export function TicketsCheckinDashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {/* Scanner Card */}
-                <Card className="border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden">
-                  <CardContent className="p-4 md:p-6">
-                    {/* Scanner viewport */}
+              <div className="space-y-0 md:space-y-4">
+                {/* Scanner Card - Mobile Full Screen Optimized */}
+                <Card className="border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden md:border">
+                  <CardContent className="p-0 md:p-6">
+                    {/* Scanner viewport - Large on mobile */}
                     <div className="relative">
-                      {/* Scanning frame overlay */}
-                      <div className="relative rounded-2xl overflow-hidden border-2 border-[#c0580f]/50 shadow-lg shadow-[#c0580f]/20">
-                        <div id="qr-reader" className="mx-auto" />
+                      {/* Mobile: Full width scanning area with optimal height */}
+                      <div className="relative rounded-none md:rounded-2xl overflow-hidden border-0 md:border-2 border-[#c0580f]/50 shadow-none md:shadow-lg md:shadow-[#c0580f]/20">
+                        {/* QR Reader Container - Optimized sizing */}
+                        <div className="relative bg-black/90 min-h-[65vh] md:min-h-[500px] flex items-center justify-center">
+                          <div id="qr-reader" className="w-full h-full" />
+                        </div>
                         
                         {/* Scanning animation overlay */}
                         <div className="absolute inset-0 pointer-events-none">
-                          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#c0580f] to-transparent animate-pulse" />
-                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#17C0A9] to-transparent animate-pulse" style={{ animationDelay: '0.5s' }} />
+                          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-[#c0580f] to-transparent animate-pulse" />
+                          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-[#17C0A9] to-transparent animate-pulse" style={{ animationDelay: '0.5s' }} />
                         </div>
                         
-                        {/* Corner indicators */}
-                        <div className="absolute top-4 left-4 w-8 h-8 border-t-4 border-l-4 border-[#c0580f] rounded-tl-lg" />
-                        <div className="absolute top-4 right-4 w-8 h-8 border-t-4 border-r-4 border-[#c0580f] rounded-tr-lg" />
-                        <div className="absolute bottom-4 left-4 w-8 h-8 border-b-4 border-l-4 border-[#c0580f] rounded-bl-lg" />
-                        <div className="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-[#c0580f] rounded-br-lg" />
-                      </div>
-                      
-                      {/* Scanning status */}
-                      <div className="mt-4 text-center">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#c0580f]/10 border border-[#c0580f]/30">
-                          <div className="w-2 h-2 bg-[#c0580f] rounded-full animate-pulse" />
-                          <span className="text-sm font-medium text-white/90">Scanning...</span>
+                        {/* Corner indicators - Larger on mobile */}
+                        <div className="absolute top-6 left-6 w-12 h-12 md:w-10 md:h-10 border-t-[5px] border-l-[5px] md:border-t-4 md:border-l-4 border-[#c0580f] rounded-tl-xl" />
+                        <div className="absolute top-6 right-6 w-12 h-12 md:w-10 md:h-10 border-t-[5px] border-r-[5px] md:border-t-4 md:border-r-4 border-[#c0580f] rounded-tr-xl" />
+                        <div className="absolute bottom-6 left-6 w-12 h-12 md:w-10 md:h-10 border-b-[5px] border-l-[5px] md:border-b-4 md:border-l-4 border-[#c0580f] rounded-bl-xl" />
+                        <div className="absolute bottom-6 right-6 w-12 h-12 md:w-10 md:h-10 border-b-[5px] border-r-[5px] md:border-b-4 md:border-r-4 border-[#c0580f] rounded-br-xl" />
+                        
+                        {/* Scanning status badge - Larger and more prominent */}
+                        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-20">
+                          <div className="inline-flex items-center gap-3 px-5 py-3 md:px-4 md:py-2 rounded-full bg-[#c0580f]/20 backdrop-blur-md border-2 border-[#c0580f]/50 shadow-lg">
+                            <div className="w-3 h-3 md:w-2.5 md:h-2.5 bg-[#c0580f] rounded-full animate-pulse" />
+                            <span className="text-base md:text-sm font-semibold text-white">Scanning...</span>
+                          </div>
+                        </div>
+                        
+                        {/* Scan instruction - Mobile optimized */}
+                        <div className="absolute bottom-24 md:bottom-20 left-1/2 -translate-x-1/2 z-20 text-center px-4">
+                          <p className="text-white/90 text-base md:text-sm font-medium bg-black/50 backdrop-blur-sm px-6 py-3 rounded-lg">
+                            Position QR code within frame
+                          </p>
                         </div>
                       </div>
                     </div>
                     
-                    {/* Control buttons */}
-                    <div className="mt-6 flex gap-3">
-                      <Button
-                        onClick={() => setScannerEnabled(false)}
-                        variant="outline"
-                        className="flex-1 h-12 border-white/20 hover:bg-white/5 hover:border-white/30"
-                        data-testid="button-stop-scanner"
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Stop Scanner
-                      </Button>
-                      <Button
-                        onClick={() => setSoundEnabled(!soundEnabled)}
-                        variant="outline"
-                        size="icon"
-                        className="h-12 w-12 border-white/20 hover:bg-white/5 hover:border-white/30"
-                        data-testid="button-toggle-sound-scanner"
-                      >
-                        {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                      </Button>
+                    {/* Control buttons - Fixed bottom bar on mobile, inline on desktop */}
+                    <div className="fixed md:relative bottom-0 left-0 right-0 md:mt-6 bg-[#0B0B0F]/95 md:bg-transparent backdrop-blur-lg md:backdrop-blur-none border-t-2 md:border-t-0 border-[#c0580f]/20 p-4 md:p-0 z-30">
+                      <div className="flex gap-3 max-w-lg mx-auto">
+                        <Button
+                          onClick={() => setScannerEnabled(false)}
+                          variant="outline"
+                          className="flex-1 h-14 md:h-12 text-base md:text-sm font-medium border-white/20 hover:bg-white/5 hover:border-white/30 touch-target"
+                          data-testid="button-stop-scanner"
+                        >
+                          <XCircle className="h-5 w-5 md:h-4 md:w-4 mr-2" />
+                          Stop Scanner
+                        </Button>
+                        <Button
+                          onClick={() => setSoundEnabled(!soundEnabled)}
+                          variant="outline"
+                          className="h-14 w-14 md:h-12 md:w-12 border-white/20 hover:bg-white/5 hover:border-white/30 touch-target"
+                          data-testid="button-toggle-sound-scanner"
+                        >
+                          {soundEnabled ? <Volume2 className="h-5 w-5 md:h-4 md:w-4" /> : <VolumeX className="h-5 w-5 md:h-4 md:w-4" />}
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

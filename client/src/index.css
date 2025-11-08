@@ -4,91 +4,180 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Mobile-Optimized QR Scanner Buttons */
+/* Mobile-First QR Scanner Optimization */
+
+/* Main QR Reader Container - Full Width on Mobile */
+#qr-reader {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Video Container - Responsive Sizing */
+#qr-reader__scan_region {
+  width: 100% !important;
+  max-width: 100% !important;
+  border: none !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+@media (min-width: 768px) {
+  #qr-reader__scan_region {
+    border-radius: 16px !important;
+  }
+}
+
+/* Video Element - Fill Container on Mobile */
+#qr-reader__scan_region video {
+  width: 100% !important;
+  height: auto !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+/* Camera Permissions Box */
+#qr-reader__scan_region img[alt="Info icon"] {
+  display: block !important;
+  margin: 24px auto !important;
+}
+
+/* Dashboard Section - Better Mobile Layout */
 #qr-reader__dashboard_section {
   display: flex !important;
   flex-direction: column !important;
-  gap: 12px !important;
-  padding: 16px 0 !important;
+  gap: 16px !important;
+  padding: 20px 16px !important;
   align-items: center !important;
+  background: transparent !important;
 }
 
+@media (min-width: 768px) {
+  #qr-reader__dashboard_section {
+    padding: 20px !important;
+  }
+}
+
+/* Camera Selection Row */
 #qr-reader__dashboard_section_csr {
   display: flex !important;
   flex-direction: column !important;
-  gap: 12px !important;
+  gap: 14px !important;
   width: 100% !important;
-  max-width: 400px !important;
+  max-width: 500px !important;
   margin: 0 auto !important;
 }
 
+/* Camera Selection Buttons - Large Touch Targets */
 #qr-reader__dashboard_section_csr > button,
 #qr-reader__dashboard_section_csr > span > button {
-  min-height: 56px !important;
+  min-height: 60px !important;
   height: auto !important;
-  padding: 14px 24px !important;
-  font-size: 16px !important;
+  padding: 16px 28px !important;
+  font-size: 17px !important;
   font-weight: 600 !important;
-  border-radius: 12px !important;
-  border: 2px solid rgba(192, 88, 15, 0.3) !important;
+  border-radius: 14px !important;
+  border: 2px solid rgba(192, 88, 15, 0.4) !important;
   background: linear-gradient(135deg, #c0580f 0%, #d3541e 100%) !important;
   color: white !important;
-  box-shadow: 0 4px 12px rgba(192, 88, 15, 0.25) !important;
+  box-shadow: 0 4px 14px rgba(192, 88, 15, 0.3) !important;
   transition: all 0.3s ease !important;
   width: 100% !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 8px !important;
+  gap: 10px !important;
+  cursor: pointer !important;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+@media (min-width: 768px) {
+  #qr-reader__dashboard_section_csr > button,
+  #qr-reader__dashboard_section_csr > span > button {
+    min-height: 52px !important;
+    font-size: 16px !important;
+  }
 }
 
 #qr-reader__dashboard_section_csr > button:hover,
 #qr-reader__dashboard_section_csr > span > button:hover {
   transform: translateY(-2px) !important;
-  box-shadow: 0 6px 16px rgba(192, 88, 15, 0.35) !important;
+  box-shadow: 0 6px 18px rgba(192, 88, 15, 0.4) !important;
   background: linear-gradient(135deg, #d3541e 0%, #c0580f 100%) !important;
 }
 
 #qr-reader__dashboard_section_csr > button:active,
 #qr-reader__dashboard_section_csr > span > button:active {
   transform: translateY(0) !important;
+  box-shadow: 0 2px 8px rgba(192, 88, 15, 0.3) !important;
 }
 
+/* Camera Selection Dropdown - Mobile Optimized */
 #qr-reader__camera_selection {
   width: 100% !important;
-  max-width: 400px !important;
+  max-width: 500px !important;
 }
 
 #qr-reader__camera_selection > select {
-  min-height: 56px !important;
-  padding: 14px 16px !important;
-  font-size: 16px !important;
+  min-height: 60px !important;
+  padding: 16px 18px !important;
+  font-size: 17px !important;
   font-weight: 500 !important;
-  border-radius: 12px !important;
-  border: 2px solid rgba(255, 255, 255, 0.1) !important;
-  background: rgba(11, 11, 15, 0.8) !important;
+  border-radius: 14px !important;
+  border: 2px solid rgba(255, 255, 255, 0.15) !important;
+  background: rgba(11, 11, 15, 0.9) !important;
   color: white !important;
   width: 100% !important;
-  backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(12px) !important;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='white'%3E%3Cpath d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 16px center !important;
+  padding-right: 50px !important;
 }
 
-#qr-reader__scan_region {
-  border-radius: 16px !important;
-  overflow: hidden !important;
+@media (min-width: 768px) {
+  #qr-reader__camera_selection > select {
+    min-height: 52px !important;
+    font-size: 16px !important;
+  }
 }
 
+/* Status Messages */
 #qr-reader__status_span {
-  font-size: 14px !important;
-  padding: 8px 16px !important;
-  border-radius: 8px !important;
-  background: rgba(192, 88, 15, 0.1) !important;
-  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 15px !important;
+  padding: 10px 18px !important;
+  border-radius: 10px !important;
+  background: rgba(192, 88, 15, 0.15) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
   border: 1px solid rgba(192, 88, 15, 0.3) !important;
+  font-weight: 500 !important;
 }
 
-/* Hide library's default styles we don't want */
+/* File Selection Row - If Shown */
 #qr-reader__dashboard_section_fsr {
-  margin-top: 16px !important;
+  margin-top: 20px !important;
+  width: 100% !important;
+}
+
+#qr-reader__dashboard_section_fsr > input {
+  width: 100% !important;
+  min-height: 56px !important;
+  padding: 14px 18px !important;
+  font-size: 16px !important;
+  border-radius: 12px !important;
+  border: 2px solid rgba(255, 255, 255, 0.15) !important;
+  background: rgba(11, 11, 15, 0.8) !important;
+  color: white !important;
+}
+
+/* Hide Elements That Cause Layout Issues */
+#qr-reader__header_message {
+  display: none !important;
 }
 
 /* Accessibility enhancements */
@@ -109,6 +198,16 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
+  }
+}
+
+/* Touch Target Optimization for Mobile */
+@layer utilities {
+  .touch-target {
+    min-height: 48px;
+    min-width: 48px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }
 
