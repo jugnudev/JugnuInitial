@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
@@ -286,6 +286,16 @@ export default function EnhancedCommunityDetailPage() {
   const [hasMorePosts, setHasMorePosts] = useState(true);
   const { toast } = useToast();
   const observerTarget = useRef<HTMLDivElement>(null);
+  
+  // View as Member mode - allows owners/moderators to see community as regular members
+  const getViewAsMemberFromStorage = () => {
+    if (!communitySlug) return false;
+    const stored = localStorage.getItem(`viewAsMember_${communitySlug}`);
+    return stored === 'true';
+  };
+  
+  const [viewAsMember, setViewAsMember] = useState(false);
+  const lastRehydratedSlugRef = useRef<string | null>(null);
 
   // Form states
   const [postForm, setPostForm] = useState({
@@ -386,8 +396,46 @@ export default function EnhancedCommunityDetailPage() {
   const isMember = membership?.status === 'approved';
   const isPending = membership?.status === 'pending';
   const isDeclined = membership?.status === 'declined';
-  const isOwner = membership?.role === 'owner' || canManage;
-  const isOwnerOrModerator = isOwner || membership?.role === 'moderator';
+  
+  // Track actual role for display purposes
+  const actualIsOwner = membership?.role === 'owner' || canManage;
+  const actualIsOwnerOrModerator = actualIsOwner || membership?.role === 'moderator';
+  
+  // Override roles when in "View as Member" mode
+  const isOwner = viewAsMember ? false : actualIsOwner;
+  const isOwnerOrModerator = viewAsMember ? false : actualIsOwnerOrModerator;
+
+  // Rehydrate viewAsMember from localStorage when communitySlug changes
+  // Using useLayoutEffect to ensure state is updated synchronously before write effect runs
+  useLayoutEffect(() => {
+    if (communitySlug && communitySlug !== lastRehydratedSlugRef.current) {
+      // Load the correct value for this community
+      const storedValue = getViewAsMemberFromStorage();
+      setViewAsMember(storedValue);
+      
+      // Mark this slug as rehydrated
+      lastRehydratedSlugRef.current = communitySlug;
+    }
+  }, [communitySlug]);
+  
+  // Sync viewAsMember with localStorage (only after slug has been rehydrated)
+  useEffect(() => {
+    // Only write if we've already rehydrated this specific slug
+    if (communitySlug && lastRehydratedSlugRef.current === communitySlug) {
+      localStorage.setItem(`viewAsMember_${communitySlug}`, String(viewAsMember));
+    }
+  }, [viewAsMember, communitySlug]);
+  
+  // Toggle view as member mode
+  const toggleViewAsMember = () => {
+    setViewAsMember(!viewAsMember);
+    toast({
+      title: !viewAsMember ? "Viewing as Member" : "Management Mode Restored",
+      description: !viewAsMember 
+        ? "You're now seeing the community as a regular member would" 
+        : "All management features are now visible again",
+    });
+  };
 
   // Sync slowmode value when community data loads
   useEffect(() => {
@@ -1303,6 +1351,15 @@ export default function EnhancedCommunityDetailPage() {
                 <Share2 className="h-4 w-4 mr-2" />
                 Share Community
               </DropdownMenuItem>
+              {actualIsOwnerOrModerator && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={toggleViewAsMember} data-testid="toggle-view-as-member">
+                    <Eye className="h-4 w-4 mr-2" />
+                    {viewAsMember ? "Exit Member View" : "View as Member"}
+                  </DropdownMenuItem>
+                </>
+              )}
               {isOwner && (
                 <>
                   <DropdownMenuSeparator />
@@ -1387,6 +1444,36 @@ export default function EnhancedCommunityDetailPage() {
           </div>
         </div>
       </motion.div>
+      
+      {/* View as Member Banner */}
+      {viewAsMember && actualIsOwnerOrModerator && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="sticky top-0 z-40 bg-gradient-to-r from-jade-500/90 to-accent/90 backdrop-blur-md border-b border-jade-400/30 shadow-lg"
+        >
+          <div className="max-w-6xl mx-auto px-4 md:px-6 py-3">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Eye className="h-5 w-5 text-charcoal-900 flex-shrink-0" />
+                <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2">
+                  <span className="text-sm font-semibold text-charcoal-900">Member View Active</span>
+                  <span className="text-xs text-charcoal-800/90">You're seeing what regular members see</span>
+                </div>
+              </div>
+              <Button
+                onClick={toggleViewAsMember}
+                variant="outline"
+                size="sm"
+                className="bg-charcoal-900/90 text-white hover:bg-charcoal-800 border-charcoal-700 flex-shrink-0"
+                data-testid="exit-member-view"
+              >
+                Exit
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      )}
       
       {/* Content Area */}
       <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
