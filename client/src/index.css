@@ -93,7 +93,7 @@
 
 /* Mobile Full-Screen Scanner Optimizations */
 @media (max-width: 768px) {
-  /* Hide all controls on mobile - we use custom overlay */
+  /* Hide library controls on mobile - we use custom overlay */
   #qr-reader__dashboard_section,
   #qr-reader__dashboard_section_csr,
   #qr-reader__dashboard_section_fsr,
@@ -101,18 +101,26 @@
     display: none !important;
   }
   
+  /* Make scanner container full width */
+  #qr-reader {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
   /* Make scanner video full-screen */
   #qr-reader__scan_region {
     border: none !important;
-    border-radius: 0 !important;
+    border-radius: 16px !important;
     width: 100% !important;
-    max-width: none !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
   }
   
   #qr-reader video {
-    object-fit: cover !important;
     width: 100% !important;
-    height: 100vh !important;
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 16px !important;
   }
 }
 
