@@ -299,6 +299,53 @@ export function addCommunitiesRoutes(app: Express) {
   app.use('/api/user/*', ipBlocker.middleware());
   app.use('/api/user/*', sanitizeMiddleware());
 
+  // ============ ADMIN UTILITIES ============
+
+  /**
+   * POST /api/admin/communities/sync-counts
+   * One-time sync to populate member and post counts for all existing communities
+   * Admin-only endpoint
+   */
+  app.post('/api/admin/communities/sync-counts', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      console.log('🔄 Starting community counts sync...');
+      
+      // Get all communities (including private ones for this sync)
+      const { data: allCommunities, error } = await (communitiesStorage as any).client
+        .from('communities')
+        .select('id, name')
+        .eq('status', 'active');
+      
+      if (error) throw error;
+      
+      const results = [];
+      for (const community of allCommunities || []) {
+        try {
+          await communitiesStorage.updateCommunityMemberCount(community.id);
+          await communitiesStorage.updateCommunityPostCount(community.id);
+          results.push({ id: community.id, name: community.name, status: 'success' });
+          console.log(`✅ Synced counts for: ${community.name}`);
+        } catch (error: any) {
+          results.push({ id: community.id, name: community.name, status: 'error', error: error.message });
+          console.error(`❌ Failed to sync counts for: ${community.name}`, error);
+        }
+      }
+      
+      console.log('✅ Community counts sync complete!');
+      res.json({
+        ok: true,
+        message: 'Community counts synchronized',
+        results,
+        total: results.length,
+        successful: results.filter(r => r.status === 'success').length,
+        failed: results.filter(r => r.status === 'error').length
+      });
+    } catch (error: any) {
+      console.error('Sync counts error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to sync counts' });
+    }
+  });
+
   // ============ AUTHENTICATION ENDPOINTS ============
 
   /**
