@@ -330,72 +330,163 @@ export function TicketsCheckinDashboard() {
           
           {/* QR Scanner Tab */}
           <TabsContent value="scanner" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <QrCode className="h-5 w-5" />
-                  QR Code Scanner
-                </CardTitle>
-                <CardDescription>
-                  Scan attendee QR codes for quick check-in
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {!scannerEnabled ? (
-                  <div className="text-center py-12">
-                    <Camera className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                    <Button
-                      onClick={() => setScannerEnabled(true)}
-                      size="lg"
-                      data-testid="button-start-scanner"
-                    >
-                      <Camera className="h-5 w-5 mr-2" />
-                      Start Scanner
-                    </Button>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Make sure to allow camera access when prompted
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <div id="qr-reader" className="mx-auto max-w-md" />
-                    <Button
-                      onClick={() => setScannerEnabled(false)}
-                      variant="outline"
-                      className="w-full"
-                      data-testid="button-stop-scanner"
-                    >
-                      Stop Scanner
-                    </Button>
-                  </>
-                )}
-                
-                {/* Last Scanned Ticket */}
-                {lastScannedTicket && (
-                  <Alert>
-                    <CheckCircle2 className="h-4 w-4" />
-                    <AlertDescription>
-                      <div className="space-y-2">
-                        <p className="font-medium">Valid Ticket Detected</p>
-                        <div className="text-sm space-y-1">
-                          <p>Name: {lastScannedTicket.buyerName}</p>
-                          <p>Tier: {lastScannedTicket.tierName}</p>
-                          <p>Serial: {lastScannedTicket.serial}</p>
+            {!scannerEnabled ? (
+              <Card className="border-[#c0580f]/20 bg-gradient-to-br from-[#0B0B0F] to-[#1a1a1f] overflow-hidden">
+                <CardContent className="p-0">
+                  <div className="relative min-h-[400px] md:min-h-[500px] flex flex-col items-center justify-center p-8">
+                    {/* Animated background gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#c0580f]/5 via-transparent to-[#17C0A9]/5 animate-pulse" />
+                    
+                    {/* Content */}
+                    <div className="relative z-10 text-center space-y-6 max-w-md mx-auto">
+                      {/* Animated camera icon */}
+                      <div className="relative inline-block">
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#c0580f] to-[#d3541e] rounded-full blur-2xl opacity-30 animate-pulse" />
+                        <div className="relative bg-gradient-to-br from-[#c0580f]/20 to-[#d3541e]/20 p-8 rounded-full border-2 border-[#c0580f]/30 backdrop-blur-sm">
+                          <Camera className="h-16 w-16 md:h-20 md:w-20 text-[#c0580f]" />
                         </div>
+                      </div>
+                      
+                      {/* Title and description */}
+                      <div className="space-y-2">
+                        <h3 className="text-2xl md:text-3xl font-fraunces text-white">
+                          QR Code Scanner
+                        </h3>
+                        <p className="text-white/60 text-sm md:text-base">
+                          Scan attendee tickets for instant check-in
+                        </p>
+                      </div>
+                      
+                      {/* Start button */}
+                      <Button
+                        onClick={() => setScannerEnabled(true)}
+                        size="lg"
+                        data-testid="button-start-scanner"
+                        className="w-full h-14 md:h-16 text-base md:text-lg font-medium bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white shadow-lg shadow-[#c0580f]/30 transition-all duration-300 hover:shadow-xl hover:shadow-[#c0580f]/40 hover:scale-[1.02]"
+                      >
+                        <Camera className="h-6 w-6 mr-2" />
+                        Start Scanner
+                      </Button>
+                      
+                      {/* Instructions */}
+                      <div className="flex items-start gap-3 p-4 rounded-lg bg-white/5 border border-white/10 backdrop-blur-sm text-left">
+                        <AlertCircle className="h-5 w-5 text-[#17C0A9] flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-white/70 space-y-1">
+                          <p className="font-medium text-white/90">Before you start:</p>
+                          <p>• Allow camera access when prompted</p>
+                          <p>• Hold steady and point at the QR code</p>
+                          <p>• Works best in good lighting</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {/* Scanner Card */}
+                <Card className="border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden">
+                  <CardContent className="p-4 md:p-6">
+                    {/* Scanner viewport */}
+                    <div className="relative">
+                      {/* Scanning frame overlay */}
+                      <div className="relative rounded-2xl overflow-hidden border-2 border-[#c0580f]/50 shadow-lg shadow-[#c0580f]/20">
+                        <div id="qr-reader" className="mx-auto" />
+                        
+                        {/* Scanning animation overlay */}
+                        <div className="absolute inset-0 pointer-events-none">
+                          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#c0580f] to-transparent animate-pulse" />
+                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#17C0A9] to-transparent animate-pulse" style={{ animationDelay: '0.5s' }} />
+                        </div>
+                        
+                        {/* Corner indicators */}
+                        <div className="absolute top-4 left-4 w-8 h-8 border-t-4 border-l-4 border-[#c0580f] rounded-tl-lg" />
+                        <div className="absolute top-4 right-4 w-8 h-8 border-t-4 border-r-4 border-[#c0580f] rounded-tr-lg" />
+                        <div className="absolute bottom-4 left-4 w-8 h-8 border-b-4 border-l-4 border-[#c0580f] rounded-bl-lg" />
+                        <div className="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-[#c0580f] rounded-br-lg" />
+                      </div>
+                      
+                      {/* Scanning status */}
+                      <div className="mt-4 text-center">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#c0580f]/10 border border-[#c0580f]/30">
+                          <div className="w-2 h-2 bg-[#c0580f] rounded-full animate-pulse" />
+                          <span className="text-sm font-medium text-white/90">Scanning...</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Control buttons */}
+                    <div className="mt-6 flex gap-3">
+                      <Button
+                        onClick={() => setScannerEnabled(false)}
+                        variant="outline"
+                        className="flex-1 h-12 border-white/20 hover:bg-white/5 hover:border-white/30"
+                        data-testid="button-stop-scanner"
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Stop Scanner
+                      </Button>
+                      <Button
+                        onClick={() => setSoundEnabled(!soundEnabled)}
+                        variant="outline"
+                        size="icon"
+                        className="h-12 w-12 border-white/20 hover:bg-white/5 hover:border-white/30"
+                        data-testid="button-toggle-sound-scanner"
+                      >
+                        {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Last Scanned Ticket - Premium Design */}
+                {lastScannedTicket && (
+                  <Card className="border-[#17C0A9]/30 bg-gradient-to-br from-[#17C0A9]/5 to-transparent animate-in slide-in-from-bottom-4 duration-300">
+                    <CardContent className="p-6">
+                      <div className="space-y-4">
+                        {/* Success header */}
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-[#17C0A9]/20 rounded-full">
+                            <CheckCircle2 className="h-6 w-6 text-[#17C0A9]" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-lg text-white">Valid Ticket Detected</p>
+                            <p className="text-sm text-white/60">Ready to check in</p>
+                          </div>
+                        </div>
+                        
+                        {/* Ticket details */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-lg bg-white/5 border border-white/10">
+                          <div>
+                            <p className="text-xs text-white/50 mb-1">Name</p>
+                            <p className="font-medium text-white">{lastScannedTicket.buyerName}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-white/50 mb-1">Ticket Tier</p>
+                            <p className="font-medium text-white">{lastScannedTicket.tierName}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-white/50 mb-1">Serial</p>
+                            <p className="font-medium text-white font-mono text-sm">{lastScannedTicket.serial}</p>
+                          </div>
+                        </div>
+                        
+                        {/* Confirm button */}
                         <Button
                           onClick={() => checkinMutation.mutate(lastScannedTicket.qrToken)}
-                          className="w-full"
+                          className="w-full h-14 text-base font-medium bg-gradient-to-r from-[#17C0A9] to-[#15a890] hover:from-[#15a890] hover:to-[#17C0A9] text-white shadow-lg shadow-[#17C0A9]/30 transition-all duration-300 hover:shadow-xl hover:shadow-[#17C0A9]/40"
                           disabled={checkinMutation.isPending}
                           data-testid="button-confirm-checkin"
                         >
+                          <UserCheck className="h-5 w-5 mr-2" />
                           {checkinMutation.isPending ? "Checking in..." : "Confirm Check-in"}
                         </Button>
                       </div>
-                    </AlertDescription>
-                  </Alert>
+                    </CardContent>
+                  </Card>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            )}
           </TabsContent>
           
           {/* Manual Check-in Tab */}
