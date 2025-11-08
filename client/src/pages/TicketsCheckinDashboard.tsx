@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5QrcodeScanner } from "html5-qrcode";
 import { format } from "date-fns";
 import { 
   QrCode, Users, CheckCircle2, XCircle, Clock, Search, 
@@ -151,77 +151,35 @@ export function TicketsCheckinDashboard() {
     }
   });
   
-  // QR Scanner setup with Html5Qrcode (manual control)
+  // QR Scanner setup - ORIGINAL WORKING VERSION
   useEffect(() => {
-    console.log('[Scanner] useEffect triggered, scannerEnabled:', scannerEnabled);
+    if (!scannerEnabled) return;
     
-    if (!scannerEnabled) {
-      console.log('[Scanner] Scanner not enabled, returning');
-      return;
-    }
+    const scanner = new Html5QrcodeScanner(
+      "qr-reader",
+      { 
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        showTorchButtonIfSupported: true,
+        rememberLastUsedCamera: true,
+      },
+      false
+    );
     
-    console.log('[Scanner] Setting up Html5Qrcode scanner...');
-    
-    let html5QrCode: Html5Qrcode | null = null;
-    
-    const startScanner = async () => {
-      try {
-        const element = document.getElementById('qr-reader');
-        console.log('[Scanner] qr-reader element:', element);
-        
-        if (!element) {
-          console.error('[Scanner] ERROR: qr-reader element not found!');
-          return;
-        }
-        
-        console.log('[Scanner] Creating Html5Qrcode instance...');
-        html5QrCode = new Html5Qrcode("qr-reader");
-        
-        console.log('[Scanner] Starting camera...');
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
-          },
-          (decodedText) => {
-            console.log('[Scanner] QR code scanned:', decodedText);
-            validateMutation.mutate(decodedText, {
-              onSuccess: (data) => {
-                console.log('[Scanner] Validation response:', data);
-              }
-            });
-          },
-          (error) => {
-            // Ignore scan errors silently
-          }
-        );
-        
-        console.log('[Scanner] Camera started successfully!');
-      } catch (error) {
-        console.error('[Scanner] Error starting scanner:', error);
-        toast({
-          title: "Camera Error",
-          description: "Could not access camera. Please check permissions.",
-          variant: "destructive"
-        });
+    scanner.render(
+      (decodedText) => {
+        validateMutation.mutate(decodedText);
+      },
+      (error) => {
+        // Ignore scan errors
       }
-    };
-    
-    startScanner();
+    );
     
     return () => {
-      console.log('[Scanner] Cleanup - stopping scanner');
-      if (html5QrCode) {
-        html5QrCode.stop().then(() => {
-          console.log('[Scanner] Scanner stopped');
-        }).catch((err) => {
-          console.error('[Scanner] Error stopping scanner:', err);
-        });
-      }
+      scanner.clear().catch(() => {});
     };
-  }, [scannerEnabled, eventId]);
+  }, [scannerEnabled]);
   
   // Sound effects
   const playSound = (type: 'success' | 'error' | 'checkin') => {
