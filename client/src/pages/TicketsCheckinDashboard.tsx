@@ -459,62 +459,63 @@ export function TicketsCheckinDashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <Card className="border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden">
-                <CardContent className="p-0">
-                  {/* Top controls bar */}
-                  <div className="flex items-center justify-between p-4 border-b border-[#c0580f]/20">
-                    <Button
-                      onClick={() => setScannerEnabled(false)}
-                      variant="ghost"
-                      size="sm"
-                      className="text-white/80 hover:text-white hover:bg-white/10"
-                      data-testid="button-close-scanner"
-                    >
-                      <X className="h-5 w-5 mr-2" />
-                      Close
-                    </Button>
-                    <div className="text-sm font-medium text-[#17C0A9]">
-                      Scanning...
+              <div className="space-y-4">
+                <Card className="border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden">
+                  <CardContent className="p-0">
+                    {/* Top controls bar */}
+                    <div className="flex items-center justify-between p-4 border-b border-[#c0580f]/20">
+                      <Button
+                        onClick={() => setScannerEnabled(false)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-white/80 hover:text-white hover:bg-white/10"
+                        data-testid="button-close-scanner"
+                      >
+                        <X className="h-5 w-5 mr-2" />
+                        Close
+                      </Button>
+                      <div className="text-sm font-medium text-[#17C0A9]">
+                        Scanning...
+                      </div>
+                      <Button
+                        onClick={() => setSoundEnabled(!soundEnabled)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-white/80 hover:text-white hover:bg-white/10"
+                      >
+                        {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                      </Button>
                     </div>
-                    <Button
-                      onClick={() => setSoundEnabled(!soundEnabled)}
-                      variant="ghost"
-                      size="sm"
-                      className="text-white/80 hover:text-white hover:bg-white/10"
-                    >
-                      {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-                    </Button>
-                  </div>
-                  
-                  {/* Scanner viewport - SINGLE element for both mobile and desktop */}
-                  <div className="relative bg-black p-4">
-                    <div id="qr-reader" className="w-full max-w-2xl mx-auto" style={{ minHeight: '400px' }} />
-                  </div>
-                  
-                  {/* Bottom info */}
-                  <div className="p-4 bg-gradient-to-t from-[#c0580f]/10 to-transparent">
-                    {lastScannedTicket && (
-                      <div className="mb-3 max-w-2xl mx-auto">
-                        <div className="bg-[#17C0A9] text-[#0B0B0F] rounded-xl p-3 shadow-lg">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-sm">Valid Ticket</p>
-                              <p className="text-xs opacity-90 truncate">
-                                {lastScannedTicket.tierName} • {lastScannedTicket.serial}
-                              </p>
+                    
+                    {/* Scanner viewport - SINGLE element for both mobile and desktop */}
+                    <div className="relative bg-black p-4">
+                      <div id="qr-reader" className="w-full max-w-2xl mx-auto" style={{ minHeight: '400px' }} />
+                    </div>
+                    
+                    {/* Bottom info */}
+                    <div className="p-4 bg-gradient-to-t from-[#c0580f]/10 to-transparent">
+                      {lastScannedTicket && (
+                        <div className="mb-3 max-w-2xl mx-auto">
+                          <div className="bg-[#17C0A9] text-[#0B0B0F] rounded-xl p-3 shadow-lg">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm">Valid Ticket</p>
+                                <p className="text-xs opacity-90 truncate">
+                                  {lastScannedTicket.tierName} • {lastScannedTicket.serial}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    )}
-                    <p className="text-center text-white/60 text-sm">
-                      Point camera at QR code to scan
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-                
+                      )}
+                      <p className="text-center text-white/60 text-sm">
+                        Point camera at QR code to scan
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+                  
                 {/* Last Scanned Ticket - Premium Design */}
                 {lastScannedTicket && (
                   <Card className="border-[#17C0A9]/30 bg-gradient-to-br from-[#17C0A9]/5 to-transparent animate-in slide-in-from-bottom-4 duration-300">
