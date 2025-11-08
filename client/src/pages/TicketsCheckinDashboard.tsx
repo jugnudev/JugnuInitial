@@ -100,8 +100,8 @@ export function TicketsCheckinDashboard() {
     refetchInterval: 5000 // Auto-refresh every 5 seconds
   });
   
-  // Fetch attendees list
-  const { data: attendeesData, refetch: refetchAttendees } = useQuery<{ attendees: Attendee[] }>({
+  // Fetch attendees list - only when sheet is open
+  const { data: attendeesData, refetch: refetchAttendees, isLoading: attendeesLoading } = useQuery<{ attendees: Attendee[] }>({
     queryKey: ['/api/tickets/events', eventId, 'attendees', filterStatus, manualSearch],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -112,7 +112,8 @@ export function TicketsCheckinDashboard() {
       if (!response.ok) throw new Error('Failed to fetch attendees');
       return response.json();
     },
-    enabled: !!eventId
+    enabled: !!eventId && showManualSheet,
+    staleTime: 10000 // Cache for 10 seconds
   });
   
   // Validate ticket mutation
@@ -192,53 +193,60 @@ export function TicketsCheckinDashboard() {
       setIsMobileFullScreen(true);
     }
     
-    // Calculate optimal QR box size based on screen width
-    const qrboxSize = isMobile 
-      ? Math.min(window.innerWidth * 0.75, 300) // 75% of screen width on mobile, max 300px
-      : 280; // Fixed 280px on desktop
-    
-    const scanner = new Html5QrcodeScanner(
-      "qr-reader",
-      { 
-        fps: isMobile ? 5 : 10, // Reduced FPS on mobile for better performance
-        qrbox: { width: qrboxSize, height: qrboxSize },
-        aspectRatio: 1.0,
-        showTorchButtonIfSupported: true,
-        rememberLastUsedCamera: true,
-        videoConstraints: {
-          facingMode: "environment",
-          width: { ideal: isMobile ? 1280 : 1920 }, // Lower resolution on mobile
-          height: { ideal: isMobile ? 720 : 1080 }
-        }
-      },
-      false
-    );
-    
-    scanner.render(
-      (decodedText) => {
-        // Only pause if we successfully validate
-        validateMutation.mutate(decodedText, {
-          onSuccess: (data) => {
-            if (data.ok) {
-              scanner.pause();
-              setTimeout(() => {
-                try {
-                  scanner.resume();
-                } catch (e) {
-                  // Scanner might be cleared
-                }
-              }, 3000);
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      try {
+        // Calculate optimal QR box size based on screen width
+        const qrboxSize = isMobile 
+          ? Math.min(window.innerWidth * 0.75, 300) // 75% of screen width on mobile, max 300px
+          : 280; // Fixed 280px on desktop
+        
+        const scanner = new Html5QrcodeScanner(
+          "qr-reader",
+          { 
+            fps: isMobile ? 5 : 10, // Reduced FPS on mobile for better performance
+            qrbox: { width: qrboxSize, height: qrboxSize },
+            aspectRatio: 1.0,
+            showTorchButtonIfSupported: true,
+            rememberLastUsedCamera: true,
+            videoConstraints: {
+              facingMode: "environment",
+              width: { ideal: isMobile ? 1280 : 1920 }, // Lower resolution on mobile
+              height: { ideal: isMobile ? 720 : 1080 }
             }
+          },
+          false
+        );
+        
+        scanner.render(
+          (decodedText) => {
+            // Only pause if we successfully validate
+            validateMutation.mutate(decodedText, {
+              onSuccess: (data) => {
+                if (data.ok) {
+                  scanner.pause();
+                  setTimeout(() => {
+                    try {
+                      scanner.resume();
+                    } catch (e) {
+                      // Scanner might be cleared
+                    }
+                  }, 3000);
+                }
+              }
+            });
+          },
+          (error) => {
+            // Ignore scan errors (common when camera is moving)
           }
-        });
-      },
-      (error) => {
-        // Ignore scan errors (common when camera is moving)
+        );
+      } catch (error) {
+        console.error('[Scanner] Error setting up scanner:', error);
       }
-    );
+    }, 100); // 100ms delay
     
     return () => {
-      scanner.clear();
+      clearTimeout(timer);
     };
   }, [scannerEnabled, eventId]);
   
@@ -559,56 +567,68 @@ export function TicketsCheckinDashboard() {
                             </div>
                             
                             <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow className="border-white/10 hover:bg-transparent">
-                                    <TableHead className="text-white/70">Name</TableHead>
-                                    <TableHead className="text-white/70">Tier</TableHead>
-                                    <TableHead className="text-white/70">Status</TableHead>
-                                    <TableHead className="text-white/70">Action</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {attendeesData?.attendees?.map((attendee) => (
-                                    <TableRow key={attendee.ticketId} className="border-white/10">
-                                      <TableCell>
-                                        <div>
-                                          <p className="font-medium text-white">{attendee.buyerName}</p>
-                                          <p className="text-xs text-white/50">{attendee.buyerEmail}</p>
-                                        </div>
-                                      </TableCell>
-                                      <TableCell className="text-white/80">{attendee.tierName}</TableCell>
-                                      <TableCell>
-                                        {attendee.status === 'used' ? (
-                                          <Badge variant="outline" className="bg-[#17C0A9]/20 text-[#17C0A9] border-[#17C0A9]/30">
-                                            Checked In
-                                          </Badge>
-                                        ) : (
-                                          <Badge variant="outline" className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
-                                            Pending
-                                          </Badge>
-                                        )}
-                                      </TableCell>
-                                      <TableCell>
-                                        {attendee.status !== 'used' && (
-                                          <Button
-                                            size="sm"
-                                            onClick={() => {
-                                              checkinMutation.mutate(attendee.qrToken);
-                                              setShowManualSheet(false);
-                                            }}
-                                            disabled={checkinMutation.isPending}
-                                            className="bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f]"
-                                            data-testid={`button-checkin-mobile-${attendee.serial}`}
-                                          >
-                                            Check In
-                                          </Button>
-                                        )}
-                                      </TableCell>
+                              {attendeesLoading ? (
+                                <div className="flex items-center justify-center py-12">
+                                  <div className="text-white/60">Loading attendees...</div>
+                                </div>
+                              ) : !attendeesData?.attendees || attendeesData.attendees.length === 0 ? (
+                                <div className="flex items-center justify-center py-12">
+                                  <div className="text-white/60">
+                                    {manualSearch ? 'No attendees found matching your search' : 'No attendees found'}
+                                  </div>
+                                </div>
+                              ) : (
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow className="border-white/10 hover:bg-transparent">
+                                      <TableHead className="text-white/70">Name</TableHead>
+                                      <TableHead className="text-white/70">Tier</TableHead>
+                                      <TableHead className="text-white/70">Status</TableHead>
+                                      <TableHead className="text-white/70">Action</TableHead>
                                     </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {attendeesData.attendees.map((attendee) => (
+                                      <TableRow key={attendee.ticketId} className="border-white/10">
+                                        <TableCell>
+                                          <div>
+                                            <p className="font-medium text-white">{attendee.buyerName}</p>
+                                            <p className="text-xs text-white/50">{attendee.buyerEmail}</p>
+                                          </div>
+                                        </TableCell>
+                                        <TableCell className="text-white/80">{attendee.tierName}</TableCell>
+                                        <TableCell>
+                                          {attendee.status === 'used' ? (
+                                            <Badge variant="outline" className="bg-[#17C0A9]/20 text-[#17C0A9] border-[#17C0A9]/30">
+                                              Checked In
+                                            </Badge>
+                                          ) : (
+                                            <Badge variant="outline" className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
+                                              Pending
+                                            </Badge>
+                                          )}
+                                        </TableCell>
+                                        <TableCell>
+                                          {attendee.status !== 'used' && (
+                                            <Button
+                                              size="sm"
+                                              onClick={() => {
+                                                checkinMutation.mutate(attendee.qrToken);
+                                                setShowManualSheet(false);
+                                              }}
+                                              disabled={checkinMutation.isPending}
+                                              className="bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f]"
+                                              data-testid={`button-checkin-mobile-${attendee.serial}`}
+                                            >
+                                              Check In
+                                            </Button>
+                                          )}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              )}
                             </ScrollArea>
                           </div>
                         </SheetContent>
