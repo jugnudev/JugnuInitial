@@ -524,8 +524,8 @@ export function TicketsCheckinDashboard() {
                             Manual Check-in
                           </Button>
                         </SheetTrigger>
-                        <SheetContent side="bottom" className="h-[85vh] bg-[#0B0B0F] border-t-2 border-[#c0580f]/30">
-                          <SheetHeader className="text-left mb-4">
+                        <SheetContent side="bottom" className="h-[90dvh] max-h-[90dvh] bg-[#0B0B0F] border-t-2 border-[#c0580f]/30 flex flex-col">
+                          <SheetHeader className="text-left mb-4 flex-shrink-0">
                             <SheetTitle className="text-white font-fraunces text-2xl">Manual Check-in</SheetTitle>
                             <SheetDescription className="text-white/60">
                               Search for attendees by name, email, or serial number
@@ -533,8 +533,8 @@ export function TicketsCheckinDashboard() {
                           </SheetHeader>
                           
                           {/* Manual check-in content */}
-                          <div className="space-y-4">
-                            <div className="flex gap-2">
+                          <div className="flex-1 flex flex-col min-h-0 space-y-4">
+                            <div className="flex gap-2 flex-shrink-0">
                               <div className="flex-1">
                                 <Input
                                   placeholder="Search by name, email, or serial..."
@@ -542,6 +542,8 @@ export function TicketsCheckinDashboard() {
                                   onChange={(e) => setManualSearch(e.target.value)}
                                   className="h-12 bg-white/5 border-white/20 text-white placeholder:text-white/40"
                                   data-testid="input-manual-search-mobile"
+                                  autoFocus={false}
+                                  inputMode="search"
                                 />
                               </div>
                               <Select value={filterStatus} onValueChange={setFilterStatus}>
@@ -556,7 +558,7 @@ export function TicketsCheckinDashboard() {
                               </Select>
                             </div>
                             
-                            <ScrollArea className="h-[calc(85vh-180px)]">
+                            <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
                               <Table>
                                 <TableHeader>
                                   <TableRow className="border-white/10 hover:bg-transparent">
