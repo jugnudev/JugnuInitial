@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { format } from "date-fns";
+import { Helmet } from "react-helmet-async";
 import { 
   QrCode, Users, CheckCircle2, XCircle, Clock, Search, 
   Download, RefreshCw, Camera, Volume2, VolumeX,
@@ -74,12 +75,12 @@ export function TicketsCheckinDashboard() {
   const { toast } = useToast();
   
   const [scannerEnabled, setScannerEnabled] = useState(false);
-  const [isActiveScan, setIsActiveScan] = useState(false); // Full-screen mobile scanning mode
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [manualSearch, setManualSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [lastScannedTicket, setLastScannedTicket] = useState<any>(null);
   const [showManualSheet, setShowManualSheet] = useState(false);
+  const [isMobileFullScreen, setIsMobileFullScreen] = useState(false);
   
   // Fetch event details
   const { data: event } = useQuery({
@@ -165,14 +166,14 @@ export function TicketsCheckinDashboard() {
   // QR Scanner setup
   useEffect(() => {
     if (!scannerEnabled) {
-      setIsActiveScan(false);
+      setIsMobileFullScreen(false);
       return;
     }
     
-    // Activate full-screen mode on mobile
+    // Detect mobile and enable full-screen mode
     const isMobile = window.innerWidth < 768;
     if (isMobile) {
-      setIsActiveScan(true);
+      setIsMobileFullScreen(true);
     }
     
     // Calculate optimal QR box size based on screen width
@@ -220,18 +221,8 @@ export function TicketsCheckinDashboard() {
       }
     );
     
-    // Resize listener for responsive qrbox
-    const handleResize = () => {
-      const newIsMobile = window.innerWidth < 768;
-      setIsActiveScan(newIsMobile && scannerEnabled);
-    };
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
-    
     return () => {
       scanner.clear();
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
     };
   }, [scannerEnabled, eventId]);
   
@@ -266,190 +257,23 @@ export function TicketsCheckinDashboard() {
   
   if (!eventId) return null;
   
-  // Note: We don't return a separate layout for mobile full-screen anymore
-  // Instead, we use conditional styling to make the scanner full-screen on mobile
-  // This keeps the #qr-reader element in the same DOM location so the library works properly
+  const eventTitle = (event as any)?.event?.title || 'Event';
   
   return (
-    <div className={`min-h-screen bg-background ${isActiveScan ? 'fixed inset-0 z-50 bg-[#0B0B0F]' : ''}`}>
-      {/* Full-screen overlay controls - only show when isActiveScan is true */}
-      {isActiveScan && scannerEnabled && (
-        <>
-          {/* Overlay Controls - Top Bar */}
-          <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/60 to-transparent" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-            {/* Back/Close button */}
-            <Button
-              onClick={() => setScannerEnabled(false)}
-              variant="ghost"
-              size="icon"
-              className="h-12 w-12 rounded-full bg-black/40 backdrop-blur-md hover:bg-black/60 text-white border border-white/20 touch-target"
-              data-testid="button-close-scanner"
-            >
-              <X className="h-6 w-6" />
-            </Button>
-            
-            {/* Event title */}
-            <div className="flex-1 mx-4 text-center">
-              <p className="text-white font-medium text-sm line-clamp-1">
-                {(event as any)?.event?.title}
-              </p>
-            </div>
-            
-            {/* Sound toggle */}
-            <Button
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              variant="ghost"
-              size="icon"
-              className="h-12 w-12 rounded-full bg-black/40 backdrop-blur-md hover:bg-black/60 text-white border border-white/20 touch-target"
-              data-testid="button-toggle-sound-overlay"
-            >
-              {soundEnabled ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
-            </Button>
-          </div>
-          
-          {/* Scanning status badge */}
-          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40">
-            <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#c0580f]/20 backdrop-blur-md border-2 border-[#c0580f]/50 shadow-lg">
-              <div className="w-2.5 h-2.5 bg-[#c0580f] rounded-full animate-pulse" />
-              <span className="text-sm font-semibold text-white">Scanning...</span>
-            </div>
-          </div>
-          
-          {/* Manual check-in button - Bottom Sheet Trigger */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40">
-            <Sheet open={showManualSheet} onOpenChange={setShowManualSheet}>
-              <SheetTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="h-14 px-6 rounded-full bg-black/60 backdrop-blur-md hover:bg-black/80 text-white border-2 border-white/30 hover:border-white/50 touch-target shadow-lg"
-                  data-testid="button-open-manual-checkin"
-                >
-                  <List className="h-5 w-5 mr-2" />
-                  Manual Check-in
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="bottom" className="h-[85vh] bg-[#0B0B0F] border-t-2 border-[#c0580f]/30">
-                <SheetHeader className="text-left mb-4">
-                  <SheetTitle className="text-white font-fraunces text-2xl">Manual Check-in</SheetTitle>
-                  <SheetDescription className="text-white/60">
-                    Search for attendees by name, email, or serial number
-                  </SheetDescription>
-                </SheetHeader>
-                
-                {/* Manual check-in content moved here */}
-                <div className="space-y-4">
-                  {/* Search and filters */}
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <Input
-                        placeholder="Search by name, email, or serial..."
-                        value={manualSearch}
-                        onChange={(e) => setManualSearch(e.target.value)}
-                        className="h-12 bg-white/5 border-white/20 text-white placeholder:text-white/40"
-                        data-testid="input-manual-search"
-                      />
-                    </div>
-                    <Select value={filterStatus} onValueChange={setFilterStatus}>
-                      <SelectTrigger className="w-32 h-12 bg-white/5 border-white/20 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="checked_in">Checked In</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  {/* Attendees table */}
-                  <ScrollArea className="h-[calc(85vh-180px)]">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-white/10 hover:bg-transparent">
-                          <TableHead className="text-white/70">Name</TableHead>
-                          <TableHead className="text-white/70">Tier</TableHead>
-                          <TableHead className="text-white/70">Status</TableHead>
-                          <TableHead className="text-white/70">Action</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {attendeesData?.attendees?.map((attendee) => (
-                          <TableRow key={attendee.ticketId} className="border-white/10">
-                            <TableCell>
-                              <div>
-                                <p className="font-medium text-white">{attendee.buyerName}</p>
-                                <p className="text-xs text-white/50">{attendee.buyerEmail}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-white/80">{attendee.tierName}</TableCell>
-                            <TableCell>
-                              {attendee.status === 'used' ? (
-                                <Badge variant="outline" className="bg-[#17C0A9]/20 text-[#17C0A9] border-[#17C0A9]/30">
-                                  Checked In
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
-                                  Pending
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              {attendee.status !== 'used' && (
-                                <Button
-                                  size="sm"
-                                  onClick={() => checkinMutation.mutate(attendee.qrToken)}
-                                  disabled={checkinMutation.isPending}
-                                  className="bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f]"
-                                  data-testid={`button-checkin-${attendee.serial}`}
-                                >
-                                  Check In
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </ScrollArea>
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-          
-          {/* Last scanned ticket - Success overlay */}
-          {lastScannedTicket && (
-            <div className="fixed bottom-24 left-4 right-4 z-50 animate-in slide-in-from-bottom-4 duration-300">
-              <div className="p-5 rounded-2xl bg-[#17C0A9]/10 backdrop-blur-xl border-2 border-[#17C0A9]/50 shadow-2xl">
-                <div className="flex items-start gap-3 mb-4">
-                  <CheckCircle2 className="h-7 w-7 text-[#17C0A9] flex-shrink-0" />
-                  <div className="flex-1">
-                    <p className="font-semibold text-lg text-white mb-1">{lastScannedTicket.buyerName}</p>
-                    <p className="text-sm text-white/70">{lastScannedTicket.tierName} • {lastScannedTicket.serial}</p>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => checkinMutation.mutate(lastScannedTicket.qrToken)}
-                  disabled={checkinMutation.isPending}
-                  className="w-full h-12 bg-gradient-to-r from-[#17C0A9] to-[#17C0A9]/80 hover:from-[#17C0A9]/90 hover:to-[#17C0A9]/70 text-white font-semibold touch-target"
-                  data-testid="button-confirm-checkin-overlay"
-                >
-                  {checkinMutation.isPending ? 'Checking in...' : 'Confirm Check-in'}
-                </Button>
-              </div>
-            </div>
-          )}
-        </>
-      )}
+    <>
+      <Helmet>
+        <title>Check-in Dashboard - {eventTitle} | Jugnu</title>
+        <meta name="description" content={`QR code scanner and manual check-in dashboard for ${eventTitle}`} />
+      </Helmet>
       
-      {/* Normal dashboard content - hide when full-screen scanner is active */}
-      <div className={`container mx-auto px-4 py-8 ${isActiveScan ? 'hidden' : ''}`}>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-fraunces mb-2">Check-in Dashboard</h1>
-            <p className="text-muted-foreground">{(event as any)?.event?.title}</p>
-          </div>
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-fraunces mb-2">Check-in Dashboard</h1>
+              <p className="text-muted-foreground">{eventTitle}</p>
+            </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -608,15 +432,175 @@ export function TicketsCheckinDashboard() {
               </Card>
             ) : (
               <div className="space-y-0 md:space-y-4">
+                {/* Mobile Full-Screen Overlay Controls */}
+                {isMobileFullScreen && (
+                  <>
+                    {/* Top Bar - Close and Event Title */}
+                    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/70 to-transparent backdrop-blur-sm md:hidden" style={{ paddingTop: 'env(safe-area-inset-top, 1rem)' }}>
+                      <Button
+                        onClick={() => setScannerEnabled(false)}
+                        variant="ghost"
+                        size="icon"
+                        className="h-12 w-12 rounded-full bg-black/40 hover:bg-black/60 text-white border border-white/20"
+                        data-testid="button-close-scanner-mobile"
+                      >
+                        <X className="h-6 w-6" />
+                      </Button>
+                      
+                      <div className="flex-1 mx-4 text-center">
+                        <p className="text-white font-medium text-sm line-clamp-1">
+                          {eventTitle}
+                        </p>
+                      </div>
+                      
+                      <Button
+                        onClick={() => setSoundEnabled(!soundEnabled)}
+                        variant="ghost"
+                        size="icon"
+                        className="h-12 w-12 rounded-full bg-black/40 hover:bg-black/60 text-white border border-white/20"
+                        data-testid="button-toggle-sound-mobile"
+                      >
+                        {soundEnabled ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
+                      </Button>
+                    </div>
+                    
+                    {/* Bottom Manual Check-in Sheet Trigger */}
+                    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden">
+                      <Sheet open={showManualSheet} onOpenChange={setShowManualSheet}>
+                        <SheetTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="lg"
+                            className="h-14 px-6 rounded-full bg-black/60 backdrop-blur-md hover:bg-black/80 text-white border-2 border-white/30 hover:border-white/50 shadow-xl"
+                            data-testid="button-open-manual-mobile"
+                          >
+                            <List className="h-5 w-5 mr-2" />
+                            Manual Check-in
+                          </Button>
+                        </SheetTrigger>
+                        <SheetContent side="bottom" className="h-[85vh] bg-[#0B0B0F] border-t-2 border-[#c0580f]/30">
+                          <SheetHeader className="text-left mb-4">
+                            <SheetTitle className="text-white font-fraunces text-2xl">Manual Check-in</SheetTitle>
+                            <SheetDescription className="text-white/60">
+                              Search for attendees by name, email, or serial number
+                            </SheetDescription>
+                          </SheetHeader>
+                          
+                          {/* Manual check-in content */}
+                          <div className="space-y-4">
+                            <div className="flex gap-2">
+                              <div className="flex-1">
+                                <Input
+                                  placeholder="Search by name, email, or serial..."
+                                  value={manualSearch}
+                                  onChange={(e) => setManualSearch(e.target.value)}
+                                  className="h-12 bg-white/5 border-white/20 text-white placeholder:text-white/40"
+                                  data-testid="input-manual-search-mobile"
+                                />
+                              </div>
+                              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                                <SelectTrigger className="w-32 h-12 bg-white/5 border-white/20 text-white">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="all">All</SelectItem>
+                                  <SelectItem value="checked_in">Checked In</SelectItem>
+                                  <SelectItem value="pending">Pending</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            <ScrollArea className="h-[calc(85vh-180px)]">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow className="border-white/10 hover:bg-transparent">
+                                    <TableHead className="text-white/70">Name</TableHead>
+                                    <TableHead className="text-white/70">Tier</TableHead>
+                                    <TableHead className="text-white/70">Status</TableHead>
+                                    <TableHead className="text-white/70">Action</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {attendeesData?.attendees?.map((attendee) => (
+                                    <TableRow key={attendee.ticketId} className="border-white/10">
+                                      <TableCell>
+                                        <div>
+                                          <p className="font-medium text-white">{attendee.buyerName}</p>
+                                          <p className="text-xs text-white/50">{attendee.buyerEmail}</p>
+                                        </div>
+                                      </TableCell>
+                                      <TableCell className="text-white/80">{attendee.tierName}</TableCell>
+                                      <TableCell>
+                                        {attendee.status === 'used' ? (
+                                          <Badge variant="outline" className="bg-[#17C0A9]/20 text-[#17C0A9] border-[#17C0A9]/30">
+                                            Checked In
+                                          </Badge>
+                                        ) : (
+                                          <Badge variant="outline" className="bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
+                                            Pending
+                                          </Badge>
+                                        )}
+                                      </TableCell>
+                                      <TableCell>
+                                        {attendee.status !== 'used' && (
+                                          <Button
+                                            size="sm"
+                                            onClick={() => {
+                                              checkinMutation.mutate(attendee.qrToken);
+                                              setShowManualSheet(false);
+                                            }}
+                                            disabled={checkinMutation.isPending}
+                                            className="bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f]"
+                                            data-testid={`button-checkin-mobile-${attendee.serial}`}
+                                          >
+                                            Check In
+                                          </Button>
+                                        )}
+                                      </TableCell>
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            </ScrollArea>
+                          </div>
+                        </SheetContent>
+                      </Sheet>
+                    </div>
+                    
+                    {/* Last Scanned Ticket - Mobile Overlay */}
+                    {lastScannedTicket && (
+                      <div className="fixed bottom-24 left-4 right-4 z-50 animate-in slide-in-from-bottom-4 duration-300 md:hidden">
+                        <div className="p-5 rounded-2xl bg-[#17C0A9]/10 backdrop-blur-xl border-2 border-[#17C0A9]/50 shadow-2xl">
+                          <div className="flex items-start gap-3 mb-4">
+                            <CheckCircle2 className="h-7 w-7 text-[#17C0A9] flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="font-semibold text-lg text-white mb-1">{lastScannedTicket.buyerName}</p>
+                              <p className="text-sm text-white/70">{lastScannedTicket.tierName} • {lastScannedTicket.serial}</p>
+                            </div>
+                          </div>
+                          <Button
+                            onClick={() => checkinMutation.mutate(lastScannedTicket.qrToken)}
+                            disabled={checkinMutation.isPending}
+                            className="w-full h-12 bg-gradient-to-r from-[#17C0A9] to-[#17C0A9]/80 hover:from-[#17C0A9]/90 hover:to-[#17C0A9]/70 text-white font-semibold"
+                            data-testid="button-confirm-checkin-mobile"
+                          >
+                            {checkinMutation.isPending ? 'Checking in...' : 'Confirm Check-in'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+                
                 {/* Scanner Card - Mobile Full Screen Optimized */}
-                <Card className="border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden md:border">
+                <Card className={`border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden md:border ${isMobileFullScreen ? 'fixed inset-0 z-40 rounded-none border-0' : ''}`}>
                   <CardContent className="p-0 md:p-6">
                     {/* Scanner viewport - Large on mobile */}
                     <div className="relative">
                       {/* Mobile: Full width scanning area with optimal height */}
                       <div className="relative rounded-none md:rounded-2xl overflow-hidden border-0 md:border-2 border-[#c0580f]/50 shadow-none md:shadow-lg md:shadow-[#c0580f]/20">
                         {/* QR Reader Container - Optimized sizing */}
-                        <div className="relative bg-black/90 min-h-[65vh] md:min-h-[500px] flex items-center justify-center">
+                        <div className={`relative bg-black/90 flex items-center justify-center ${isMobileFullScreen ? 'min-h-screen' : 'min-h-[65vh] md:min-h-[500px]'}`}>
                           <div id="qr-reader" className="w-full h-full" />
                         </div>
                         
@@ -855,5 +839,6 @@ export function TicketsCheckinDashboard() {
         </Tabs>
       </div>
     </div>
+    </>
   );
 }
