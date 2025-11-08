@@ -109,7 +109,7 @@ export function TicketsCheckinDashboard() {
       const response = await apiRequest('POST', '/api/tickets/validate-qr', { qrToken, eventId });
       return response;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       if (data.ok) {
         setLastScannedTicket(data.ticket);
         playSound('success');
@@ -130,7 +130,7 @@ export function TicketsCheckinDashboard() {
       const response = await apiRequest('POST', '/api/tickets/check-in', { qrToken, eventId, checkInBy: 'staff' });
       return response;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       if (data.ok) {
         playSound('checkin');
         toast({
@@ -236,7 +236,7 @@ export function TicketsCheckinDashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-fraunces mb-2">Check-in Dashboard</h1>
-            <p className="text-muted-foreground">{event?.event?.title}</p>
+            <p className="text-muted-foreground">{(event as any)?.event?.title}</p>
           </div>
           <div className="flex gap-2">
             <Button
