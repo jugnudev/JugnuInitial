@@ -2062,6 +2062,51 @@ export default function EnhancedCommunityDetailPage() {
                 </Alert>
               ) : null}
 
+              {/* Events Tab Visibility Toggle */}
+              <Card className="glass-card border-copper-500/30">
+                <CardContent className="pt-4 md:pt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Eye className="h-4 w-4 text-copper-400" />
+                        <h3 className="text-base md:text-lg font-semibold text-white">Events Tab Visibility</h3>
+                      </div>
+                      <p className="text-sm text-premium-text-muted">
+                        Control whether the Events tab is visible to community members. When disabled, only moderators and owners can see ticketed events.
+                      </p>
+                    </div>
+                    <Switch
+                      checked={community?.showEventsTab ?? true}
+                      onCheckedChange={async (checked) => {
+                        try {
+                          const response = await apiRequest(`/api/communities/${community?.id}`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({ showEventsTab: checked }),
+                            headers: { 'Content-Type': 'application/json' }
+                          });
+                          if (response.ok) {
+                            queryClient.invalidateQueries({ queryKey: [`/api/communities/${slug}`] });
+                            toast({
+                              title: checked ? 'Events tab enabled' : 'Events tab hidden',
+                              description: checked 
+                                ? 'Community members can now see the Events tab' 
+                                : 'Events tab is now hidden from members (visible to moderators and owners only)',
+                            });
+                          }
+                        } catch (error) {
+                          toast({
+                            title: 'Error',
+                            description: 'Failed to update Events tab visibility',
+                            variant: 'destructive'
+                          });
+                        }
+                      }}
+                      data-testid="toggle-events-tab-visibility"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Event Stats Overview */}
               {organizerData?.events && organizerData.events.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">

@@ -687,6 +687,9 @@ export const communities = pgTable("communities", {
   memberCanCreateEvents: boolean("member_can_create_events").notNull().default(false),
   memberCanCreatePolls: boolean("member_can_create_polls").notNull().default(false),
   
+  // Tab visibility settings
+  showEventsTab: boolean("show_events_tab").notNull().default(true), // Controls if Events tab is visible to members
+  
   subscriptionStatus: text("subscription_status").notNull().default("trialing"), // trialing | active | past_due | canceled
   subscriptionEndsAt: timestamp("subscription_ends_at", { withTimezone: true }),
   totalMembers: integer("total_members").notNull().default(0),

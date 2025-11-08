@@ -1616,6 +1616,8 @@ export function addCommunitiesRoutes(app: Express) {
     memberCanComment: z.boolean().optional(),
     memberCanCreateEvents: z.boolean().optional(),
     memberCanCreatePolls: z.boolean().optional(),
+    // Tab visibility
+    showEventsTab: z.boolean().optional(),
   });
 
   const createPostSchema = z.object({
