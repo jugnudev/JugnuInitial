@@ -61,7 +61,9 @@ const generateTicketPDF = async (
     try {
       const doc = new PDFDocument({
         size: 'LETTER',
-        margins: { top: 50, bottom: 50, left: 50, right: 50 }
+        margins: { top: 50, bottom: 50, left: 50, right: 50 },
+        autoFirstPage: true,
+        bufferPages: false
       });
       
       const chunks: Buffer[] = [];
@@ -112,11 +114,11 @@ const generateTicketPDF = async (
          .fillColor('#A89584')
          .font('Helvetica');
       
-      doc.text(`📅  ${eventDate}`, 50, y);
+      doc.text(`DATE: ${eventDate}`, 50, y);
       y += 20;
-      doc.text(`⏰  ${eventTime}`, 50, y);
+      doc.text(`TIME: ${eventTime}`, 50, y);
       y += 20;
-      doc.text(`📍  ${event.venue || 'Venue TBA'}, ${event.city}, ${event.province}`, 50, y);
+      doc.text(`VENUE: ${event.venue || 'Venue TBA'}, ${event.city}, ${event.province}`, 50, y);
       
       y += 50;
       
@@ -183,18 +185,15 @@ const generateTicketPDF = async (
            align: 'center'
          });
       
-      y = qrCardY + qrCardHeight + 40;
-      
-      // Order information
-      doc.fontSize(10)
+      // Order information - positioned at bottom before footer
+      const orderInfoY = doc.page.height - 140;
+      doc.fontSize(9)
          .fillColor('#A89584')
          .font('Helvetica');
       
-      doc.text(`Order ID: ${order.id.slice(0, 8).toUpperCase()}`, 50, y);
-      y += 15;
-      doc.text(`Name: ${order.buyerName || 'Guest'}`, 50, y);
-      y += 15;
-      doc.text(`Email: ${order.buyerEmail}`, 50, y);
+      doc.text(`Order ID: ${order.id.slice(0, 8).toUpperCase()}`, 50, orderInfoY);
+      doc.text(`Name: ${order.buyerName || 'Guest'}`, 50, orderInfoY + 14);
+      doc.text(`Email: ${order.buyerEmail}`, 50, orderInfoY + 28);
       
       // Footer
       const footerY = doc.page.height - 80;
@@ -212,6 +211,7 @@ const generateTicketPDF = async (
            align: 'center'
          });
       
+      // Finalize PDF - this ensures no extra pages
       doc.end();
     } catch (error) {
       reject(error);
@@ -651,7 +651,7 @@ const generateTicketEmailHTML = async (
   <div class="container">
     <!-- Header -->
     <div class="header">
-      <h1>Your Tickets Are Ready! 🎉</h1>
+      <h1>Your Tickets Are Ready!</h1>
       <p>Order #${order.id.slice(0, 8).toUpperCase()}</p>
     </div>
     
@@ -660,9 +660,9 @@ const generateTicketEmailHTML = async (
       <div class="event-info">
         <h2>${event.title}</h2>
         <div class="event-meta">
-          <span>📅 ${eventDate}</span>
-          <span>⏰ ${eventTime}</span>
-          <span>📍 ${event.venue || 'Venue TBA'}</span>
+          <span>&#128197; ${eventDate}</span>
+          <span>&#128336; ${eventTime}</span>
+          <span>&#128205; ${event.venue || 'Venue TBA'}</span>
         </div>
       </div>
     </div>
