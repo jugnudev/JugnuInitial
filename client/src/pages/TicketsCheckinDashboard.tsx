@@ -228,19 +228,21 @@ export function TicketsCheckinDashboard() {
         console.log('[Scanner] Html5Qrcode instance created');
         
         const qrboxSize = isMobile 
-          ? Math.min(window.innerWidth * 0.75, 300)
-          : 280;
+          ? Math.min(window.innerWidth * 0.8, 320)
+          : 300;
         
-        console.log('[Scanner] Starting camera with config:', { qrboxSize, fps: isMobile ? 5 : 10 });
+        console.log('[Scanner] Starting camera with config:', { qrboxSize, fps: 10 });
         
         // Start camera
         await scanner.start(
           { facingMode: "environment" }, // Camera constraints
           {
-            fps: isMobile ? 5 : 10,
-            qrbox: { width: qrboxSize, height: qrboxSize },
+            fps: 10, // Higher FPS for better detection
+            qrbox: qrboxSize, // Simpler qrbox format
+            aspectRatio: 1.0, // Square box
+            disableFlip: false, // Allow flipping if needed
           },
-          (decodedText) => {
+          (decodedText: string) => {
             console.log('[Scanner] ✅ QR code detected:', decodedText);
             toast({
               title: "QR Code Detected",
@@ -263,8 +265,8 @@ export function TicketsCheckinDashboard() {
               }
             });
           },
-          (errorMessage) => {
-            // Ignore continuous scan errors
+          (errorMessage: string) => {
+            // Ignore continuous scan errors (these happen constantly while scanning)
           }
         );
         
