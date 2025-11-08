@@ -2962,15 +2962,17 @@ export default function EnhancedCommunityDetailPage() {
                       <span>Giveaways</span>
                     </div>
                   </SelectItem>
-                  <SelectItem 
-                    value="events" 
-                    className="h-14 text-base font-medium text-white hover:bg-gradient-to-r hover:from-copper-500/20 hover:to-copper-600/20 focus:bg-gradient-to-r focus:from-copper-500/30 focus:to-copper-600/30 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-copper-500 data-[state=checked]:to-copper-600 data-[state=checked]:text-white transition-all duration-200 rounded-xl mx-1 my-0.5"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Ticket className="h-5 w-5" />
-                      <span>Events</span>
-                    </div>
-                  </SelectItem>
+                  {(community?.showEventsTab ?? true) && (
+                    <SelectItem 
+                      value="events" 
+                      className="h-14 text-base font-medium text-white hover:bg-gradient-to-r hover:from-copper-500/20 hover:to-copper-600/20 focus:bg-gradient-to-r focus:from-copper-500/30 focus:to-copper-600/30 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-copper-500 data-[state=checked]:to-copper-600 data-[state=checked]:text-white transition-all duration-200 rounded-xl mx-1 my-0.5"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Ticket className="h-5 w-5" />
+                        <span>Events</span>
+                      </div>
+                    </SelectItem>
+                  )}
                   <SelectItem 
                     value="settings" 
                     className="h-14 text-base font-medium text-white hover:bg-gradient-to-r hover:from-copper-500/20 hover:to-copper-600/20 focus:bg-gradient-to-r focus:from-copper-500/30 focus:to-copper-600/30 data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-copper-500 data-[state=checked]:to-copper-600 data-[state=checked]:text-white transition-all duration-200 rounded-xl mx-1 my-0.5"
@@ -3020,14 +3022,16 @@ export default function EnhancedCommunityDetailPage() {
                     <Gift className="h-4 w-4" />
                     <span>Giveaways</span>
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="events"
-                    data-testid="member-events-tab"
-                    className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/50 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 flex items-center justify-center gap-2"
-                  >
-                    <Ticket className="h-4 w-4" />
-                    <span>Events</span>
-                  </TabsTrigger>
+                  {(community?.showEventsTab ?? true) && (
+                    <TabsTrigger 
+                      value="events"
+                      data-testid="member-events-tab"
+                      className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/50 data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 flex items-center justify-center gap-2"
+                    >
+                      <Ticket className="h-4 w-4" />
+                      <span>Events</span>
+                    </TabsTrigger>
+                  )}
                   <TabsTrigger 
                     value="settings"
                     data-testid="member-settings-tab"
