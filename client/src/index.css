@@ -101,13 +101,13 @@
   position: relative !important;
 }
 
-/* Video Element - Fill Container, Cover Mode for Better Mobile Experience */
+/* Video Element - Fill Container Properly for Mobile Scanner */
 #qr-reader__scan_region video {
   width: 100% !important;
-  min-height: 70vh !important;
-  max-height: 90vh !important;
+  height: 100% !important;
   object-fit: cover !important;
   display: block !important;
+  border-radius: 24px !important;
 }
 
 /* Hide Library Dashboard UI ONLY When Video is Active on Mobile */

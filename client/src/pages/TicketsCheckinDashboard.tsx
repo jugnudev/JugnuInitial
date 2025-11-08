@@ -504,17 +504,23 @@ export function TicketsCheckinDashboard() {
                       </Button>
                     </div>
                     
-                    {/* Bottom Manual Check-in Sheet Trigger - Premium Pill */}
-                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 md:hidden animate-in slide-in-from-bottom-4 duration-500" style={{ animationDelay: '0.3s' }}>
+                    {/* Bottom Manual Check-in Sheet Trigger - Compact Pill */}
+                    <div 
+                      className="fixed left-1/2 -translate-x-1/2 z-50 md:hidden animate-in slide-in-from-bottom-4 duration-500" 
+                      style={{ 
+                        bottom: 'max(env(safe-area-inset-bottom, 0px) + 16px, 24px)',
+                        animationDelay: '0.3s' 
+                      }}
+                    >
                       <Sheet open={showManualSheet} onOpenChange={setShowManualSheet}>
                         <SheetTrigger asChild>
                           <Button
                             variant="outline"
-                            size="lg"
-                            className="h-16 px-8 rounded-full bg-gradient-to-r from-black/70 to-black/60 backdrop-blur-2xl hover:from-black/90 hover:to-black/80 text-white border-2 border-white/40 hover:border-[#c0580f]/60 shadow-2xl shadow-black/60 transition-all duration-300 hover:scale-105 font-inter font-medium text-base"
+                            size="sm"
+                            className="h-11 px-5 rounded-full bg-gradient-to-r from-black/70 to-black/60 backdrop-blur-2xl hover:from-black/90 hover:to-black/80 text-white border-2 border-white/40 hover:border-[#c0580f]/60 shadow-2xl shadow-black/60 transition-all duration-300 hover:scale-105 font-inter font-medium text-sm touch-target"
                             data-testid="button-open-manual-mobile"
                           >
-                            <List className="h-5 w-5 mr-3" />
+                            <List className="h-4 w-4 mr-2" />
                             Manual Check-in
                           </Button>
                         </SheetTrigger>
@@ -607,40 +613,49 @@ export function TicketsCheckinDashboard() {
                       </Sheet>
                     </div>
                     
-                    {/* Camera Viewport - Centered with Premium Styling */}
-                    <div className="absolute inset-0 flex items-center justify-center z-10 px-4">
+                    {/* Camera Viewport - Properly Centered with Premium Styling */}
+                    <div 
+                      className="absolute inset-0 flex items-center justify-center z-10"
+                      style={{
+                        paddingTop: 'max(env(safe-area-inset-top, 0px) + 64px, 80px)',
+                        paddingBottom: 'max(env(safe-area-inset-bottom, 0px) + 80px, 96px)',
+                        paddingLeft: '20px',
+                        paddingRight: '20px'
+                      }}
+                    >
                       <div 
                         className="relative w-full max-w-md mx-auto animate-in fade-in duration-500"
                         style={{ 
-                          height: 'calc(100dvh - 180px)',
+                          aspectRatio: '1',
+                          maxHeight: '100%',
                           animation: 'scale-in 0.4s ease-out'
                         }}
                       >
                         {/* QR Reader Container with Glassmorphism & Copper Glow */}
-                        <div className="relative bg-gradient-to-br from-black/70 via-black/60 to-black/70 rounded-3xl overflow-hidden border-3 border-[#c0580f]/50 shadow-2xl h-full flex items-center justify-center scanner-viewport-glow backdrop-blur-xl">
+                        <div className="relative bg-gradient-to-br from-black/70 via-black/60 to-black/70 rounded-3xl overflow-hidden border-3 border-[#c0580f]/50 shadow-2xl w-full h-full flex items-center justify-center scanner-viewport-glow backdrop-blur-xl">
                           {/* Animated Scanning Sweep Line */}
                           <div className="scanner-sweep-line" />
                           
                           {/* Camera Feed */}
                           <div id="qr-reader" className="w-full h-full" />
                           
-                          {/* Corner brackets - Premium Copper Gradient */}
-                          <div className="absolute top-6 left-6 w-20 h-20 border-t-[5px] border-l-[5px] border-[#c0580f] rounded-tl-3xl animate-pulse shadow-[0_0_15px_rgba(192,88,15,0.5)]" style={{ animationDuration: '2s' }} />
-                          <div className="absolute top-6 right-6 w-20 h-20 border-t-[5px] border-r-[5px] border-[#c0580f] rounded-tr-3xl animate-pulse shadow-[0_0_15px_rgba(192,88,15,0.5)]" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
-                          <div className="absolute bottom-6 left-6 w-20 h-20 border-b-[5px] border-l-[5px] border-[#c0580f] rounded-bl-3xl animate-pulse shadow-[0_0_15px_rgba(192,88,15,0.5)]" style={{ animationDuration: '2s', animationDelay: '1s' }} />
-                          <div className="absolute bottom-6 right-6 w-20 h-20 border-b-[5px] border-r-[5px] border-[#c0580f] rounded-br-3xl animate-pulse shadow-[0_0_15px_rgba(192,88,15,0.5)]" style={{ animationDuration: '2s', animationDelay: '1.5s' }} />
+                          {/* Corner brackets - Premium Copper Gradient - Properly positioned */}
+                          <div className="absolute top-4 left-4 w-16 h-16 border-t-[4px] border-l-[4px] border-white rounded-tl-2xl animate-pulse shadow-[0_0_15px_rgba(255,255,255,0.6)]" style={{ animationDuration: '2s' }} />
+                          <div className="absolute top-4 right-4 w-16 h-16 border-t-[4px] border-r-[4px] border-white rounded-tr-2xl animate-pulse shadow-[0_0_15px_rgba(255,255,255,0.6)]" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+                          <div className="absolute bottom-4 left-4 w-16 h-16 border-b-[4px] border-l-[4px] border-white rounded-bl-2xl animate-pulse shadow-[0_0_15px_rgba(255,255,255,0.6)]" style={{ animationDuration: '2s', animationDelay: '1s' }} />
+                          <div className="absolute bottom-4 right-4 w-16 h-16 border-b-[4px] border-r-[4px] border-white rounded-br-2xl animate-pulse shadow-[0_0_15px_rgba(255,255,255,0.6)]" style={{ animationDuration: '2s', animationDelay: '1.5s' }} />
                           
-                          {/* Scanning status badge - Improved Typography */}
-                          <div className="absolute top-8 left-1/2 -translate-x-1/2 z-30">
-                            <div className="inline-flex items-center gap-3 px-5 py-3 rounded-full bg-gradient-to-r from-[#c0580f]/40 to-[#d3541e]/40 backdrop-blur-2xl border-2 border-[#c0580f]/70 shadow-2xl shadow-[#c0580f]/30">
-                              <div className="w-3 h-3 bg-gradient-to-br from-[#c0580f] to-[#d3541e] rounded-full animate-pulse shadow-lg shadow-[#c0580f]/50" />
-                              <span className="text-sm font-fraunces font-semibold text-white tracking-wider uppercase">Scanning...</span>
+                          {/* Scanning status badge - Compact Design */}
+                          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30">
+                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#c0580f]/40 to-[#d3541e]/40 backdrop-blur-2xl border-2 border-[#c0580f]/70 shadow-2xl shadow-[#c0580f]/30">
+                              <div className="w-2 h-2 bg-gradient-to-br from-[#c0580f] to-[#d3541e] rounded-full animate-pulse shadow-lg shadow-[#c0580f]/50" />
+                              <span className="text-xs font-fraunces font-semibold text-white tracking-wider uppercase">Scanning...</span>
                             </div>
                           </div>
                           
-                          {/* Scan instruction - Better Typography & Glassmorphism */}
-                          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 px-4 max-w-[90%]">
-                            <p className="text-white text-center text-sm font-medium bg-black/70 backdrop-blur-lg px-6 py-3 rounded-full border-2 border-white/30 shadow-xl">
+                          {/* Scan instruction - Compact & Glassmorphism */}
+                          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 px-3 max-w-[90%]">
+                            <p className="text-white text-center text-xs font-medium bg-black/70 backdrop-blur-lg px-4 py-2 rounded-full border-2 border-white/30 shadow-xl">
                               <span className="font-inter">Position QR code within frame</span>
                             </p>
                           </div>
@@ -653,7 +668,7 @@ export function TicketsCheckinDashboard() {
                       <div 
                         className="absolute left-4 right-4 z-50 animate-in slide-in-from-bottom-4 duration-300"
                         style={{ 
-                          bottom: 'max(env(safe-area-inset-bottom, 0px) + 80px, 96px)' 
+                          bottom: 'max(env(safe-area-inset-bottom, 0px) + 72px, 88px)' 
                         }}
                       >
                         <div className="p-4 rounded-2xl bg-gradient-to-br from-[#17C0A9]/20 to-[#17C0A9]/10 backdrop-blur-2xl border-2 border-[#17C0A9]/60 shadow-2xl">
