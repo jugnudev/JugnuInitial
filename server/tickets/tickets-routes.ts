@@ -252,15 +252,19 @@ export function addTicketsRoutes(app: Express) {
       // Mark ticket as used
       await ticketsStorage.checkInTicket(ticket.id, checkInBy || 'staff');
       
-      // Log audit
-      await ticketsStorage.createAuditLog({
-        actorType: 'staff',
-        actorId: checkInBy || 'unknown',
-        action: 'ticket_checked_in',
-        targetType: 'ticket',
-        targetId: ticket.id,
-        metaJson: { qrToken, eventId }
-      });
+      // Log audit (best-effort, don't block check-in if audit fails)
+      try {
+        await ticketsStorage.createAuditLog({
+          actorType: 'staff',
+          actorId: checkInBy || 'unknown',
+          action: 'ticket_checked_in',
+          targetType: 'ticket',
+          targetId: ticket.id,
+          metaJson: { qrToken, eventId }
+        });
+      } catch (auditError) {
+        console.error('Failed to create audit log (non-fatal):', auditError);
+      }
       
       res.json({ ok: true, message: 'Ticket checked in successfully' });
     } catch (error) {
@@ -2668,15 +2672,19 @@ function addMyTicketsRoutes(app: Express) {
       // Check-in the ticket
       await ticketsStorage.checkInTicket(ticket.id, checkInBy || 'staff');
       
-      // Create audit log
-      await ticketsStorage.createAuditLog({
-        actorType: 'staff',
-        actorId: checkInBy || 'unknown',
-        action: 'ticket_checkin',
-        targetType: 'ticket',
-        targetId: ticket.id,
-        metaJson: { qrToken, eventId }
-      });
+      // Create audit log (best-effort, don't block check-in if audit fails)
+      try {
+        await ticketsStorage.createAuditLog({
+          actorType: 'staff',
+          actorId: checkInBy || 'unknown',
+          action: 'ticket_checkin',
+          targetType: 'ticket',
+          targetId: ticket.id,
+          metaJson: { qrToken, eventId }
+        });
+      } catch (auditError) {
+        console.error('Failed to create audit log (non-fatal):', auditError);
+      }
       
       res.json({
         ok: true,

@@ -879,9 +879,19 @@ export class TicketsSupabaseDB {
 
   // ============ AUDIT ============
   async createAudit(data: InsertTicketsAudit): Promise<void> {
+    // Convert camelCase to snake_case for Supabase
     const { error } = await this.client
       .from('tickets_audit')
-      .insert(data);
+      .insert({
+        actor_type: data.actorType,
+        actor_id: data.actorId,
+        action: data.action,
+        target_type: data.targetType,
+        target_id: data.targetId,
+        meta_json: data.metaJson,
+        ip_address: data.ipAddress,
+        user_agent: data.userAgent
+      });
     
     if (error) throw error;
   }

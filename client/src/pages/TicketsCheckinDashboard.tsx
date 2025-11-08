@@ -106,10 +106,7 @@ export function TicketsCheckinDashboard() {
   // Validate ticket mutation
   const validateMutation = useMutation({
     mutationFn: async (qrToken: string) => {
-      const response = await apiRequest('/api/tickets/validate-qr', {
-        method: 'POST',
-        body: JSON.stringify({ qrToken, eventId })
-      });
+      const response = await apiRequest('POST', '/api/tickets/validate-qr', { qrToken, eventId });
       return response;
     },
     onSuccess: (data) => {
@@ -130,10 +127,7 @@ export function TicketsCheckinDashboard() {
   // Check-in mutation
   const checkinMutation = useMutation({
     mutationFn: async (qrToken: string) => {
-      const response = await apiRequest('/api/tickets/check-in', {
-        method: 'POST',
-        body: JSON.stringify({ qrToken, eventId, checkInBy: 'staff' })
-      });
+      const response = await apiRequest('POST', '/api/tickets/check-in', { qrToken, eventId, checkInBy: 'staff' });
       return response;
     },
     onSuccess: (data) => {

@@ -510,8 +510,8 @@ export class TicketsStorage {
   }
 
   async createAuditLog(data: InsertTicketsAudit): Promise<void> {
-    const { storageExtensions } = await import('./storage-extensions');
-    return storageExtensions.createAuditLog(data);
+    // Use Supabase connection instead of storage-extensions which uses wrong DB
+    return ticketsDB.createAudit(data);
   }
 
   async createEmailCommunication(data: any): Promise<any> {
