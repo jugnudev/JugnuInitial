@@ -1318,12 +1318,12 @@ export default function EnhancedCommunityDetailPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/20" />
         
         {/* Header Actions */}
-        <div className="absolute top-4 sm:top-6 left-4 sm:left-6 right-4 sm:right-6 flex justify-between items-center gap-3">
+        <div className="absolute top-4 sm:top-6 left-4 sm:left-6 right-4 sm:right-6 flex justify-between items-center gap-3 z-30">
           <Link href="/communities">
             <Button 
               variant="outline" 
               size="sm"
-              className="bg-black/60 backdrop-blur-md border-white/30 text-white hover:bg-black/80 transition-all"
+              className="bg-black/60 backdrop-blur-md border-white/30 text-white hover:bg-black/80 transition-all min-h-[48px] min-w-[48px] sm:min-h-[40px] sm:min-w-auto"
               data-testid="back-to-communities"
             >
               <ArrowLeft className="h-4 w-4 sm:mr-2" />
@@ -1336,7 +1336,7 @@ export default function EnhancedCommunityDetailPage() {
               <Button 
                 variant="outline" 
                 size="sm"
-                className="bg-black/60 backdrop-blur-md border-white/30 text-white hover:bg-black/80 transition-all"
+                className="bg-black/60 backdrop-blur-md border-white/30 text-white hover:bg-black/80 transition-all min-h-[48px] min-w-[48px] sm:min-h-[40px] sm:min-w-auto"
                 data-testid="community-options-menu"
               >
                 <MoreVertical className="h-4 w-4" />
