@@ -6,6 +6,7 @@ import type {
   TicketsOrder
 } from '@shared/schema';
 import { pool } from './tickets-db';
+import { getSupabaseAdmin } from '../supabaseAdmin';
 
 export class StorageExtensions {
   
@@ -60,13 +61,19 @@ export class StorageExtensions {
   }
   
   async getOrdersByUserId(userId: string): Promise<TicketsOrder[]> {
+    // First get user email from Supabase (main DB)
+    const user = await this.getUserById(userId);
+    if (!user || !user.email) {
+      return [];
+    }
+    
+    // Then query orders by email from ticketing DB
     const query = `
-      SELECT o.* FROM tickets_orders o
-      LEFT JOIN users u ON u.email = o.buyer_email
-      WHERE u.id = $1 AND o.status = 'paid'
-      ORDER BY o.placed_at DESC
+      SELECT * FROM tickets_orders
+      WHERE buyer_email = $1 AND status = 'paid'
+      ORDER BY placed_at DESC
     `;
-    const result = await pool.query(query, [userId]);
+    const result = await pool.query(query, [user.email]);
     return result.rows;
   }
   
@@ -186,9 +193,19 @@ export class StorageExtensions {
   
   // ============ USER OPERATIONS ============
   async getUserById(userId: string): Promise<any | null> {
-    const query = 'SELECT * FROM users WHERE id = $1';
-    const result = await pool.query(query, [userId]);
-    return result.rows[0] || null;
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    
+    if (error) {
+      console.error('Error fetching user:', error);
+      return null;
+    }
+    
+    return data;
   }
   
   // ============ ANALYTICS CACHE ============
