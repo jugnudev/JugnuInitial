@@ -163,6 +163,22 @@ export function TicketsCheckinDashboard() {
     }
   });
   
+  // Body scroll lock effect for mobile full-screen
+  useEffect(() => {
+    if (isMobileFullScreen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      return () => {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.height = '';
+      };
+    }
+  }, [isMobileFullScreen]);
+  
   // QR Scanner setup
   useEffect(() => {
     if (!scannerEnabled) {
@@ -407,7 +423,12 @@ export function TicketsCheckinDashboard() {
                       
                       {/* Start button - Large touch target */}
                       <Button
-                        onClick={() => setScannerEnabled(true)}
+                        onClick={() => {
+                          // Detect mobile and set full-screen state immediately
+                          const isMobile = window.innerWidth < 768;
+                          setIsMobileFullScreen(isMobile);
+                          setScannerEnabled(true);
+                        }}
                         size="lg"
                         data-testid="button-start-scanner"
                         className="w-full h-16 md:h-18 text-lg md:text-xl font-medium bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white shadow-lg shadow-[#c0580f]/30 transition-all duration-300 hover:shadow-xl hover:shadow-[#c0580f]/40 hover:scale-[1.02] touch-target"
@@ -431,36 +452,56 @@ export function TicketsCheckinDashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-0 md:space-y-4">
-                {/* Mobile Full-Screen Overlay Controls */}
-                {isMobileFullScreen && (
-                  <>
-                    {/* Top Bar - Close and Event Title */}
-                    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-gradient-to-b from-black/70 to-transparent backdrop-blur-sm md:hidden" style={{ paddingTop: 'env(safe-area-inset-top, 1rem)' }}>
+              <>
+                {/* Mobile Full-Screen Scanner Container */}
+                {isMobileFullScreen ? (
+                  <div 
+                    className="fixed inset-0 z-[100] bg-black animate-in fade-in duration-300"
+                    style={{ 
+                      height: '100dvh',
+                      paddingTop: 'env(safe-area-inset-top, 0px)',
+                      paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+                    }}
+                  >
+                    {/* Dimmed Backdrop */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/95 via-black/90 to-black/95" />
+                    
+                    {/* Top Control Bar - Consolidated */}
+                    <div 
+                      className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between p-3 bg-gradient-to-b from-black/80 to-transparent"
+                      style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)' }}
+                    >
                       <Button
                         onClick={() => setScannerEnabled(false)}
                         variant="ghost"
                         size="icon"
-                        className="h-12 w-12 rounded-full bg-black/40 hover:bg-black/60 text-white border border-white/20"
+                        className="h-11 w-11 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 shadow-lg transition-all"
                         data-testid="button-close-scanner-mobile"
                       >
-                        <X className="h-6 w-6" />
+                        <X className="h-5 w-5" />
                       </Button>
                       
-                      <div className="flex-1 mx-4 text-center">
-                        <p className="text-white font-medium text-sm line-clamp-1">
+                      <div className="flex-1 mx-3 text-center">
+                        <p className="text-white font-semibold text-sm line-clamp-1 drop-shadow-lg">
                           {eventTitle}
                         </p>
                       </div>
                       
                       <Button
-                        onClick={() => setSoundEnabled(!soundEnabled)}
+                        onClick={() => {
+                          setSoundEnabled(!soundEnabled);
+                          // Visual feedback
+                          toast({
+                            title: soundEnabled ? "Sound Off" : "Sound On",
+                            duration: 1000
+                          });
+                        }}
                         variant="ghost"
                         size="icon"
-                        className="h-12 w-12 rounded-full bg-black/40 hover:bg-black/60 text-white border border-white/20"
+                        className="h-11 w-11 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 shadow-lg transition-all"
                         data-testid="button-toggle-sound-mobile"
                       >
-                        {soundEnabled ? <Volume2 className="h-6 w-6" /> : <VolumeX className="h-6 w-6" />}
+                        {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
                       </Button>
                     </div>
                     
@@ -567,21 +608,62 @@ export function TicketsCheckinDashboard() {
                       </Sheet>
                     </div>
                     
+                    {/* Camera Viewport - Centered */}
+                    <div className="absolute inset-0 flex items-center justify-center z-10">
+                      <div 
+                        className="relative w-full max-w-md mx-auto"
+                        style={{ height: 'calc(100dvh - 180px)' }}
+                      >
+                        {/* QR Reader Container */}
+                        <div className="relative bg-black/60 rounded-3xl overflow-hidden border-2 border-[#c0580f]/40 shadow-2xl h-full flex items-center justify-center">
+                          <div id="qr-reader" className="w-full h-full" />
+                          
+                          {/* Corner brackets - Responsive sizing */}
+                          <div className="absolute top-8 left-8 w-16 h-16 border-t-4 border-l-4 border-[#c0580f] rounded-tl-2xl animate-pulse" style={{ animationDuration: '2s' }} />
+                          <div className="absolute top-8 right-8 w-16 h-16 border-t-4 border-r-4 border-[#c0580f] rounded-tr-2xl animate-pulse" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+                          <div className="absolute bottom-8 left-8 w-16 h-16 border-b-4 border-l-4 border-[#c0580f] rounded-bl-2xl animate-pulse" style={{ animationDuration: '2s', animationDelay: '1s' }} />
+                          <div className="absolute bottom-8 right-8 w-16 h-16 border-b-4 border-r-4 border-[#c0580f] rounded-br-2xl animate-pulse" style={{ animationDuration: '2s', animationDelay: '1.5s' }} />
+                          
+                          {/* Scanning status badge */}
+                          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30">
+                            <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-[#c0580f]/30 backdrop-blur-xl border-2 border-[#c0580f]/60 shadow-xl">
+                              <div className="w-2.5 h-2.5 bg-[#c0580f] rounded-full animate-pulse" />
+                              <span className="text-sm font-bold text-white tracking-wide">SCANNING...</span>
+                            </div>
+                          </div>
+                          
+                          {/* Scan instruction */}
+                          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 px-4 max-w-[90%]">
+                            <p className="text-white text-center text-sm font-medium bg-black/60 backdrop-blur-sm px-5 py-2.5 rounded-full border border-white/20 shadow-lg">
+                              Position QR code within frame
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
                     {/* Last Scanned Ticket - Mobile Overlay */}
                     {lastScannedTicket && (
-                      <div className="fixed bottom-24 left-4 right-4 z-50 animate-in slide-in-from-bottom-4 duration-300 md:hidden">
-                        <div className="p-5 rounded-2xl bg-[#17C0A9]/10 backdrop-blur-xl border-2 border-[#17C0A9]/50 shadow-2xl">
-                          <div className="flex items-start gap-3 mb-4">
-                            <CheckCircle2 className="h-7 w-7 text-[#17C0A9] flex-shrink-0" />
+                      <div 
+                        className="absolute left-4 right-4 z-50 animate-in slide-in-from-bottom-4 duration-300"
+                        style={{ 
+                          bottom: 'max(env(safe-area-inset-bottom, 0px) + 80px, 96px)' 
+                        }}
+                      >
+                        <div className="p-4 rounded-2xl bg-gradient-to-br from-[#17C0A9]/20 to-[#17C0A9]/10 backdrop-blur-2xl border-2 border-[#17C0A9]/60 shadow-2xl">
+                          <div className="flex items-start gap-3 mb-3">
+                            <div className="p-2 bg-[#17C0A9]/20 rounded-xl">
+                              <CheckCircle2 className="h-6 w-6 text-[#17C0A9]" />
+                            </div>
                             <div className="flex-1">
-                              <p className="font-semibold text-lg text-white mb-1">{lastScannedTicket.buyerName}</p>
-                              <p className="text-sm text-white/70">{lastScannedTicket.tierName} • {lastScannedTicket.serial}</p>
+                              <p className="font-bold text-base text-white mb-0.5">{lastScannedTicket.buyerName}</p>
+                              <p className="text-xs text-white/80">{lastScannedTicket.tierName} • {lastScannedTicket.serial}</p>
                             </div>
                           </div>
                           <Button
                             onClick={() => checkinMutation.mutate(lastScannedTicket.qrToken)}
                             disabled={checkinMutation.isPending}
-                            className="w-full h-12 bg-gradient-to-r from-[#17C0A9] to-[#17C0A9]/80 hover:from-[#17C0A9]/90 hover:to-[#17C0A9]/70 text-white font-semibold"
+                            className="w-full h-11 bg-gradient-to-r from-[#17C0A9] to-[#17C0A9]/90 hover:from-[#17C0A9]/95 hover:to-[#17C0A9]/85 text-white font-bold shadow-lg"
                             data-testid="button-confirm-checkin-mobile"
                           >
                             {checkinMutation.isPending ? 'Checking in...' : 'Confirm Check-in'}
@@ -589,122 +671,121 @@ export function TicketsCheckinDashboard() {
                         </div>
                       </div>
                     )}
-                  </>
-                )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Desktop Scanner Card */}
+                    <Card className="border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden">
+                      <CardContent className="p-6">
+                        <div className="relative">
+                          <div className="relative rounded-2xl overflow-hidden border-2 border-[#c0580f]/50 shadow-lg shadow-[#c0580f]/20">
+                            <div className="relative bg-black/90 min-h-[500px] flex items-center justify-center">
+                              <div id="qr-reader" className="w-full h-full" />
+                            </div>
+                            
+                            {/* Scanning animation overlay */}
+                            <div className="absolute inset-0 pointer-events-none">
+                              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-[#c0580f] to-transparent animate-pulse" />
+                              <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-[#17C0A9] to-transparent animate-pulse" style={{ animationDelay: '0.5s' }} />
+                            </div>
+                            
+                            {/* Corner indicators */}
+                            <div className="absolute top-6 left-6 w-10 h-10 border-t-4 border-l-4 border-[#c0580f] rounded-tl-xl" />
+                            <div className="absolute top-6 right-6 w-10 h-10 border-t-4 border-r-4 border-[#c0580f] rounded-tr-xl" />
+                            <div className="absolute bottom-6 left-6 w-10 h-10 border-b-4 border-l-4 border-[#c0580f] rounded-bl-xl" />
+                            <div className="absolute bottom-6 right-6 w-10 h-10 border-b-4 border-r-4 border-[#c0580f] rounded-br-xl" />
+                            
+                            {/* Scanning status badge */}
+                            <div className="absolute top-8 left-1/2 -translate-x-1/2 z-20">
+                              <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-[#c0580f]/20 backdrop-blur-md border-2 border-[#c0580f]/50 shadow-lg">
+                                <div className="w-2.5 h-2.5 bg-[#c0580f] rounded-full animate-pulse" />
+                                <span className="text-sm font-semibold text-white">Scanning...</span>
+                              </div>
+                            </div>
+                            
+                            {/* Scan instruction */}
+                            <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 text-center px-4">
+                              <p className="text-white/90 text-sm font-medium bg-black/50 backdrop-blur-sm px-6 py-3 rounded-lg">
+                                Position QR code within frame
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Desktop Control buttons */}
+                        <div className="mt-6">
+                          <div className="flex gap-3 max-w-lg mx-auto">
+                            <Button
+                              onClick={() => setScannerEnabled(false)}
+                              variant="outline"
+                              className="flex-1 h-12 text-sm font-medium border-white/20 hover:bg-white/5 hover:border-white/30"
+                              data-testid="button-stop-scanner"
+                            >
+                              <XCircle className="h-4 w-4 mr-2" />
+                              Stop Scanner
+                            </Button>
+                            <Button
+                              onClick={() => setSoundEnabled(!soundEnabled)}
+                              variant="outline"
+                              className="h-12 w-12 border-white/20 hover:bg-white/5 hover:border-white/30"
+                              data-testid="button-toggle-sound-scanner"
+                            >
+                              {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
                 
-                {/* Scanner Card - Mobile Full Screen Optimized */}
-                <Card className={`border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden md:border ${isMobileFullScreen ? 'fixed inset-0 z-40 rounded-none border-0' : ''}`}>
-                  <CardContent className="p-0 md:p-6">
-                    {/* Scanner viewport - Large on mobile */}
-                    <div className="relative">
-                      {/* Mobile: Full width scanning area with optimal height */}
-                      <div className="relative rounded-none md:rounded-2xl overflow-hidden border-0 md:border-2 border-[#c0580f]/50 shadow-none md:shadow-lg md:shadow-[#c0580f]/20">
-                        {/* QR Reader Container - Optimized sizing */}
-                        <div className={`relative bg-black/90 flex items-center justify-center ${isMobileFullScreen ? 'min-h-screen' : 'min-h-[65vh] md:min-h-[500px]'}`}>
-                          <div id="qr-reader" className="w-full h-full" />
-                        </div>
-                        
-                        {/* Scanning animation overlay */}
-                        <div className="absolute inset-0 pointer-events-none">
-                          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-[#c0580f] to-transparent animate-pulse" />
-                          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-[#17C0A9] to-transparent animate-pulse" style={{ animationDelay: '0.5s' }} />
-                        </div>
-                        
-                        {/* Corner indicators - Larger on mobile */}
-                        <div className="absolute top-6 left-6 w-12 h-12 md:w-10 md:h-10 border-t-[5px] border-l-[5px] md:border-t-4 md:border-l-4 border-[#c0580f] rounded-tl-xl" />
-                        <div className="absolute top-6 right-6 w-12 h-12 md:w-10 md:h-10 border-t-[5px] border-r-[5px] md:border-t-4 md:border-r-4 border-[#c0580f] rounded-tr-xl" />
-                        <div className="absolute bottom-6 left-6 w-12 h-12 md:w-10 md:h-10 border-b-[5px] border-l-[5px] md:border-b-4 md:border-l-4 border-[#c0580f] rounded-bl-xl" />
-                        <div className="absolute bottom-6 right-6 w-12 h-12 md:w-10 md:h-10 border-b-[5px] border-r-[5px] md:border-b-4 md:border-r-4 border-[#c0580f] rounded-br-xl" />
-                        
-                        {/* Scanning status badge - Larger and more prominent */}
-                        <div className="absolute top-8 left-1/2 -translate-x-1/2 z-20">
-                          <div className="inline-flex items-center gap-3 px-5 py-3 md:px-4 md:py-2 rounded-full bg-[#c0580f]/20 backdrop-blur-md border-2 border-[#c0580f]/50 shadow-lg">
-                            <div className="w-3 h-3 md:w-2.5 md:h-2.5 bg-[#c0580f] rounded-full animate-pulse" />
-                            <span className="text-base md:text-sm font-semibold text-white">Scanning...</span>
+                    {/* Desktop: Last Scanned Ticket - Premium Design */}
+                    {lastScannedTicket && (
+                      <Card className="border-[#17C0A9]/30 bg-gradient-to-br from-[#17C0A9]/5 to-transparent animate-in slide-in-from-bottom-4 duration-300">
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            {/* Success header */}
+                            <div className="flex items-center gap-3">
+                              <div className="p-2 bg-[#17C0A9]/20 rounded-full">
+                                <CheckCircle2 className="h-6 w-6 text-[#17C0A9]" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-lg text-white">Valid Ticket Detected</p>
+                                <p className="text-sm text-white/60">Ready to check in</p>
+                              </div>
+                            </div>
+                            
+                            {/* Ticket details */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-lg bg-white/5 border border-white/10">
+                              <div>
+                                <p className="text-xs text-white/50 mb-1">Name</p>
+                                <p className="font-medium text-white">{lastScannedTicket.buyerName}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-white/50 mb-1">Ticket Tier</p>
+                                <p className="font-medium text-white">{lastScannedTicket.tierName}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-white/50 mb-1">Serial</p>
+                                <p className="font-medium text-white font-mono text-sm">{lastScannedTicket.serial}</p>
+                              </div>
+                            </div>
+                            
+                            {/* Confirm button */}
+                            <Button
+                              onClick={() => checkinMutation.mutate(lastScannedTicket.qrToken)}
+                              className="w-full h-14 text-base font-medium bg-gradient-to-r from-[#17C0A9] to-[#15a890] hover:from-[#15a890] hover:to-[#17C0A9] text-white shadow-lg shadow-[#17C0A9]/30 transition-all duration-300 hover:shadow-xl hover:shadow-[#17C0A9]/40"
+                              disabled={checkinMutation.isPending}
+                              data-testid="button-confirm-checkin"
+                            >
+                              <UserCheck className="h-5 w-5 mr-2" />
+                              {checkinMutation.isPending ? "Checking in..." : "Confirm Check-in"}
+                            </Button>
                           </div>
-                        </div>
-                        
-                        {/* Scan instruction - Mobile optimized */}
-                        <div className="absolute bottom-24 md:bottom-20 left-1/2 -translate-x-1/2 z-20 text-center px-4">
-                          <p className="text-white/90 text-base md:text-sm font-medium bg-black/50 backdrop-blur-sm px-6 py-3 rounded-lg">
-                            Position QR code within frame
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Control buttons - Fixed bottom bar on mobile, inline on desktop */}
-                    <div className="fixed md:relative bottom-0 left-0 right-0 md:mt-6 bg-[#0B0B0F]/95 md:bg-transparent backdrop-blur-lg md:backdrop-blur-none border-t-2 md:border-t-0 border-[#c0580f]/20 p-4 md:p-0 z-30">
-                      <div className="flex gap-3 max-w-lg mx-auto">
-                        <Button
-                          onClick={() => setScannerEnabled(false)}
-                          variant="outline"
-                          className="flex-1 h-14 md:h-12 text-base md:text-sm font-medium border-white/20 hover:bg-white/5 hover:border-white/30 touch-target"
-                          data-testid="button-stop-scanner"
-                        >
-                          <XCircle className="h-5 w-5 md:h-4 md:w-4 mr-2" />
-                          Stop Scanner
-                        </Button>
-                        <Button
-                          onClick={() => setSoundEnabled(!soundEnabled)}
-                          variant="outline"
-                          className="h-14 w-14 md:h-12 md:w-12 border-white/20 hover:bg-white/5 hover:border-white/30 touch-target"
-                          data-testid="button-toggle-sound-scanner"
-                        >
-                          {soundEnabled ? <Volume2 className="h-5 w-5 md:h-4 md:w-4" /> : <VolumeX className="h-5 w-5 md:h-4 md:w-4" />}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                {/* Last Scanned Ticket - Premium Design */}
-                {lastScannedTicket && (
-                  <Card className="border-[#17C0A9]/30 bg-gradient-to-br from-[#17C0A9]/5 to-transparent animate-in slide-in-from-bottom-4 duration-300">
-                    <CardContent className="p-6">
-                      <div className="space-y-4">
-                        {/* Success header */}
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-[#17C0A9]/20 rounded-full">
-                            <CheckCircle2 className="h-6 w-6 text-[#17C0A9]" />
-                          </div>
-                          <div>
-                            <p className="font-semibold text-lg text-white">Valid Ticket Detected</p>
-                            <p className="text-sm text-white/60">Ready to check in</p>
-                          </div>
-                        </div>
-                        
-                        {/* Ticket details */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 rounded-lg bg-white/5 border border-white/10">
-                          <div>
-                            <p className="text-xs text-white/50 mb-1">Name</p>
-                            <p className="font-medium text-white">{lastScannedTicket.buyerName}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-white/50 mb-1">Ticket Tier</p>
-                            <p className="font-medium text-white">{lastScannedTicket.tierName}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-white/50 mb-1">Serial</p>
-                            <p className="font-medium text-white font-mono text-sm">{lastScannedTicket.serial}</p>
-                          </div>
-                        </div>
-                        
-                        {/* Confirm button */}
-                        <Button
-                          onClick={() => checkinMutation.mutate(lastScannedTicket.qrToken)}
-                          className="w-full h-14 text-base font-medium bg-gradient-to-r from-[#17C0A9] to-[#15a890] hover:from-[#15a890] hover:to-[#17C0A9] text-white shadow-lg shadow-[#17C0A9]/30 transition-all duration-300 hover:shadow-xl hover:shadow-[#17C0A9]/40"
-                          disabled={checkinMutation.isPending}
-                          data-testid="button-confirm-checkin"
-                        >
-                          <UserCheck className="h-5 w-5 mr-2" />
-                          {checkinMutation.isPending ? "Checking in..." : "Confirm Check-in"}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
                 )}
-              </div>
+              </>
             )}
           </TabsContent>
           
