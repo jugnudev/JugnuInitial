@@ -307,10 +307,25 @@ export function TicketsCheckinDashboard() {
         
         {/* Main Content Tabs */}
         <Tabs defaultValue="scanner" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="scanner">QR Scanner</TabsTrigger>
-            <TabsTrigger value="manual">Manual Check-in</TabsTrigger>
-            <TabsTrigger value="recent">Recent Activity</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 h-auto p-1.5 bg-[#0B0B0F]/80 backdrop-blur-sm border border-white/10 rounded-xl gap-1.5">
+            <TabsTrigger 
+              value="scanner"
+              className="h-12 md:h-14 rounded-lg transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#c0580f] data-[state=active]:to-[#d3541e] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[#c0580f]/30 data-[state=inactive]:text-white/60 data-[state=inactive]:hover:text-white/90 data-[state=inactive]:hover:bg-white/5 font-medium text-sm md:text-base"
+            >
+              QR Scanner
+            </TabsTrigger>
+            <TabsTrigger 
+              value="manual"
+              className="h-12 md:h-14 rounded-lg transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#c0580f] data-[state=active]:to-[#d3541e] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[#c0580f]/30 data-[state=inactive]:text-white/60 data-[state=inactive]:hover:text-white/90 data-[state=inactive]:hover:bg-white/5 font-medium text-sm md:text-base"
+            >
+              Manual Check-in
+            </TabsTrigger>
+            <TabsTrigger 
+              value="recent"
+              className="h-12 md:h-14 rounded-lg transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#c0580f] data-[state=active]:to-[#d3541e] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[#c0580f]/30 data-[state=inactive]:text-white/60 data-[state=inactive]:hover:text-white/90 data-[state=inactive]:hover:bg-white/5 font-medium text-sm md:text-base"
+            >
+              Recent Activity
+            </TabsTrigger>
           </TabsList>
           
           {/* QR Scanner Tab */}
