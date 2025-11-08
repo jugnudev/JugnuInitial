@@ -1305,24 +1305,22 @@ export class TicketsSupabaseDB {
       `)
       .eq('tickets_tiers.event_id', eventId);
     
-    // Apply filters
+    // Apply status filter at query level
     if (filters.status) {
       query = query.eq('status', filters.status);
     }
     
-    if (filters.search) {
-      const searchTerm = `%${filters.search.toLowerCase()}%`;
-      query = query.or(`buyer_name.ilike.${searchTerm},buyer_email.ilike.${searchTerm},serial.ilike.${searchTerm}`);
-    }
+    // Can only filter on direct fields, not nested ones
+    // Search filtering will be done after fetch
     
-    query = query.order('created_at', { ascending: false });
+    query = query.order('serial', { ascending: true });
     
     const { data, error } = await query;
     
     if (error) throw error;
     
     // Flatten the nested structure to match expected format
-    return (data || []).map((item: any) => ({
+    let results = (data || []).map((item: any) => ({
       ticket_id: item.ticket_id,
       serial: item.serial,
       qr_token: item.qr_token,
@@ -1335,6 +1333,18 @@ export class TicketsSupabaseDB {
       buyer_phone: item.order_item?.order?.buyer_phone,
       placed_at: item.order_item?.order?.created_at
     }));
+    
+    // Apply search filter in-memory if provided
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      results = results.filter((item: any) => 
+        item.buyer_name?.toLowerCase().includes(searchLower) ||
+        item.buyer_email?.toLowerCase().includes(searchLower) ||
+        item.serial?.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return results;
   }
 
   async getCheckInStats(eventId: string): Promise<{
