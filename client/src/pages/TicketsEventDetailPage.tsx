@@ -626,11 +626,11 @@ export function TicketsEventDetailPage() {
                         </div>
                         
                         <div className="text-center md:text-right md:ml-6 mobile-price-display">
-                          <div className="text-2xl md:text-3xl font-bold text-white mb-1">
+                          <div className="text-xl md:text-2xl font-bold text-white mb-1">
                             ${(tier.priceCents / 100).toFixed(0)}
-                            <span className="text-base md:text-lg text-gray-400">.{String(tier.priceCents % 100).padStart(2, '0')}</span>
+                            <span className="text-sm md:text-base text-gray-400">.{String(tier.priceCents % 100).padStart(2, '0')}</span>
                           </div>
-                          <div className="text-sm text-gray-500">per ticket</div>
+                          <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">per ticket</div>
                         </div>
                       </div>
                       

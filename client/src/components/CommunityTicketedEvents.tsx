@@ -284,17 +284,17 @@ export default function CommunityTicketedEvents({ organizerId }: CommunityTicket
                   </div>
                 </div>
 
-                {/* Pricing Section */}
+                {/* Pricing Section - Premium Pill Design */}
                 {minPrice !== null && (
-                  <div className="flex items-end justify-between pt-4 border-t border-copper-500/20">
-                    <div>
-                      <p className="text-sm text-neutral-500 font-medium mb-1">Starting from</p>
-                      <p className="font-fraunces text-3xl md:text-4xl font-bold text-white">
-                        ${(minPrice / 100).toFixed(2)}
-                      </p>
+                  <div className="flex items-center justify-between gap-3 pt-4 border-t border-copper-500/20">
+                    <div className="inline-flex items-baseline gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-copper-500/10 to-accent/10 border border-copper-500/30 backdrop-blur-sm">
+                      <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">From</span>
+                      <span className="font-fraunces text-lg font-bold text-white">
+                        ${(minPrice / 100).toFixed(minPrice % 100 === 0 ? 0 : 2)}
+                      </span>
                     </div>
                     {isHighDemand && available && (
-                      <Badge variant="outline" className="border-orange-500/50 text-orange-400 bg-orange-500/10 text-xs">
+                      <Badge variant="outline" className="border-orange-500/50 text-orange-400 bg-orange-500/10 text-xs font-semibold">
                         {soldPercentage}% Sold
                       </Badge>
                     )}
