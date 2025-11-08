@@ -91,37 +91,36 @@
   margin-top: 16px !important;
 }
 
-/* Mobile Full-Screen Scanner Optimizations */
-@media (max-width: 768px) {
-  /* Hide library controls on mobile - we use custom overlay */
-  #qr-reader__dashboard_section,
-  #qr-reader__dashboard_section_csr,
-  #qr-reader__dashboard_section_fsr,
-  #qr-reader__header_message {
-    display: none !important;
-  }
-  
-  /* Make scanner container full width */
-  #qr-reader {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-  
-  /* Make scanner video full-screen */
-  #qr-reader__scan_region {
-    border: none !important;
-    border-radius: 16px !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: hidden !important;
-  }
-  
-  #qr-reader video {
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    border-radius: 16px !important;
-  }
+/* QR Scanner Styles - Make video visible! */
+#qr-reader {
+  width: 100% !important;
+}
+
+#qr-reader video {
+  width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  border-radius: 12px !important;
+}
+
+#qr-reader__scan_region {
+  width: 100% !important;
+  border: 2px solid rgba(192, 88, 15, 0.3) !important;
+  border-radius: 12px !important;
+}
+
+#qr-reader__dashboard_section {
+  padding: 16px 0 !important;
+}
+
+#qr-reader__dashboard_section_swaplink {
+  color: #c0580f !important;
+  text-decoration: none !important;
+}
+
+/* Make sure scan region box is visible */
+#qr-reader__scan_region > div {
+  border: 3px solid #c0580f !important;
 }
 
 /* Accessibility enhancements */

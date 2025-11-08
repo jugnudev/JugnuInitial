@@ -459,118 +459,61 @@ export function TicketsCheckinDashboard() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {/* Mobile-Optimized Scanner */}
-                <Card className="md:hidden border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden">
-                  <CardContent className="p-0">
-                    {/* Top controls bar */}
-                    <div className="flex items-center justify-between p-4 border-b border-[#c0580f]/20">
-                      <Button
-                        onClick={() => setScannerEnabled(false)}
-                        variant="ghost"
-                        size="sm"
-                        className="text-white/80 hover:text-white hover:bg-white/10"
-                        data-testid="button-close-scanner"
-                      >
-                        <X className="h-5 w-5 mr-2" />
-                        Close
-                      </Button>
-                      <div className="text-sm font-medium text-[#17C0A9]">
-                        Scanning...
-                      </div>
-                      <Button
-                        onClick={() => setSoundEnabled(!soundEnabled)}
-                        variant="ghost"
-                        size="sm"
-                        className="text-white/80 hover:text-white hover:bg-white/10"
-                      >
-                        {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-                      </Button>
+              <Card className="border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden">
+                <CardContent className="p-0">
+                  {/* Top controls bar */}
+                  <div className="flex items-center justify-between p-4 border-b border-[#c0580f]/20">
+                    <Button
+                      onClick={() => setScannerEnabled(false)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-white/80 hover:text-white hover:bg-white/10"
+                      data-testid="button-close-scanner"
+                    >
+                      <X className="h-5 w-5 mr-2" />
+                      Close
+                    </Button>
+                    <div className="text-sm font-medium text-[#17C0A9]">
+                      Scanning...
                     </div>
-                    
-                    {/* Scanner viewport */}
-                    <div className="relative bg-black">
-                      <div id="qr-reader" className="w-full min-h-[60vh]" />
-                    </div>
-                    
-                    {/* Bottom info */}
-                    <div className="p-4 bg-gradient-to-t from-[#c0580f]/10 to-transparent">
-                      {lastScannedTicket && (
-                        <div className="mb-3">
-                          <div className="bg-[#17C0A9] text-[#0B0B0F] rounded-xl p-3 shadow-lg">
-                            <div className="flex items-center gap-2">
-                              <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm">Valid Ticket</p>
-                                <p className="text-xs opacity-90 truncate">
-                                  {lastScannedTicket.tierName} • {lastScannedTicket.serial}
-                                </p>
-                              </div>
+                    <Button
+                      onClick={() => setSoundEnabled(!soundEnabled)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-white/80 hover:text-white hover:bg-white/10"
+                    >
+                      {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                    </Button>
+                  </div>
+                  
+                  {/* Scanner viewport - SINGLE element for both mobile and desktop */}
+                  <div className="relative bg-black p-4">
+                    <div id="qr-reader" className="w-full max-w-2xl mx-auto" style={{ minHeight: '400px' }} />
+                  </div>
+                  
+                  {/* Bottom info */}
+                  <div className="p-4 bg-gradient-to-t from-[#c0580f]/10 to-transparent">
+                    {lastScannedTicket && (
+                      <div className="mb-3 max-w-2xl mx-auto">
+                        <div className="bg-[#17C0A9] text-[#0B0B0F] rounded-xl p-3 shadow-lg">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-5 w-5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm">Valid Ticket</p>
+                              <p className="text-xs opacity-90 truncate">
+                                {lastScannedTicket.tierName} • {lastScannedTicket.serial}
+                              </p>
                             </div>
                           </div>
                         </div>
-                      )}
-                      <p className="text-center text-white/60 text-sm">
-                        Point camera at QR code to scan
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                {/* Desktop Scanner Card */}
-                <Card className="hidden md:block border-[#c0580f]/30 bg-[#0B0B0F] overflow-hidden">
-                  <CardContent className="p-4 md:p-6">
-                    {/* Scanner viewport */}
-                    <div className="relative">
-                      {/* Scanning frame overlay */}
-                      <div className="relative rounded-2xl overflow-hidden border-2 border-[#c0580f]/50 shadow-lg shadow-[#c0580f]/20">
-                        <div id="qr-reader" className="mx-auto" />
-                        
-                        {/* Scanning animation overlay */}
-                        <div className="absolute inset-0 pointer-events-none">
-                          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#c0580f] to-transparent animate-pulse" />
-                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#17C0A9] to-transparent animate-pulse" style={{ animationDelay: '0.5s' }} />
-                        </div>
-                        
-                        {/* Corner indicators */}
-                        <div className="absolute top-4 left-4 w-8 h-8 border-t-4 border-l-4 border-[#c0580f] rounded-tl-lg" />
-                        <div className="absolute top-4 right-4 w-8 h-8 border-t-4 border-r-4 border-[#c0580f] rounded-tr-lg" />
-                        <div className="absolute bottom-4 left-4 w-8 h-8 border-b-4 border-l-4 border-[#c0580f] rounded-bl-lg" />
-                        <div className="absolute bottom-4 right-4 w-8 h-8 border-b-4 border-r-4 border-[#c0580f] rounded-br-lg" />
                       </div>
-                      
-                      {/* Scanning status */}
-                      <div className="mt-4 text-center">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#c0580f]/10 border border-[#c0580f]/30">
-                          <div className="w-2 h-2 bg-[#c0580f] rounded-full animate-pulse" />
-                          <span className="text-sm font-medium text-white/90">Scanning...</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Control buttons */}
-                    <div className="mt-6 flex gap-3">
-                      <Button
-                        onClick={() => setScannerEnabled(false)}
-                        variant="outline"
-                        className="flex-1 h-12 border-white/20 hover:bg-white/5 hover:border-white/30"
-                        data-testid="button-stop-scanner"
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Stop Scanner
-                      </Button>
-                      <Button
-                        onClick={() => setSoundEnabled(!soundEnabled)}
-                        variant="outline"
-                        size="icon"
-                        className="h-12 w-12 border-white/20 hover:bg-white/5 hover:border-white/30"
-                        data-testid="button-toggle-sound-scanner"
-                      >
-                        {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                    )}
+                    <p className="text-center text-white/60 text-sm">
+                      Point camera at QR code to scan
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
                 
                 {/* Last Scanned Ticket - Premium Design */}
                 {lastScannedTicket && (
