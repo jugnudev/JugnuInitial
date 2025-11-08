@@ -2176,11 +2176,11 @@ function addMyTicketsRoutes(app: Express) {
       const ordersByUser = await ticketsStorage.getOrdersByUserId(userId);
       const ordersByEmail = await ticketsStorage.getOrdersByBuyer(user.email);
       
-      // Combine and deduplicate orders
+      // Combine and deduplicate orders (convert to camelCase)
       const orderMap = new Map();
       [...ordersByUser, ...ordersByEmail].forEach(order => {
         if (order.status === 'paid') {
-          orderMap.set(order.id, order);
+          orderMap.set(order.id, toCamelCase(order));
         }
       });
       

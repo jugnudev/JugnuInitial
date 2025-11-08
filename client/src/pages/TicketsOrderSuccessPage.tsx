@@ -464,7 +464,8 @@ export function TicketsOrderSuccessPage() {
             <Button 
               variant="outline"
               className="flex-1"
-              onClick={() => setLocation('/tickets/my-orders')}
+              onClick={() => setLocation('/tickets/my-tickets')}
+              data-testid="button-view-my-orders"
             >
               View My Orders
             </Button>
