@@ -304,30 +304,31 @@ export function TicketsCheckinDashboard() {
       
       console.log('📝 onScanSuccess callback defined');
       
-      // Start scanning with optimized config based on html5-qrcode best practices
+      // Use library defaults for camera constraints (width/height cause silent failures)
       const config = {
-        fps: 5, // Lower FPS = more processing time per frame = better accuracy
-        qrbox: isMobile ? { width: 300, height: 300 } : { width: 400, height: 400 }, // Larger scanning area
-        aspectRatio: 1.777778, // 16:9 aspect ratio (recommended)
-        disableFlip: false,
-        // Explicitly request video constraints for better camera quality
-        videoConstraints: {
-          facingMode: { exact: "environment" }
-        }
+        fps: 10, // Standard FPS for good performance
+        qrbox: isMobile ? { width: 250, height: 250 } : { width: 300, height: 300 },
+        disableFlip: false
       };
       
       console.log('📷 Scanner config:', config);
       console.log('📷 About to call html5QrCode.start()...');
       console.log('📷 Callback function?', typeof onScanSuccess);
       
+      // Use simple camera constraints - library recommendation
       await html5QrCode.start(
-        { facingMode: "environment" },
+        { facingMode: "environment" }, // Simple constraints, no width/height
         config,
         onScanSuccess,
         (errorMessage) => {
-          // Only log decode failures occasionally to avoid spam
+          // Log decode attempts to confirm frames are processing
           if (!errorMessage.includes('NotFoundException')) {
-            console.log('🔍 Scanner decode error:', errorMessage);
+            console.log('📸 Decode attempt (non-QR):', errorMessage.substring(0, 80));
+          } else {
+            // Log every 50th NotFoundException to confirm active scanning
+            if (Math.random() < 0.02) {
+              console.log('📸 Scanning active... (no QR detected in frame)');
+            }
           }
         }
       );
