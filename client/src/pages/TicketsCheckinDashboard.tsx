@@ -5,6 +5,8 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Html5Qrcode } from "html5-qrcode";
 import { format } from "date-fns";
 import { Helmet } from "react-helmet-async";
+
+console.log('🚀 TicketsCheckinDashboard MODULE LOADED - Version 2.0');
 import { 
   QrCode, Users, CheckCircle2, XCircle, Clock, Search, 
   Download, RefreshCw, Camera, Volume2, VolumeX,
