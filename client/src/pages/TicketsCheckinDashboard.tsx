@@ -281,6 +281,23 @@ export function TicketsCheckinDashboard() {
             
             isProcessingRef.current = true;
             
+            // Parse QR data - it might be JSON or plain text
+            let ticketData = decodedText;
+            try {
+              const parsedData = JSON.parse(decodedText);
+              // If it's JSON, extract the token field
+              if (parsedData.token) {
+                ticketData = parsedData.token;
+                console.log('📋 Extracted token from JSON:', ticketData);
+              } else if (parsedData.qrToken) {
+                ticketData = parsedData.qrToken;
+                console.log('📋 Extracted qrToken from JSON:', ticketData);
+              }
+            } catch (e) {
+              // Not JSON, use as-is
+              console.log('📋 Using raw QR data (not JSON):', ticketData);
+            }
+            
             // Haptic and audio feedback
             if (navigator.vibrate) {
               navigator.vibrate(200);
@@ -288,8 +305,8 @@ export function TicketsCheckinDashboard() {
             playSound('success');
             
             // Validate the ticket
-            console.log('🔍 Validating ticket:', decodedText);
-            validateMutationRef.current.mutate(decodedText, {
+            console.log('🔍 Validating ticket token:', ticketData);
+            validateMutationRef.current.mutate(ticketData, {
               onSuccess: (data: any) => {
                 console.log('✅✅✅ Validation successful:', data);
                 setTimeout(() => {
