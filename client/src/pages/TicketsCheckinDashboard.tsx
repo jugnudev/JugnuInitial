@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -189,6 +189,26 @@ export function TicketsCheckinDashboard() {
     }
   }, [isMobileFullScreen]);
   
+  // Stable callback to prevent re-renders
+  const handleQRDetection = useCallback((qrText: string) => {
+    console.log('🔵 handleQRDetection called with:', qrText.substring(0, 30) + '...');
+    
+    // Haptic and audio feedback
+    if (navigator.vibrate) {
+      navigator.vibrate(200);
+    }
+    playSound('success');
+    
+    validateMutation.mutate(qrText, {
+      onSuccess: (data) => {
+        console.log('🔵 Validation successful:', data);
+      },
+      onError: (error) => {
+        console.error('🔵 Validation error:', error);
+      }
+    });
+  }, [validateMutation]);
+
   // ZXing QR Scanner setup - Much more reliable!
   useEffect(() => {
     console.log('🔵 SCANNER EFFECT RUNNING - scannerEnabled:', scannerEnabled);
@@ -219,11 +239,11 @@ export function TicketsCheckinDashboard() {
         const videoDevices = await BrowserCodeReader.listVideoInputDevices();
         console.log('🔵 ZXing: Found', videoDevices.length, 'camera(s)');
         
-        // Select back camera (or use null for default)
+        // Select back camera (or use undefined for default)
         const selectedDeviceId = videoDevices.find((device: MediaDeviceInfo) => 
           device.label.toLowerCase().includes('back') || 
           device.label.toLowerCase().includes('environment')
-        )?.deviceId || null;
+        )?.deviceId;
         
         console.log('🔵 ZXing: Using camera:', selectedDeviceId || 'default');
         
@@ -233,6 +253,8 @@ export function TicketsCheckinDashboard() {
           selectedDeviceId,
           videoRef.current!,
           (result, error) => {
+            console.log('🔵 ZXing callback triggered - result:', !!result, 'error:', !!error);
+            
             if (result) {
               console.log('🎯 QR CODE DETECTED!', result.getText());
               
@@ -242,32 +264,23 @@ export function TicketsCheckinDashboard() {
               }
               isScanning = true;
               
-              // Haptic and audio feedback
-              if (navigator.vibrate) {
-                navigator.vibrate(200);
-              }
-              playSound('success');
+              handleQRDetection(result.getText());
               
-              const qrText = result.getText();
-              console.log('🔵 Validating ticket:', qrText.substring(0, 30) + '...');
-              
-              validateMutation.mutate(qrText, {
-                onSuccess: (data) => {
-                  console.log('🔵 Validation result:', data);
-                  setTimeout(() => {
-                    isScanning = false;
-                  }, 2000);
-                },
-                onError: (error) => {
-                  console.error('🔵 Validation error:', error);
-                  isScanning = false;
-                }
-              });
+              // Reset after 2 seconds
+              setTimeout(() => {
+                isScanning = false;
+                console.log('🔵 Ready to scan again');
+              }, 2000);
             }
             
             if (error) {
-              // Count scan attempts
+              // Update scan attempts counter on every scan attempt
               setScanAttempts(prev => prev + 1);
+              
+              // Log occasionally
+              if (Math.random() < 0.01) {
+                console.log('🔵 Scan error:', error.message?.substring(0, 50));
+              }
             }
           }
         );
@@ -296,7 +309,7 @@ export function TicketsCheckinDashboard() {
         controlsRef.stop();
       }
     };
-  }, [scannerEnabled, eventId]);
+  }, [scannerEnabled, handleQRDetection]);
   
   // Sound effects
   const playSound = (type: 'success' | 'error' | 'checkin') => {
