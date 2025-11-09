@@ -88,6 +88,8 @@ export function TicketsCheckinDashboard() {
   const [showManualSheet, setShowManualSheet] = useState(false);
   const [isMobileFullScreen, setIsMobileFullScreen] = useState(false);
   const [manualTicketCode, setManualTicketCode] = useState("");
+  const [scannerStatus, setScannerStatus] = useState<{type: 'error' | 'success' | null, message: string | null}>({type: null, message: null});
+  const [lastScannedToken, setLastScannedToken] = useState<{token: string, timestamp: number} | null>(null);
   
   // ZXing scanner refs
   const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
@@ -159,14 +161,29 @@ export function TicketsCheckinDashboard() {
     onSuccess: (data: any) => {
       if (data.ok) {
         setLastScannedTicket(data.ticket);
+        setScannerStatus({ type: 'success', message: 'Ticket valid! Ready to check in.' });
         playSound('success');
+        
+        // Clear status after 5 seconds
+        setTimeout(() => setScannerStatus({ type: null, message: null }), 5000);
       } else {
         playSound('error');
+        setScannerStatus({ type: 'error', message: data.error || 'Invalid ticket' });
+        
+        // Vibrate for error
+        if (navigator.vibrate) {
+          navigator.vibrate([100, 50, 100]);
+        }
+        
+        // Also show toast for non-scanner view
         toast({
           title: "Validation Failed",
           description: data.error || "Invalid ticket",
           variant: "destructive"
         });
+        
+        // Clear error status after 5 seconds
+        setTimeout(() => setScannerStatus({ type: null, message: null }), 5000);
       }
     }
   });
@@ -279,8 +296,6 @@ export function TicketsCheckinDashboard() {
             console.log('🎯🎯🎯 ZXing QR CODE DETECTED!!!', decodedText);
             console.log('🎯 Result object:', result);
             
-            isProcessingRef.current = true;
-            
             // Parse QR data - it might be JSON or plain text
             let ticketData = decodedText;
             try {
@@ -297,6 +312,17 @@ export function TicketsCheckinDashboard() {
               // Not JSON, use as-is
               console.log('📋 Using raw QR data (not JSON):', ticketData);
             }
+            
+            // Check if we've recently scanned this token (prevent duplicates)
+            const now = Date.now();
+            if (lastScannedToken && lastScannedToken.token === ticketData && 
+                (now - lastScannedToken.timestamp) < 3000) {
+              console.log('⏭️ Skipping duplicate scan of same token');
+              return;
+            }
+            
+            isProcessingRef.current = true;
+            setLastScannedToken({ token: ticketData, timestamp: now });
             
             // Haptic and audio feedback
             if (navigator.vibrate) {
@@ -781,6 +807,28 @@ export function TicketsCheckinDashboard() {
                             </div>
                           </div>
                           
+                          {/* Inline validation status - Shows inside scanner */}
+                          {scannerStatus.type && (
+                            <div className="absolute top-20 left-4 right-4 z-40 animate-in slide-in-from-top-2 duration-300">
+                              <div className={`p-4 rounded-xl backdrop-blur-2xl border-2 shadow-2xl ${
+                                scannerStatus.type === 'error' 
+                                  ? 'bg-red-900/80 border-red-500/70 shadow-red-500/30' 
+                                  : 'bg-green-900/80 border-green-500/70 shadow-green-500/30'
+                              }`}>
+                                <div className="flex items-center gap-3">
+                                  {scannerStatus.type === 'error' ? (
+                                    <AlertCircle className="w-6 h-6 text-red-200 flex-shrink-0" />
+                                  ) : (
+                                    <CheckCircle2 className="w-6 h-6 text-green-200 flex-shrink-0" />
+                                  )}
+                                  <p className="text-white font-semibold text-sm">
+                                    {scannerStatus.message}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
                           {/* Scan instruction - Compact & Glassmorphism */}
                           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 px-3 max-w-[90%]">
                             <p className="text-white text-center text-xs font-medium bg-black/70 backdrop-blur-lg px-4 py-2 rounded-full border-2 border-white/30 shadow-xl">
@@ -859,6 +907,28 @@ export function TicketsCheckinDashboard() {
                                 </span>
                               </div>
                             </div>
+                            
+                            {/* Inline validation status - Desktop */}
+                            {scannerStatus.type && (
+                              <div className="absolute top-24 left-8 right-8 z-30 animate-in slide-in-from-top-2 duration-300">
+                                <div className={`p-4 rounded-xl backdrop-blur-2xl border-2 shadow-2xl ${
+                                  scannerStatus.type === 'error' 
+                                    ? 'bg-red-900/80 border-red-500/70 shadow-red-500/30' 
+                                    : 'bg-green-900/80 border-green-500/70 shadow-green-500/30'
+                                }`}>
+                                  <div className="flex items-center gap-3">
+                                    {scannerStatus.type === 'error' ? (
+                                      <AlertCircle className="w-6 h-6 text-red-200 flex-shrink-0" />
+                                    ) : (
+                                      <CheckCircle2 className="w-6 h-6 text-green-200 flex-shrink-0" />
+                                    )}
+                                    <p className="text-white font-semibold">
+                                      {scannerStatus.message}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                             
                             {/* Scan instruction */}
                             <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 text-center px-4">
