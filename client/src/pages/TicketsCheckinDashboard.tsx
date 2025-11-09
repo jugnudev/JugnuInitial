@@ -90,7 +90,26 @@ export function TicketsCheckinDashboard() {
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const isProcessingRef = useRef(false);
   const isScannerRunningRef = useRef(false);
-  const validateMutationRef = useRef(validateMutation);
+  const validateMutationRef = useRef<any>(null);
+  
+  // Sound effects - defined early so it can be used everywhere
+  const playSound = (type: 'success' | 'error' | 'checkin') => {
+    if (!soundEnabled) return;
+    
+    const audio = new Audio();
+    switch (type) {
+      case 'success':
+        audio.src = 'data:audio/wav;base64,UklGRhwMAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoMAAD/////';
+        break;
+      case 'error':
+        audio.src = 'data:audio/wav;base64,UklGRhwMAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoMAACA';
+        break;
+      case 'checkin':
+        audio.src = 'data:audio/wav;base64,UklGRhwMAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoMAAD/////';
+        break;
+    }
+    audio.play().catch(() => {});
+  };
   
   // Fetch event details
   const { data: event } = useQuery({
@@ -228,13 +247,13 @@ export function TicketsCheckinDashboard() {
           playSound('success');
           
           validateMutationRef.current.mutate(decodedText, {
-            onSuccess: (data) => {
+            onSuccess: (data: any) => {
               console.log('✅ Validation successful');
               setTimeout(() => {
                 isProcessingRef.current = false;
               }, 2000);
             },
-            onError: (error) => {
+            onError: (error: any) => {
               console.error('❌ Validation error:', error);
               isProcessingRef.current = false;
             }
@@ -283,28 +302,6 @@ export function TicketsCheckinDashboard() {
       }
     };
   }, [scannerEnabled]);
-  
-  // Sound effects
-  const playSound = (type: 'success' | 'error' | 'checkin') => {
-    if (!soundEnabled) return;
-    
-    const audio = new Audio();
-    switch (type) {
-      case 'success':
-        // Simple success beep
-        audio.src = 'data:audio/wav;base64,UklGRhwMAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoMAAD/////';
-        break;
-      case 'error':
-        // Error buzz
-        audio.src = 'data:audio/wav;base64,UklGRhwMAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoMAACA';
-        break;
-      case 'checkin':
-        // Check-in chime
-        audio.src = 'data:audio/wav;base64,UklGRhwMAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoMAAD/////';
-        break;
-    }
-    audio.play().catch(() => {});
-  };
   
   // Export attendees
   const handleExport = () => {
