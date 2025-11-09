@@ -90,6 +90,7 @@ export function TicketsCheckinDashboard() {
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const isProcessingRef = useRef(false);
   const isScannerRunningRef = useRef(false);
+  const validateMutationRef = useRef(validateMutation);
   
   // Fetch event details
   const { data: event } = useQuery({
@@ -189,6 +190,11 @@ export function TicketsCheckinDashboard() {
     }
   }, [isMobileFullScreen]);
   
+  // Update mutation ref when it changes
+  useEffect(() => {
+    validateMutationRef.current = validateMutation;
+  }, [validateMutation]);
+
   // Html5Qrcode Scanner - Simple and reliable
   useEffect(() => {
     if (!scannerEnabled) {
@@ -221,7 +227,7 @@ export function TicketsCheckinDashboard() {
           }
           playSound('success');
           
-          validateMutation.mutate(decodedText, {
+          validateMutationRef.current.mutate(decodedText, {
             onSuccess: (data) => {
               console.log('✅ Validation successful');
               setTimeout(() => {
@@ -276,7 +282,7 @@ export function TicketsCheckinDashboard() {
         });
       }
     };
-  }, [scannerEnabled, validateMutation]);
+  }, [scannerEnabled]);
   
   // Sound effects
   const playSound = (type: 'success' | 'error' | 'checkin') => {
