@@ -2,11 +2,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Html5Qrcode } from "html5-qrcode";
+import { BrowserMultiFormatReader, NotFoundException } from "@zxing/library";
 import { format } from "date-fns";
 import { Helmet } from "react-helmet-async";
 
-console.log('🚀 TicketsCheckinDashboard MODULE LOADED - Version 4.0 (Html5Qrcode)');
+console.log('🚀 TicketsCheckinDashboard MODULE LOADED - Version 5.0 (ZXing)');
 import { 
   QrCode, Users, CheckCircle2, XCircle, Clock, Search, 
   Download, RefreshCw, Camera, Volume2, VolumeX,
@@ -87,10 +87,15 @@ export function TicketsCheckinDashboard() {
   const [lastScannedTicket, setLastScannedTicket] = useState<any>(null);
   const [showManualSheet, setShowManualSheet] = useState(false);
   const [isMobileFullScreen, setIsMobileFullScreen] = useState(false);
-  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const [manualTicketCode, setManualTicketCode] = useState("");
+  
+  // ZXing scanner refs
+  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
+  const videoElementRef = useRef<HTMLVideoElement | null>(null);
   const isProcessingRef = useRef(false);
   const isScannerRunningRef = useRef(false);
   const validateMutationRef = useRef<any>(null);
+  const scanIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Sound effects - defined early so it can be used everywhere
   const playSound = (type: 'success' | 'error' | 'checkin') => {
@@ -214,7 +219,7 @@ export function TicketsCheckinDashboard() {
     validateMutationRef.current = validateMutation;
   }, [validateMutation]);
 
-  // Explicit scanner start function - prevents React StrictMode double-run issues
+  // ZXing scanner start function
   const startScanner = useCallback(async () => {
     // Prevent duplicate starts
     if (isScannerRunningRef.current) {
@@ -223,8 +228,7 @@ export function TicketsCheckinDashboard() {
     }
     
     console.log('🔴 START SCANNER BUTTON CLICKED!');
-    console.log('🔴 isMobile:', window.innerWidth < 768);
-    console.log('🔴 window.innerWidth:', window.innerWidth);
+    console.log('🔴 Using ZXing BrowserMultiFormatReader');
     
     const isMobile = window.innerWidth < 768;
     if (isMobile) {
@@ -234,108 +238,79 @@ export function TicketsCheckinDashboard() {
     // Set scannerEnabled=true FIRST to render the DOM element
     setScannerEnabled(true);
     
-    // Wait for React to render the #qr-reader element - poll for existence
-    const maxAttempts = 20; // 2 seconds max
-    let attempts = 0;
-    while (attempts < maxAttempts) {
-      const element = document.getElementById('qr-reader');
-      if (element) {
-        console.log(`✅ Found qr-reader element after ${attempts * 100}ms`);
-        break;
-      }
-      console.log(`⏳ Waiting for qr-reader element... attempt ${attempts + 1}`);
-      await new Promise(resolve => setTimeout(resolve, 100));
-      attempts++;
+    // Wait for video element
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const videoElement = document.getElementById('qr-video') as HTMLVideoElement;
+    if (!videoElement) {
+      throw new Error('Video element not found');
     }
     
-    const qrElement = document.getElementById('qr-reader');
-    if (!qrElement) {
-      throw new Error('QR reader element not found after 2 seconds');
-    }
+    videoElementRef.current = videoElement;
     
     try {
-      // Create scanner instance if not exists
-      if (!html5QrCodeRef.current) {
-        console.log('🎬 Creating new Html5Qrcode instance...');
-        html5QrCodeRef.current = new Html5Qrcode("qr-reader");
+      // Create ZXing scanner instance
+      if (!codeReaderRef.current) {
+        console.log('🎬 Creating new BrowserMultiFormatReader...');
+        codeReaderRef.current = new BrowserMultiFormatReader();
       }
       
-      const html5QrCode = html5QrCodeRef.current;
-      console.log('📷 Starting scanner...');
+      const codeReader = codeReaderRef.current;
+      console.log('📷 Starting ZXing scanner...');
       
-      // Success callback - defined before scanner.start()
-      const onScanSuccess = (decodedText: string, decodedResult: any) => {
-        console.log('🎯🎯🎯 QR CODE DETECTED!!!', { decodedText, decodedResult });
-        console.log('🎯 Decoded Text:', decodedText);
-        console.log('🎯 Is Processing?', isProcessingRef.current);
-        
-        if (isProcessingRef.current) {
-          console.log('⏸️ Already processing, skipping...');
-          return;
-        }
-        
-        isProcessingRef.current = true;
-        console.log('🎯 Processing QR code:', decodedText);
-        
-        // Haptic and audio feedback
-        if (navigator.vibrate) {
-          console.log('📳 Triggering vibration');
-          navigator.vibrate(200);
-        }
-        console.log('🔊 Playing success sound');
-        playSound('success');
-        
-        console.log('🔍 Validating ticket with mutation...');
-        validateMutationRef.current.mutate(decodedText, {
-          onSuccess: (data: any) => {
-            console.log('✅✅✅ Validation successful:', data);
-            setTimeout(() => {
-              isProcessingRef.current = false;
-              console.log('🔓 Released processing lock');
-            }, 2000);
-          },
-          onError: (error: any) => {
-            console.error('❌❌❌ Validation error:', error);
-            isProcessingRef.current = false;
-            console.log('🔓 Released processing lock (error)');
-          }
-        });
-      };
+      // Get available cameras and start with environment camera
+      const devices = await codeReader.listVideoInputDevices();
+      console.log('📷 Available cameras:', devices);
       
-      console.log('📝 onScanSuccess callback defined');
+      // Find environment camera or use first available
+      const environmentCamera = devices.find(d => d.label.toLowerCase().includes('back')) || devices[0];
+      console.log('📷 Using camera:', environmentCamera?.label);
       
-      // Use library defaults for camera constraints (width/height cause silent failures)
-      const config = {
-        fps: 10, // Standard FPS for good performance
-        qrbox: isMobile ? { width: 250, height: 250 } : { width: 300, height: 300 },
-        disableFlip: false
-      };
-      
-      console.log('📷 Scanner config:', config);
-      console.log('📷 About to call html5QrCode.start()...');
-      console.log('📷 Callback function?', typeof onScanSuccess);
-      
-      // Use simple camera constraints - library recommendation
-      await html5QrCode.start(
-        { facingMode: "environment" }, // Simple constraints, no width/height
-        config,
-        onScanSuccess,
-        (errorMessage) => {
-          // Log decode attempts to confirm frames are processing
-          if (!errorMessage.includes('NotFoundException')) {
-            console.log('📸 Decode attempt (non-QR):', errorMessage.substring(0, 80));
-          } else {
-            // Log every 50th NotFoundException to confirm active scanning
-            if (Math.random() < 0.02) {
-              console.log('📸 Scanning active... (no QR detected in frame)');
+      // Start continuous scanning with ZXing
+      await codeReader.decodeFromVideoDevice(
+        environmentCamera?.deviceId,
+        videoElement,
+        (result, error) => {
+          if (result) {
+            // Success! QR code detected
+            if (isProcessingRef.current) return;
+            
+            const decodedText = result.getText();
+            console.log('🎯🎯🎯 ZXing QR CODE DETECTED!!!', decodedText);
+            console.log('🎯 Result object:', result);
+            
+            isProcessingRef.current = true;
+            
+            // Haptic and audio feedback
+            if (navigator.vibrate) {
+              navigator.vibrate(200);
             }
+            playSound('success');
+            
+            // Validate the ticket
+            console.log('🔍 Validating ticket:', decodedText);
+            validateMutationRef.current.mutate(decodedText, {
+              onSuccess: (data: any) => {
+                console.log('✅✅✅ Validation successful:', data);
+                setTimeout(() => {
+                  isProcessingRef.current = false;
+                }, 2000);
+              },
+              onError: (error: any) => {
+                console.error('❌❌❌ Validation error:', error);
+                isProcessingRef.current = false;
+              }
+            });
+          } else if (error && !(error instanceof NotFoundException)) {
+            console.error('📸 ZXing scanning error:', error);
           }
+          // NotFoundException is expected when no QR code is in view
         }
       );
       
       isScannerRunningRef.current = true;
-      console.log('✅✅✅ Scanner started successfully!');
-      console.log('✅ Scanning for QR codes... point camera at QR code now');
+      console.log('✅✅✅ ZXing scanner started successfully!');
+      console.log('✅ Point camera at QR code - using higher resolution scanning');
       
       toast({
         title: "Scanner Ready",
@@ -356,8 +331,8 @@ export function TicketsCheckinDashboard() {
   }, [toast]);
 
   // Explicit scanner stop function
-  const stopScanner = useCallback(async () => {
-    if (!isScannerRunningRef.current || !html5QrCodeRef.current) {
+  const stopScanner = useCallback(() => {
+    if (!isScannerRunningRef.current || !codeReaderRef.current) {
       console.log('⚠️ Scanner not running');
       setScannerEnabled(false);
       setIsMobileFullScreen(false);
@@ -365,11 +340,11 @@ export function TicketsCheckinDashboard() {
     }
     
     try {
-      await html5QrCodeRef.current.stop();
+      codeReaderRef.current.reset();
       isScannerRunningRef.current = false;
       setScannerEnabled(false);
       setIsMobileFullScreen(false);
-      console.log('✅ Scanner stopped successfully');
+      console.log('✅ ZXing scanner stopped successfully');
     } catch (error) {
       console.error('❌ Error stopping scanner:', error);
       isScannerRunningRef.current = false;
@@ -381,8 +356,8 @@ export function TicketsCheckinDashboard() {
   // Cleanup on unmount only
   useEffect(() => {
     return () => {
-      if (html5QrCodeRef.current && isScannerRunningRef.current) {
-        html5QrCodeRef.current.stop().catch(() => {});
+      if (codeReaderRef.current && isScannerRunningRef.current) {
+        codeReaderRef.current.reset();
         isScannerRunningRef.current = false;
       }
     };
@@ -762,10 +737,16 @@ export function TicketsCheckinDashboard() {
                           animation: 'scale-in 0.4s ease-out'
                         }}
                       >
-                        {/* QR Reader Container - No Dark Overlay */}
+                        {/* ZXing Video Container */}
                         <div className="relative rounded-3xl overflow-hidden border-3 border-[#c0580f]/50 shadow-2xl w-full h-full flex items-center justify-center">
-                          {/* Camera Feed */}
-                          <div id="qr-reader" className="w-full h-full" />
+                          {/* Video Element for ZXing */}
+                          <video 
+                            id="qr-video" 
+                            className="w-full h-full object-cover"
+                            autoPlay
+                            playsInline
+                            muted
+                          />
                           
                           {/* Corner brackets - Premium Copper Gradient - Properly positioned */}
                           <div className="absolute top-4 left-4 w-16 h-16 border-t-[4px] border-l-[4px] border-white rounded-tl-2xl animate-pulse shadow-[0_0_15px_rgba(255,255,255,0.6)]" style={{ animationDuration: '2s' }} />
@@ -831,7 +812,13 @@ export function TicketsCheckinDashboard() {
                         <div className="relative">
                           <div className="relative rounded-2xl overflow-hidden border-2 border-[#c0580f]/50 shadow-lg shadow-[#c0580f]/20">
                             <div className="relative min-h-[500px] flex items-center justify-center">
-                              <div id="qr-reader" className="w-full h-full" />
+                              <video 
+                                id="qr-video" 
+                                className="w-full h-full object-cover"
+                                autoPlay
+                                playsInline
+                                muted
+                              />
                             </div>
                             
                             {/* Scanning animation overlay */}
@@ -886,6 +873,54 @@ export function TicketsCheckinDashboard() {
                               {soundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
                             </Button>
                           </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    
+                    {/* Manual Input Fallback - Desktop */}
+                    <Card className="border-amber-500/30 bg-amber-500/5 animate-in fade-in duration-300">
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-3 mb-4">
+                          <AlertCircle className="h-5 w-5 text-amber-500 mt-0.5" />
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-amber-500 mb-1">Manual Check-in</h3>
+                            <p className="text-sm text-white/70">
+                              If the scanner isn't detecting QR codes, enter the ticket code directly:
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          <Input
+                            type="text"
+                            placeholder="Enter ticket code or QR data"
+                            value={manualTicketCode}
+                            onChange={(e) => setManualTicketCode(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter' && manualTicketCode) {
+                                console.log('🔍 Manual ticket validation:', manualTicketCode);
+                                validateMutation.mutate(manualTicketCode);
+                                setManualTicketCode('');
+                              }
+                            }}
+                            className="bg-black/50 border-white/20 text-white placeholder:text-white/40"
+                            data-testid="input-manual-ticket-code-desktop"
+                          />
+                          <Button
+                            onClick={() => {
+                              if (manualTicketCode) {
+                                console.log('🔍 Manual ticket validation:', manualTicketCode);
+                                validateMutation.mutate(manualTicketCode);
+                                setManualTicketCode('');
+                              }
+                            }}
+                            disabled={!manualTicketCode || validateMutation.isPending}
+                            variant="outline"
+                            className="w-full border-amber-500/50 text-amber-500 hover:bg-amber-500/10"
+                            data-testid="button-validate-manual-desktop"
+                          >
+                            {validateMutation.isPending ? 'Validating...' : 'Validate Ticket'}
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
