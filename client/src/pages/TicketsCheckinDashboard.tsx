@@ -89,6 +89,7 @@ export function TicketsCheckinDashboard() {
   const [isMobileFullScreen, setIsMobileFullScreen] = useState(false);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const isProcessingRef = useRef(false);
+  const isScannerRunningRef = useRef(false);
   
   // Fetch event details
   const { data: event } = useQuery({
@@ -246,6 +247,8 @@ export function TicketsCheckinDashboard() {
           () => {} // Error callback (silent)
         );
         
+        isScannerRunningRef.current = true;
+        
         toast({
           title: "Scanner Ready",
           description: "Point camera at QR code",
@@ -264,10 +267,13 @@ export function TicketsCheckinDashboard() {
     startScanner();
     
     return () => {
-      if (html5QrCodeRef.current) {
+      if (html5QrCodeRef.current && isScannerRunningRef.current) {
         html5QrCodeRef.current.stop().then(() => {
+          isScannerRunningRef.current = false;
           html5QrCodeRef.current?.clear();
-        }).catch(() => {});
+        }).catch(() => {
+          isScannerRunningRef.current = false;
+        });
       }
     };
   }, [scannerEnabled, validateMutation]);
