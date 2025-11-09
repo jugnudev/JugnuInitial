@@ -20,10 +20,32 @@ import type {
 import { nanoid } from 'nanoid';
 import slugify from 'slugify';
 
-// Create a pool using DATABASE_URL
+// Create a pool using Supabase connection (via DATABASE_URL or construct from SUPABASE_URL)
+// SUPABASE_URL format: https://xxx.supabase.co -> postgres://postgres:[password]@[host]:5432/postgres
+function getSupabaseDatabaseURL(): string {
+  // If DATABASE_URL is valid and not Neon, use it
+  if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('neon.tech')) {
+    return process.env.DATABASE_URL;
+  }
+  
+  // Otherwise construct from SUPABASE_URL (transaction pooler mode - port 6543)
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    // Extract project reference from https://xxx.supabase.co
+    const match = process.env.SUPABASE_URL.match(/https:\/\/([^.]+)\.supabase\.co/);
+    if (match) {
+      const projectRef = match[1];
+      const password = process.env.SUPABASE_DB_PASSWORD || process.env.SUPABASE_SERVICE_ROLE_KEY;
+      // Use transaction mode pooler (port 6543) for serverless/Replit environments
+      return `postgresql://postgres.${projectRef}:${password}@aws-0-us-west-1.pooler.supabase.com:6543/postgres`;
+    }
+  }
+  
+  throw new Error('Neither valid DATABASE_URL nor SUPABASE_URL is configured for ticketing database');
+}
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  connectionString: getSupabaseDatabaseURL(),
+  ssl: { rejectUnauthorized: false }
 });
 
 export class TicketsDB {

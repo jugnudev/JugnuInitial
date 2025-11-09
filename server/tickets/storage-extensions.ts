@@ -5,7 +5,6 @@ import type {
   TicketsTicket,
   TicketsOrder
 } from '@shared/schema';
-import { pool } from './tickets-db';
 import { getSupabaseAdmin } from '../supabaseAdmin';
 
 export class StorageExtensions {
@@ -51,13 +50,16 @@ export class StorageExtensions {
   }
   
   async getOrdersByBuyer(email: string): Promise<TicketsOrder[]> {
-    const query = `
-      SELECT * FROM tickets_orders 
-      WHERE buyer_email = $1 AND status = 'paid'
-      ORDER BY placed_at DESC
-    `;
-    const result = await pool.query(query, [email]);
-    return result.rows;
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('tickets_orders')
+      .select('*')
+      .eq('buyer_email', email)
+      .eq('status', 'paid')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw new Error(`Failed to get orders: ${error.message}`);
+    return data || [];
   }
   
   async getOrdersByUserId(userId: string): Promise<TicketsOrder[]> {
@@ -67,14 +69,17 @@ export class StorageExtensions {
       return [];
     }
     
-    // Then query orders by email from ticketing DB
-    const query = `
-      SELECT * FROM tickets_orders
-      WHERE buyer_email = $1 AND status = 'paid'
-      ORDER BY placed_at DESC
-    `;
-    const result = await pool.query(query, [user.email]);
-    return result.rows;
+    // Then query orders by email using Supabase client
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('tickets_orders')
+      .select('*')
+      .eq('buyer_email', user.email)
+      .eq('status', 'paid')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw new Error(`Failed to get user orders: ${error.message}`);
+    return data || [];
   }
   
   // ============ TICKET OPERATIONS ============

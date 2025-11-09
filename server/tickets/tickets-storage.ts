@@ -487,7 +487,8 @@ export class TicketsStorage {
   }
 
   async getOrdersByUserId(userId: string): Promise<TicketsOrder[]> {
-    return ticketsDB.getOrdersByUserId(userId);
+    const { storageExtensions } = await import('./storage-extensions');
+    return storageExtensions.getOrdersByUserId(userId);
   }
 
   async getTicketsByEvent(eventId: string): Promise<TicketsTicket[]> {
