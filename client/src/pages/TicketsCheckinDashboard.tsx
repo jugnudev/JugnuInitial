@@ -87,6 +87,7 @@ export function TicketsCheckinDashboard() {
   const [lastScannedTicket, setLastScannedTicket] = useState<any>(null);
   const [showManualSheet, setShowManualSheet] = useState(false);
   const [isMobileFullScreen, setIsMobileFullScreen] = useState(false);
+  const [scanAttempts, setScanAttempts] = useState(0);
   
   // Fetch event details
   const { data: event } = useQuery({
@@ -222,11 +223,19 @@ export function TicketsCheckinDashboard() {
         scanner = new Html5Qrcode("qr-reader");
         console.log('🔵 Html5Qrcode instance created');
         
-        // Optimized config for better QR detection
+        // Aggressive config for maximum QR detection
         const config = {
-          fps: 10,
-          qrbox: 250, // Simple number works better than object
-          aspectRatio: 1.777778, // 16:9 aspect ratio
+          fps: 20, // Higher FPS for better detection
+          qrbox: function(viewfinderWidth: number, viewfinderHeight: number) {
+            // Make qrbox 70% of the smaller dimension
+            const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+            const qrboxSize = Math.floor(minEdgeSize * 0.7);
+            return {
+              width: qrboxSize,
+              height: qrboxSize
+            };
+          },
+          aspectRatio: 1.777778,
         };
         
         console.log('🔵 Starting camera with config:', config);
@@ -267,8 +276,11 @@ export function TicketsCheckinDashboard() {
             });
           },
           (errorMessage: string) => {
-            // Log occasional scan errors to see what's happening
-            if (Math.random() < 0.01) { // Log 1% of errors
+            // Update scan attempts counter
+            setScanAttempts(prev => prev + 1);
+            
+            // Log occasional scan errors
+            if (Math.random() < 0.05) { // Log 5% of errors
               console.log('🔵 Scan attempt:', errorMessage.substring(0, 50));
             }
           }
@@ -743,7 +755,9 @@ export function TicketsCheckinDashboard() {
                           <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30">
                             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#c0580f]/40 to-[#d3541e]/40 backdrop-blur-2xl border-2 border-[#c0580f]/70 shadow-2xl shadow-[#c0580f]/30">
                               <div className="w-2 h-2 bg-gradient-to-br from-[#c0580f] to-[#d3541e] rounded-full animate-pulse shadow-lg shadow-[#c0580f]/50" />
-                              <span className="text-xs font-fraunces font-semibold text-white tracking-wider uppercase">Scanning...</span>
+                              <span className="text-xs font-fraunces font-semibold text-white tracking-wider uppercase">
+                                {scanAttempts > 0 ? `Scanning... (${scanAttempts} attempts)` : 'Scanning...'}
+                              </span>
                             </div>
                           </div>
                           
@@ -814,7 +828,9 @@ export function TicketsCheckinDashboard() {
                             <div className="absolute top-8 left-1/2 -translate-x-1/2 z-20">
                               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-[#c0580f]/20 backdrop-blur-md border-2 border-[#c0580f]/50 shadow-lg">
                                 <div className="w-2.5 h-2.5 bg-[#c0580f] rounded-full animate-pulse" />
-                                <span className="text-sm font-semibold text-white">Scanning...</span>
+                                <span className="text-sm font-semibold text-white">
+                                  {scanAttempts > 0 ? `Scanning... (${scanAttempts} attempts)` : 'Scanning...'}
+                                </span>
                               </div>
                             </div>
                             
