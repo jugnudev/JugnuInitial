@@ -180,151 +180,103 @@ export function TicketsCheckinDashboard() {
     }
   }, [isMobileFullScreen]);
   
-  // QR Scanner setup - Using Html5Qrcode directly for better mobile support
+  // QR Scanner setup - Using Html5Qrcode with more verbose logging
   useEffect(() => {
-    console.log('=== SCANNER EFFECT TRIGGERED ===');
-    console.log('[Scanner] scannerEnabled:', scannerEnabled);
-    console.log('[Scanner] window.innerWidth:', window.innerWidth);
-    console.log('[Scanner] eventId:', eventId);
-    
     if (!scannerEnabled) {
-      console.log('[Scanner] Scanner disabled, exiting');
       setIsMobileFullScreen(false);
       return;
     }
     
-    // Detect mobile and enable full-screen mode
+    // Detect mobile
     const isMobile = window.innerWidth < 768;
-    console.log('[Scanner] isMobile detected:', isMobile);
-    
     if (isMobile) {
-      console.log('[Scanner] Setting mobile full screen mode');
       setIsMobileFullScreen(true);
     }
     
-    // Show toast to confirm button was clicked
-    toast({
-      title: "Starting Scanner",
-      description: `Initializing camera on ${isMobile ? 'mobile' : 'desktop'} device...`,
-    });
-    
     let scanner: Html5Qrcode | null = null;
+    let isScanning = false;
     
-    // Direct camera initialization
-    const initScanner = async (attemptNum: number) => {
-      console.log(`[Scanner] Attempt ${attemptNum} - Looking for qr-reader element...`);
+    const initScanner = async () => {
       const element = document.getElementById("qr-reader");
-      
       if (!element) {
-        console.warn(`[Scanner] Attempt ${attemptNum} - Element #qr-reader not found in DOM`);
+        console.warn('[Scanner] Element not found, retrying...');
         return false;
       }
       
-      console.log(`[Scanner] Attempt ${attemptNum} - Element found!`);
-      
       try {
-        console.log('[Scanner] Creating Html5Qrcode instance...');
         scanner = new Html5Qrcode("qr-reader");
-        console.log('[Scanner] Html5Qrcode instance created');
         
-        const qrboxSize = isMobile 
-          ? Math.min(window.innerWidth * 0.8, 320)
-          : 300;
+        const config = {
+          fps: 10,
+          qrbox: isMobile ? 250 : 300,
+          aspectRatio: 1.0,
+        };
         
-        console.log('[Scanner] Starting camera with config:', { qrboxSize, fps: 10 });
-        
-        // Start camera
         await scanner.start(
-          { facingMode: "environment" }, // Camera constraints
-          {
-            fps: 10, // Higher FPS for better detection
-            qrbox: qrboxSize, // Simpler qrbox format
-            aspectRatio: 1.0, // Square box
-            disableFlip: false, // Allow flipping if needed
-          },
+          { facingMode: "environment" },
+          config,
           (decodedText: string) => {
-            console.log('[Scanner] ✅ QR code detected:', decodedText);
-            toast({
-              title: "QR Code Detected",
-              description: "Validating ticket...",
-            });
+            if (isScanning) return; // Prevent multiple scans
+            isScanning = true;
+            
+            console.log('[Scanner] QR detected:', decodedText);
             
             validateMutation.mutate(decodedText, {
               onSuccess: (data) => {
                 if (data.ok) {
-                  console.log('[Scanner] Ticket valid, pausing scanner');
+                  // Pause for 2 seconds then resume
                   scanner?.pause();
                   setTimeout(() => {
-                    try {
-                      scanner?.resume();
-                    } catch (e) {
-                      console.error('[Scanner] Error resuming scanner:', e);
-                    }
-                  }, 3000);
+                    scanner?.resume();
+                    isScanning = false;
+                  }, 2000);
+                } else {
+                  isScanning = false;
                 }
+              },
+              onError: () => {
+                isScanning = false;
               }
             });
           },
-          (errorMessage: string) => {
-            // Ignore continuous scan errors (these happen constantly while scanning)
-          }
+          undefined
         );
         
-        console.log('[Scanner] ✅ Camera started successfully!');
         toast({
-          title: "Camera Active",
-          description: "Point camera at QR code to scan",
+          title: "Scanner Active",
+          description: "Point camera at QR code",
         });
+        
         return true;
       } catch (error) {
-        console.error('[Scanner] ❌ Error starting camera:', error);
+        console.error('[Scanner] Start error:', error);
         toast({
-          title: "Camera Error",
-          description: `${error instanceof Error ? error.message : 'Could not access camera'}`,
+          title: "Camera Error", 
+          description: String(error),
           variant: "destructive"
         });
         return false;
       }
     };
     
-    // Try to initialize with retries
+    // Retry initialization
     let attempts = 0;
-    const maxAttempts = 10;
-    let initialized = false;
-    console.log('[Scanner] Starting initialization retry loop (max attempts:', maxAttempts + ')');
-    
     const timer = setInterval(async () => {
-      if (initialized) return;
-      
-      attempts++;
-      console.log(`[Scanner] Retry loop iteration ${attempts}/${maxAttempts}`);
-      
-      const success = await initScanner(attempts);
-      
-      if (success || attempts >= maxAttempts) {
-        initialized = true;
+      if (attempts++ >= 10) {
         clearInterval(timer);
-        if (attempts >= maxAttempts && !success) {
-          console.error('[Scanner] ❌ Failed to initialize after', maxAttempts, 'attempts');
-          toast({
-            title: "Scanner Failed",
-            description: "Could not start scanner. Please try again or refresh.",
-            variant: "destructive"
-          });
-        }
+        return;
       }
-    }, 200); // Try every 200ms
+      
+      const success = await initScanner();
+      if (success) {
+        clearInterval(timer);
+      }
+    }, 100);
     
     return () => {
-      console.log('[Scanner] Cleanup function called');
       clearInterval(timer);
       if (scanner) {
-        try {
-          scanner.stop();
-          console.log('[Scanner] ✅ Scanner stopped successfully');
-        } catch (e) {
-          console.error('[Scanner] Error stopping scanner:', e);
-        }
+        scanner.stop().catch(console.error);
       }
     };
   }, [scannerEnabled, eventId]);
