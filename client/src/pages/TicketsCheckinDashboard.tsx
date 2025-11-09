@@ -234,59 +234,107 @@ export function TicketsCheckinDashboard() {
     // Set scannerEnabled=true FIRST to render the DOM element
     setScannerEnabled(true);
     
-    // Wait for React to render the #qr-reader element
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Wait for React to render the #qr-reader element - poll for existence
+    const maxAttempts = 20; // 2 seconds max
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+      const element = document.getElementById('qr-reader');
+      if (element) {
+        console.log(`✅ Found qr-reader element after ${attempts * 100}ms`);
+        break;
+      }
+      console.log(`⏳ Waiting for qr-reader element... attempt ${attempts + 1}`);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      attempts++;
+    }
+    
+    const qrElement = document.getElementById('qr-reader');
+    if (!qrElement) {
+      throw new Error('QR reader element not found after 2 seconds');
+    }
     
     try {
       // Create scanner instance if not exists
       if (!html5QrCodeRef.current) {
+        console.log('🎬 Creating new Html5Qrcode instance...');
         html5QrCodeRef.current = new Html5Qrcode("qr-reader");
       }
       
       const html5QrCode = html5QrCodeRef.current;
+      console.log('📷 Starting scanner...');
       
-      // Success callback
-      const onScanSuccess = (decodedText: string) => {
+      // Success callback - defined before scanner.start()
+      const onScanSuccess = (decodedText: string, decodedResult: any) => {
+        console.log('🎯🎯🎯 QR CODE DETECTED!!!', { decodedText, decodedResult });
+        console.log('🎯 Decoded Text:', decodedText);
+        console.log('🎯 Is Processing?', isProcessingRef.current);
+        
         if (isProcessingRef.current) {
+          console.log('⏸️ Already processing, skipping...');
           return;
         }
         
         isProcessingRef.current = true;
-        console.log('🎯 QR CODE DETECTED!', decodedText);
+        console.log('🎯 Processing QR code:', decodedText);
         
         // Haptic and audio feedback
         if (navigator.vibrate) {
+          console.log('📳 Triggering vibration');
           navigator.vibrate(200);
         }
+        console.log('🔊 Playing success sound');
         playSound('success');
         
+        console.log('🔍 Validating ticket with mutation...');
         validateMutationRef.current.mutate(decodedText, {
           onSuccess: (data: any) => {
-            console.log('✅ Validation successful');
+            console.log('✅✅✅ Validation successful:', data);
             setTimeout(() => {
               isProcessingRef.current = false;
+              console.log('🔓 Released processing lock');
             }, 2000);
           },
           onError: (error: any) => {
-            console.error('❌ Validation error:', error);
+            console.error('❌❌❌ Validation error:', error);
             isProcessingRef.current = false;
+            console.log('🔓 Released processing lock (error)');
           }
         });
       };
       
-      // Start scanning with mobile-optimized config
+      console.log('📝 onScanSuccess callback defined');
+      
+      // Start scanning with optimized config based on html5-qrcode best practices
+      const config = {
+        fps: 5, // Lower FPS = more processing time per frame = better accuracy
+        qrbox: isMobile ? { width: 300, height: 300 } : { width: 400, height: 400 }, // Larger scanning area
+        aspectRatio: 1.777778, // 16:9 aspect ratio (recommended)
+        disableFlip: false,
+        // Explicitly request video constraints for better camera quality
+        videoConstraints: {
+          facingMode: { exact: "environment" }
+        }
+      };
+      
+      console.log('📷 Scanner config:', config);
+      console.log('📷 About to call html5QrCode.start()...');
+      console.log('📷 Callback function?', typeof onScanSuccess);
+      
       await html5QrCode.start(
         { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: isMobile ? { width: 250, height: 250 } : { width: 300, height: 300 },
-          aspectRatio: 1.0
-        },
+        config,
         onScanSuccess,
-        () => {} // Error callback (silent)
+        (errorMessage) => {
+          // Only log decode failures occasionally to avoid spam
+          if (!errorMessage.includes('NotFoundException')) {
+            console.log('🔍 Scanner decode error:', errorMessage);
+          }
+        }
       );
       
       isScannerRunningRef.current = true;
+      console.log('✅✅✅ Scanner started successfully!');
+      console.log('✅ Scanning for QR codes... point camera at QR code now');
       
       toast({
         title: "Scanner Ready",
