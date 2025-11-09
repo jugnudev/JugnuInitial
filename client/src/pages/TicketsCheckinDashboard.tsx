@@ -265,8 +265,9 @@ export function TicketsCheckinDashboard() {
     
     return () => {
       if (html5QrCodeRef.current) {
-        html5QrCodeRef.current.stop().catch(() => {});
-        html5QrCodeRef.current.clear().catch(() => {});
+        html5QrCodeRef.current.stop().then(() => {
+          html5QrCodeRef.current?.clear();
+        }).catch(() => {});
       }
     };
   }, [scannerEnabled, validateMutation]);
@@ -700,7 +701,7 @@ export function TicketsCheckinDashboard() {
                             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#c0580f]/40 to-[#d3541e]/40 backdrop-blur-2xl border-2 border-[#c0580f]/70 shadow-2xl shadow-[#c0580f]/30">
                               <div className="w-2 h-2 bg-gradient-to-br from-[#c0580f] to-[#d3541e] rounded-full animate-pulse shadow-lg shadow-[#c0580f]/50" />
                               <span className="text-xs font-fraunces font-semibold text-white tracking-wider uppercase">
-                                {scanAttempts > 0 ? `Scanning... (${scanAttempts} attempts)` : 'Scanning...'}
+                                Scanning...
                               </span>
                             </div>
                           </div>
@@ -773,7 +774,7 @@ export function TicketsCheckinDashboard() {
                               <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-[#c0580f]/20 backdrop-blur-md border-2 border-[#c0580f]/50 shadow-lg">
                                 <div className="w-2.5 h-2.5 bg-[#c0580f] rounded-full animate-pulse" />
                                 <span className="text-sm font-semibold text-white">
-                                  {scanAttempts > 0 ? `Scanning... (${scanAttempts} attempts)` : 'Scanning...'}
+                                  Scanning...
                                 </span>
                               </div>
                             </div>
