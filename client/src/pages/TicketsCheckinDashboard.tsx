@@ -220,32 +220,27 @@ export function TicketsCheckinDashboard() {
       
       try {
         scanner = new Html5Qrcode("qr-reader");
-        console.log('🔵 Html5Qrcode instance created');
         
+        // Enhanced config for better QR detection on mobile
         const config = {
-          fps: 20, // Increase FPS for better detection
-          qrbox: isMobile ? 280 : 300,
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+          disableFlip: false, // Try both orientations
         };
-        
-        console.log('🔵 Starting camera with config:', config);
         
         await scanner.start(
           { facingMode: "environment" },
           config,
           (decodedText: string) => {
-            console.log('🎯 QR CODE DETECTED!', decodedText);
-            
-            if (isScanning) {
-              console.log('🔵 Already scanning, ignoring');
-              return;
-            }
+            if (isScanning) return;
             isScanning = true;
             
-            alert(`QR detected: ${decodedText.substring(0, 20)}...`);
+            // Visual and audio feedback
+            playSound('success');
             
             validateMutation.mutate(decodedText, {
               onSuccess: (data) => {
-                console.log('🔵 Validation result:', data);
                 if (data.ok) {
                   scanner?.pause();
                   setTimeout(() => {
@@ -256,15 +251,12 @@ export function TicketsCheckinDashboard() {
                   isScanning = false;
                 }
               },
-              onError: (error) => {
-                console.error('🔵 Validation error:', error);
+              onError: () => {
                 isScanning = false;
               }
             });
           },
-          (errorMessage: string) => {
-            // Silently ignore scan errors (too verbose)
-          }
+          undefined // Don't log scan errors
         );
         
         console.log('🔵 Camera started successfully!');
