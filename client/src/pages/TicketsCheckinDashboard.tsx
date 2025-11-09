@@ -180,15 +180,20 @@ export function TicketsCheckinDashboard() {
     }
   }, [isMobileFullScreen]);
   
-  // QR Scanner setup - Using Html5Qrcode with more verbose logging
+  // QR Scanner setup
   useEffect(() => {
+    console.log('🔵 SCANNER EFFECT RUNNING - scannerEnabled:', scannerEnabled);
+    
     if (!scannerEnabled) {
+      console.log('🔵 Scanner disabled, exiting effect');
       setIsMobileFullScreen(false);
       return;
     }
     
-    // Detect mobile
+    console.log('🔵 Scanner enabled! Starting initialization...');
     const isMobile = window.innerWidth < 768;
+    console.log('🔵 isMobile:', isMobile);
+    
     if (isMobile) {
       setIsMobileFullScreen(true);
     }
@@ -197,34 +202,45 @@ export function TicketsCheckinDashboard() {
     let isScanning = false;
     
     const initScanner = async () => {
+      console.log('🔵 initScanner called, looking for #qr-reader');
       const element = document.getElementById("qr-reader");
+      
       if (!element) {
-        console.warn('[Scanner] Element not found, retrying...');
+        console.warn('🔵 #qr-reader element not found');
         return false;
       }
       
+      console.log('🔵 Element found! Creating Html5Qrcode instance');
+      
       try {
         scanner = new Html5Qrcode("qr-reader");
+        console.log('🔵 Html5Qrcode instance created');
         
         const config = {
-          fps: 10,
-          qrbox: isMobile ? 250 : 300,
-          aspectRatio: 1.0,
+          fps: 20, // Increase FPS for better detection
+          qrbox: isMobile ? 280 : 300,
         };
+        
+        console.log('🔵 Starting camera with config:', config);
         
         await scanner.start(
           { facingMode: "environment" },
           config,
           (decodedText: string) => {
-            if (isScanning) return; // Prevent multiple scans
+            console.log('🎯 QR CODE DETECTED!', decodedText);
+            
+            if (isScanning) {
+              console.log('🔵 Already scanning, ignoring');
+              return;
+            }
             isScanning = true;
             
-            console.log('[Scanner] QR detected:', decodedText);
+            alert(`QR detected: ${decodedText.substring(0, 20)}...`);
             
             validateMutation.mutate(decodedText, {
               onSuccess: (data) => {
+                console.log('🔵 Validation result:', data);
                 if (data.ok) {
-                  // Pause for 2 seconds then resume
                   scanner?.pause();
                   setTimeout(() => {
                     scanner?.resume();
@@ -234,46 +250,51 @@ export function TicketsCheckinDashboard() {
                   isScanning = false;
                 }
               },
-              onError: () => {
+              onError: (error) => {
+                console.error('🔵 Validation error:', error);
                 isScanning = false;
               }
             });
           },
-          undefined
+          (errorMessage: string) => {
+            // Silently ignore scan errors (too verbose)
+          }
         );
         
+        console.log('🔵 Camera started successfully!');
         toast({
-          title: "Scanner Active",
-          description: "Point camera at QR code",
+          title: "Scanner Ready",
+          description: "Point camera at any QR code",
         });
         
         return true;
       } catch (error) {
-        console.error('[Scanner] Start error:', error);
-        toast({
-          title: "Camera Error", 
-          description: String(error),
-          variant: "destructive"
-        });
+        console.error('🔵 Scanner error:', error);
+        alert(`Scanner error: ${error}`);
         return false;
       }
     };
     
-    // Retry initialization
+    console.log('🔵 Starting retry loop');
     let attempts = 0;
     const timer = setInterval(async () => {
+      console.log(`🔵 Retry attempt ${attempts + 1}/10`);
+      
       if (attempts++ >= 10) {
+        console.log('🔵 Max attempts reached, stopping');
         clearInterval(timer);
         return;
       }
       
       const success = await initScanner();
       if (success) {
+        console.log('🔵 Scanner initialized successfully!');
         clearInterval(timer);
       }
     }, 100);
     
     return () => {
+      console.log('🔵 Cleanup: stopping scanner');
       clearInterval(timer);
       if (scanner) {
         scanner.stop().catch(console.error);
