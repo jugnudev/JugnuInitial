@@ -214,94 +214,130 @@ export function TicketsCheckinDashboard() {
     validateMutationRef.current = validateMutation;
   }, [validateMutation]);
 
-  // Html5Qrcode Scanner - Simple and reliable
-  useEffect(() => {
-    if (!scannerEnabled) {
-      setIsMobileFullScreen(false);
+  // Explicit scanner start function - prevents React StrictMode double-run issues
+  const startScanner = useCallback(async () => {
+    // Prevent duplicate starts
+    if (isScannerRunningRef.current) {
+      console.log('⚠️ Scanner already running');
       return;
     }
+    
+    console.log('🔴 START SCANNER BUTTON CLICKED!');
+    console.log('🔴 isMobile:', window.innerWidth < 768);
+    console.log('🔴 window.innerWidth:', window.innerWidth);
     
     const isMobile = window.innerWidth < 768;
     if (isMobile) {
       setIsMobileFullScreen(true);
     }
     
-    const startScanner = async () => {
-      try {
-        const html5QrCode = new Html5Qrcode("qr-reader");
-        html5QrCodeRef.current = html5QrCode;
-        
-        // Success callback
-        const onScanSuccess = (decodedText: string) => {
-          if (isProcessingRef.current) {
-            return;
-          }
-          
-          isProcessingRef.current = true;
-          console.log('🎯 QR CODE DETECTED!', decodedText);
-          
-          // Haptic and audio feedback
-          if (navigator.vibrate) {
-            navigator.vibrate(200);
-          }
-          playSound('success');
-          
-          validateMutationRef.current.mutate(decodedText, {
-            onSuccess: (data: any) => {
-              console.log('✅ Validation successful');
-              setTimeout(() => {
-                isProcessingRef.current = false;
-              }, 2000);
-            },
-            onError: (error: any) => {
-              console.error('❌ Validation error:', error);
-              isProcessingRef.current = false;
-            }
-          });
-        };
-        
-        // Start scanning with mobile-optimized config
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          {
-            fps: 10,
-            qrbox: isMobile ? { width: 250, height: 250 } : { width: 300, height: 300 },
-            aspectRatio: 1.0
-          },
-          onScanSuccess,
-          () => {} // Error callback (silent)
-        );
-        
-        isScannerRunningRef.current = true;
-        
-        toast({
-          title: "Scanner Ready",
-          description: "Point camera at QR code",
-        });
-        
-      } catch (error) {
-        console.error('Scanner error:', error);
-        toast({
-          title: "Scanner Error",
-          description: String(error),
-          variant: "destructive"
-        });
+    // Set scannerEnabled=true FIRST to render the DOM element
+    setScannerEnabled(true);
+    
+    // Wait for React to render the #qr-reader element
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    try {
+      // Create scanner instance if not exists
+      if (!html5QrCodeRef.current) {
+        html5QrCodeRef.current = new Html5Qrcode("qr-reader");
       }
-    };
+      
+      const html5QrCode = html5QrCodeRef.current;
+      
+      // Success callback
+      const onScanSuccess = (decodedText: string) => {
+        if (isProcessingRef.current) {
+          return;
+        }
+        
+        isProcessingRef.current = true;
+        console.log('🎯 QR CODE DETECTED!', decodedText);
+        
+        // Haptic and audio feedback
+        if (navigator.vibrate) {
+          navigator.vibrate(200);
+        }
+        playSound('success');
+        
+        validateMutationRef.current.mutate(decodedText, {
+          onSuccess: (data: any) => {
+            console.log('✅ Validation successful');
+            setTimeout(() => {
+              isProcessingRef.current = false;
+            }, 2000);
+          },
+          onError: (error: any) => {
+            console.error('❌ Validation error:', error);
+            isProcessingRef.current = false;
+          }
+        });
+      };
+      
+      // Start scanning with mobile-optimized config
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: isMobile ? { width: 250, height: 250 } : { width: 300, height: 300 },
+          aspectRatio: 1.0
+        },
+        onScanSuccess,
+        () => {} // Error callback (silent)
+      );
+      
+      isScannerRunningRef.current = true;
+      
+      toast({
+        title: "Scanner Ready",
+        description: "Point camera at QR code",
+      });
+      
+    } catch (error) {
+      console.error('❌ Scanner error:', error);
+      setScannerEnabled(false);
+      setIsMobileFullScreen(false);
+      isScannerRunningRef.current = false;
+      toast({
+        title: "Scanner Error",
+        description: String(error),
+        variant: "destructive"
+      });
+    }
+  }, [toast]);
+
+  // Explicit scanner stop function
+  const stopScanner = useCallback(async () => {
+    if (!isScannerRunningRef.current || !html5QrCodeRef.current) {
+      console.log('⚠️ Scanner not running');
+      setScannerEnabled(false);
+      setIsMobileFullScreen(false);
+      return;
+    }
     
-    startScanner();
-    
+    try {
+      await html5QrCodeRef.current.stop();
+      isScannerRunningRef.current = false;
+      setScannerEnabled(false);
+      setIsMobileFullScreen(false);
+      console.log('✅ Scanner stopped successfully');
+    } catch (error) {
+      console.error('❌ Error stopping scanner:', error);
+      isScannerRunningRef.current = false;
+      setScannerEnabled(false);
+      setIsMobileFullScreen(false);
+    }
+  }, []);
+
+  // Cleanup on unmount only
+  useEffect(() => {
     return () => {
       if (html5QrCodeRef.current && isScannerRunningRef.current) {
-        html5QrCodeRef.current.stop().then(() => {
-          isScannerRunningRef.current = false;
-          html5QrCodeRef.current?.clear();
-        }).catch(() => {
-          isScannerRunningRef.current = false;
-        });
+        html5QrCodeRef.current.stop().catch(() => {});
+        isScannerRunningRef.current = false;
       }
     };
-  }, [scannerEnabled]);
+  }, []);
   
   // Export attendees
   const handleExport = () => {
@@ -462,19 +498,7 @@ export function TicketsCheckinDashboard() {
                       
                       {/* Start button - Large touch target */}
                       <Button
-                        onClick={() => {
-                          alert('Button clicked! Check console for details.');
-                          console.log('🔴 START SCANNER BUTTON CLICKED!');
-                          const isMobile = window.innerWidth < 768;
-                          console.log('🔴 isMobile:', isMobile);
-                          console.log('🔴 window.innerWidth:', window.innerWidth);
-                          setIsMobileFullScreen(isMobile);
-                          setScannerEnabled(true);
-                          toast({
-                            title: "Starting Scanner",
-                            description: "Initializing camera...",
-                          });
-                        }}
+                        onClick={startScanner}
                         size="lg"
                         data-testid="button-start-scanner"
                         className="w-full h-16 md:h-18 text-lg md:text-xl font-medium bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white shadow-lg shadow-[#c0580f]/30 transition-all duration-300 hover:shadow-xl hover:shadow-[#c0580f]/40 hover:scale-[1.02] touch-target"
@@ -509,8 +533,6 @@ export function TicketsCheckinDashboard() {
                       paddingBottom: 'env(safe-area-inset-bottom, 0px)'
                     }}
                   >
-                    {/* Dimmed Backdrop */}
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/95 via-black/90 to-black/95" />
                     
                     {/* Top Control Bar - Premium Frosted Capsules */}
                     <div 
@@ -518,7 +540,7 @@ export function TicketsCheckinDashboard() {
                       style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 16px)' }}
                     >
                       <Button
-                        onClick={() => setScannerEnabled(false)}
+                        onClick={stopScanner}
                         variant="ghost"
                         size="icon"
                         className="h-12 w-12 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-xl text-white border-2 border-white/30 hover:border-white/50 shadow-2xl shadow-black/50 transition-all duration-300 hover:scale-105"
@@ -691,11 +713,8 @@ export function TicketsCheckinDashboard() {
                           animation: 'scale-in 0.4s ease-out'
                         }}
                       >
-                        {/* QR Reader Container with Glassmorphism & Copper Glow */}
-                        <div className="relative bg-gradient-to-br from-black/70 via-black/60 to-black/70 rounded-3xl overflow-hidden border-3 border-[#c0580f]/50 shadow-2xl w-full h-full flex items-center justify-center scanner-viewport-glow backdrop-blur-xl">
-                          {/* Animated Scanning Sweep Line */}
-                          <div className="scanner-sweep-line" />
-                          
+                        {/* QR Reader Container - No Dark Overlay */}
+                        <div className="relative rounded-3xl overflow-hidden border-3 border-[#c0580f]/50 shadow-2xl w-full h-full flex items-center justify-center">
                           {/* Camera Feed */}
                           <div id="qr-reader" className="w-full h-full" />
                           
@@ -762,7 +781,7 @@ export function TicketsCheckinDashboard() {
                       <CardContent className="p-6">
                         <div className="relative">
                           <div className="relative rounded-2xl overflow-hidden border-2 border-[#c0580f]/50 shadow-lg shadow-[#c0580f]/20">
-                            <div className="relative bg-black/90 min-h-[500px] flex items-center justify-center">
+                            <div className="relative min-h-[500px] flex items-center justify-center">
                               <div id="qr-reader" className="w-full h-full" />
                             </div>
                             
@@ -801,7 +820,7 @@ export function TicketsCheckinDashboard() {
                         <div className="mt-6">
                           <div className="flex gap-3 max-w-lg mx-auto">
                             <Button
-                              onClick={() => setScannerEnabled(false)}
+                              onClick={stopScanner}
                               variant="outline"
                               className="flex-1 h-12 text-sm font-medium border-white/20 hover:bg-white/5 hover:border-white/30"
                               data-testid="button-stop-scanner"
