@@ -463,18 +463,16 @@ export function TicketsCheckinDashboard() {
                       {/* Start button - Large touch target */}
                       <Button
                         onClick={() => {
+                          alert('Button clicked! Check console for details.');
                           console.log('🔴 START SCANNER BUTTON CLICKED!');
-                          // Detect mobile and set full-screen state immediately
                           const isMobile = window.innerWidth < 768;
                           console.log('🔴 isMobile:', isMobile);
                           console.log('🔴 window.innerWidth:', window.innerWidth);
-                          console.log('🔴 Setting scannerEnabled to true...');
                           setIsMobileFullScreen(isMobile);
                           setScannerEnabled(true);
-                          console.log('🔴 State updated - scannerEnabled should now be true');
                           toast({
-                            title: "Button Clicked!",
-                            description: `Starting scanner (mobile: ${isMobile})`,
+                            title: "Starting Scanner",
+                            description: "Initializing camera...",
                           });
                         }}
                         size="lg"
