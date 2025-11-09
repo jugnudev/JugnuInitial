@@ -69,12 +69,16 @@ interface Attendee {
 }
 
 export function TicketsCheckinDashboard() {
+  console.log('🟢 COMPONENT RENDERING');
+  
   const [, params] = useRoute("/tickets/organizer/events/:eventId/checkin");
   const [, navigate] = useLocation();
   const eventId = params?.eventId;
   const { toast } = useToast();
   
   const [scannerEnabled, setScannerEnabled] = useState(false);
+  
+  console.log('🟢 Component state - scannerEnabled:', scannerEnabled, 'eventId:', eventId);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [manualSearch, setManualSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
