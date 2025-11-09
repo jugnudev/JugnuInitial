@@ -220,27 +220,36 @@ export function TicketsCheckinDashboard() {
       
       try {
         scanner = new Html5Qrcode("qr-reader");
+        console.log('🔵 Html5Qrcode instance created');
         
-        // Enhanced config for better QR detection on mobile
+        // Optimized config for better QR detection
         const config = {
           fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-          disableFlip: false, // Try both orientations
+          qrbox: 250, // Simple number works better than object
+          aspectRatio: 1.777778, // 16:9 aspect ratio
         };
+        
+        console.log('🔵 Starting camera with config:', config);
         
         await scanner.start(
           { facingMode: "environment" },
           config,
           (decodedText: string) => {
-            if (isScanning) return;
+            console.log('🎯 QR CODE DETECTED!', decodedText);
+            
+            if (isScanning) {
+              console.log('🔵 Already scanning, ignoring');
+              return;
+            }
             isScanning = true;
             
             // Visual and audio feedback
             playSound('success');
+            console.log('🔵 Validating ticket...');
             
             validateMutation.mutate(decodedText, {
               onSuccess: (data) => {
+                console.log('🔵 Validation result:', data);
                 if (data.ok) {
                   scanner?.pause();
                   setTimeout(() => {
@@ -251,12 +260,18 @@ export function TicketsCheckinDashboard() {
                   isScanning = false;
                 }
               },
-              onError: () => {
+              onError: (error) => {
+                console.error('🔵 Validation error:', error);
                 isScanning = false;
               }
             });
           },
-          undefined // Don't log scan errors
+          (errorMessage: string) => {
+            // Log occasional scan errors to see what's happening
+            if (Math.random() < 0.01) { // Log 1% of errors
+              console.log('🔵 Scan attempt:', errorMessage.substring(0, 50));
+            }
+          }
         );
         
         console.log('🔵 Camera started successfully!');
