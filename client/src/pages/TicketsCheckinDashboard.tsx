@@ -1,12 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Html5Qrcode } from "html5-qrcode";
+import { BrowserQRCodeReader, BrowserCodeReader } from "@zxing/browser";
 import { format } from "date-fns";
 import { Helmet } from "react-helmet-async";
 
-console.log('🚀 TicketsCheckinDashboard MODULE LOADED - Version 2.0');
+console.log('🚀 TicketsCheckinDashboard MODULE LOADED - Version 3.0 (ZXing)');
 import { 
   QrCode, Users, CheckCircle2, XCircle, Clock, Search, 
   Download, RefreshCw, Camera, Volume2, VolumeX,
@@ -88,6 +88,8 @@ export function TicketsCheckinDashboard() {
   const [showManualSheet, setShowManualSheet] = useState(false);
   const [isMobileFullScreen, setIsMobileFullScreen] = useState(false);
   const [scanAttempts, setScanAttempts] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const codeReaderRef = useRef<BrowserQRCodeReader | null>(null);
   
   // Fetch event details
   const { data: event } = useQuery({
@@ -187,17 +189,17 @@ export function TicketsCheckinDashboard() {
     }
   }, [isMobileFullScreen]);
   
-  // QR Scanner setup
+  // ZXing QR Scanner setup - Much more reliable!
   useEffect(() => {
     console.log('🔵 SCANNER EFFECT RUNNING - scannerEnabled:', scannerEnabled);
     
-    if (!scannerEnabled) {
-      console.log('🔵 Scanner disabled, exiting effect');
+    if (!scannerEnabled || !videoRef.current) {
+      console.log('🔵 Scanner disabled or no video ref, exiting effect');
       setIsMobileFullScreen(false);
       return;
     }
     
-    console.log('🔵 Scanner enabled! Starting initialization...');
+    console.log('🔵 Scanner enabled! Starting ZXing scanner...');
     const isMobile = window.innerWidth < 768;
     console.log('🔵 isMobile:', isMobile);
     
@@ -205,124 +207,93 @@ export function TicketsCheckinDashboard() {
       setIsMobileFullScreen(true);
     }
     
-    let scanner: Html5Qrcode | null = null;
     let isScanning = false;
+    let controlsRef: any = null;
     
-    const initScanner = async () => {
-      console.log('🔵 initScanner called, looking for #qr-reader');
-      const element = document.getElementById("qr-reader");
-      
-      if (!element) {
-        console.warn('🔵 #qr-reader element not found');
-        return false;
-      }
-      
-      console.log('🔵 Element found! Creating Html5Qrcode instance');
-      
+    const startScanner = async () => {
       try {
-        scanner = new Html5Qrcode("qr-reader");
-        console.log('🔵 Html5Qrcode instance created');
+        const codeReader = new BrowserQRCodeReader();
+        codeReaderRef.current = codeReader;
         
-        // Aggressive config for maximum QR detection
-        const config = {
-          fps: 20, // Higher FPS for better detection
-          qrbox: function(viewfinderWidth: number, viewfinderHeight: number) {
-            // Make qrbox 70% of the smaller dimension
-            const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
-            const qrboxSize = Math.floor(minEdgeSize * 0.7);
-            return {
-              width: qrboxSize,
-              height: qrboxSize
-            };
-          },
-          aspectRatio: 1.777778,
-        };
+        console.log('🔵 ZXing: Getting video devices...');
+        const videoDevices = await BrowserCodeReader.listVideoInputDevices();
+        console.log('🔵 ZXing: Found', videoDevices.length, 'camera(s)');
         
-        console.log('🔵 Starting camera with config:', config);
+        // Select back camera (or use null for default)
+        const selectedDeviceId = videoDevices.find((device: MediaDeviceInfo) => 
+          device.label.toLowerCase().includes('back') || 
+          device.label.toLowerCase().includes('environment')
+        )?.deviceId || null;
         
-        await scanner.start(
-          { facingMode: "environment" },
-          config,
-          (decodedText: string) => {
-            console.log('🎯 QR CODE DETECTED!', decodedText);
-            
-            if (isScanning) {
-              console.log('🔵 Already scanning, ignoring');
-              return;
-            }
-            isScanning = true;
-            
-            // Visual and audio feedback
-            playSound('success');
-            console.log('🔵 Validating ticket...');
-            
-            validateMutation.mutate(decodedText, {
-              onSuccess: (data) => {
-                console.log('🔵 Validation result:', data);
-                if (data.ok) {
-                  scanner?.pause();
+        console.log('🔵 ZXing: Using camera:', selectedDeviceId || 'default');
+        
+        // Start continuous decode
+        console.log('🔵 ZXing: Starting continuous decode...');
+        controlsRef = await codeReader.decodeFromVideoDevice(
+          selectedDeviceId,
+          videoRef.current!,
+          (result, error) => {
+            if (result) {
+              console.log('🎯 QR CODE DETECTED!', result.getText());
+              
+              if (isScanning) {
+                console.log('🔵 Already processing, ignoring');
+                return;
+              }
+              isScanning = true;
+              
+              // Haptic and audio feedback
+              if (navigator.vibrate) {
+                navigator.vibrate(200);
+              }
+              playSound('success');
+              
+              const qrText = result.getText();
+              console.log('🔵 Validating ticket:', qrText.substring(0, 30) + '...');
+              
+              validateMutation.mutate(qrText, {
+                onSuccess: (data) => {
+                  console.log('🔵 Validation result:', data);
                   setTimeout(() => {
-                    scanner?.resume();
                     isScanning = false;
                   }, 2000);
-                } else {
+                },
+                onError: (error) => {
+                  console.error('🔵 Validation error:', error);
                   isScanning = false;
                 }
-              },
-              onError: (error) => {
-                console.error('🔵 Validation error:', error);
-                isScanning = false;
-              }
-            });
-          },
-          (errorMessage: string) => {
-            // Update scan attempts counter
-            setScanAttempts(prev => prev + 1);
+              });
+            }
             
-            // Log occasional scan errors
-            if (Math.random() < 0.05) { // Log 5% of errors
-              console.log('🔵 Scan attempt:', errorMessage.substring(0, 50));
+            if (error) {
+              // Count scan attempts
+              setScanAttempts(prev => prev + 1);
             }
           }
         );
         
-        console.log('🔵 Camera started successfully!');
+        console.log('🔵 ZXing: Scanner started successfully!');
         toast({
           title: "Scanner Ready",
-          description: "Point camera at any QR code",
+          description: "Point camera at QR code",
         });
         
-        return true;
       } catch (error) {
-        console.error('🔵 Scanner error:', error);
-        alert(`Scanner error: ${error}`);
-        return false;
+        console.error('🔵 ZXing error:', error);
+        toast({
+          title: "Scanner Error",
+          description: String(error),
+          variant: "destructive"
+        });
       }
     };
     
-    console.log('🔵 Starting retry loop');
-    let attempts = 0;
-    const timer = setInterval(async () => {
-      console.log(`🔵 Retry attempt ${attempts + 1}/10`);
-      
-      if (attempts++ >= 10) {
-        console.log('🔵 Max attempts reached, stopping');
-        clearInterval(timer);
-        return;
-      }
-      
-      const success = await initScanner();
-      if (success) {
-        console.log('🔵 Scanner initialized successfully!');
-        clearInterval(timer);
-      }
-    }, 100);
+    startScanner();
     
     return () => {
-      console.log('🔵 Cleanup: stopping scanner');
-      clearInterval(timer);
-      if (scanner) {
-        scanner.stop().catch(console.error);
+      console.log('🔵 Cleanup: stopping ZXing scanner');
+      if (controlsRef) {
+        controlsRef.stop();
       }
     };
   }, [scannerEnabled, eventId]);
@@ -743,7 +714,13 @@ export function TicketsCheckinDashboard() {
                           <div className="scanner-sweep-line" />
                           
                           {/* Camera Feed */}
-                          <div id="qr-reader" className="w-full h-full" />
+                          <video 
+                            ref={videoRef}
+                            className="w-full h-full object-cover"
+                            autoPlay
+                            playsInline
+                            muted
+                          />
                           
                           {/* Corner brackets - Premium Copper Gradient - Properly positioned */}
                           <div className="absolute top-4 left-4 w-16 h-16 border-t-[4px] border-l-[4px] border-white rounded-tl-2xl animate-pulse shadow-[0_0_15px_rgba(255,255,255,0.6)]" style={{ animationDuration: '2s' }} />
@@ -809,7 +786,13 @@ export function TicketsCheckinDashboard() {
                         <div className="relative">
                           <div className="relative rounded-2xl overflow-hidden border-2 border-[#c0580f]/50 shadow-lg shadow-[#c0580f]/20">
                             <div className="relative bg-black/90 min-h-[500px] flex items-center justify-center">
-                              <div id="qr-reader" className="w-full h-full" />
+                              <video 
+                                ref={videoRef}
+                                className="w-full h-auto"
+                                autoPlay
+                                playsInline
+                                muted
+                              />
                             </div>
                             
                             {/* Scanning animation overlay */}
