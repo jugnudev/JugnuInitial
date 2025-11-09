@@ -90,6 +90,7 @@ export function TicketsCheckinDashboard() {
   const [manualTicketCode, setManualTicketCode] = useState("");
   const [scannerStatus, setScannerStatus] = useState<{type: 'error' | 'success' | null, message: string | null}>({type: null, message: null});
   const [lastScannedToken, setLastScannedToken] = useState<{token: string, timestamp: number} | null>(null);
+  const [manualValidationStatus, setManualValidationStatus] = useState<{type: 'error' | 'success' | null, message: string | null}>({type: null, message: null});
   
   // ZXing scanner refs
   const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
@@ -161,14 +162,38 @@ export function TicketsCheckinDashboard() {
     onSuccess: (data: any) => {
       if (data.ok) {
         setLastScannedTicket(data.ticket);
-        setScannerStatus({ type: 'success', message: 'Ticket valid! Ready to check in.' });
+        const successMessage = `✓ Valid ticket for ${data.ticket?.buyerName || 'Guest'}`;
+        
+        // Set status for both scanner and manual modes
+        setScannerStatus({ type: 'success', message: successMessage });
+        setManualValidationStatus({ type: 'success', message: successMessage });
         playSound('success');
         
         // Clear status after 5 seconds
-        setTimeout(() => setScannerStatus({ type: null, message: null }), 5000);
+        setTimeout(() => {
+          setScannerStatus({ type: null, message: null });
+          setManualValidationStatus({ type: null, message: null });
+        }, 5000);
       } else {
         playSound('error');
-        setScannerStatus({ type: 'error', message: data.error || 'Invalid ticket' });
+        
+        // Determine specific error message
+        let errorMessage = 'Invalid ticket';
+        if (data.error) {
+          if (data.error.includes('already used') || data.error.includes('already checked in')) {
+            errorMessage = '⚠️ Ticket already checked in';
+          } else if (data.error.includes('not found')) {
+            errorMessage = '❌ Ticket not found';
+          } else if (data.error.includes('wrong event')) {
+            errorMessage = '❌ Ticket for different event';
+          } else {
+            errorMessage = data.error;
+          }
+        }
+        
+        // Set status for both scanner and manual modes
+        setScannerStatus({ type: 'error', message: errorMessage });
+        setManualValidationStatus({ type: 'error', message: errorMessage });
         
         // Vibrate for error
         if (navigator.vibrate) {
@@ -178,13 +203,43 @@ export function TicketsCheckinDashboard() {
         // Also show toast for non-scanner view
         toast({
           title: "Validation Failed",
-          description: data.error || "Invalid ticket",
+          description: errorMessage,
           variant: "destructive"
         });
         
         // Clear error status after 5 seconds
-        setTimeout(() => setScannerStatus({ type: null, message: null }), 5000);
+        setTimeout(() => {
+          setScannerStatus({ type: null, message: null });
+          setManualValidationStatus({ type: null, message: null });
+        }, 5000);
       }
+    },
+    onError: (error: any) => {
+      console.error('❌❌❌ Validation error:', error);
+      playSound('error');
+      
+      // Handle network/server errors
+      const errorMessage = '⚠️ Connection error - please try again';
+      
+      // Set status for both scanner and manual modes
+      setScannerStatus({ type: 'error', message: errorMessage });
+      setManualValidationStatus({ type: 'error', message: errorMessage });
+      
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+      }
+      
+      toast({
+        title: "Connection Error",
+        description: "Unable to validate ticket. Please check your connection.",
+        variant: "destructive"
+      });
+      
+      // Clear error status after 5 seconds
+      setTimeout(() => {
+        setScannerStatus({ type: null, message: null });
+        setManualValidationStatus({ type: null, message: null });
+      }, 5000);
     }
   });
   
@@ -807,23 +862,61 @@ export function TicketsCheckinDashboard() {
                             </div>
                           </div>
                           
-                          {/* Inline validation status - Shows inside scanner */}
+                          {/* Inline validation status - Premium Mobile Optimized */}
                           {scannerStatus.type && (
-                            <div className="absolute top-20 left-4 right-4 z-40 animate-in slide-in-from-top-2 duration-300">
-                              <div className={`p-4 rounded-xl backdrop-blur-2xl border-2 shadow-2xl ${
+                            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-50 px-6 animate-in zoom-in-95 duration-300">
+                              <div className={`relative overflow-hidden rounded-3xl backdrop-blur-3xl border-[3px] shadow-2xl ${
                                 scannerStatus.type === 'error' 
-                                  ? 'bg-red-900/80 border-red-500/70 shadow-red-500/30' 
-                                  : 'bg-green-900/80 border-green-500/70 shadow-green-500/30'
+                                  ? 'bg-gradient-to-br from-red-900/90 to-red-800/90 border-red-400 shadow-red-500/50' 
+                                  : 'bg-gradient-to-br from-green-900/90 to-green-800/90 border-green-400 shadow-green-500/50'
                               }`}>
-                                <div className="flex items-center gap-3">
-                                  {scannerStatus.type === 'error' ? (
-                                    <AlertCircle className="w-6 h-6 text-red-200 flex-shrink-0" />
-                                  ) : (
-                                    <CheckCircle2 className="w-6 h-6 text-green-200 flex-shrink-0" />
-                                  )}
-                                  <p className="text-white font-semibold text-sm">
-                                    {scannerStatus.message}
-                                  </p>
+                                {/* Animated background pattern */}
+                                <div className="absolute inset-0 opacity-20">
+                                  <div className={`absolute -top-4 -right-4 w-32 h-32 rounded-full animate-pulse ${
+                                    scannerStatus.type === 'error' ? 'bg-red-400' : 'bg-green-400'
+                                  }`} />
+                                  <div className={`absolute -bottom-4 -left-4 w-24 h-24 rounded-full animate-pulse delay-500 ${
+                                    scannerStatus.type === 'error' ? 'bg-red-400' : 'bg-green-400'
+                                  }`} />
+                                </div>
+                                
+                                {/* Content */}
+                                <div className="relative p-6">
+                                  <div className="flex flex-col items-center text-center space-y-3">
+                                    {/* Large Icon */}
+                                    {scannerStatus.type === 'error' ? (
+                                      <div className="relative">
+                                        <div className="absolute inset-0 animate-ping">
+                                          <AlertCircle className="w-16 h-16 text-red-400 opacity-75" />
+                                        </div>
+                                        <AlertCircle className="relative w-16 h-16 text-red-300" />
+                                      </div>
+                                    ) : (
+                                      <div className="relative">
+                                        <div className="absolute inset-0 animate-ping">
+                                          <CheckCircle2 className="w-16 h-16 text-green-400 opacity-75" />
+                                        </div>
+                                        <CheckCircle2 className="relative w-16 h-16 text-green-300" />
+                                      </div>
+                                    )}
+                                    
+                                    {/* Message */}
+                                    <div className="space-y-1">
+                                      <p className="text-white font-bold text-lg leading-tight">
+                                        {scannerStatus.message}
+                                      </p>
+                                      {scannerStatus.type === 'error' && (
+                                        <p className="text-white/80 text-sm">
+                                          Please try another ticket
+                                        </p>
+                                      )}
+                                      {scannerStatus.type === 'success' && (
+                                        <p className="text-white/80 text-sm">
+                                          Tap "Check In" to confirm
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -908,23 +1001,44 @@ export function TicketsCheckinDashboard() {
                               </div>
                             </div>
                             
-                            {/* Inline validation status - Desktop */}
+                            {/* Inline validation status - Desktop Premium */}
                             {scannerStatus.type && (
-                              <div className="absolute top-24 left-8 right-8 z-30 animate-in slide-in-from-top-2 duration-300">
-                                <div className={`p-4 rounded-xl backdrop-blur-2xl border-2 shadow-2xl ${
+                              <div className="absolute inset-x-12 top-1/2 -translate-y-1/2 z-40 animate-in zoom-in-95 duration-300">
+                                <div className={`relative overflow-hidden rounded-2xl backdrop-blur-3xl border-[3px] shadow-2xl ${
                                   scannerStatus.type === 'error' 
-                                    ? 'bg-red-900/80 border-red-500/70 shadow-red-500/30' 
-                                    : 'bg-green-900/80 border-green-500/70 shadow-green-500/30'
+                                    ? 'bg-gradient-to-br from-red-900/90 to-red-800/90 border-red-400 shadow-red-500/50' 
+                                    : 'bg-gradient-to-br from-green-900/90 to-green-800/90 border-green-400 shadow-green-500/50'
                                 }`}>
-                                  <div className="flex items-center gap-3">
-                                    {scannerStatus.type === 'error' ? (
-                                      <AlertCircle className="w-6 h-6 text-red-200 flex-shrink-0" />
-                                    ) : (
-                                      <CheckCircle2 className="w-6 h-6 text-green-200 flex-shrink-0" />
-                                    )}
-                                    <p className="text-white font-semibold">
-                                      {scannerStatus.message}
-                                    </p>
+                                  {/* Animated background */}
+                                  <div className="absolute inset-0 opacity-20">
+                                    <div className={`absolute -top-4 -right-4 w-24 h-24 rounded-full animate-pulse ${
+                                      scannerStatus.type === 'error' ? 'bg-red-400' : 'bg-green-400'
+                                    }`} />
+                                  </div>
+                                  
+                                  <div className="relative px-8 py-6">
+                                    <div className="flex items-center gap-4">
+                                      {scannerStatus.type === 'error' ? (
+                                        <AlertCircle className="w-12 h-12 text-red-300 flex-shrink-0" />
+                                      ) : (
+                                        <CheckCircle2 className="w-12 h-12 text-green-300 flex-shrink-0" />
+                                      )}
+                                      <div>
+                                        <p className="text-white font-bold text-xl">
+                                          {scannerStatus.message}
+                                        </p>
+                                        {scannerStatus.type === 'error' && (
+                                          <p className="text-white/70 text-sm mt-1">
+                                            Scan a different ticket to continue
+                                          </p>
+                                        )}
+                                        {scannerStatus.type === 'success' && (
+                                          <p className="text-white/70 text-sm mt-1">
+                                            Click "Check In" to confirm entry
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -988,6 +1102,8 @@ export function TicketsCheckinDashboard() {
                                 console.log('🔍 Manual ticket validation:', manualTicketCode);
                                 validateMutation.mutate(manualTicketCode);
                                 setManualTicketCode('');
+                                // Show status in manual mode
+                                setManualValidationStatus({ type: null, message: null });
                               }
                             }}
                             className="bg-black/50 border-white/20 text-white placeholder:text-white/40"
@@ -999,6 +1115,8 @@ export function TicketsCheckinDashboard() {
                                 console.log('🔍 Manual ticket validation:', manualTicketCode);
                                 validateMutation.mutate(manualTicketCode);
                                 setManualTicketCode('');
+                                // Show status in manual mode
+                                setManualValidationStatus({ type: null, message: null });
                               }
                             }}
                             disabled={!manualTicketCode || validateMutation.isPending}
@@ -1066,11 +1184,60 @@ export function TicketsCheckinDashboard() {
           
           {/* Manual Check-in Tab */}
           <TabsContent value="manual" className="space-y-4">
+            {/* Ticket Validation Card */}
+            <Card className="border-[#c0580f]/30 bg-gradient-to-br from-[#c0580f]/10 to-[#d3541e]/10">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white font-fraunces flex items-center gap-2">
+                  <QrCode className="w-5 h-5 text-[#c0580f]" />
+                  Validate Ticket
+                </CardTitle>
+                <CardDescription className="text-white/60">
+                  Enter a ticket code or QR data to validate and check in
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col md:flex-row gap-3">
+                  <div className="flex-1">
+                    <Input
+                      type="text"
+                      placeholder="Enter ticket code (e.g., rU1OxHAGk98iFxVvElXK)"
+                      value={manualTicketCode}
+                      onChange={(e) => setManualTicketCode(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' && manualTicketCode) {
+                          console.log('🔍 Manual ticket validation:', manualTicketCode);
+                          validateMutation.mutate(manualTicketCode);
+                          setManualTicketCode('');
+                        }
+                      }}
+                      className="h-12 bg-black/50 border-[#c0580f]/30 text-white placeholder:text-white/40 focus:border-[#c0580f]"
+                      data-testid="input-manual-ticket-code"
+                    />
+                  </div>
+                  <Button
+                    onClick={() => {
+                      if (manualTicketCode) {
+                        console.log('🔍 Manual ticket validation:', manualTicketCode);
+                        validateMutation.mutate(manualTicketCode);
+                        setManualTicketCode('');
+                      }
+                    }}
+                    disabled={!manualTicketCode || validateMutation.isPending}
+                    className="h-12 bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white font-semibold px-6"
+                    data-testid="button-validate-manual"
+                  >
+                    {validateMutation.isPending ? 'Validating...' : 'Validate Ticket'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Search Attendees Card */}
             <Card className="border-[#c0580f]/20 bg-[#0B0B0F]">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white font-fraunces">Manual Check-in</CardTitle>
+                <CardTitle className="text-white font-fraunces">Search Attendees</CardTitle>
                 <CardDescription className="text-white/60">
-                  Search and check in attendees by name, email, or ticket ID
+                  Find and manage checked-in attendees
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1105,6 +1272,76 @@ export function TicketsCheckinDashboard() {
                     </Button>
                   </div>
                 </div>
+                
+                {/* Manual Validation Status Display - Premium Mobile Optimized */}
+                {manualValidationStatus.type && (
+                  <div className="relative animate-in zoom-in-95 duration-300">
+                    <div className={`relative overflow-hidden rounded-2xl backdrop-blur-3xl border-[3px] shadow-2xl ${
+                      manualValidationStatus.type === 'error' 
+                        ? 'bg-gradient-to-br from-red-900/90 to-red-800/90 border-red-400 shadow-red-500/50' 
+                        : 'bg-gradient-to-br from-green-900/90 to-green-800/90 border-green-400 shadow-green-500/50'
+                    }`}>
+                      {/* Animated background pattern */}
+                      <div className="absolute inset-0 opacity-20">
+                        <div className={`absolute -top-4 -right-4 w-24 h-24 rounded-full animate-pulse ${
+                          manualValidationStatus.type === 'error' ? 'bg-red-400' : 'bg-green-400'
+                        }`} />
+                        <div className={`absolute -bottom-4 -left-4 w-20 h-20 rounded-full animate-pulse delay-500 ${
+                          manualValidationStatus.type === 'error' ? 'bg-red-400' : 'bg-green-400'
+                        }`} />
+                      </div>
+                      
+                      {/* Content */}
+                      <div className="relative px-6 py-5">
+                        <div className="flex items-center gap-4">
+                          {/* Icon */}
+                          {manualValidationStatus.type === 'error' ? (
+                            <div className="relative">
+                              <div className="absolute inset-0 animate-ping">
+                                <AlertCircle className="w-12 h-12 text-red-400 opacity-75" />
+                              </div>
+                              <AlertCircle className="relative w-12 h-12 text-red-300" />
+                            </div>
+                          ) : (
+                            <div className="relative">
+                              <div className="absolute inset-0 animate-ping">
+                                <CheckCircle2 className="w-12 h-12 text-green-400 opacity-75" />
+                              </div>
+                              <CheckCircle2 className="relative w-12 h-12 text-green-300" />
+                            </div>
+                          )}
+                          
+                          {/* Message */}
+                          <div className="flex-1">
+                            <p className="text-white font-bold text-lg">
+                              {manualValidationStatus.message}
+                            </p>
+                            {manualValidationStatus.type === 'error' && (
+                              <p className="text-white/70 text-sm mt-1">
+                                Please check the ticket code and try again
+                              </p>
+                            )}
+                            {manualValidationStatus.type === 'success' && lastScannedTicket && (
+                              <div className="mt-2 flex gap-2">
+                                <Button
+                                  onClick={() => {
+                                    checkinMutation.mutate(lastScannedTicket.qrToken);
+                                    setManualValidationStatus({ type: null, message: null });
+                                  }}
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  disabled={checkinMutation.isPending}
+                                >
+                                  {checkinMutation.isPending ? 'Checking in...' : 'Confirm Check-in'}
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 
                 {/* Mobile: Card Layout */}
                 <div className="md:hidden space-y-3">
