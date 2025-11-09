@@ -6,47 +6,47 @@ import type {
   TicketsOrder
 } from '@shared/schema';
 import { getSupabaseAdmin } from '../supabaseAdmin';
+import { pool } from './tickets-db';
 
 export class StorageExtensions {
   
+  // Helper: Convert camelCase to snake_case
+  private toSnakeCase(str: string): string {
+    return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+  }
+  
   // ============ TICKET REFUND OPERATIONS ============
   async updateTicket(id: string, data: any): Promise<TicketsTicket> {
-    // Build dynamic update query
-    const fields = [];
-    const values = [];
-    let paramCount = 1;
+    const supabase = getSupabaseAdmin();
     
+    // Convert camelCase keys to snake_case
+    const snakeCaseData: any = {};
     for (const [key, value] of Object.entries(data)) {
-      // Convert camelCase to snake_case
-      const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-      fields.push(`${snakeKey} = $${paramCount}`);
-      values.push(value);
-      paramCount++;
+      snakeCaseData[this.toSnakeCase(key)] = value;
     }
     
-    fields.push(`updated_at = NOW()`);
-    values.push(id);
+    const { data: result, error } = await supabase
+      .from('tickets_tickets')
+      .update({ ...snakeCaseData, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
     
-    const query = `
-      UPDATE tickets_tickets 
-      SET ${fields.join(', ')}
-      WHERE id = $${paramCount}
-      RETURNING *
-    `;
-    
-    const result = await pool.query(query, values);
-    return result.rows[0];
+    if (error) throw new Error(`Failed to update ticket: ${error.message}`);
+    return result;
   }
   
   // ============ ORDER OPERATIONS ============
   async getOrdersByEvent(eventId: string): Promise<TicketsOrder[]> {
-    const query = `
-      SELECT * FROM tickets_orders 
-      WHERE event_id = $1
-      ORDER BY placed_at DESC
-    `;
-    const result = await pool.query(query, [eventId]);
-    return result.rows;
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('tickets_orders')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw new Error(`Failed to get orders by event: ${error.message}`);
+    return data || [];
   }
   
   async getOrdersByBuyer(email: string): Promise<TicketsOrder[]> {
@@ -83,6 +83,7 @@ export class StorageExtensions {
   }
   
   // ============ TICKET OPERATIONS ============
+  // TODO: Migrate to SQL view or Supabase RPC (complex 3-table JOIN)
   async getTicketsByEvent(eventId: string): Promise<TicketsTicket[]> {
     const query = `
       SELECT t.* FROM tickets_tickets t
@@ -96,104 +97,104 @@ export class StorageExtensions {
   }
   
   async getTicketsByOrderItem(orderItemId: string): Promise<TicketsTicket[]> {
-    const query = `
-      SELECT * FROM tickets_tickets 
-      WHERE order_item_id = $1
-      ORDER BY created_at DESC
-    `;
-    const result = await pool.query(query, [orderItemId]);
-    return result.rows;
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('tickets_tickets')
+      .select('*')
+      .eq('order_item_id', orderItemId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw new Error(`Failed to get tickets by order item: ${error.message}`);
+    return data || [];
   }
   
   async getTicketById(id: string): Promise<TicketsTicket | null> {
-    const query = 'SELECT * FROM tickets_tickets WHERE id = $1';
-    const result = await pool.query(query, [id]);
-    return result.rows[0] || null;
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('tickets_tickets')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      throw new Error(`Failed to get ticket by id: ${error.message}`);
+    }
+    return data;
   }
   
   // ============ AUDIT LOGGING ============
   async createAuditLog(data: InsertTicketsAudit): Promise<void> {
-    const query = `
-      INSERT INTO tickets_audit (
-        actor_type, actor_id, action, target_type, target_id,
-        meta_json, ip_address, user_agent
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-    `;
-    const values = [
-      data.actorType,
-      data.actorId || null,
-      data.action,
-      data.targetType || null,
-      data.targetId || null,
-      data.metaJson || null,
-      data.ipAddress || null,
-      data.userAgent || null
-    ];
-    await pool.query(query, values);
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase
+      .from('tickets_audit')
+      .insert({
+        actor_type: data.actorType,
+        actor_id: data.actorId || null,
+        action: data.action,
+        target_type: data.targetType || null,
+        target_id: data.targetId || null,
+        meta_json: data.metaJson || null,
+        ip_address: data.ipAddress || null,
+        user_agent: data.userAgent || null
+      });
+    
+    if (error) throw new Error(`Failed to create audit log: ${error.message}`);
   }
   
   // ============ EMAIL COMMUNICATION ============
   async createEmailCommunication(data: any): Promise<any> {
-    const query = `
-      INSERT INTO tickets_email_communications (
-        event_id, organizer_id, subject, message, template_id,
-        recipient_emails, recipient_filter, scheduled_for, status
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *
-    `;
-    const values = [
-      data.eventId,
-      data.organizerId,
-      data.subject,
-      data.message,
-      data.templateId || null,
-      data.recipientEmails,
-      data.recipientFilter || null,
-      data.scheduledFor || null,
-      data.status || 'draft'
-    ];
-    const result = await pool.query(query, values);
-    return result.rows[0];
+    const supabase = getSupabaseAdmin();
+    const { data: result, error } = await supabase
+      .from('tickets_email_communications')
+      .insert({
+        event_id: data.eventId,
+        organizer_id: data.organizerId,
+        subject: data.subject,
+        message: data.message,
+        template_id: data.templateId || null,
+        recipient_emails: data.recipientEmails,
+        recipient_filter: data.recipientFilter || null,
+        scheduled_for: data.scheduledFor || null,
+        status: data.status || 'draft'
+      })
+      .select()
+      .single();
+    
+    if (error) throw new Error(`Failed to create email communication: ${error.message}`);
+    return result;
   }
   
   async updateEmailCommunication(id: string, data: any): Promise<any> {
-    // Build dynamic update query
-    const fields = [];
-    const values = [];
-    let paramCount = 1;
+    const supabase = getSupabaseAdmin();
     
+    // Convert camelCase to snake_case
+    const snakeCaseData: any = {};
     for (const [key, value] of Object.entries(data)) {
-      // Convert camelCase to snake_case
-      const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-      fields.push(`${snakeKey} = $${paramCount}`);
-      values.push(value);
-      paramCount++;
+      snakeCaseData[this.toSnakeCase(key)] = value;
     }
     
-    fields.push(`updated_at = NOW()`);
-    values.push(id);
+    const { data: result, error } = await supabase
+      .from('tickets_email_communications')
+      .update({ ...snakeCaseData, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
     
-    const query = `
-      UPDATE tickets_email_communications 
-      SET ${fields.join(', ')}
-      WHERE id = $${paramCount}
-      RETURNING *
-    `;
-    
-    const result = await pool.query(query, values);
-    return result.rows[0];
+    if (error) throw new Error(`Failed to update email communication: ${error.message}`);
+    return result;
   }
   
   async getEmailCommunicationsByEvent(eventId: string): Promise<any[]> {
-    const query = `
-      SELECT * FROM tickets_email_communications 
-      WHERE event_id = $1
-      ORDER BY created_at DESC
-    `;
-    const result = await pool.query(query, [eventId]);
-    return result.rows;
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('tickets_email_communications')
+      .select('*')
+      .eq('event_id', eventId)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw new Error(`Failed to get email communications: ${error.message}`);
+    return data || [];
   }
   
   // ============ USER OPERATIONS ============
@@ -215,22 +216,37 @@ export class StorageExtensions {
   
   // ============ ANALYTICS CACHE ============
   async updateAnalyticsCache(eventId: string, date: string, metricType: string, data: any): Promise<void> {
-    const query = `
-      INSERT INTO tickets_analytics_cache (event_id, date, metric_type, metric_data)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (event_id, date, metric_type)
-      DO UPDATE SET metric_data = $4, created_at = NOW()
-    `;
-    await pool.query(query, [eventId, date, metricType, data]);
+    const supabase = getSupabaseAdmin();
+    const { error } = await supabase
+      .from('tickets_analytics_cache')
+      .upsert({
+        event_id: eventId,
+        date: date,
+        metric_type: metricType,
+        metric_data: data,
+        created_at: new Date().toISOString()
+      }, {
+        onConflict: 'event_id,date,metric_type'
+      });
+    
+    if (error) throw new Error(`Failed to update analytics cache: ${error.message}`);
   }
   
   async getAnalyticsCache(eventId: string, date: string, metricType: string): Promise<any | null> {
-    const query = `
-      SELECT * FROM tickets_analytics_cache 
-      WHERE event_id = $1 AND date = $2 AND metric_type = $3
-    `;
-    const result = await pool.query(query, [eventId, date, metricType]);
-    return result.rows[0] || null;
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('tickets_analytics_cache')
+      .select('*')
+      .eq('event_id', eventId)
+      .eq('date', date)
+      .eq('metric_type', metricType)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      throw new Error(`Failed to get analytics cache: ${error.message}`);
+    }
+    return data;
   }
 }
 

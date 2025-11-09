@@ -48,6 +48,10 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+// Export pool for temporary use in storage-extensions (complex JOINs only)
+// TODO: Remove once all JOINs are migrated to SQL views/RPCs
+export { pool };
+
 export class TicketsDB {
   // ============ ORGANIZERS ============
   async createOrganizer(data: InsertTicketsOrganizer): Promise<TicketsOrganizer> {
