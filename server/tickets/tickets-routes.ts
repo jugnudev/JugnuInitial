@@ -181,8 +181,9 @@ export function addTicketsRoutes(app: Express) {
       // Convert to camelCase for consistent access
       const ticket = toCamelCase(ticketRaw);
       
-      console.log('[Validation] Ticket raw:', ticketRaw);
-      console.log('[Validation] Ticket converted:', ticket);
+      console.log('[Validation] Request:', { qrToken, eventId });
+      console.log('[Validation] Ticket raw:', JSON.stringify(ticketRaw, null, 2));
+      console.log('[Validation] Ticket converted:', JSON.stringify(ticket, null, 2));
       
       // Verify ticket is for the correct event
       const tierRaw = await ticketsStorage.getTierById(ticket.tierId);
@@ -204,23 +205,34 @@ export function addTicketsRoutes(app: Express) {
       let order = null;
       
       // Safely fetch order details if orderItemId exists
-      if (ticket.orderItemId) {
+      console.log('[Validation] Ticket orderItemId:', ticket.orderItemId);
+      if (ticket.orderItemId && ticket.orderItemId !== null) {
         try {
+          console.log('[Validation] Fetching orderItem with ID:', ticket.orderItemId);
           const orderItemRaw = await ticketsStorage.getOrderItemById(ticket.orderItemId);
+          console.log('[Validation] OrderItem raw:', JSON.stringify(orderItemRaw, null, 2));
+          
           if (orderItemRaw) {
             orderItem = toCamelCase(orderItemRaw);
+            console.log('[Validation] OrderItem converted:', JSON.stringify(orderItem, null, 2));
+            
             // Check that orderId exists and is not undefined
-            if (orderItem && orderItem.orderId && orderItem.orderId !== 'undefined') {
+            if (orderItem && orderItem.orderId && orderItem.orderId !== 'undefined' && orderItem.orderId !== null) {
+              console.log('[Validation] Fetching order with ID:', orderItem.orderId);
               const orderRaw = await ticketsStorage.getOrderById(orderItem.orderId);
               if (orderRaw) {
                 order = toCamelCase(orderRaw);
               }
+            } else {
+              console.log('[Validation] OrderItem has no valid orderId:', orderItem?.orderId);
             }
           }
         } catch (err) {
-          console.warn('Failed to fetch order details:', err);
+          console.warn('[Validation] Failed to fetch order details:', err);
           // Continue without order details
         }
+      } else {
+        console.log('[Validation] Ticket has no orderItemId (free ticket?)');
       }
       
       // Check if ticket is for wrong event
@@ -2730,12 +2742,16 @@ function addMyTicketsRoutes(app: Express) {
       if (ticket.status !== 'valid') {
         return res.status(400).json({ ok: false, error: ticket.status === 'used' ? 'Ticket already used' : ticket.status === 'refunded' ? 'Ticket has been refunded' : 'Ticket is not valid', status: ticket.status });
       }
-      const orderItem = await ticketsStorage.getOrderItemById(ticket.orderItemId);
-      if (!orderItem) {
-        return res.status(404).json({ ok: false, error: 'Order information not found', status: 'invalid' });
+      // Check if ticket has orderItemId (free tickets might not)
+      let order = null;
+      if (ticket.orderItemId) {
+        const orderItem = await ticketsStorage.getOrderItemById(ticket.orderItemId);
+        if (orderItem && orderItem.orderId) {
+          order = await ticketsStorage.getOrderById(orderItem.orderId);
+        }
       }
-      const order = await ticketsStorage.getOrderById(orderItem.orderId);
-      if (!order || order.status !== 'paid') {
+      // For paid tickets, check if order is confirmed
+      if (ticket.orderItemId && (!order || order.status !== 'paid')) {
         return res.status(400).json({ ok: false, error: 'Order not confirmed', status: 'invalid' });
       }
       res.json({ ok: true, status: 'valid', ticket: { id: ticket.id, serial: ticket.serial, tierName: tier.name, eventTitle: event.title, buyerName: order.buyerName, buyerEmail: order.buyerEmail } });

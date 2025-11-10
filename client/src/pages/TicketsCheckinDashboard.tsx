@@ -156,8 +156,15 @@ export function TicketsCheckinDashboard() {
   // Validate ticket mutation
   const validateMutation = useMutation({
     mutationFn: async (qrToken: string) => {
-      const response = await apiRequest('POST', '/api/tickets/validate-qr', { qrToken, eventId });
-      return response;
+      // Use fetch directly to handle 400 responses properly
+      const response = await fetch('/api/tickets/validate-qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ qrToken, eventId })
+      });
+      const data = await response.json();
+      return data;
     },
     onSuccess: (data: any) => {
       if (data.ok) {
