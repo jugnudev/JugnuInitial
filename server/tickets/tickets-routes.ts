@@ -327,6 +327,21 @@ export function addTicketsRoutes(app: Express) {
         });
       }
       
+      // For PAID tickets only - check if order is confirmed
+      // Free tickets (without orderItemId) skip this check
+      if (ticket.orderItemId && (!order || order.status !== 'paid')) {
+        return res.json({ 
+          ok: false, 
+          status: 'invalid',
+          message: '❌ Order not confirmed',
+          error: 'Order not confirmed',
+          meta: {
+            ticketSerial: ticket.serial,
+            orderStatus: order?.status || 'no order found'
+          }
+        });
+      }
+      
       // Valid ticket - can be checked in
       // Use custom welcome message if available (future: from event.checkinWelcomeMessage)
       const welcomeMessage = `✅ Valid ticket for ${order?.buyerName || 'Guest'}`;
@@ -2723,43 +2738,7 @@ function addMyTicketsRoutes(app: Express) {
     }
   });
   
-  // QR Code validation endpoint
-  app.post('/api/tickets/validate-qr', requireTicketing, async (req: Request, res: Response) => {
-    try {
-      const { qrToken, eventId } = req.body;
-      if (!qrToken || !eventId) {
-        return res.status(400).json({ ok: false, error: 'QR token and event ID are required' });
-      }
-      const ticket = await ticketsStorage.getTicketByQR(qrToken);
-      if (!ticket) {
-        return res.status(404).json({ ok: false, error: 'Invalid QR code', status: 'invalid' });
-      }
-      const tier = await ticketsStorage.getTierById(ticket.tierId);
-      const event = await ticketsStorage.getEventById(tier?.eventId || '');
-      if (!tier || !event || event.id !== eventId) {
-        return res.status(404).json({ ok: false, error: 'Ticket not found for this event', status: 'invalid' });
-      }
-      if (ticket.status !== 'valid') {
-        return res.status(400).json({ ok: false, error: ticket.status === 'used' ? 'Ticket already used' : ticket.status === 'refunded' ? 'Ticket has been refunded' : 'Ticket is not valid', status: ticket.status });
-      }
-      // Check if ticket has orderItemId (free tickets might not)
-      let order = null;
-      if (ticket.orderItemId) {
-        const orderItem = await ticketsStorage.getOrderItemById(ticket.orderItemId);
-        if (orderItem && orderItem.orderId) {
-          order = await ticketsStorage.getOrderById(orderItem.orderId);
-        }
-      }
-      // For paid tickets, check if order is confirmed
-      if (ticket.orderItemId && (!order || order.status !== 'paid')) {
-        return res.status(400).json({ ok: false, error: 'Order not confirmed', status: 'invalid' });
-      }
-      res.json({ ok: true, status: 'valid', ticket: { id: ticket.id, serial: ticket.serial, tierName: tier.name, eventTitle: event.title, buyerName: order.buyerName, buyerEmail: order.buyerEmail } });
-    } catch (error: any) {
-      console.error('QR validation error:', error);
-      res.status(500).json({ ok: false, error: 'Validation failed' });
-    }
-  });
+  // Duplicate validation endpoint removed - using the comprehensive one at line 155 instead
 
   // Mark ticket as used (check-in)
   app.post('/api/tickets/check-in', async (req: Request, res: Response) => {
