@@ -161,8 +161,9 @@ export function TicketsCheckinDashboard() {
     },
     onSuccess: (data: any) => {
       if (data.ok) {
-        setLastScannedTicket(data.ticket);
-        const successMessage = `✓ Valid ticket for ${data.ticket?.buyerName || 'Guest'}`;
+        setLastScannedTicket(data.meta);
+        // Use the message field from the response or fallback
+        const successMessage = data.message || `✓ Valid ticket for ${data.meta?.buyerName || 'Guest'}`;
         
         // Set status for both scanner and manual modes
         setScannerStatus({ type: 'success', message: successMessage });
@@ -177,19 +178,8 @@ export function TicketsCheckinDashboard() {
       } else {
         playSound('error');
         
-        // Determine specific error message
-        let errorMessage = 'Invalid ticket';
-        if (data.error) {
-          if (data.error.includes('already used') || data.error.includes('already checked in')) {
-            errorMessage = '⚠️ Ticket already checked in';
-          } else if (data.error.includes('not found')) {
-            errorMessage = '❌ Ticket not found';
-          } else if (data.error.includes('wrong event')) {
-            errorMessage = '❌ Ticket for different event';
-          } else {
-            errorMessage = data.error;
-          }
-        }
+        // Use the message field from the response
+        const errorMessage = data.message || data.error || 'Invalid ticket';
         
         // Set status for both scanner and manual modes
         setScannerStatus({ type: 'error', message: errorMessage });
@@ -200,12 +190,34 @@ export function TicketsCheckinDashboard() {
           navigator.vibrate([100, 50, 100]);
         }
         
-        // Also show toast for non-scanner view
-        toast({
-          title: "Validation Failed",
-          description: errorMessage,
-          variant: "destructive"
-        });
+        // Show additional context for specific statuses
+        if (data.status === 'too_early' && data.meta) {
+          const availableTime = new Date(data.meta.earliestCheckinAt).toLocaleTimeString();
+          toast({
+            title: "Check-in Not Open",
+            description: `Check-in will be available at ${availableTime} (${data.meta.checkinWindowHours} hours before event)`,
+            variant: "default"
+          });
+        } else if (data.status === 'wrong_event' && data.meta) {
+          toast({
+            title: "Wrong Event",
+            description: `This ticket is for "${data.meta.actualEventTitle}"`,
+            variant: "destructive"
+          });
+        } else if (data.status === 'used' && data.meta) {
+          const checkedInTime = data.meta.checkedInAt ? new Date(data.meta.checkedInAt).toLocaleString() : 'previously';
+          toast({
+            title: "Already Checked In",
+            description: `This ticket was checked in ${checkedInTime} by ${data.meta.checkedInBy}`,
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Validation Failed",
+            description: errorMessage,
+            variant: "destructive"
+          });
+        }
         
         // Clear error status after 5 seconds
         setTimeout(() => {

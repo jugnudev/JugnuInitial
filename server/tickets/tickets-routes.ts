@@ -157,67 +157,190 @@ export function addTicketsRoutes(app: Express) {
       const { qrToken, eventId } = req.body;
       
       if (!qrToken) {
-        return res.status(400).json({ ok: false, error: 'QR token is required' });
+        return res.status(400).json({ 
+          ok: false, 
+          status: 'error',
+          message: 'QR token is required',
+          error: 'QR token is required' 
+        });
       }
       
-      const ticket = await ticketsStorage.getTicketByQrToken(qrToken);
-      if (!ticket) {
-        return res.json({ ok: false, status: 'invalid', error: 'Invalid QR code' });
+      const ticketRaw = await ticketsStorage.getTicketByQrToken(qrToken);
+      if (!ticketRaw) {
+        return res.json({ 
+          ok: false, 
+          status: 'invalid', 
+          message: '❌ Invalid ticket code',
+          error: 'Invalid QR code',
+          meta: {
+            qrToken: qrToken.substring(0, 8) + '...'
+          }
+        });
       }
+      
+      // Convert to camelCase for consistent access
+      const ticket = toCamelCase(ticketRaw);
+      
+      console.log('[Validation] Ticket raw:', ticketRaw);
+      console.log('[Validation] Ticket converted:', ticket);
       
       // Verify ticket is for the correct event
-      const tier = await ticketsStorage.getTierById(ticket.tierId);
-      if (!tier || (eventId && tier.eventId !== eventId)) {
-        return res.json({ ok: false, status: 'invalid', error: 'Ticket is for a different event' });
+      const tierRaw = await ticketsStorage.getTierById(ticket.tierId);
+      if (!tierRaw) {
+        return res.json({ 
+          ok: false, 
+          status: 'invalid', 
+          message: '❌ Ticket tier not found',
+          error: 'Ticket tier not found' 
+        });
       }
       
+      const tier = toCamelCase(tierRaw);
+      
       // Get event and order details
-      const event = await ticketsStorage.getEventById(tier.eventId);
-      const orderItem = await ticketsStorage.getOrderItemById(ticket.orderItemId);
-      const order = orderItem ? await ticketsStorage.getOrderById(orderItem.orderId) : null;
+      const eventRaw = await ticketsStorage.getEventById(tier.eventId);
+      const event = eventRaw ? toCamelCase(eventRaw) : null;
+      let orderItem = null;
+      let order = null;
+      
+      // Safely fetch order details if orderItemId exists
+      if (ticket.orderItemId) {
+        try {
+          const orderItemRaw = await ticketsStorage.getOrderItemById(ticket.orderItemId);
+          if (orderItemRaw) {
+            orderItem = toCamelCase(orderItemRaw);
+            if (orderItem.orderId) {
+              const orderRaw = await ticketsStorage.getOrderById(orderItem.orderId);
+              if (orderRaw) {
+                order = toCamelCase(orderRaw);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to fetch order details:', err);
+          // Continue without order details
+        }
+      }
+      
+      // Check if ticket is for wrong event
+      if (eventId && tier.eventId !== eventId) {
+        const wrongEventRaw = await ticketsStorage.getEventById(tier.eventId);
+        const wrongEvent = wrongEventRaw ? toCamelCase(wrongEventRaw) : null;
+        return res.json({ 
+          ok: false, 
+          status: 'wrong_event', 
+          message: `❌ This ticket is for "${wrongEvent?.title || 'another event'}"`,
+          error: 'Ticket is for a different event',
+          meta: {
+            expectedEventId: eventId,
+            actualEventId: tier.eventId,
+            actualEventTitle: wrongEvent?.title || 'Unknown Event',
+            ticketSerial: ticket.serial
+          }
+        });
+      }
+      
+      // Check time-based restrictions
+      if (event) {
+        const now = new Date();
+        const eventStart = new Date(event.startAt);
+        const hoursBeforeEvent = (eventStart.getTime() - now.getTime()) / (1000 * 60 * 60);
+        
+        // Default check-in window is 2 hours before event
+        // In future, use event.checkinWindowHours and event.allowAnytimeCheckin from database
+        const checkinWindowHours = 2; // Default 2 hours
+        const allowAnytimeCheckin = false; // Default false
+        
+        if (!allowAnytimeCheckin && hoursBeforeEvent > checkinWindowHours) {
+          const earliestCheckinTime = new Date(eventStart.getTime() - (checkinWindowHours * 60 * 60 * 1000));
+          return res.json({ 
+            ok: false, 
+            status: 'too_early', 
+            message: `⏰ Check-in opens ${checkinWindowHours} hours before event`,
+            error: 'Check-in is not open yet',
+            meta: {
+              eventTitle: event.title,
+              eventStartAt: eventStart.toISOString(),
+              earliestCheckinAt: earliestCheckinTime.toISOString(),
+              checkinWindowHours: checkinWindowHours,
+              hoursUntilCheckinOpens: Math.ceil(hoursBeforeEvent - checkinWindowHours)
+            }
+          });
+        }
+      }
       
       // Check ticket status
       if (ticket.status === 'used') {
         return res.json({
           ok: false,
           status: 'used',
+          message: `⚠️ Already checked in${ticket.usedAt ? ' on ' + new Date(ticket.usedAt).toLocaleString() : ''}`,
           error: 'Ticket has already been checked in',
-          ticket: {
-            id: ticket.id,
+          meta: {
+            ticketId: ticket.id,
             serial: ticket.serial,
             tierName: tier.name,
             eventTitle: event?.title || '',
             buyerName: order?.buyerName || '',
             buyerEmail: order?.buyerEmail || '',
-            checkedInAt: ticket.usedAt
+            checkedInAt: ticket.usedAt,
+            checkedInBy: ticket.scannedBy || 'unknown'
           }
         });
       }
       
       if (ticket.status === 'refunded') {
-        return res.json({ ok: false, status: 'refunded', error: 'Ticket has been refunded' });
+        return res.json({ 
+          ok: false, 
+          status: 'refunded', 
+          message: '❌ This ticket has been refunded',
+          error: 'Ticket has been refunded',
+          meta: {
+            ticketSerial: ticket.serial
+          }
+        });
       }
       
       if (ticket.status !== 'valid') {
-        return res.json({ ok: false, status: 'invalid', error: 'Ticket is not valid' });
+        return res.json({ 
+          ok: false, 
+          status: 'invalid', 
+          message: '❌ Ticket is not valid for check-in',
+          error: 'Ticket is not valid',
+          meta: {
+            ticketStatus: ticket.status,
+            ticketSerial: ticket.serial
+          }
+        });
       }
       
-      // Valid ticket
+      // Valid ticket - can be checked in
+      // Use custom welcome message if available (future: from event.checkinWelcomeMessage)
+      const welcomeMessage = `✅ Valid ticket for ${order?.buyerName || 'Guest'}`;
+      
       res.json({
         ok: true,
         status: 'valid',
-        ticket: {
-          id: ticket.id,
+        message: welcomeMessage,
+        meta: {
+          ticketId: ticket.id,
           serial: ticket.serial,
           tierName: tier.name,
           eventTitle: event?.title || '',
+          eventStartAt: event?.startAt || null,
           buyerName: order?.buyerName || '',
-          buyerEmail: order?.buyerEmail || ''
+          buyerEmail: order?.buyerEmail || '',
+          welcomeMessage: welcomeMessage
         }
       });
     } catch (error) {
       console.error('Error validating QR:', error);
-      res.status(500).json({ ok: false, error: 'Failed to validate ticket' });
+      res.status(500).json({ 
+        ok: false, 
+        status: 'error',
+        message: '⚠️ Server error - please try again',
+        error: 'Failed to validate ticket' 
+      });
     }
   });
   
