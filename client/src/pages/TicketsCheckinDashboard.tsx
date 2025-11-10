@@ -164,11 +164,13 @@ export function TicketsCheckinDashboard() {
         body: JSON.stringify({ qrToken, eventId })
       });
       const data = await response.json();
-      return data;
+      // Add qrToken to the response for later use in check-in
+      return { ...data, qrToken };
     },
     onSuccess: (data: any) => {
       if (data.ok) {
-        setLastScannedTicket(data.meta);
+        // Include qrToken in the stored ticket data
+        setLastScannedTicket({ ...data.meta, qrToken: data.qrToken });
         // Use the message field from the response or fallback
         const successMessage = data.message || `✓ Valid ticket for ${data.meta?.buyerName || 'Guest'}`;
         
@@ -970,7 +972,16 @@ export function TicketsCheckinDashboard() {
                             </div>
                           </div>
                           <Button
-                            onClick={() => checkinMutation.mutate(lastScannedTicket.qrToken)}
+                            onClick={() => {
+                              console.log('🚨 Mobile Check-in button clicked!');
+                              console.log('🚨 lastScannedTicket:', lastScannedTicket);
+                              console.log('🚨 qrToken:', lastScannedTicket?.qrToken);
+                              if (lastScannedTicket?.qrToken) {
+                                checkinMutation.mutate(lastScannedTicket.qrToken);
+                              } else {
+                                console.error('🚨 No qrToken available!');
+                              }
+                            }}
                             disabled={checkinMutation.isPending}
                             className="w-full h-11 bg-gradient-to-r from-[#17C0A9] to-[#17C0A9]/90 hover:from-[#17C0A9]/95 hover:to-[#17C0A9]/85 text-white font-bold shadow-lg"
                             data-testid="button-confirm-checkin-mobile"
@@ -1183,7 +1194,16 @@ export function TicketsCheckinDashboard() {
                             
                             {/* Confirm button */}
                             <Button
-                              onClick={() => checkinMutation.mutate(lastScannedTicket.qrToken)}
+                              onClick={() => {
+                                console.log('🚨 Desktop Check-in button clicked!');
+                                console.log('🚨 lastScannedTicket:', lastScannedTicket);
+                                console.log('🚨 qrToken:', lastScannedTicket?.qrToken);
+                                if (lastScannedTicket?.qrToken) {
+                                  checkinMutation.mutate(lastScannedTicket.qrToken);
+                                } else {
+                                  console.error('🚨 No qrToken available!');
+                                }
+                              }}
                               className="w-full h-14 text-base font-medium bg-gradient-to-r from-[#17C0A9] to-[#15a890] hover:from-[#15a890] hover:to-[#17C0A9] text-white shadow-lg shadow-[#17C0A9]/30 transition-all duration-300 hover:shadow-xl hover:shadow-[#17C0A9]/40"
                               disabled={checkinMutation.isPending}
                               data-testid="button-confirm-checkin"
