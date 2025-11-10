@@ -209,7 +209,8 @@ export function addTicketsRoutes(app: Express) {
           const orderItemRaw = await ticketsStorage.getOrderItemById(ticket.orderItemId);
           if (orderItemRaw) {
             orderItem = toCamelCase(orderItemRaw);
-            if (orderItem.orderId) {
+            // Check that orderId exists and is not undefined
+            if (orderItem && orderItem.orderId && orderItem.orderId !== 'undefined') {
               const orderRaw = await ticketsStorage.getOrderById(orderItem.orderId);
               if (orderRaw) {
                 order = toCamelCase(orderRaw);
