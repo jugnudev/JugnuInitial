@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { useEvents, useGallery } from "@/lib/events";
 import logoImage from "@assets/Upscaled Logo copy_1754763190534.png";
 import { Button } from "@/components/ui/button";
-import { UserPlus, User, LogOut, Settings, Loader2, Shield, BarChart3, Receipt } from "lucide-react";
+import { UserPlus, User, LogOut, Settings, Loader2, Shield, BarChart3, Receipt, Menu, X, Home, Calendar, Tag, Users, Megaphone, ChevronRight, Bell, Sparkles } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
@@ -16,6 +16,14 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { BetaBadge } from "@/components/BetaBadge";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function Navigation() {
   const [location] = useLocation();
@@ -278,166 +286,291 @@ export default function Navigation() {
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="text-text hover:text-accent focus-ring p-2 transition-colors duration-200"
+              className="relative p-2.5 rounded-xl bg-gradient-to-r from-[#c0580f]/10 to-[#d3541e]/10 backdrop-blur-md border border-white/10 hover:border-[#c0580f]/30 transition-all duration-300 shadow-lg hover:shadow-[#c0580f]/20"
               data-testid="nav-mobile-toggle"
               aria-label="Toggle mobile menu"
               aria-expanded={isMobileMenuOpen}
             >
-              <i className={`fas ${isMobileMenuOpen ? 'fa-times' : 'fa-bars'} text-lg`}></i>
+              <Menu className="h-5 w-5 text-white" />
+              <span className="absolute -top-1 -right-1 h-2 w-2 bg-gradient-to-r from-[#c0580f] to-[#d3541e] rounded-full animate-pulse" />
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden bg-bg/95 backdrop-blur-lg border-t border-white/10">
-            <div className="px-2 pt-2 pb-3 space-y-1">
-              <Link
-                href="/"
-                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
-                  location === '/' 
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-mobile-home"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Home
-              </Link>
-              <Link
-                href="/story"
-                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
-                  location === '/story' 
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-mobile-story"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Story
-              </Link>
-              <Link
-                href="/events"
-                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
-                  location === '/events' || location.startsWith('/explore')
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-mobile-events"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Events
-              </Link>
-              <Link
-                href="/deals"
-                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
-                  location === '/deals' 
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-mobile-deals"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Deals
-              </Link>
-              {showCommunities && (
-                <Link
-                  href="/communities"
-                  className={`flex items-center gap-2 px-3 py-2 transition-colors duration-200 font-medium ${
-                    location === '/communities' || location.startsWith('/communities/')
-                      ? 'text-accent' 
-                      : 'text-text hover:text-accent'
-                  }`}
-                  data-testid="nav-mobile-communities"
+        {/* Premium Mobile Navigation Sheet */}
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetContent 
+            side="left" 
+            className="w-[85%] max-w-sm p-0 bg-gradient-to-b from-[#0B0B0F] via-[#0B0B0F]/98 to-[#0B0B0F]/95 backdrop-blur-xl border-r border-white/10"
+          >
+            {/* Header with Logo */}
+            <SheetHeader className="bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 backdrop-blur-md border-b border-white/10 px-6 py-5">
+              <SheetTitle className="flex items-center justify-between">
+                <img 
+                  src={logoImage}
+                  alt="Jugnu"
+                  className="h-8"
+                />
+                <button
                   onClick={() => setIsMobileMenuOpen(false)}
+                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
+                  aria-label="Close menu"
                 >
-                  Communities
-                  <BetaBadge size="sm" variant="subtle" showIcon={false} />
-                </Link>
-              )}
-              <Link
-                href="/promote"
-                className={`block w-full text-left px-3 py-2 transition-colors duration-200 font-medium ${
-                  location === '/promote' 
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-mobile-promote"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Promote
-              </Link>
-              
-              {/* Authentication - Mobile */}
-              <div className="px-3 py-2">
+                  <X className="h-5 w-5 text-white/70" />
+                </button>
+              </SheetTitle>
+            </SheetHeader>
+
+            <ScrollArea className="flex-1 h-[calc(100vh-80px)]">
+              <div className="px-4 py-6">
+                {/* Main Navigation Links */}
+                <nav className="space-y-1">
+                  <Link
+                    href="/"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 touch-target ${
+                      location === '/' 
+                        ? 'bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 text-[#d3541e] border border-[#c0580f]/20' 
+                        : 'hover:bg-white/5 text-white/90 hover:text-white'
+                    }`}
+                    data-testid="nav-mobile-home"
+                  >
+                    <Home className="h-5 w-5" />
+                    <span className="font-medium text-base">Home</span>
+                  </Link>
+
+                  <Link
+                    href="/story"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 touch-target ${
+                      location === '/story' 
+                        ? 'bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 text-[#d3541e] border border-[#c0580f]/20' 
+                        : 'hover:bg-white/5 text-white/90 hover:text-white'
+                    }`}
+                    data-testid="nav-mobile-story"
+                  >
+                    <Sparkles className="h-5 w-5" />
+                    <span className="font-medium text-base">Story</span>
+                  </Link>
+
+                  <Link
+                    href="/events"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 touch-target ${
+                      location === '/events' || location.startsWith('/explore')
+                        ? 'bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 text-[#d3541e] border border-[#c0580f]/20' 
+                        : 'hover:bg-white/5 text-white/90 hover:text-white'
+                    }`}
+                    data-testid="nav-mobile-events"
+                  >
+                    <Calendar className="h-5 w-5" />
+                    <span className="font-medium text-base">Events</span>
+                  </Link>
+
+                  <Link
+                    href="/deals"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 touch-target ${
+                      location === '/deals' 
+                        ? 'bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 text-[#d3541e] border border-[#c0580f]/20' 
+                        : 'hover:bg-white/5 text-white/90 hover:text-white'
+                    }`}
+                    data-testid="nav-mobile-deals"
+                  >
+                    <Tag className="h-5 w-5" />
+                    <span className="font-medium text-base">Deals</span>
+                  </Link>
+
+                  {showCommunities && (
+                    <Link
+                      href="/communities"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 touch-target ${
+                        location === '/communities' || location.startsWith('/communities/')
+                          ? 'bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 text-[#d3541e] border border-[#c0580f]/20' 
+                          : 'hover:bg-white/5 text-white/90 hover:text-white'
+                      }`}
+                      data-testid="nav-mobile-communities"
+                    >
+                      <Users className="h-5 w-5" />
+                      <span className="font-medium text-base">Communities</span>
+                      <BetaBadge size="sm" variant="subtle" showIcon={false} className="ml-auto" />
+                    </Link>
+                  )}
+
+                  <Link
+                    href="/promote"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 touch-target ${
+                      location === '/promote' 
+                        ? 'bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 text-[#d3541e] border border-[#c0580f]/20' 
+                        : 'hover:bg-white/5 text-white/90 hover:text-white'
+                    }`}
+                    data-testid="nav-mobile-promote"
+                  >
+                    <Megaphone className="h-5 w-5" />
+                    <span className="font-medium text-base">Promote</span>
+                  </Link>
+                </nav>
+
+                {/* Separator */}
+                <Separator className="my-6 bg-white/10" />
+
+                {/* User Section */}
                 {authLoading ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                    <span className="ml-2 text-sm text-muted-foreground">Loading...</span>
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-[#c0580f]" />
+                    <span className="ml-2 text-sm text-white/60">Loading...</span>
                   </div>
                 ) : isAuthenticated ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3 px-3 py-2 bg-muted/30 rounded-lg">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user?.profileImageUrl} />
-                        <AvatarFallback className="bg-orange-500 text-white text-sm">
-                          {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {user?.firstName && user?.lastName 
-                            ? `${user.firstName} ${user.lastName}`
-                            : user?.email}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                  <div className="space-y-4">
+                    {/* User Profile Card */}
+                    <div className="p-4 rounded-xl bg-gradient-to-r from-[#c0580f]/10 to-[#d3541e]/10 backdrop-blur-sm border border-white/10">
+                      <div className="flex items-center gap-3 mb-3">
+                        <Avatar className="h-12 w-12 border-2 border-[#c0580f]/30">
+                          <AvatarImage src={user?.profileImageUrl} />
+                          <AvatarFallback className="bg-gradient-to-r from-[#c0580f] to-[#d3541e] text-white text-sm font-semibold">
+                            {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-white truncate">
+                            {user?.firstName && user?.lastName 
+                              ? `${user.firstName} ${user.lastName}`
+                              : 'Guest User'}
+                          </p>
+                          <p className="text-xs text-white/60 truncate">{user?.email}</p>
+                        </div>
                       </div>
                     </div>
-                    <Link href="/account/profile">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="w-full justify-start text-left"
+
+                    {/* Profile Actions */}
+                    <nav className="space-y-1">
+                      <Link
+                        href="/account/profile"
                         onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/90 hover:text-white transition-all duration-200 touch-target"
+                        data-testid="nav-mobile-profile"
                       >
-                        <User className="h-4 w-4 mr-2" />
-                        Profile
-                      </Button>
-                    </Link>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="w-full justify-start text-left text-red-600 hover:text-red-600"
+                        <User className="h-5 w-5" />
+                        <span className="font-medium text-base">Profile</span>
+                        <ChevronRight className="h-4 w-4 ml-auto text-white/40" />
+                      </Link>
+
+                      <Link
+                        href="/tickets/my-tickets"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/90 hover:text-white transition-all duration-200 touch-target"
+                        data-testid="nav-mobile-orders"
+                      >
+                        <Receipt className="h-5 w-5" />
+                        <span className="font-medium text-base">My Orders</span>
+                        <ChevronRight className="h-4 w-4 ml-auto text-white/40" />
+                      </Link>
+
+                      <Link
+                        href="/notifications"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/90 hover:text-white transition-all duration-200 touch-target"
+                        data-testid="nav-mobile-notifications"
+                      >
+                        <Bell className="h-5 w-5" />
+                        <span className="font-medium text-base">Notifications</span>
+                        <ChevronRight className="h-4 w-4 ml-auto text-white/40" />
+                      </Link>
+
+                      <Link
+                        href="/account/profile#settings"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/90 hover:text-white transition-all duration-200 touch-target"
+                        data-testid="nav-mobile-settings"
+                      >
+                        <Settings className="h-5 w-5" />
+                        <span className="font-medium text-base">Settings</span>
+                        <ChevronRight className="h-4 w-4 ml-auto text-white/40" />
+                      </Link>
+                    </nav>
+
+                    {/* Admin Section */}
+                    {(user?.role === 'admin' || user?.role === 'organizer') && (
+                      <>
+                        <Separator className="my-4 bg-white/10" />
+                        <nav className="space-y-1">
+                          {user?.role === 'admin' && (
+                            <>
+                              <Link
+                                href="/admin/communities"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/90 hover:text-white transition-all duration-200 touch-target"
+                              >
+                                <Shield className="h-5 w-5" />
+                                <span className="font-medium text-base">Admin Dashboard</span>
+                                <ChevronRight className="h-4 w-4 ml-auto text-white/40" />
+                              </Link>
+                              <Link
+                                href="/admin/organizers"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/90 hover:text-white transition-all duration-200 touch-target"
+                              >
+                                <BarChart3 className="h-5 w-5" />
+                                <span className="font-medium text-base">Manage Organizers</span>
+                                <ChevronRight className="h-4 w-4 ml-auto text-white/40" />
+                              </Link>
+                            </>
+                          )}
+                        </nav>
+                      </>
+                    )}
+
+                    {/* Sign Out Button */}
+                    <Separator className="my-4 bg-white/10" />
+                    <Button
                       onClick={() => {
                         setIsMobileMenuOpen(false);
                         signOutMutation.mutate();
                       }}
                       disabled={signOutMutation.isPending}
+                      className="w-full h-12 bg-gradient-to-r from-red-600/20 to-red-700/20 hover:from-red-600/30 hover:to-red-700/30 text-red-500 font-medium border border-red-600/20 hover:border-red-600/30 transition-all duration-200"
                     >
                       {signOutMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        <>
+                          <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                          Signing out...
+                        </>
                       ) : (
-                        <LogOut className="h-4 w-4 mr-2" />
+                        <>
+                          <LogOut className="h-5 w-5 mr-2" />
+                          Sign Out
+                        </>
                       )}
-                      {signOutMutation.isPending ? 'Signing out...' : 'Sign Out'}
                     </Button>
                   </div>
                 ) : (
-                  <Link href="/account/signup">
-                    <Button 
-                      className="w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold touch-target shadow-lg hover:shadow-xl transition-all duration-200 border-0"
-                      data-testid="nav-mobile-signup"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      Sign Up
-                    </Button>
-                  </Link>
+                  <div className="space-y-3">
+                    <Link href="/account/signup" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button 
+                        className="w-full h-12 bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 border-0"
+                        data-testid="nav-mobile-signup"
+                      >
+                        <UserPlus className="h-5 w-5 mr-2" />
+                        Sign Up
+                      </Button>
+                    </Link>
+                    <Link href="/account/signin" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Button 
+                        variant="outline"
+                        className="w-full h-12 border-white/20 hover:border-[#c0580f]/50 text-white hover:text-[#d3541e] hover:bg-[#c0580f]/10"
+                        data-testid="nav-mobile-signin"
+                      >
+                        Sign In
+                      </Button>
+                    </Link>
+                  </div>
                 )}
               </div>
-            </div>
-          </div>
-        )}
+            </ScrollArea>
+          </SheetContent>
+        </Sheet>
       </div>
     </nav>
   );
