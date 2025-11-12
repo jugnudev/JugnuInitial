@@ -188,6 +188,18 @@ export function TicketsEventEditPage() {
   useEffect(() => {
     if (data?.event) {
       const event = data.event;
+      
+      // Extract tax settings from JSONB field
+      const taxSettings = (event as any).taxSettings || { collectTax: true, gstPercent: 5, pstPercent: 7 };
+      const feeStructure = (event as any).feeStructure || { type: 'buyer_pays', serviceFeePercent: 5 };
+      
+      // For backwards compatibility, check if flat fields exist (old data)
+      const isGstApplied = event.isGstApplied ?? (taxSettings.collectTax ? true : false);
+      const isPstApplied = event.isPstApplied ?? (taxSettings.collectTax ? true : false);
+      const gstRate = event.gstRate ?? taxSettings.gstPercent ?? 5;
+      const pstRate = event.pstRate ?? taxSettings.pstPercent ?? 7;
+      const buyerPaysServiceFee = event.buyerPaysServiceFee ?? (feeStructure.type === 'buyer_pays');
+      
       form.reset({
         title: event.title,
         summary: event.summary || "",
@@ -203,11 +215,11 @@ export function TicketsEventEditPage() {
         coverUrl: event.coverUrl || "",
         capacity: event.capacity || 500,
         status: event.status,
-        isGstApplied: event.isGstApplied ?? true,
-        isPstApplied: event.isPstApplied ?? true,
-        gstRate: event.gstRate || 5,
-        pstRate: event.pstRate || 7,
-        buyerPaysServiceFee: event.buyerPaysServiceFee ?? true
+        isGstApplied,
+        isPstApplied,
+        gstRate,
+        pstRate,
+        buyerPaysServiceFee
       });
       
       if (event.coverUrl) {
@@ -263,6 +275,18 @@ export function TicketsEventEditPage() {
     mutationFn: async (values: FormValues & { tiers: TicketTier[] }) => {
       setIsSubmitting(true);
       
+      // Convert flat tax/fee fields to JSONB objects for database
+      const taxSettings = {
+        collectTax: values.isGstApplied || values.isPstApplied,
+        gstPercent: values.gstRate || 5,
+        pstPercent: values.pstRate || 7
+      };
+      
+      const feeStructure = {
+        type: values.buyerPaysServiceFee ? 'buyer_pays' : 'organizer_absorbs',
+        serviceFeePercent: 5
+      };
+      
       // Only send fields that exist in the database schema
       const payload = {
         title: values.title,
@@ -275,6 +299,8 @@ export function TicketsEventEditPage() {
         province: values.province,
         coverUrl: coverImage || values.coverUrl,
         status: values.status,
+        taxSettings,
+        feeStructure,
         tiers: values.tiers
       };
       
