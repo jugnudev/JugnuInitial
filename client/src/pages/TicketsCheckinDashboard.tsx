@@ -1518,10 +1518,9 @@ export function TicketsCheckinDashboard() {
                             <TableCell>
                               {attendee.status !== 'used' && (
                                 <Button
-                                  size="sm"
                                   onClick={() => checkinMutation.mutate(attendee.qrToken)}
                                   disabled={checkinMutation.isPending}
-                                  className="bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f]"
+                                  className="min-h-11 bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-sm px-4 py-2.5"
                                   data-testid={`button-checkin-${attendee.ticketId}`}
                                 >
                                   Check In
