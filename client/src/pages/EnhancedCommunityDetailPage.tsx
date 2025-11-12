@@ -2397,7 +2397,7 @@ export default function EnhancedCommunityDetailPage() {
                               <Button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  window.open(`/events/${event.slug}`, '_blank');
+                                  window.open(`/tickets/event/${event.slug}`, '_blank');
                                 }}
                                 size="sm"
                                 className="bg-gradient-to-r from-[hsl(27,78%,54%)] to-[hsl(18,84%,44%)] hover:from-[hsl(27,78%,58%)] hover:to-[hsl(18,84%,48%)] text-white font-semibold shadow-md hover:shadow-lg hover:shadow-[#c0580f]/30 border border-[#c0580f]/40 hover:border-[#d3541e]/60 transition-all duration-300"
@@ -2490,7 +2490,7 @@ export default function EnhancedCommunityDetailPage() {
                                 <Button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    window.open(`/events/${event.slug}`, '_blank');
+                                    window.open(`/tickets/event/${event.slug}`, '_blank');
                                   }}
                                   className="h-12 touch-target bg-gradient-to-r from-[hsl(27,78%,54%)] to-[hsl(18,84%,44%)] hover:from-[hsl(27,78%,58%)] hover:to-[hsl(18,84%,48%)] text-white font-semibold shadow-lg hover:shadow-xl hover:shadow-[#c0580f]/30 border border-[#c0580f]/40 hover:border-[#d3541e]/60 transition-all duration-300"
                                   data-testid={`button-mobile-view-event-${event.id}`}
