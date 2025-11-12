@@ -11,7 +11,7 @@ import {
   QrCode, Users, CheckCircle2, XCircle, Clock, Search, 
   Download, RefreshCw, Camera, Volume2, VolumeX,
   UserCheck, AlertCircle, TrendingUp, X, Flashlight, CameraOff,
-  List, ArrowLeft
+  List, ArrowLeft, Filter
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1279,43 +1279,63 @@ export function TicketsCheckinDashboard() {
               </CardContent>
             </Card>
 
-            {/* Search Attendees Card */}
-            <Card className="border-[#c0580f]/20 bg-[#0B0B0F]">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-white font-fraunces">Search Attendees</CardTitle>
-                <CardDescription className="text-white/60">
-                  Find and manage checked-in attendees
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Search and Filters - Mobile Optimized */}
-                <div className="flex flex-col md:flex-row gap-3">
+            {/* Search Attendees Card - Premium Mobile Design */}
+            <GlassCard className="overflow-hidden">
+              {/* Header Section with gradient */}
+              <div className="relative p-6 border-b border-white/10 bg-gradient-to-r from-[#c0580f]/10 to-[#d3541e]/10">
+                <div className="flex items-start gap-3 mb-2">
+                  <div className="p-2 rounded-lg bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20">
+                    <Search className="h-5 w-5 text-[#d3541e]" />
+                  </div>
                   <div className="flex-1">
+                    <h2 className="text-xl font-bold text-white font-fraunces">Search Attendees</h2>
+                    <p className="text-sm text-white/60 mt-0.5">
+                      Find and manage checked-in attendees
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* Search and Filters - Premium Mobile Layout */}
+                <div className="space-y-3">
+                  {/* Search Input */}
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40 pointer-events-none" />
                     <Input
                       placeholder="Search by name, email, or ticket ID..."
                       value={manualSearch}
                       onChange={(e) => setManualSearch(e.target.value)}
-                      className="h-12 bg-white/5 border-white/20 text-white placeholder:text-white/40"
+                      className="h-14 pl-12 pr-4 bg-gradient-to-r from-white/5 to-white/[0.02] border-white/20 hover:border-[#c0580f]/30 focus:border-[#c0580f]/50 text-white placeholder:text-white/40 rounded-xl backdrop-blur-sm transition-all duration-200"
                       data-testid="input-manual-search"
                     />
                   </div>
-                  <div className="flex gap-2">
+
+                  {/* Filters Row */}
+                  <div className="flex gap-3">
                     <Select value={filterStatus} onValueChange={setFilterStatus}>
-                      <SelectTrigger className="h-12 flex-1 md:w-[180px] bg-white/5 border-white/20 text-white" data-testid="select-filter-status">
+                      <SelectTrigger 
+                        className="h-12 flex-1 bg-gradient-to-r from-white/5 to-white/[0.02] border-white/20 hover:border-[#c0580f]/30 text-white rounded-xl backdrop-blur-sm transition-all duration-200" 
+                        data-testid="select-filter-status"
+                      >
+                        <Filter className="h-4 w-4 mr-2 text-white/60" />
                         <SelectValue placeholder="Filter by status" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-black/90 backdrop-blur-xl border-white/10">
                         <SelectItem value="all">All Tickets</SelectItem>
                         <SelectItem value="valid">Not Checked In</SelectItem>
                         <SelectItem value="used">Checked In</SelectItem>
                       </SelectContent>
                     </Select>
-                    <Button onClick={handleExport} variant="outline" className="h-12 hidden md:flex border-white/20 hover:bg-white/5" data-testid="button-export">
-                      <Download className="h-4 w-4 mr-2" />
-                      Export
-                    </Button>
-                    <Button onClick={handleExport} variant="outline" size="icon" className="h-12 w-12 md:hidden border-white/20 hover:bg-white/5" data-testid="button-export-mobile">
-                      <Download className="h-5 w-5" />
+                    
+                    {/* Export Button */}
+                    <Button 
+                      onClick={handleExport} 
+                      className="h-12 w-12 md:w-auto md:px-4 bg-gradient-to-r from-white/5 to-white/[0.02] hover:from-[#c0580f]/20 hover:to-[#d3541e]/20 border border-white/20 hover:border-[#c0580f]/30 text-white rounded-xl backdrop-blur-sm transition-all duration-200" 
+                      data-testid="button-export"
+                    >
+                      <Download className="h-4 w-4 md:mr-2" />
+                      <span className="hidden md:inline">Export</span>
                     </Button>
                   </div>
                 </div>
@@ -1516,8 +1536,8 @@ export function TicketsCheckinDashboard() {
                     </Table>
                   </ScrollArea>
                 </div>
-              </CardContent>
-            </Card>
+              </div> {/* Close p-6 content div */}
+            </GlassCard>
           </TabsContent>
           
           {/* Recent Activity Tab - Premium Mobile Optimized Timeline */}
