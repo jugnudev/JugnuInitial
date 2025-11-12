@@ -652,7 +652,7 @@ export function TicketsCheckinDashboard() {
                         onClick={startScanner}
                         size="lg"
                         data-testid="button-start-scanner"
-                        className="w-full h-16 md:h-18 text-lg md:text-xl font-medium bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white shadow-lg shadow-[#c0580f]/30 transition-all duration-300 hover:shadow-xl hover:shadow-[#c0580f]/40 hover:scale-[1.02] touch-target"
+                        className="w-full h-16 md:h-18 text-lg md:text-xl font-medium bg-gradient-to-r from-[hsl(168,68%,42%)] to-[hsl(168,74%,35%)] hover:from-[hsl(168,68%,46%)] hover:to-[hsl(168,74%,39%)] text-white shadow-xl hover:shadow-2xl hover:shadow-[#17C0A9]/30 border border-[#17C0A9]/40 hover:border-[#17C0A9]/60 transition-all duration-300 hover:scale-[1.02] touch-target"
                       >
                         <Camera className="h-7 w-7 mr-3" />
                         Start Scanner
@@ -828,7 +828,7 @@ export function TicketsCheckinDashboard() {
                                                 setShowManualSheet(false);
                                               }}
                                               disabled={checkinMutation.isPending}
-                                              className="bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f]"
+                                              className="bg-gradient-to-r from-[hsl(168,68%,42%)] to-[hsl(168,74%,35%)] hover:from-[hsl(168,68%,46%)] hover:to-[hsl(168,74%,39%)] shadow-lg hover:shadow-xl hover:shadow-[#17C0A9]/30 border border-[#17C0A9]/40 hover:border-[#17C0A9]/60 transition-all duration-300"
                                               data-testid={`button-checkin-mobile-${attendee.serial}`}
                                             >
                                               Check In
@@ -1270,7 +1270,7 @@ export function TicketsCheckinDashboard() {
                       }
                     }}
                     disabled={!manualTicketCode || validateMutation.isPending}
-                    className="h-12 bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white font-semibold px-6"
+                    className="h-12 bg-gradient-to-r from-[hsl(168,68%,42%)] to-[hsl(168,74%,35%)] hover:from-[hsl(168,68%,46%)] hover:to-[hsl(168,74%,39%)] text-white font-semibold px-6 shadow-lg hover:shadow-xl hover:shadow-[#17C0A9]/30 border border-[#17C0A9]/40 hover:border-[#17C0A9]/60 transition-all duration-300"
                     data-testid="button-validate-manual"
                   >
                     {validateMutation.isPending ? 'Validating...' : 'Validate Ticket'}
@@ -1465,7 +1465,7 @@ export function TicketsCheckinDashboard() {
                             <Button
                               onClick={() => checkinMutation.mutate(attendee.qrToken)}
                               disabled={checkinMutation.isPending}
-                              className="w-full h-9 bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white text-sm font-medium"
+                              className="w-full h-9 bg-gradient-to-r from-[hsl(168,68%,42%)] to-[hsl(168,74%,35%)] hover:from-[hsl(168,68%,46%)] hover:to-[hsl(168,74%,39%)] text-white text-sm font-medium shadow-md hover:shadow-lg hover:shadow-[#17C0A9]/20 border border-[#17C0A9]/40 hover:border-[#17C0A9]/60 transition-all duration-300"
                               data-testid={`button-checkin-${attendee.ticketId}`}
                             >
                               <UserCheck className="h-3.5 w-3.5 mr-1.5" />
@@ -1520,7 +1520,7 @@ export function TicketsCheckinDashboard() {
                                 <Button
                                   onClick={() => checkinMutation.mutate(attendee.qrToken)}
                                   disabled={checkinMutation.isPending}
-                                  className="min-h-11 bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-sm px-4 py-2.5"
+                                  className="min-h-11 bg-gradient-to-r from-[hsl(168,68%,42%)] to-[hsl(168,74%,35%)] hover:from-[hsl(168,68%,46%)] hover:to-[hsl(168,74%,39%)] text-white text-sm px-4 py-2.5 font-semibold shadow-md hover:shadow-lg hover:shadow-[#17C0A9]/20 border border-[#17C0A9]/40 hover:border-[#17C0A9]/60 transition-all duration-300"
                                   data-testid={`button-checkin-${attendee.ticketId}`}
                                 >
                                   Check In
