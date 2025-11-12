@@ -1279,37 +1279,40 @@ export function TicketsCheckinDashboard() {
               </CardContent>
             </Card>
 
-            {/* Search Attendees Card - Premium Mobile Optimized */}
-            <GlassCard className="overflow-hidden flex flex-col max-h-[clamp(70dvh,calc(100dvh-120px),90dvh)]">
-              {/* Header (non-scrollable) */}
-              <div className="relative px-4 py-4 md:px-6 md:py-6 border-b border-white/10 bg-gradient-to-r from-[#c0580f]/10 to-[#d3541e]/10 flex-shrink-0">
-                <div className="flex items-start gap-3">
+            {/* Search Attendees Card - Premium Mobile Design */}
+            <GlassCard className="overflow-hidden">
+              {/* Header Section with gradient */}
+              <div className="relative p-6 border-b border-white/10 bg-gradient-to-r from-[#c0580f]/10 to-[#d3541e]/10">
+                <div className="flex items-start gap-3 mb-2">
                   <div className="p-2 rounded-lg bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20">
                     <Search className="h-5 w-5 text-[#d3541e]" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h2 className="text-lg md:text-xl font-bold text-white font-fraunces">Search Attendees</h2>
-                    <p className="text-xs md:text-sm text-white/60 mt-0.5">Find and manage checked-in attendees</p>
+                  <div className="flex-1">
+                    <h2 className="text-xl font-bold text-white font-fraunces">Search Attendees</h2>
+                    <p className="text-sm text-white/60 mt-0.5">
+                      Find and manage checked-in attendees
+                    </p>
                   </div>
                 </div>
               </div>
 
-              {/* Filters + actions (non-scrollable) */}
-              <div className="px-4 pt-4 pb-2 md:px-6 md:pt-6 md:pb-4 space-y-3 md:space-y-4 flex-shrink-0">
-                {/* Search Input */}
-                <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40 pointer-events-none" />
-                  <Input
-                    placeholder="Search by name, email, or ticket ID..."
-                    value={manualSearch}
-                    onChange={(e) => setManualSearch(e.target.value)}
-                    className="h-14 pl-12 pr-4 bg-gradient-to-r from-white/5 to-white/[0.02] border-white/20 hover:border-[#c0580f]/30 focus:border-[#c0580f]/50 text-white placeholder:text-white/40 rounded-xl backdrop-blur-sm transition-all duration-200"
-                    data-testid="input-manual-search"
-                  />
-                </div>
+              <div className="p-6 space-y-4">
+                {/* Search and Filters - Premium Mobile Layout */}
+                <div className="space-y-3">
+                  {/* Search Input */}
+                  <div className="relative">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40 pointer-events-none" />
+                    <Input
+                      placeholder="Search by name, email, or ticket ID..."
+                      value={manualSearch}
+                      onChange={(e) => setManualSearch(e.target.value)}
+                      className="h-14 pl-12 pr-4 bg-gradient-to-r from-white/5 to-white/[0.02] border-white/20 hover:border-[#c0580f]/30 focus:border-[#c0580f]/50 text-white placeholder:text-white/40 rounded-xl backdrop-blur-sm transition-all duration-200"
+                      data-testid="input-manual-search"
+                    />
+                  </div>
 
-                {/* Filters Row */}
-                <div className="flex gap-3">
+                  {/* Filters Row */}
+                  <div className="flex gap-3">
                     <Select value={filterStatus} onValueChange={setFilterStatus}>
                       <SelectTrigger 
                         className="h-12 flex-1 bg-gradient-to-r from-white/5 to-white/[0.02] border-white/20 hover:border-[#c0580f]/30 text-white rounded-xl backdrop-blur-sm transition-all duration-200" 
@@ -1406,25 +1409,23 @@ export function TicketsCheckinDashboard() {
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* Scrollable Attendee List - Single Container */}
-              <div className="flex-1 overflow-y-auto px-4 pb-4 md:px-6 md:pb-6">
-                {attendeesLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="text-white/60">Loading attendees...</div>
-                  </div>
-                ) : !attendeesData?.attendees || attendeesData.attendees.length === 0 ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="text-center text-white/60">
-                      <UserCheck className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                      <p>{manualSearch ? 'No attendees found matching your search' : 'No attendees found'}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {/* Mobile: Card Layout */}
-                    <div className="md:hidden space-y-3">
+                
+                {/* Mobile: Card Layout */}
+                <div className="md:hidden space-y-3">
+                  <ScrollArea className="h-[calc(100vh-400px)]">
+                    {attendeesLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="text-white/60">Loading attendees...</div>
+                      </div>
+                    ) : !attendeesData?.attendees || attendeesData.attendees.length === 0 ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="text-center text-white/60">
+                          <UserCheck className="h-12 w-12 mx-auto mb-3 opacity-40" />
+                          <p>{manualSearch ? 'No attendees found matching your search' : 'No attendees found'}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 pb-4">
                         {attendeesData.attendees.map((attendee) => (
                           <div 
                             key={attendee.ticketId}
@@ -1439,8 +1440,8 @@ export function TicketsCheckinDashboard() {
                               <Badge 
                                 variant={attendee.status === 'used' ? 'default' : 'outline'}
                                 className={attendee.status === 'used' 
-                                  ? 'bg-[#17C0A9]/20 text-[#17C0A9] border-[#17C0A9]/30 ml-2 flex-shrink-0' 
-                                  : 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30 ml-2 flex-shrink-0'
+                                  ? 'bg-[#17C0A9]/20 text-[#17C0A9] border-[#17C0A9]/30 ml-2' 
+                                  : 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30 ml-2'
                                 }
                               >
                                 {attendee.status === 'used' ? 'Checked In' : 'Pending'}
@@ -1449,10 +1450,10 @@ export function TicketsCheckinDashboard() {
                             
                             {/* Details */}
                             <div className="flex items-center justify-between text-sm mb-3">
-                              <div className="text-white/70 truncate mr-2">
+                              <div className="text-white/70">
                                 <span className="text-white/50">Tier:</span> {attendee.tierName}
                               </div>
-                              <div className="text-white/70 text-xs flex-shrink-0">
+                              <div className="text-white/70">
                                 {attendee.checkedInAt 
                                   ? format(new Date(attendee.checkedInAt), 'MMM dd, HH:mm')
                                   : <span className="text-white/40">Not checked in</span>
@@ -1465,7 +1466,7 @@ export function TicketsCheckinDashboard() {
                               <Button
                                 onClick={() => checkinMutation.mutate(attendee.qrToken)}
                                 disabled={checkinMutation.isPending}
-                                className="w-full h-12 touch-target bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white font-semibold shadow-lg"
+                                className="w-full h-11 bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white font-medium shadow-lg"
                                 data-testid={`button-checkin-${attendee.ticketId}`}
                               >
                                 <UserCheck className="h-4 w-4 mr-2" />
@@ -1475,10 +1476,14 @@ export function TicketsCheckinDashboard() {
                           </div>
                         ))}
                       </div>
-                      
-                      {/* Desktop: Table Layout */}
-                      <div className="hidden md:block">
-                        <Table>
+                    )}
+                  </ScrollArea>
+                </div>
+                
+                {/* Desktop: Table Layout */}
+                <div className="hidden md:block">
+                  <ScrollArea className="h-[500px]">
+                    <Table>
                       <TableHeader>
                         <TableRow className="border-white/10 hover:bg-transparent">
                           <TableHead className="text-white/70">Name</TableHead>
@@ -1528,11 +1533,10 @@ export function TicketsCheckinDashboard() {
                           </TableRow>
                         ))}
                       </TableBody>
-                        </Table>
-                      </div>
-                    </>
-                  )}
+                    </Table>
+                  </ScrollArea>
                 </div>
+              </div> {/* Close p-6 content div */}
             </GlassCard>
           </TabsContent>
           
