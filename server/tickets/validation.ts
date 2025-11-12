@@ -49,7 +49,16 @@ export const createEventSchema = z.object({
   city: z.string().min(1).max(100),
   province: z.string().length(2),
   coverUrl: z.string().url().optional(),
-  status: z.enum(['draft', 'published', 'archived']).default('draft')
+  status: z.enum(['draft', 'published', 'archived']).default('draft'),
+  taxSettings: z.object({
+    collectTax: z.boolean(),
+    gstPercent: z.number().min(0).max(100),
+    pstPercent: z.number().min(0).max(100)
+  }).optional(),
+  feeStructure: z.object({
+    type: z.enum(['buyer_pays', 'organizer_absorbs']),
+    serviceFeePercent: z.number().min(0).max(100)
+  }).optional()
 });
 
 export const updateEventSchema = createEventSchema.partial();
