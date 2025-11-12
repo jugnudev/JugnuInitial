@@ -16,6 +16,11 @@ The platform uses React 18 with TypeScript and Vite, styled with Tailwind CSS an
 - Glassmorphism utilities: `.glass-card`, `.glass-elevated` with backdrop blur and semi-transparent backgrounds
 - Mobile-first optimization: Touch targets ≥48px (`.touch-target` class), gesture-friendly interactions, bottom sticky action bars
 - Animation system: Fade-in, slide-up, hover-lift effects with staggered transitions
+- **Premium Button System**: Unified gradient-based button styling with color-coded actions:
+  - Copper buttons: Edit/View actions using `from-[hsl(27,78%,54%)] to-[hsl(18,84%,44%)]`, copper-tinted hover shadows (`hover:shadow-[#c0580f]/30`), white text
+  - Jade buttons: Check-in actions using `from-[hsl(168,68%,42%)] to-[hsl(168,74%,35%)]`, jade-tinted hover shadows (`hover:shadow-[#17C0A9]/20-30`), white text
+  - Crimson buttons: Delete/destructive actions using `from-[hsl(0,84%,44%)] to-[hsl(0,84%,35%)]`, red-tinted hover shadows, white text
+  - All buttons feature: Solid gradients (no transparency), 300ms smooth transitions, enhanced borders matching gradient colors, color-specific shadow glows on hover
 - Applied to: Ticketing system (organizer dashboard, event creation, event listings, check-in QR scanner), Communities navigation
 
 **Mobile-Optimized Post Cards:**
