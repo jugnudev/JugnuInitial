@@ -2389,7 +2389,7 @@ export default function EnhancedCommunityDetailPage() {
                                 }}
                                 variant="outline"
                                 size="sm"
-                                className="bg-white/5 border-white/20 hover:border-[#c0580f]/50 hover:bg-[#c0580f]/10 hover:text-[#d3541e]"
+                                className="bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 hover:from-[#c0580f]/30 hover:to-[#d3541e]/30 border-[#c0580f]/30 hover:border-[#d3541e]/50 text-[#d3541e] hover:text-[#c0580f] backdrop-blur-sm transition-all duration-200"
                                 data-testid={`button-edit-event-${event.id}`}
                               >
                                 <Edit3 className="h-3.5 w-3.5 mr-1.5" />
@@ -2402,7 +2402,7 @@ export default function EnhancedCommunityDetailPage() {
                                 }}
                                 variant="outline"
                                 size="sm"
-                                className="bg-white/5 border-white/20 hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-blue-400"
+                                className="bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 hover:from-[#c0580f]/30 hover:to-[#d3541e]/30 border-[#c0580f]/30 hover:border-[#d3541e]/50 text-[#d3541e] hover:text-[#c0580f] backdrop-blur-sm transition-all duration-200"
                                 data-testid={`button-view-event-${event.id}`}
                               >
                                 <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
@@ -2416,7 +2416,7 @@ export default function EnhancedCommunityDetailPage() {
                                   }}
                                   variant="outline"
                                   size="sm"
-                                  className="bg-white/5 border-white/20 hover:border-green-500/50 hover:bg-green-500/10 hover:text-green-400"
+                                  className="bg-gradient-to-r from-[#17C0A9]/20 to-[#17C0A9]/30 hover:from-[#17C0A9]/30 hover:to-[#17C0A9]/40 border-[#17C0A9]/30 hover:border-[#17C0A9]/50 text-[#17C0A9] hover:text-white backdrop-blur-sm transition-all duration-200"
                                   data-testid={`button-checkin-event-${event.id}`}
                                 >
                                   <QrCode className="h-3.5 w-3.5 mr-1.5" />
@@ -2429,7 +2429,7 @@ export default function EnhancedCommunityDetailPage() {
                                     onClick={(e) => e.stopPropagation()}
                                     variant="outline"
                                     size="sm"
-                                    className="bg-white/5 border-white/20 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400"
+                                    className="bg-gradient-to-r from-red-600/20 to-red-700/20 hover:from-red-600/30 hover:to-red-700/30 border-red-500/30 hover:border-red-500/50 text-red-400 hover:text-red-300 backdrop-blur-sm transition-all duration-200"
                                     data-testid={`button-delete-event-${event.id}`}
                                   >
                                     <Trash2 className="h-3.5 w-3.5 mr-1.5" />
@@ -2485,7 +2485,7 @@ export default function EnhancedCommunityDetailPage() {
                                     e.stopPropagation();
                                     setLocation(`/tickets/organizer/events/${event.id}/edit`);
                                   }}
-                                  className="h-12 touch-target bg-gradient-to-r from-white/5 to-white/[0.02] hover:from-[#c0580f]/20 hover:to-[#d3541e]/20 text-white border border-white/10 hover:border-[#c0580f]/30 font-medium transition-all duration-200"
+                                  className="h-12 touch-target bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 hover:from-[#c0580f]/30 hover:to-[#d3541e]/30 text-[#d3541e] hover:text-white border border-[#c0580f]/30 hover:border-[#d3541e]/50 font-semibold backdrop-blur-sm transition-all duration-200"
                                   data-testid={`button-mobile-edit-event-${event.id}`}
                                 >
                                   <Edit3 className="h-4 w-4 mr-2" />
@@ -2496,7 +2496,7 @@ export default function EnhancedCommunityDetailPage() {
                                     e.stopPropagation();
                                     window.open(`/events/${event.slug}`, '_blank');
                                   }}
-                                  className="h-12 touch-target bg-gradient-to-r from-white/5 to-white/[0.02] hover:from-blue-500/20 hover:to-blue-600/20 text-white border border-white/10 hover:border-blue-500/30 font-medium transition-all duration-200"
+                                  className="h-12 touch-target bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 hover:from-[#c0580f]/30 hover:to-[#d3541e]/30 text-[#d3541e] hover:text-white border border-[#c0580f]/30 hover:border-[#d3541e]/50 font-semibold backdrop-blur-sm transition-all duration-200"
                                   data-testid={`button-mobile-view-event-${event.id}`}
                                 >
                                   <ExternalLink className="h-4 w-4 mr-2" />
@@ -2511,7 +2511,7 @@ export default function EnhancedCommunityDetailPage() {
                                     e.stopPropagation();
                                     setLocation(`/tickets/organizer/events/${event.id}/checkin`);
                                   }}
-                                  className="h-12 touch-target bg-gradient-to-r from-green-600/20 to-green-500/20 hover:from-green-600/30 hover:to-green-500/30 text-green-300 border border-green-500/30 hover:border-green-500/50 font-semibold transition-all duration-200"
+                                  className="h-12 touch-target bg-gradient-to-r from-[#17C0A9]/20 to-[#17C0A9]/30 hover:from-[#17C0A9]/30 hover:to-[#17C0A9]/40 text-[#17C0A9] hover:text-white border border-[#17C0A9]/30 hover:border-[#17C0A9]/50 font-semibold backdrop-blur-sm transition-all duration-200"
                                   data-testid={`button-mobile-checkin-event-${event.id}`}
                                 >
                                   <QrCode className="h-4 w-4 mr-2" />
@@ -2524,7 +2524,7 @@ export default function EnhancedCommunityDetailPage() {
                                 <AlertDialogTrigger asChild>
                                   <Button
                                     onClick={(e) => e.stopPropagation()}
-                                    className="h-12 touch-target bg-gradient-to-r from-red-600/20 to-red-700/20 hover:from-red-600/30 hover:to-red-700/30 text-red-300 border border-red-500/30 hover:border-red-500/50 font-medium transition-all duration-200"
+                                    className="h-12 touch-target bg-gradient-to-r from-red-600/20 to-red-700/20 hover:from-red-600/30 hover:to-red-700/30 text-red-400 hover:text-red-300 border border-red-500/30 hover:border-red-500/50 font-semibold backdrop-blur-sm transition-all duration-200"
                                     data-testid={`button-mobile-delete-event-${event.id}`}
                                   >
                                     <Trash2 className="h-4 w-4 mr-2" />
