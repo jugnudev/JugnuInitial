@@ -2476,59 +2476,62 @@ export default function EnhancedCommunityDetailPage() {
                               </AlertDialog>
                             </div>
 
-                            {/* Mobile Actions - Grid layout */}
-                            <div className="grid grid-cols-2 gap-2 md:hidden pt-2">
-                              <ActionPill
-                                onClick={(e: any) => {
-                                  e.stopPropagation();
-                                  setLocation(`/tickets/organizer/events/${event.id}/edit`);
-                                }}
-                                variant="secondary"
-                                className="h-10"
-                                data-testid={`button-mobile-edit-event-${event.id}`}
-                              >
-                                <Edit3 className="h-4 w-4 mr-1.5" />
-                                Edit
-                              </ActionPill>
-                              <ActionPill
-                                onClick={(e: any) => {
-                                  e.stopPropagation();
-                                  window.open(`/events/${event.slug}`, '_blank');
-                                }}
-                                variant="secondary"
-                                className="h-10"
-                                data-testid={`button-mobile-view-event-${event.id}`}
-                              >
-                                <ExternalLink className="h-4 w-4 mr-1.5" />
-                                View
-                              </ActionPill>
+                            {/* Mobile Actions - Stacked layout for better UX */}
+                            <div className="flex flex-col gap-3 md:hidden pt-4">
+                              {/* Primary Actions Row */}
+                              <div className="grid grid-cols-2 gap-3">
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setLocation(`/tickets/organizer/events/${event.id}/edit`);
+                                  }}
+                                  className="h-12 touch-target bg-gradient-to-r from-white/5 to-white/[0.02] hover:from-[#c0580f]/20 hover:to-[#d3541e]/20 text-white border border-white/10 hover:border-[#c0580f]/30 font-medium transition-all duration-200"
+                                  data-testid={`button-mobile-edit-event-${event.id}`}
+                                >
+                                  <Edit3 className="h-4 w-4 mr-2" />
+                                  Edit
+                                </Button>
+                                <Button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(`/events/${event.slug}`, '_blank');
+                                  }}
+                                  className="h-12 touch-target bg-gradient-to-r from-white/5 to-white/[0.02] hover:from-blue-500/20 hover:to-blue-600/20 text-white border border-white/10 hover:border-blue-500/30 font-medium transition-all duration-200"
+                                  data-testid={`button-mobile-view-event-${event.id}`}
+                                >
+                                  <ExternalLink className="h-4 w-4 mr-2" />
+                                  View
+                                </Button>
+                              </div>
+
+                              {/* Check In Button (full width if published) */}
                               {event.status === 'published' && (
-                                <ActionPill
-                                  onClick={(e: any) => {
+                                <Button
+                                  onClick={(e) => {
                                     e.stopPropagation();
                                     setLocation(`/tickets/organizer/events/${event.id}/checkin`);
                                   }}
-                                  variant="success"
-                                  className="h-10"
+                                  className="h-12 touch-target bg-gradient-to-r from-green-600/20 to-green-500/20 hover:from-green-600/30 hover:to-green-500/30 text-green-300 border border-green-500/30 hover:border-green-500/50 font-semibold transition-all duration-200"
                                   data-testid={`button-mobile-checkin-event-${event.id}`}
                                 >
-                                  <QrCode className="h-4 w-4 mr-1.5" />
+                                  <QrCode className="h-4 w-4 mr-2" />
                                   Check In
-                                </ActionPill>
+                                </Button>
                               )}
+
+                              {/* Delete Button (full width, danger styling) */}
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <ActionPill
-                                    onClick={(e: any) => e.stopPropagation()}
-                                    variant="danger"
-                                    className="h-10"
+                                  <Button
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="h-12 touch-target bg-gradient-to-r from-red-600/20 to-red-700/20 hover:from-red-600/30 hover:to-red-700/30 text-red-300 border border-red-500/30 hover:border-red-500/50 font-medium transition-all duration-200"
                                     data-testid={`button-mobile-delete-event-${event.id}`}
                                   >
-                                    <Trash2 className="h-4 w-4 mr-1.5" />
-                                    Delete
-                                  </ActionPill>
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete Event
+                                  </Button>
                                 </AlertDialogTrigger>
-                                <AlertDialogContent className="bg-black/90 backdrop-blur-xl border border-white/10">
+                                <AlertDialogContent className="bg-black/90 backdrop-blur-xl border border-white/10 mx-4">
                                   <AlertDialogHeader>
                                     <AlertDialogTitle className="text-white flex items-center gap-2">
                                       <AlertTriangle className="h-5 w-5 text-red-400" />
@@ -2538,8 +2541,8 @@ export default function EnhancedCommunityDetailPage() {
                                       Are you sure you want to delete <span className="font-semibold text-white">"{event.title}"</span>? This action cannot be undone.
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel className="bg-white/10 border-white/20 hover:bg-white/20">
+                                  <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2">
+                                    <AlertDialogCancel className="h-11 bg-white/10 border-white/20 hover:bg-white/20 text-white m-0">
                                       Cancel
                                     </AlertDialogCancel>
                                     <AlertDialogAction
@@ -2559,7 +2562,7 @@ export default function EnhancedCommunityDetailPage() {
                                           });
                                         }
                                       }}
-                                      className="bg-red-600 hover:bg-red-700 text-white"
+                                      className="h-11 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white m-0"
                                     >
                                       Delete Event
                                     </AlertDialogAction>
