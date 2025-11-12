@@ -1296,30 +1296,30 @@ export function TicketsCheckinDashboard() {
                 </div>
               </div>
 
-              <div className="p-6 space-y-4">
-                {/* Search and Filters - Premium Mobile Layout */}
-                <div className="space-y-3">
+              <div className="p-4 md:p-6 space-y-3 md:space-y-4">
+                {/* Search and Filters - Compact Mobile Layout */}
+                <div className="space-y-2.5 md:space-y-3">
                   {/* Search Input */}
                   <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-white/40 pointer-events-none" />
+                    <Search className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 h-4 w-4 md:h-5 md:w-5 text-white/40 pointer-events-none" />
                     <Input
-                      placeholder="Search by name, email, or ticket ID..."
+                      placeholder="Search by name or email..."
                       value={manualSearch}
                       onChange={(e) => setManualSearch(e.target.value)}
-                      className="h-14 pl-12 pr-4 bg-gradient-to-r from-white/5 to-white/[0.02] border-white/20 hover:border-[#c0580f]/30 focus:border-[#c0580f]/50 text-white placeholder:text-white/40 rounded-xl backdrop-blur-sm transition-all duration-200"
+                      className="h-11 md:h-14 pl-10 md:pl-12 pr-3 md:pr-4 text-sm md:text-base bg-gradient-to-r from-white/5 to-white/[0.02] border-white/20 hover:border-[#c0580f]/30 focus:border-[#c0580f]/50 text-white placeholder:text-white/40 rounded-lg md:rounded-xl backdrop-blur-sm transition-all duration-200"
                       data-testid="input-manual-search"
                     />
                   </div>
 
                   {/* Filters Row */}
-                  <div className="flex gap-3">
+                  <div className="flex gap-2 md:gap-3">
                     <Select value={filterStatus} onValueChange={setFilterStatus}>
                       <SelectTrigger 
-                        className="h-12 flex-1 bg-gradient-to-r from-white/5 to-white/[0.02] border-white/20 hover:border-[#c0580f]/30 text-white rounded-xl backdrop-blur-sm transition-all duration-200" 
+                        className="h-10 md:h-12 flex-1 bg-gradient-to-r from-white/5 to-white/[0.02] border-white/20 hover:border-[#c0580f]/30 text-white text-sm md:text-base rounded-lg md:rounded-xl backdrop-blur-sm transition-all duration-200" 
                         data-testid="select-filter-status"
                       >
-                        <Filter className="h-4 w-4 mr-2 text-white/60" />
-                        <SelectValue placeholder="Filter by status" />
+                        <Filter className="h-3.5 w-3.5 md:h-4 md:w-4 mr-1.5 md:mr-2 text-white/60" />
+                        <SelectValue placeholder="Filter" />
                       </SelectTrigger>
                       <SelectContent className="bg-black/90 backdrop-blur-xl border-white/10">
                         <SelectItem value="all">All Tickets</SelectItem>
@@ -1331,72 +1331,72 @@ export function TicketsCheckinDashboard() {
                     {/* Export Button */}
                     <Button 
                       onClick={handleExport} 
-                      className="h-12 w-12 md:w-auto md:px-4 bg-gradient-to-r from-white/5 to-white/[0.02] hover:from-[#c0580f]/20 hover:to-[#d3541e]/20 border border-white/20 hover:border-[#c0580f]/30 text-white rounded-xl backdrop-blur-sm transition-all duration-200" 
+                      className="h-10 md:h-12 w-10 md:w-auto md:px-4 bg-gradient-to-r from-white/5 to-white/[0.02] hover:from-[#c0580f]/20 hover:to-[#d3541e]/20 border border-white/20 hover:border-[#c0580f]/30 text-white rounded-lg md:rounded-xl backdrop-blur-sm transition-all duration-200" 
                       data-testid="button-export"
                     >
-                      <Download className="h-4 w-4 md:mr-2" />
+                      <Download className="h-3.5 w-3.5 md:h-4 md:w-4 md:mr-2" />
                       <span className="hidden md:inline">Export</span>
                     </Button>
                   </div>
                 </div>
                 
-                {/* Manual Validation Status Display - Premium Mobile Optimized */}
+                {/* Manual Validation Status Display - Compact Mobile */}
                 {manualValidationStatus.type && (
                   <div className="relative animate-in zoom-in-95 duration-300">
-                    <div className={`relative overflow-hidden rounded-2xl backdrop-blur-3xl border-[3px] shadow-2xl ${
+                    <div className={`relative overflow-hidden rounded-lg md:rounded-2xl backdrop-blur-3xl border-2 md:border-[3px] shadow-lg md:shadow-2xl ${
                       manualValidationStatus.type === 'error' 
                         ? 'bg-gradient-to-br from-red-900/90 to-red-800/90 border-red-400 shadow-red-500/50' 
                         : 'bg-gradient-to-br from-green-900/90 to-green-800/90 border-green-400 shadow-green-500/50'
                     }`}>
                       {/* Animated background pattern */}
                       <div className="absolute inset-0 opacity-20">
-                        <div className={`absolute -top-4 -right-4 w-24 h-24 rounded-full animate-pulse ${
+                        <div className={`absolute -top-4 -right-4 w-16 md:w-24 h-16 md:h-24 rounded-full animate-pulse ${
                           manualValidationStatus.type === 'error' ? 'bg-red-400' : 'bg-green-400'
                         }`} />
-                        <div className={`absolute -bottom-4 -left-4 w-20 h-20 rounded-full animate-pulse delay-500 ${
+                        <div className={`absolute -bottom-4 -left-4 w-12 md:w-20 h-12 md:h-20 rounded-full animate-pulse delay-500 ${
                           manualValidationStatus.type === 'error' ? 'bg-red-400' : 'bg-green-400'
                         }`} />
                       </div>
                       
                       {/* Content */}
-                      <div className="relative px-6 py-5">
-                        <div className="flex items-center gap-4">
+                      <div className="relative px-3.5 py-3 md:px-6 md:py-5">
+                        <div className="flex items-center gap-3 md:gap-4">
                           {/* Icon */}
                           {manualValidationStatus.type === 'error' ? (
-                            <div className="relative">
+                            <div className="relative flex-shrink-0">
                               <div className="absolute inset-0 animate-ping">
-                                <AlertCircle className="w-12 h-12 text-red-400 opacity-75" />
+                                <AlertCircle className="w-8 h-8 md:w-12 md:h-12 text-red-400 opacity-75" />
                               </div>
-                              <AlertCircle className="relative w-12 h-12 text-red-300" />
+                              <AlertCircle className="relative w-8 h-8 md:w-12 md:h-12 text-red-300" />
                             </div>
                           ) : (
-                            <div className="relative">
+                            <div className="relative flex-shrink-0">
                               <div className="absolute inset-0 animate-ping">
-                                <CheckCircle2 className="w-12 h-12 text-green-400 opacity-75" />
+                                <CheckCircle2 className="w-8 h-8 md:w-12 md:h-12 text-green-400 opacity-75" />
                               </div>
-                              <CheckCircle2 className="relative w-12 h-12 text-green-300" />
+                              <CheckCircle2 className="relative w-8 h-8 md:w-12 md:h-12 text-green-300" />
                             </div>
                           )}
                           
                           {/* Message */}
-                          <div className="flex-1">
-                            <p className="text-white font-bold text-lg">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white font-bold text-sm md:text-lg">
                               {manualValidationStatus.message}
                             </p>
                             {manualValidationStatus.type === 'error' && (
-                              <p className="text-white/70 text-sm mt-1">
-                                Please check the ticket code and try again
+                              <p className="text-white/70 text-xs md:text-sm mt-0.5 md:mt-1">
+                                Check ticket code
                               </p>
                             )}
                             {manualValidationStatus.type === 'success' && lastScannedTicket && (
-                              <div className="mt-2 flex gap-2">
+                              <div className="mt-2">
                                 <Button
                                   onClick={() => {
                                     checkinMutation.mutate(lastScannedTicket.qrToken);
                                     setManualValidationStatus({ type: null, message: null });
                                   }}
                                   size="sm"
-                                  className="bg-green-600 hover:bg-green-700"
+                                  className="h-8 md:h-9 text-xs md:text-sm bg-green-600 hover:bg-green-700"
                                   disabled={checkinMutation.isPending}
                                 >
                                   {checkinMutation.isPending ? 'Checking in...' : 'Confirm Check-in'}
@@ -1410,74 +1410,72 @@ export function TicketsCheckinDashboard() {
                   </div>
                 )}
                 
-                {/* Mobile: Card Layout */}
+                {/* Mobile: Card Layout - No nested scrolling */}
                 <div className="md:hidden space-y-3">
-                  <ScrollArea className="h-[calc(100vh-400px)]">
-                    {attendeesLoading ? (
-                      <div className="flex items-center justify-center py-12">
-                        <div className="text-white/60">Loading attendees...</div>
+                  {attendeesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="text-white/60">Loading attendees...</div>
+                    </div>
+                  ) : !attendeesData?.attendees || attendeesData.attendees.length === 0 ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="text-center text-white/60">
+                        <UserCheck className="h-10 w-10 mx-auto mb-2 opacity-40" />
+                        <p className="text-sm">{manualSearch ? 'No attendees found' : 'No attendees'}</p>
                       </div>
-                    ) : !attendeesData?.attendees || attendeesData.attendees.length === 0 ? (
-                      <div className="flex items-center justify-center py-12">
-                        <div className="text-center text-white/60">
-                          <UserCheck className="h-12 w-12 mx-auto mb-3 opacity-40" />
-                          <p>{manualSearch ? 'No attendees found matching your search' : 'No attendees found'}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 pb-4">
-                        {attendeesData.attendees.map((attendee) => (
-                          <div 
-                            key={attendee.ticketId}
-                            className="glass-card p-4 rounded-xl border border-[#c0580f]/20 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-sm"
-                          >
-                            {/* Header */}
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex-1 min-w-0">
-                                <h3 className="text-white font-semibold text-base mb-1 truncate">{attendee.buyerName || 'N/A'}</h3>
-                                <p className="text-white/50 text-sm truncate">{attendee.buyerEmail}</p>
-                              </div>
-                              <Badge 
-                                variant={attendee.status === 'used' ? 'default' : 'outline'}
-                                className={attendee.status === 'used' 
-                                  ? 'bg-[#17C0A9]/20 text-[#17C0A9] border-[#17C0A9]/30 ml-2' 
-                                  : 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30 ml-2'
-                                }
-                              >
-                                {attendee.status === 'used' ? 'Checked In' : 'Pending'}
-                              </Badge>
+                    </div>
+                  ) : (
+                    <div className="space-y-2.5">
+                      {attendeesData.attendees.map((attendee) => (
+                        <div 
+                          key={attendee.ticketId}
+                          className="glass-card p-3.5 rounded-lg border border-[#c0580f]/20 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-sm"
+                        >
+                          {/* Header */}
+                          <div className="flex items-start justify-between mb-2.5">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-white font-semibold text-sm mb-0.5 truncate">{attendee.buyerName || 'N/A'}</h3>
+                              <p className="text-white/50 text-xs truncate">{attendee.buyerEmail}</p>
                             </div>
-                            
-                            {/* Details */}
-                            <div className="flex items-center justify-between text-sm mb-3">
-                              <div className="text-white/70">
-                                <span className="text-white/50">Tier:</span> {attendee.tierName}
-                              </div>
-                              <div className="text-white/70">
-                                {attendee.checkedInAt 
-                                  ? format(new Date(attendee.checkedInAt), 'MMM dd, HH:mm')
-                                  : <span className="text-white/40">Not checked in</span>
-                                }
-                              </div>
-                            </div>
-                            
-                            {/* Action */}
-                            {attendee.status !== 'used' && (
-                              <Button
-                                onClick={() => checkinMutation.mutate(attendee.qrToken)}
-                                disabled={checkinMutation.isPending}
-                                className="w-full h-11 bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white font-medium shadow-lg"
-                                data-testid={`button-checkin-${attendee.ticketId}`}
-                              >
-                                <UserCheck className="h-4 w-4 mr-2" />
-                                Check In
-                              </Button>
-                            )}
+                            <Badge 
+                              variant={attendee.status === 'used' ? 'default' : 'outline'}
+                              className={`text-xs ml-2 flex-shrink-0 ${attendee.status === 'used' 
+                                ? 'bg-[#17C0A9]/20 text-[#17C0A9] border-[#17C0A9]/30' 
+                                : 'bg-yellow-500/20 text-yellow-500 border-yellow-500/30'
+                              }`}
+                            >
+                              {attendee.status === 'used' ? 'In' : 'Pending'}
+                            </Badge>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </ScrollArea>
+                          
+                          {/* Details - Compact row */}
+                          <div className="flex items-center justify-between text-xs mb-2.5">
+                            <div className="text-white/60">
+                              {attendee.tierName}
+                            </div>
+                            <div className="text-white/60">
+                              {attendee.checkedInAt 
+                                ? format(new Date(attendee.checkedInAt), 'HH:mm')
+                                : <span className="text-white/40">-</span>
+                              }
+                            </div>
+                          </div>
+                          
+                          {/* Action */}
+                          {attendee.status !== 'used' && (
+                            <Button
+                              onClick={() => checkinMutation.mutate(attendee.qrToken)}
+                              disabled={checkinMutation.isPending}
+                              className="w-full h-9 bg-gradient-to-r from-[#c0580f] to-[#d3541e] hover:from-[#d3541e] hover:to-[#c0580f] text-white text-sm font-medium"
+                              data-testid={`button-checkin-${attendee.ticketId}`}
+                            >
+                              <UserCheck className="h-3.5 w-3.5 mr-1.5" />
+                              Check In
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 
                 {/* Desktop: Table Layout */}
@@ -1540,86 +1538,85 @@ export function TicketsCheckinDashboard() {
             </GlassCard>
           </TabsContent>
           
-          {/* Recent Activity Tab - Premium Mobile Optimized Timeline */}
+          {/* Recent Activity Tab - Compact Mobile Timeline */}
           <TabsContent value="recent" className="space-y-4">
             <GlassCard className="overflow-hidden">
-              <div className="p-6 border-b border-white/10">
-                <h2 className="text-xl font-bold text-white">Recent Check-ins</h2>
-                <p className="text-sm text-white/60 mt-1">
-                  Last {stats?.stats?.recentCheckIns?.length || 0} attendees checked in
+              <div className="p-4 md:p-6 border-b border-white/10">
+                <h2 className="text-lg md:text-xl font-bold text-white">Recent Check-ins</h2>
+                <p className="text-xs md:text-sm text-white/60 mt-0.5 md:mt-1">
+                  Last {stats?.stats?.recentCheckIns?.length || 0} attendees
                 </p>
               </div>
-              <div className="p-6">
-                <ScrollArea className="h-[500px] pr-4">
-                  {stats?.stats?.recentCheckIns?.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-12">
-                      <div className="p-4 rounded-full bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 mb-4">
-                        <UserCheck className="h-8 w-8 text-[#d3541e]" />
-                      </div>
-                      <h3 className="text-lg font-semibold text-white mb-2">No check-ins yet</h3>
-                      <p className="text-sm text-white/60">
-                        Check-ins will appear here as attendees arrive
-                      </p>
+              <div className="p-4 md:p-6">
+                {/* No nested scrolling - content flows naturally */}
+                {stats?.stats?.recentCheckIns?.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 md:py-12">
+                    <div className="p-3 md:p-4 rounded-full bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 mb-3 md:mb-4">
+                      <UserCheck className="h-6 w-6 md:h-8 md:w-8 text-[#d3541e]" />
                     </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {stats?.stats?.recentCheckIns?.map((checkin, index, arr) => (
-                        <TimelineCard 
-                          key={checkin.id} 
-                          isLast={index === arr.length - 1}
-                          className="animate-in fade-in slide-in-from-left-5 duration-300"
-                        >
-                          {/* Header with timestamp */}
-                          <div className="flex items-start justify-between mb-3">
-                            <div className="flex items-center gap-2">
-                              <div className="p-2 rounded-lg bg-gradient-to-r from-green-600/20 to-green-500/20">
-                                <CheckCircle2 className="h-4 w-4 text-green-400" />
-                              </div>
-                              <TimestampPill className="bg-green-500/10 text-green-300 border border-green-500/20">
-                                {format(new Date(checkin.usedAt), 'HH:mm:ss')}
-                              </TimestampPill>
+                    <h3 className="text-base md:text-lg font-semibold text-white mb-1 md:mb-2">No check-ins yet</h3>
+                    <p className="text-xs md:text-sm text-white/60">
+                      Check-ins will appear here
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 md:space-y-6">
+                    {stats?.stats?.recentCheckIns?.map((checkin, index, arr) => (
+                      <TimelineCard 
+                        key={checkin.id} 
+                        isLast={index === arr.length - 1}
+                        className="animate-in fade-in slide-in-from-left-5 duration-300"
+                      >
+                        {/* Header with timestamp - Compact mobile */}
+                        <div className="flex items-start justify-between mb-2 md:mb-3">
+                          <div className="flex items-center gap-1.5 md:gap-2">
+                            <div className="p-1.5 md:p-2 rounded-md md:rounded-lg bg-gradient-to-r from-green-600/20 to-green-500/20">
+                              <CheckCircle2 className="h-3 w-3 md:h-4 md:w-4 text-green-400" />
                             </div>
-                            <StatusBadge variant="success">
-                              Checked In
-                            </StatusBadge>
+                            <TimestampPill className="text-xs md:text-sm bg-green-500/10 text-green-300 border border-green-500/20">
+                              {format(new Date(checkin.usedAt), 'HH:mm:ss')}
+                            </TimestampPill>
+                          </div>
+                          <StatusBadge variant="success" className="text-xs">
+                            In
+                          </StatusBadge>
+                        </div>
+                        
+                        {/* Attendee Details - Compact */}
+                        <div className="space-y-1.5 md:space-y-2">
+                          <div>
+                            <h4 className="font-semibold text-white text-sm md:text-base">
+                              {checkin.buyerName}
+                            </h4>
+                            <p className="text-xs md:text-sm text-white/60 truncate">
+                              {checkin.buyerEmail}
+                            </p>
                           </div>
                           
-                          {/* Attendee Details */}
-                          <div className="space-y-2">
-                            <div>
-                              <h4 className="font-semibold text-white text-base">
-                                {checkin.buyerName}
-                              </h4>
-                              <p className="text-sm text-white/60">
-                                {checkin.buyerEmail}
-                              </p>
-                            </div>
-                            
-                            {/* Meta Info Grid */}
-                            <div className="grid grid-cols-2 gap-3 pt-2 text-sm">
-                              <div className="flex items-center gap-2">
-                                <div className="w-1 h-4 bg-gradient-to-b from-[#c0580f] to-[#d3541e] rounded-full" />
-                                <div>
-                                  <p className="text-white/50 text-xs">Tier</p>
-                                  <p className="text-white font-medium">{checkin.tierName}</p>
-                                </div>
+                          {/* Meta Info Grid - Compact */}
+                          <div className="grid grid-cols-2 gap-2 md:gap-3 pt-1 md:pt-2 text-xs md:text-sm">
+                            <div className="flex items-center gap-1.5 md:gap-2">
+                              <div className="w-0.5 md:w-1 h-3 md:h-4 bg-gradient-to-b from-[#c0580f] to-[#d3541e] rounded-full" />
+                              <div className="min-w-0">
+                                <p className="text-white/50 text-xs">Tier</p>
+                                <p className="text-white font-medium truncate">{checkin.tierName}</p>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <div className="w-1 h-4 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full" />
-                                <div>
-                                  <p className="text-white/50 text-xs">Scanned By</p>
-                                  <p className="text-white font-medium truncate">
-                                    {checkin.scannedBy || 'Staff'}
-                                  </p>
-                                </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 md:gap-2">
+                              <div className="w-0.5 md:w-1 h-3 md:h-4 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full" />
+                              <div className="min-w-0">
+                                <p className="text-white/50 text-xs">By</p>
+                                <p className="text-white font-medium truncate">
+                                  {checkin.scannedBy || 'Staff'}
+                                </p>
                               </div>
                             </div>
                           </div>
-                        </TimelineCard>
-                      ))}
-                    </div>
-                  )}
-                </ScrollArea>
+                        </div>
+                      </TimelineCard>
+                    ))}
+                  </div>
+                )}
               </div>
             </GlassCard>
           </TabsContent>
