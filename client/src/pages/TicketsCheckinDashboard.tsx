@@ -40,6 +40,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { 
+  AttendeeCard,
+  TimelineCard, 
+  StatusBadge,
+  TimestampPill,
+  ActionPill,
+  GlassCard
+} from "@/components/ui/premium";
 
 interface CheckInStats {
   totalTickets: number;
@@ -1512,48 +1520,88 @@ export function TicketsCheckinDashboard() {
             </Card>
           </TabsContent>
           
-          {/* Recent Activity Tab */}
+          {/* Recent Activity Tab - Premium Mobile Optimized Timeline */}
           <TabsContent value="recent" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Check-ins</CardTitle>
-                <CardDescription>
-                  Last 10 attendees checked in
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[500px]">
+            <GlassCard className="overflow-hidden">
+              <div className="p-6 border-b border-white/10">
+                <h2 className="text-xl font-bold text-white">Recent Check-ins</h2>
+                <p className="text-sm text-white/60 mt-1">
+                  Last {stats?.stats?.recentCheckIns?.length || 0} attendees checked in
+                </p>
+              </div>
+              <div className="p-6">
+                <ScrollArea className="h-[500px] pr-4">
                   {stats?.stats?.recentCheckIns?.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No check-ins yet
+                    <div className="flex flex-col items-center justify-center py-12">
+                      <div className="p-4 rounded-full bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 mb-4">
+                        <UserCheck className="h-8 w-8 text-[#d3541e]" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-white mb-2">No check-ins yet</h3>
+                      <p className="text-sm text-white/60">
+                        Check-ins will appear here as attendees arrive
+                      </p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {stats?.stats?.recentCheckIns?.map((checkin, index) => (
-                        <div key={checkin.id} className="flex items-center justify-between pb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                              <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <div className="space-y-6">
+                      {stats?.stats?.recentCheckIns?.map((checkin, index, arr) => (
+                        <TimelineCard 
+                          key={checkin.id} 
+                          isLast={index === arr.length - 1}
+                          className="animate-in fade-in slide-in-from-left-5 duration-300"
+                        >
+                          {/* Header with timestamp */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="p-2 rounded-lg bg-gradient-to-r from-green-600/20 to-green-500/20">
+                                <CheckCircle2 className="h-4 w-4 text-green-400" />
+                              </div>
+                              <TimestampPill className="bg-green-500/10 text-green-300 border border-green-500/20">
+                                {format(new Date(checkin.usedAt), 'HH:mm:ss')}
+                              </TimestampPill>
                             </div>
+                            <StatusBadge variant="success">
+                              Checked In
+                            </StatusBadge>
+                          </div>
+                          
+                          {/* Attendee Details */}
+                          <div className="space-y-2">
                             <div>
-                              <p className="font-medium">{checkin.buyerName}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {checkin.tierName} • {checkin.buyerEmail}
+                              <h4 className="font-semibold text-white text-base">
+                                {checkin.buyerName}
+                              </h4>
+                              <p className="text-sm text-white/60">
+                                {checkin.buyerEmail}
                               </p>
                             </div>
+                            
+                            {/* Meta Info Grid */}
+                            <div className="grid grid-cols-2 gap-3 pt-2 text-sm">
+                              <div className="flex items-center gap-2">
+                                <div className="w-1 h-4 bg-gradient-to-b from-[#c0580f] to-[#d3541e] rounded-full" />
+                                <div>
+                                  <p className="text-white/50 text-xs">Tier</p>
+                                  <p className="text-white font-medium">{checkin.tierName}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-1 h-4 bg-gradient-to-b from-purple-500 to-purple-600 rounded-full" />
+                                <div>
+                                  <p className="text-white/50 text-xs">Scanned By</p>
+                                  <p className="text-white font-medium truncate">
+                                    {checkin.scannedBy || 'Staff'}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="text-sm text-muted-foreground text-right">
-                            {format(new Date(checkin.usedAt), 'HH:mm:ss')}
-                            <br />
-                            <span className="text-xs">by {checkin.scannedBy}</span>
-                          </div>
-                        </div>
+                        </TimelineCard>
                       ))}
                     </div>
                   )}
                 </ScrollArea>
-              </CardContent>
-            </Card>
+              </div>
+            </GlassCard>
           </TabsContent>
         </Tabs>
       </div>
