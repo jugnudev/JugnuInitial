@@ -305,9 +305,9 @@ export function TicketsEventDetailPage() {
   };
 
   const calculateFees = (subtotal: number) => {
-    // Platform fee: 2.5% + $0.50 per ticket
-    const ticketCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-    return Math.round(subtotal * 0.025 + ticketCount * 50);
+    // No platform fees - businesses keep 100% of ticket revenue
+    // Note: Actual pricing is calculated server-side
+    return 0;
   };
 
   const subtotal = calculateSubtotal();

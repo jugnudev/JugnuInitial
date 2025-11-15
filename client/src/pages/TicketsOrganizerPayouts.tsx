@@ -102,7 +102,7 @@ export function TicketsOrganizerPayouts() {
                 )}
               </div>
               <p className="text-xs text-muted-foreground">
-                Platform fees deducted
+                100% of ticket revenue
               </p>
             </CardContent>
           </Card>
@@ -296,7 +296,7 @@ export function TicketsOrganizerPayouts() {
                 <ul className="space-y-1 text-muted-foreground">
                   <li>• Payouts are processed automatically every Friday</li>
                   <li>• Minimum payout amount is $25</li>
-                  <li>• Platform fee is 3% + $0.30 per transaction</li>
+                  <li>• No platform fees - you keep 100% of ticket revenue</li>
                   <li>• Funds typically arrive within 2-3 business days</li>
                 </ul>
               </div>

@@ -2114,11 +2114,11 @@ async function handleChargeSucceeded(charge: any) {
       console.log(`[MoR Webhook] No balance transaction, using estimated fees - Stripe: ${stripeFeeCents}¢ (${feeStatus})`);
     }
     
-    // Calculate net amount for organizer (MoR model: use subtotal, not Stripe net)
-    // Organizer gets: subtotal - platform fee (taxes excluded from payout)
-    const netToOrganizerCents = Math.max(0, order.subtotalCents - order.feesCents);
+    // Calculate net amount for organizer (subscription model: 100% of ticket revenue)
+    // Organizer gets: full subtotal (taxes excluded from payout, no platform fees)
+    const netToOrganizerCents = order.subtotalCents; // 100% of ticket revenue
     
-    console.log(`[MoR Webhook] Financial tracking - Subtotal: ${order.subtotalCents}¢, Stripe: ${stripeFeeCents}¢, Platform: ${order.feesCents}¢, Net to Organizer: ${netToOrganizerCents}¢`);
+    console.log(`[MoR Webhook] Financial tracking - Subtotal: ${order.subtotalCents}¢, Stripe: ${stripeFeeCents}¢, Net to Organizer: ${netToOrganizerCents}¢ (100%)`);
     
     // Atomic operation: Update order and create ledger entry together
     try {
@@ -2126,7 +2126,7 @@ async function handleChargeSucceeded(charge: any) {
       await ticketsStorage.updateOrder(order.id, {
         stripeChargeId: charge.id,
         stripeFeeCents,
-        platformFeeCents: order.feesCents,
+        platformFeeCents: 0, // No platform fees - subscription model
         netToOrganizerCents,
         payoutStatus: 'pending'
       });
@@ -2163,7 +2163,7 @@ async function handleChargeSucceeded(charge: any) {
       metaJson: { 
         chargeId: charge.id,
         stripeFeeCents,
-        platformFeeCents: order.feesCents,
+        platformFeeCents: 0, // No platform fees - subscription model
         netToOrganizerCents,
         subtotalCents: order.subtotalCents
       }
@@ -2192,10 +2192,9 @@ async function handleRefund(charge: any) {
     const refundAmountCents = charge.amount_refunded;
     console.log(`[MoR Webhook] Refunding ${refundAmountCents}¢ for order: ${order.id}`);
     
-    // Calculate net refund to organizer (refund amount minus proportional platform fee)
+    // Calculate net refund to organizer (full refund - no platform fees in subscription model)
     const refundRatio = refundAmountCents / order.totalCents;
-    const platformFeeRefundCents = Math.round(order.platformFeeCents * refundRatio);
-    const organizerRefundCents = refundAmountCents - platformFeeRefundCents;
+    const organizerRefundCents = Math.round(order.subtotalCents * refundRatio); // 100% of subtotal refunded
     
     // Update order with refund data
     await ticketsStorage.updateOrder(order.id, {
@@ -2236,7 +2235,7 @@ async function handleRefund(charge: any) {
         amount: refundAmountCents,
         orderId: order.id,
         organizerRefundCents,
-        platformFeeRefundCents
+        platformFeeRefundCents: 0 // No platform fees - subscription model
       }
     });
     

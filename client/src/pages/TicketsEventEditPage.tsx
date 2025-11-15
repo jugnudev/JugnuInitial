@@ -1103,7 +1103,7 @@ export function TicketsEventEditPage() {
                             </SelectContent>
                           </Select>
                           <FormDescription>
-                            Platform fee: 2.5% + $0.50 per ticket
+                            Optional service fee you can charge (goes to you, not Jugnu)
                           </FormDescription>
                         </FormItem>
                       )}

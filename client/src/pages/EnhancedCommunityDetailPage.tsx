@@ -4035,7 +4035,7 @@ function TicketingSettingsCard({ communitySlug, userId }: { communitySlug: strin
             <Alert className="bg-green-500/10 border-green-500/50">
               <CheckCircle className="h-4 w-4 text-green-500" />
               <AlertDescription className="text-green-700 dark:text-green-400">
-                Ticketing is enabled. Payments go directly to your Stripe account with a {((organizer.platformFeeBps || 500) / 100).toFixed(1)}% platform fee.
+                Ticketing is enabled. Payments go directly to your Stripe account. You keep 100% of ticket revenue.
               </AlertDescription>
             </Alert>
 

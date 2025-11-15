@@ -22,7 +22,6 @@ interface Organizer {
   businessName: string;
   businessEmail: string;
   stripeAccountId: string | null;
-  platformFeeBps: number;
   stripeOnboardingComplete: boolean;
   stripeChargesEnabled: boolean;
   stripePayoutsEnabled: boolean;

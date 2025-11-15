@@ -59,7 +59,8 @@ export class StripeService {
 
   /**
    * Calculate fees and taxes for an order
-   * @param organizer - Organizer to get platform_fee_bps from (optional, defaults to 500 = 5%)
+   * NOTE: Jugnu does NOT take platform fees - businesses keep 100% of ticket revenue
+   * feesCents represents optional service fees that go directly to the business
    */
   static calculatePricing(
     items: Array<{ tier: TicketsTier; quantity: number }>,
@@ -80,12 +81,11 @@ export class StripeService {
     const effectiveDiscountCents = Math.min(discountAmountCents, rawSubtotalCents);
     const subtotalCents = Math.max(0, rawSubtotalCents - effectiveDiscountCents);
 
-    // Calculate platform fee using organizer's platform_fee_bps (default 500 = 5%)
-    // Use nullish coalescing to allow 0 fees (|| would override 0 with default)
-    const platformFeeBps = organizer?.platformFeeBps ?? 500;
-    const feesCents = Math.round(subtotalCents * (platformFeeBps / 10000));
+    // NO PLATFORM FEE - Jugnu revenue comes from subscriptions only
+    // feesCents represents optional service fees that the business can set (goes to them, not Jugnu)
+    const feesCents = 0; // Not used in this model
 
-    // Calculate taxes on subtotal (not including platform fee)
+    // Calculate taxes on subtotal
     const taxSettings = (event.taxSettings as any) || { collectTax: true, gstPercent: 5, pstPercent: 7 };
     let gstCents = 0;
     let pstCents = 0;
@@ -98,12 +98,12 @@ export class StripeService {
     }
 
     const taxCents = gstCents + pstCents;
-    // Total charged to customer (subtotal + tax, platform fee handled via application_fee_amount)
+    // Total charged to customer (subtotal + tax only, no platform fees)
     const totalCents = subtotalCents + taxCents;
 
     return {
       subtotalCents,
-      feesCents, // Platform's application fee, not added to total
+      feesCents, // Always 0 - no platform fees collected
       taxCents,
       totalCents,
       taxBreakdown: {
@@ -182,7 +182,7 @@ export class StripeService {
     }
 
     try {
-      // Stripe Connect Model: Direct payment to business with application fee
+      // Stripe Connect Model: Direct payment to business (NO platform fees - subscription model)
       const sessionParams: Stripe.Checkout.SessionCreateParams = {
         payment_method_types: ['card'],
         line_items: [...lineItems, ...taxLineItems],
@@ -193,10 +193,10 @@ export class StripeService {
         metadata: metadata as any,
       };
 
-      // If organizer has Stripe Connect account, charge directly to them
+      // If organizer has Stripe Connect account, charge directly to them (100% of revenue)
       if (organizer.stripeAccountId) {
         sessionParams.payment_intent_data = {
-          application_fee_amount: pricing.feesCents, // Platform fee collected automatically
+          // NO application_fee_amount - business keeps 100% of ticket revenue
           on_behalf_of: organizer.stripeAccountId, // Charge goes to organizer's account
           transfer_data: {
             destination: organizer.stripeAccountId,
@@ -322,14 +322,14 @@ export class StripeService {
         confirmation_method: 'automatic'
       };
 
-      // If organizer has Stripe Connect account, charge directly to them
+      // If organizer has Stripe Connect account, charge directly to them (100% revenue)
       if (organizer.stripeAccountId) {
-        paymentIntentParams.application_fee_amount = pricing.feesCents; // Platform fee
+        // NO application_fee_amount - business keeps all ticket revenue (Jugnu revenue from subscriptions)
         paymentIntentParams.on_behalf_of = organizer.stripeAccountId; // Charge to organizer
         paymentIntentParams.transfer_data = {
           destination: organizer.stripeAccountId,
         };
-        console.log('[StripeService] Using Stripe Connect - direct charge to organizer account');
+        console.log('[StripeService] Using Stripe Connect - direct charge to organizer account (no platform fees)');
       } else {
         // Fallback to platform account if onboarding not complete
         console.log('[StripeService] Using platform account - organizer onboarding incomplete');

@@ -16,7 +16,6 @@ interface Organizer {
   stripeOnboardingComplete: boolean;
   stripeChargesEnabled: boolean;
   stripePayoutsEnabled: boolean;
-  platformFeeBps: number;
 }
 
 export function TicketsOrganizerSettings() {
@@ -58,7 +57,6 @@ export function TicketsOrganizerSettings() {
   }
 
   const organizer = data?.organizer;
-  const platformFeePercent = organizer?.platformFeeBps ? (organizer.platformFeeBps / 100).toFixed(1) : '15.0';
 
   return (
     <div className="min-h-screen bg-background">
@@ -161,8 +159,8 @@ export function TicketsOrganizerSettings() {
               </div>
 
               <div className="flex justify-between">
-                <span className="text-sm font-medium">Platform Fee:</span>
-                <span className="text-sm text-muted-foreground">{platformFeePercent}%</span>
+                <span className="text-sm font-medium">Ticket Revenue:</span>
+                <span className="text-sm text-green-600 font-semibold">You keep 100%</span>
               </div>
 
               {organizer?.stripeAccountId && (

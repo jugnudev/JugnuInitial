@@ -637,7 +637,7 @@ export const organizers = pgTable("organizers", {
   stripeChargesEnabled: boolean("stripe_charges_enabled").notNull().default(false),
   stripePayoutsEnabled: boolean("stripe_payouts_enabled").notNull().default(false),
   stripeDetailsSubmitted: boolean("stripe_details_submitted").notNull().default(false),
-  platformFeeBps: integer("platform_fee_bps").notNull().default(1500), // 15% = 1500 basis points
+  platformFeeBps: integer("platform_fee_bps").notNull().default(0), // No platform fees - subscription model (0 = 0%)
 });
 
 // User sessions for platform auth
