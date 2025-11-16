@@ -134,21 +134,9 @@ export function addRefundRoutes(app: Express) {
             userAgent: req.headers['user-agent']
           });
           
-          // Send refund confirmation email
-          try {
-            const { sendRefundEmail } = await import('../services/emailService');
-            await sendRefundEmail({
-              recipientEmail: order.buyerEmail,
-              buyerName: order.buyerName || 'Guest',
-              eventTitle: event.title,
-              refundAmount: `$${(refundCents / 100).toFixed(2)} CAD`,
-              ticketSerial: ticket.serial,
-              reason: reason || 'Refund processed by organizer',
-              orderNumber: order.id.slice(0, 8).toUpperCase()
-            });
-          } catch (emailError) {
-            console.error('Failed to send refund email:', emailError);
-          }
+          // TODO: Send refund confirmation email
+          // Email notification for refunds can be added here
+          console.log(`[Refund] Refund processed for ticket ${ticket.serial}, order ${order.id}`);
           
           res.json({
             ok: true,
@@ -270,34 +258,9 @@ export function addRefundRoutes(app: Express) {
         userAgent: req.headers['user-agent']
       });
       
-      // Send transfer notification emails
-      try {
-        const { sendTicketTransferEmail } = await import('../services/emailService');
-        
-        // Email to new recipient
-        await sendTicketTransferEmail({
-          recipientEmail: newEmail,
-          recipientName: newName || 'Guest',
-          eventTitle: event.title,
-          ticketSerial: newTicket.serial,
-          qrToken: newTicket.qrToken,
-          eventDate: event.startAt,
-          eventVenue: event.venue || ''
-        });
-        
-        // Notification to original buyer
-        await sendTicketTransferEmail({
-          recipientEmail: order!.buyerEmail,
-          recipientName: order!.buyerName || 'Guest',
-          eventTitle: event.title,
-          ticketSerial: ticket.serial,
-          isNotification: true,
-          transferredTo: newEmail
-        });
-        
-      } catch (emailError) {
-        console.error('Failed to send transfer emails:', emailError);
-      }
+      // TODO: Send transfer notification emails
+      // Email notifications for transfers can be added here
+      console.log(`[Transfer] Ticket ${ticket.serial} transferred from ${order!.buyerEmail} to ${newEmail}`);
       
       res.json({
         ok: true,
@@ -411,26 +374,9 @@ export function addRefundRoutes(app: Express) {
         return res.status(403).json({ ok: false, error: 'Access denied' });
       }
       
-      // Send ticket email
-      const { sendTicketEmail } = await import('../services/emailService');
-      
-      await sendTicketEmail({
-        recipientEmail: email || order!.buyerEmail,
-        buyerName: order!.buyerName || 'Guest',
-        eventTitle: event.title,
-        eventVenue: event.venue || '',
-        eventDate: new Date(event.startAt).toLocaleDateString(),
-        eventTime: new Date(event.startAt).toLocaleTimeString(),
-        orderNumber: order!.id.slice(0, 8).toUpperCase(),
-        tickets: [{
-          id: ticket.id,
-          tierName: tier!.name,
-          qrToken: ticket.qrToken,
-          serial: ticket.serial
-        }],
-        totalAmount: `$${(order!.totalCents / 100).toFixed(2)} CAD`,
-        refundPolicy: event.refundPolicy || 'Refunds available up to 24 hours before event.'
-      });
+      // Resend ticket using ticket email service
+      const { sendTicketEmail } = await import('./email-service');
+      await sendTicketEmail(order!.id, true);
       
       res.json({
         ok: true,
