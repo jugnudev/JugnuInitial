@@ -275,18 +275,44 @@ export default function TicketsMyTickets() {
             </div>
           </div>
 
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'upcoming' | 'past')} className="w-full">
-            <TabsList className="mb-6 grid w-full grid-cols-2 md:w-auto md:inline-grid">
-              <TabsTrigger value="upcoming" data-testid="tab-upcoming" className="touch-target">
-                <CalendarDays className="w-4 h-4 mr-2" />
-                Upcoming ({Object.values(groupedByOrganizer.upcoming).reduce((sum, g) => sum + g.tickets.length, 0)})
-              </TabsTrigger>
-              <TabsTrigger value="past" data-testid="tab-past" className="touch-target">
-                <Clock className="w-4 h-4 mr-2" />
-                Past ({Object.values(groupedByOrganizer.past).reduce((sum, g) => sum + g.tickets.length, 0)})
-              </TabsTrigger>
-            </TabsList>
+          {/* Premium Tabs */}
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'upcoming' | 'past')} className="w-full mb-8">
+            <div className="glass-card rounded-2xl p-1.5 mb-6">
+              <TabsList className="grid w-full grid-cols-2 gap-1.5 bg-transparent h-auto p-0">
+                <TabsTrigger 
+                  value="upcoming" 
+                  data-testid="tab-upcoming" 
+                  className="
+                    relative h-14 md:h-12 rounded-xl transition-all duration-300
+                    data-[state=active]:bg-gradient-to-r data-[state=active]:from-[hsl(27,78%,54%)] data-[state=active]:to-[hsl(18,84%,44%)]
+                    data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[#c0580f]/30
+                    data-[state=inactive]:bg-transparent data-[state=inactive]:text-neutral-400
+                    hover:bg-white/5 font-semibold text-sm md:text-base
+                  "
+                >
+                  <CalendarDays className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Upcoming</span>
+                  <span className="sm:hidden">Upcoming</span>
+                  <span className="ml-1.5">({Object.values(groupedByOrganizer.upcoming).reduce((sum, g) => sum + g.tickets.length, 0)})</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="past" 
+                  data-testid="tab-past" 
+                  className="
+                    relative h-14 md:h-12 rounded-xl transition-all duration-300
+                    data-[state=active]:bg-gradient-to-r data-[state=active]:from-[hsl(27,78%,54%)] data-[state=active]:to-[hsl(18,84%,44%)]
+                    data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-[#c0580f]/30
+                    data-[state=inactive]:bg-transparent data-[state=inactive]:text-neutral-400
+                    hover:bg-white/5 font-semibold text-sm md:text-base
+                  "
+                >
+                  <Clock className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Past</span>
+                  <span className="sm:hidden">Past</span>
+                  <span className="ml-1.5">({Object.values(groupedByOrganizer.past).reduce((sum, g) => sum + g.tickets.length, 0)})</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
             <TabsContent value="upcoming">
               {Object.keys(filteredGroups).length === 0 ? (
