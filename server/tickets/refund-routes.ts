@@ -54,6 +54,8 @@ export function addRefundRoutes(app: Express) {
         return res.status(404).json({ ok: false, error: 'Ticket not found' });
       }
       
+      // Prevent duplicate refunds - tickets can only be refunded once (either full or partial)
+      // Once refunded, the ticket status becomes 'refunded' and cannot be refunded again
       if (ticket.status === 'refunded') {
         return res.status(400).json({ ok: false, error: 'Ticket already refunded' });
       }
@@ -77,16 +79,39 @@ export function addRefundRoutes(app: Express) {
       
       // Calculate refund amount
       let refundCents: number;
+      const ticketFullPriceCents = Math.round((orderItem.unitPriceCents + orderItem.taxCents) / orderItem.quantity);
+      
       if (refundType === 'full') {
         // Full refund - calculate proportional amount for this ticket
-        refundCents = Math.round((orderItem.unitPriceCents + orderItem.taxCents) / orderItem.quantity);
+        refundCents = ticketFullPriceCents;
       } else if (refundType === 'partial') {
-        refundCents = refundAmount || 0;
-        if (refundCents <= 0) {
-          return res.status(400).json({ ok: false, error: 'Invalid refund amount' });
+        // Validate partial refund amount (should be in cents)
+        const parsedAmount = parseInt(String(refundAmount), 10);
+        if (isNaN(parsedAmount) || parsedAmount <= 0) {
+          return res.status(400).json({ ok: false, error: 'Invalid refund amount - must be a positive number in cents' });
         }
+        
+        // Ensure partial refund doesn't exceed ticket price
+        if (parsedAmount > ticketFullPriceCents) {
+          return res.status(400).json({ 
+            ok: false, 
+            error: `Refund amount ($${(parsedAmount / 100).toFixed(2)}) cannot exceed ticket price ($${(ticketFullPriceCents / 100).toFixed(2)})` 
+          });
+        }
+        
+        refundCents = parsedAmount;
       } else {
         return res.status(400).json({ ok: false, error: 'Invalid refund type' });
+      }
+      
+      // Ensure we don't exceed the remaining refundable amount for the order
+      const currentlyRefunded = order.refundedAmountCents || 0;
+      const remainingRefundable = order.totalCents - currentlyRefunded;
+      if (refundCents > remainingRefundable) {
+        return res.status(400).json({ 
+          ok: false, 
+          error: `Refund amount ($${(refundCents / 100).toFixed(2)}) exceeds remaining refundable amount ($${(remainingRefundable / 100).toFixed(2)})` 
+        });
       }
       
       // Process Stripe refund
@@ -157,11 +182,40 @@ export function addRefundRoutes(app: Express) {
           });
         }
       } else {
-        // No Stripe payment - just update status
+        // No Stripe payment - manual refund (free tickets or cash payments)
+        // Update ticket status
         await ticketsStorage.updateTicket(ticketId, {
           status: 'refunded',
           refundedAt: new Date(),
           refundReason: reason || 'Refunded by organizer'
+        });
+        
+        // Update order refund tracking
+        const newRefundedAmount = (order.refundedAmountCents || 0) + refundCents;
+        const orderStatus = newRefundedAmount >= order.totalCents ? 'refunded' : 'partially_refunded';
+        
+        await ticketsStorage.updateOrder(order.id, {
+          status: orderStatus,
+          refundedAmountCents: newRefundedAmount,
+          refundProcessedAt: new Date(),
+          refundReason: reason || 'Manual refund processed by organizer'
+        });
+        
+        // Create audit log
+        await ticketsStorage.createAuditLog({
+          actorType: 'organizer',
+          actorId: req.organizer.id,
+          action: 'ticket_refunded',
+          targetType: 'ticket',
+          targetId: ticketId,
+          metaJson: {
+            orderId: order.id,
+            refundAmount: refundCents,
+            reason,
+            manual: true
+          },
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent']
         });
         
         res.json({
@@ -169,7 +223,7 @@ export function addRefundRoutes(app: Express) {
           refund: {
             amount: refundCents,
             ticketId,
-            orderStatus: 'refunded'
+            orderStatus
           }
         });
       }
