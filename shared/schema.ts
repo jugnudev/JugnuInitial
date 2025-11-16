@@ -293,6 +293,9 @@ export const ticketsOrders = pgTable("tickets_orders", {
   discountCode: text("discount_code"),
   discountAmountCents: integer("discount_amount_cents").default(0),
   refundedAmountCents: integer("refunded_amount_cents").default(0),
+  refundProcessedAt: timestamp("refund_processed_at", { withTimezone: true }),
+  refundReason: text("refund_reason"),
+  stripeRefundId: text("stripe_refund_id"),
   placedAt: timestamp("placed_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
@@ -316,9 +319,18 @@ export const ticketsTickets = pgTable("tickets_tickets", {
   tierId: uuid("tier_id").notNull().references(() => ticketsTiers.id),
   serial: text("serial").notNull(),
   qrToken: text("qr_token").notNull().unique(),
-  status: text("status").notNull().default("valid"), // valid | used | refunded | canceled
+  status: text("status").notNull().default("valid"), // valid | used | refunded | canceled | transferred
   usedAt: timestamp("used_at", { withTimezone: true }),
   scannedBy: text("scanned_by"),
+  refundedAt: timestamp("refunded_at", { withTimezone: true }),
+  refundReason: text("refund_reason"),
+  transferredFrom: uuid("transferred_from"),
+  transferredTo: uuid("transferred_to"),
+  transferredAt: timestamp("transferred_at", { withTimezone: true }),
+  notes: text("notes"),
+  tags: jsonb("tags").default(sql`'[]'::jsonb`),
+  isVip: boolean("is_vip").notNull().default(false),
+  isBlocked: boolean("is_blocked").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
 
