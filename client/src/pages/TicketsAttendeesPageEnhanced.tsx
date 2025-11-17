@@ -665,9 +665,25 @@ export function TicketsAttendeesPageEnhanced() {
                     </div>
                   </div>
                   
+                  {/* Refund Notice - Always Visible for Refunded Tickets */}
+                  {attendee.status === 'refunded' && attendee.refundReason && (
+                    <div className="p-3 rounded bg-red-500/10 border border-red-500/30">
+                      <p className="text-xs text-red-200 font-medium mb-1">Refund Reason:</p>
+                      <p className="text-xs text-red-100">{attendee.refundReason}</p>
+                    </div>
+                  )}
+                  
                   {/* Expandable Details */}
                   {expandedCard === attendee.ticketId && (
                     <div className="pt-2 border-t border-copper-500/20 space-y-2 text-xs">
+                      {attendee.refundedAt && (
+                        <div>
+                          <span className="text-red-300">Refunded: </span>
+                          <span className="text-white">
+                            {format(new Date(attendee.refundedAt), 'MMM d, yyyy h:mm a')}
+                          </span>
+                        </div>
+                      )}
                       {attendee.checkedInAt && (
                         <div>
                           <span className="text-copper-300">Checked in: </span>

@@ -1,6 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { ticketsStorage } from "./tickets-storage";
 import { StripeService, stripe } from "./stripe-service";
+import { sendRefundEmail } from "./email-service";
 import { nanoid } from 'nanoid';
 import type { TicketsOrder } from '@shared/schema';
 
@@ -193,8 +194,8 @@ export function addRefundRoutes(app: Express) {
             userAgent: req.headers['user-agent']
           });
           
-          // TODO: Send refund confirmation email
-          // Email notification for refunds can be added here
+          // Send refund confirmation email
+          await sendRefundEmail(ticketId, refundCents, reason);
           console.log(`[Refund] Refund processed for ticket ${ticket.serial}, order ${order.id}`);
           
           res.json({
@@ -251,6 +252,10 @@ export function addRefundRoutes(app: Express) {
           ipAddress: req.ip,
           userAgent: req.headers['user-agent']
         });
+        
+        // Send refund confirmation email
+        await sendRefundEmail(ticketId, refundCents, reason);
+        console.log(`[Refund] Manual refund processed for ticket ${ticket.serial}, order ${order.id}`);
         
         res.json({
           ok: true,

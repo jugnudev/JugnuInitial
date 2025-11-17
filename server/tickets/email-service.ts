@@ -979,3 +979,159 @@ export async function sendOrderConfirmationEmail(
     return false;
   }
 }
+
+// Send refund notification email
+export async function sendRefundEmail(
+  ticketId: string,
+  refundAmountCents: number,
+  refundReason?: string
+): Promise<boolean> {
+  try {
+    if (!initSendGrid()) {
+      console.warn('[Tickets Email] SendGrid not configured, skipping refund email');
+      return false;
+    }
+    
+    // Get ticket details
+    const ticket = await ticketsStorage.getTicketById(ticketId);
+    if (!ticket) {
+      console.error('[Tickets Email] Ticket not found:', ticketId);
+      return false;
+    }
+    
+    // Get order item
+    const orderItem = await ticketsStorage.getOrderItemById(ticket.orderItemId);
+    if (!orderItem) {
+      console.error('[Tickets Email] Order item not found:', ticket.orderItemId);
+      return false;
+    }
+    
+    // Get order
+    const order = await ticketsStorage.getOrderById(orderItem.orderId);
+    if (!order) {
+      console.error('[Tickets Email] Order not found:', orderItem.orderId);
+      return false;
+    }
+    
+    // Get event
+    const event = await ticketsStorage.getEventById(order.eventId);
+    if (!event) {
+      console.error('[Tickets Email] Event not found:', order.eventId);
+      return false;
+    }
+    
+    const baseUrl = process.env.VITE_BASE_URL || 'https://thehouseofjugnu.com';
+    const refundAmountDisplay = refundAmountCents > 0 
+      ? `$${(refundAmountCents / 100).toFixed(2)}`
+      : 'Free';
+    
+    const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 10px 10px 0 0;
+      text-align: center;
+    }
+    .content {
+      background: white;
+      padding: 30px;
+      border: 1px solid #e5e7eb;
+      border-radius: 0 0 10px 10px;
+    }
+    .refund-box {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .refund-amount {
+      font-size: 24px;
+      font-weight: bold;
+      color: #dc2626;
+      text-align: center;
+      margin: 10px 0;
+    }
+    .footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Refund Processed</h1>
+      <p>Your ticket has been refunded</p>
+    </div>
+    <div class="content">
+      <p>Hi ${order.buyerName || 'there'},</p>
+      <p>A refund has been processed for your ticket to <strong>${event.title}</strong>.</p>
+      
+      <div class="refund-box">
+        <p style="margin: 0 0 10px 0; text-align: center;"><strong>Refund Details</strong></p>
+        <p style="margin: 5px 0;"><strong>Ticket:</strong> ${ticket.serial}</p>
+        <p style="margin: 5px 0;"><strong>Event:</strong> ${event.title}</p>
+        <p style="margin: 5px 0;"><strong>Order ID:</strong> ${order.id.slice(0, 8).toUpperCase()}</p>
+        ${refundReason ? `<p style="margin: 5px 0;"><strong>Reason:</strong> ${refundReason}</p>` : ''}
+        <div class="refund-amount">${refundAmountDisplay}</div>
+      </div>
+      
+      ${refundAmountCents > 0 ? `
+      <p>The refund will be processed to your original payment method within 5-10 business days.</p>
+      ` : `
+      <p>Your free ticket has been cancelled and is no longer valid.</p>
+      `}
+      
+      <p>If you have any questions about this refund, please contact the event organizer or reach out to our support team.</p>
+      
+      <div class="footer">
+        <p>If you have any questions, please contact us at support@thehouseofjugnu.com</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+    `;
+    
+    const msg = {
+      to: order.buyerEmail,
+      from: {
+        email: process.env.SENDGRID_FROM_EMAIL || 'tickets@thehouseofjugnu.com',
+        name: 'Jugnu Tickets'
+      },
+      subject: `Refund Processed - ${event.title}`,
+      html
+    };
+    
+    await sgMail.send(msg);
+    console.log(`[Tickets Email] Sent refund email to ${order.buyerEmail} for ticket ${ticketId}`);
+    return true;
+  } catch (error) {
+    console.error('[Tickets Email] Error sending refund email:', error);
+    return false;
+  }
+}
