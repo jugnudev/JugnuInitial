@@ -1207,7 +1207,15 @@ export class TicketsSupabaseDB {
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
-    return data ? toCamelCase(data) : null;
+    
+    if (data) {
+      console.log('[getTicketById] Raw data from Supabase:', JSON.stringify(data, null, 2));
+      const transformed = toCamelCase(data);
+      console.log('[getTicketById] After toCamelCase:', JSON.stringify(transformed, null, 2));
+      return transformed;
+    }
+    
+    return null;
   }
   
   async getTicketsByOrderId(orderId: string): Promise<TicketsTicket[]> {
