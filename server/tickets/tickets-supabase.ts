@@ -1275,17 +1275,6 @@ export class TicketsSupabaseDB {
     if (error) throw error;
   }
 
-  async getOrderItemById(id: string): Promise<TicketsOrderItem | null> {
-    const { data, error } = await this.client
-      .from('tickets_order_items')
-      .select('*')
-      .eq('id', id)
-      .single();
-    
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
-  }
-
   async getEventAttendees(eventId: string, filters: { status?: string; search?: string }): Promise<any[]> {
     // Build the query with joins
     let query = this.client
