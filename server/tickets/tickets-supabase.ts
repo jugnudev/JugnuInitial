@@ -1207,7 +1207,7 @@ export class TicketsSupabaseDB {
       .single();
     
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    return data ? toCamelCase(data) : null;
   }
   
   async getTicketsByOrderId(orderId: string): Promise<TicketsTicket[]> {

@@ -54,10 +54,22 @@ export function addRefundRoutes(app: Express) {
         return res.status(404).json({ ok: false, error: 'Ticket not found' });
       }
       
+      console.log('[Refund Debug] Ticket found:', { 
+        ticketId: ticket.id, 
+        orderItemId: ticket.orderItemId,
+        status: ticket.status 
+      });
+      
       // Prevent duplicate refunds - tickets can only be refunded once (either full or partial)
       // Once refunded, the ticket status becomes 'refunded' and cannot be refunded again
       if (ticket.status === 'refunded') {
         return res.status(400).json({ ok: false, error: 'Ticket already refunded' });
+      }
+      
+      // Validate orderItemId exists
+      if (!ticket.orderItemId) {
+        console.error('[Refund Error] Ticket missing orderItemId:', ticket);
+        return res.status(500).json({ ok: false, error: 'Ticket data corrupted - missing order item reference' });
       }
       
       // Get order item and order
@@ -66,9 +78,31 @@ export function addRefundRoutes(app: Express) {
         return res.status(404).json({ ok: false, error: 'Order item not found' });
       }
       
+      console.log('[Refund Debug] Order item found:', { 
+        orderItemId: orderItem.id, 
+        orderId: orderItem.orderId 
+      });
+      
+      // Validate orderId exists
+      if (!orderItem.orderId) {
+        console.error('[Refund Error] Order item missing orderId:', orderItem);
+        return res.status(500).json({ ok: false, error: 'Order item data corrupted - missing order reference' });
+      }
+      
       const order = await ticketsStorage.getOrderById(orderItem.orderId);
       if (!order) {
         return res.status(404).json({ ok: false, error: 'Order not found' });
+      }
+      
+      console.log('[Refund Debug] Order found:', { 
+        orderId: order.id, 
+        eventId: order.eventId 
+      });
+      
+      // Validate eventId exists
+      if (!order.eventId) {
+        console.error('[Refund Error] Order missing eventId:', order);
+        return res.status(500).json({ ok: false, error: 'Order data corrupted - missing event reference' });
       }
       
       // Verify organizer owns this event

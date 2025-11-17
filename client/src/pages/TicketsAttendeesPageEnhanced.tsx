@@ -1086,8 +1086,16 @@ export function TicketsAttendeesPageEnhanced() {
             </Button>
             <Button
               onClick={() => {
+                if (!selectedTicket) {
+                  toast({
+                    title: "Error",
+                    description: "No ticket selected",
+                    variant: "destructive"
+                  });
+                  return;
+                }
                 refundMutation.mutate({
-                  ticketId: selectedTicket?.ticketId,
+                  ticketId: selectedTicket.ticketId,
                   refundType,
                   refundAmount: refundType === 'partial' ? refundAmount : undefined,
                   reason: refundReason
