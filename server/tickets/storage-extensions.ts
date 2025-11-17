@@ -15,6 +15,28 @@ export class StorageExtensions {
     return str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
   }
   
+  // Helper: Convert snake_case to camelCase
+  private toCamelCase(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.toCamelCase(item));
+    }
+    
+    if (obj instanceof Date || typeof obj !== 'object') {
+      return obj;
+    }
+    
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      result[camelKey] = this.toCamelCase(value);
+    }
+    return result;
+  }
+  
   // ============ TICKET REFUND OPERATIONS ============
   async updateTicket(id: string, data: any): Promise<TicketsTicket> {
     const supabase = getSupabaseAdmin();
@@ -120,7 +142,7 @@ export class StorageExtensions {
       if (error.code === 'PGRST116') return null; // Not found
       throw new Error(`Failed to get ticket by id: ${error.message}`);
     }
-    return data;
+    return data ? this.toCamelCase(data) : null;
   }
   
   // ============ AUDIT LOGGING ============
