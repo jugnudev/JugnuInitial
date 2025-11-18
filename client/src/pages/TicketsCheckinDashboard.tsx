@@ -127,6 +127,12 @@ export function TicketsCheckinDashboard() {
     audio.play().catch(() => {});
   };
   
+  // Fetch current user
+  const { data: currentUser } = useQuery({
+    queryKey: ['/api/auth/me'],
+    staleTime: 300000 // Cache for 5 minutes
+  });
+  
   // Fetch event details
   const { data: event } = useQuery({
     queryKey: ['/api/tickets/events', eventId],
@@ -275,7 +281,8 @@ export function TicketsCheckinDashboard() {
   // Check-in mutation
   const checkinMutation = useMutation({
     mutationFn: async (qrToken: string) => {
-      const response = await apiRequest('POST', '/api/tickets/check-in', { qrToken, eventId, checkInBy: 'staff' });
+      const userName = (currentUser as any)?.user?.name || (currentUser as any)?.user?.email || 'Staff';
+      const response = await apiRequest('POST', '/api/tickets/check-in', { qrToken, eventId, checkInBy: userName });
       return response;
     },
     onSuccess: (data: any) => {

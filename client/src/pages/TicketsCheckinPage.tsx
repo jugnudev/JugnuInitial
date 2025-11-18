@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Camera, CheckCircle, XCircle, Scan } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,12 @@ export function TicketsCheckinPage() {
   const [eventId, setEventId] = useState("");
   const [lastResult, setLastResult] = useState<CheckinResult | null>(null);
   const { toast } = useToast();
+  
+  // Fetch current user
+  const { data: currentUser } = useQuery({
+    queryKey: ['/api/auth/me'],
+    staleTime: 300000 // Cache for 5 minutes
+  });
 
   const validateMutation = useMutation({
     mutationFn: async ({ qrToken, eventId }: { qrToken: string; eventId: string }) => {
@@ -50,10 +56,11 @@ export function TicketsCheckinPage() {
 
   const checkinMutation = useMutation({
     mutationFn: async ({ qrToken, eventId }: { qrToken: string; eventId: string }) => {
+      const userName = (currentUser as any)?.user?.name || (currentUser as any)?.user?.email || 'Staff';
       const response = await fetch('/api/tickets/check-in', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ qrToken, eventId, checkInBy: 'staff' })
+        body: JSON.stringify({ qrToken, eventId, checkInBy: userName })
       });
       return response.json();
     },
