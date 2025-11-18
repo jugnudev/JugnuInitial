@@ -394,7 +394,9 @@ export default function Navigation() {
                     >
                       <Users className="h-5 w-5" />
                       <span className="font-medium text-base">Communities</span>
-                      <BetaBadge size="sm" variant="subtle" showIcon={false} className="ml-auto" />
+                      <span className="ml-auto">
+                        <BetaBadge size="sm" variant="subtle" showIcon={false} />
+                      </span>
                     </Link>
                   )}
 
