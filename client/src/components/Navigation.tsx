@@ -385,18 +385,18 @@ export default function Navigation() {
                     <Link
                       href="/communities"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 touch-target ${
+                      className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 touch-target ${
                         location === '/communities' || location.startsWith('/communities/')
                           ? 'bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 text-[#d3541e] border border-[#c0580f]/20' 
                           : 'hover:bg-white/5 text-white/90 hover:text-white'
                       }`}
                       data-testid="nav-mobile-communities"
                     >
-                      <Users className="h-5 w-5" />
-                      <span className="font-medium text-base">Communities</span>
-                      <span className="ml-auto">
-                        <BetaBadge size="sm" variant="subtle" showIcon={false} />
-                      </span>
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <Users className="h-5 w-5" />
+                        <span className="font-medium text-base">Communities</span>
+                      </div>
+                      <BetaBadge size="sm" variant="subtle" showIcon={false} />
                     </Link>
                   )}
 
