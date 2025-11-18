@@ -193,7 +193,20 @@ export function TicketsAttendeesPageEnhanced() {
         setTransferEmail("");
         setTransferName("");
         queryClient.invalidateQueries({ queryKey: ['/api/tickets/events', eventId, 'attendees'] });
+      } else {
+        toast({
+          title: "Transfer Failed",
+          description: data.error || "Failed to transfer ticket",
+          variant: "destructive"
+        });
       }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Transfer Failed",
+        description: error.message || "An error occurred while transferring the ticket",
+        variant: "destructive"
+      });
     }
   });
   
@@ -781,13 +794,15 @@ export function TicketsAttendeesPageEnhanced() {
                           {attendee.isVip ? 'Remove VIP' : 'Mark as VIP'}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator className="bg-copper-500/20" />
-                        <DropdownMenuItem 
-                          onClick={() => handleTransfer(attendee)}
-                          className="cursor-pointer text-white hover:bg-copper-500/10"
-                        >
-                          <UserPlus className="h-4 w-4 mr-2 text-copper-300" />
-                          Transfer Ticket
-                        </DropdownMenuItem>
+                        {attendee.status === 'valid' && (
+                          <DropdownMenuItem 
+                            onClick={() => handleTransfer(attendee)}
+                            className="cursor-pointer text-white hover:bg-copper-500/10"
+                          >
+                            <UserPlus className="h-4 w-4 mr-2 text-copper-300" />
+                            Transfer Ticket
+                          </DropdownMenuItem>
+                        )}
                         {attendee.status !== 'refunded' && (
                           <DropdownMenuItem 
                             onClick={() => handleRefund(attendee)}
