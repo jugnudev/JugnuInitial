@@ -305,19 +305,12 @@ export default function Navigation() {
           >
             {/* Header with Logo */}
             <SheetHeader className="bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 backdrop-blur-md border-b border-white/10 px-6 py-5">
-              <SheetTitle className="flex items-center justify-between">
+              <SheetTitle className="flex items-center">
                 <img 
                   src={logoImage}
                   alt="Jugnu"
                   className="h-8"
                 />
-                <button
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
-                  aria-label="Close menu"
-                >
-                  <X className="h-5 w-5 text-white/70" />
-                </button>
               </SheetTitle>
             </SheetHeader>
 
