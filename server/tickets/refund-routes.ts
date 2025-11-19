@@ -4,6 +4,7 @@ import { StripeService, stripe } from "./stripe-service";
 import { sendRefundEmail, sendTransferEmails } from "./email-service";
 import { nanoid } from 'nanoid';
 import type { TicketsOrder } from '@shared/schema';
+import { communitiesStorage } from '../communities/communities-supabase';
 
 // Middleware to check if ticketing is enabled
 const isTicketingEnabled = () => process.env.ENABLE_TICKETING === 'true';
@@ -362,6 +363,53 @@ export function addRefundRoutes(app: Express) {
       } catch (emailError) {
         console.error('[Transfer] Failed to send transfer emails:', emailError);
         // Don't fail the transfer if email fails
+      }
+      
+      // Create in-app notifications for both users
+      try {
+        // Find user IDs for both the old and new ticket holders
+        const oldUser = await communitiesStorage.getUserByEmail(order!.buyerEmail);
+        const newUser = await communitiesStorage.getUserByEmail(newEmail);
+        
+        const baseUrl = process.env.VITE_BASE_URL || 'https://thehouseofjugnu.com';
+        
+        // Notification for old ticket holder (ticket transferred away)
+        if (oldUser) {
+          await communitiesStorage.createNotification({
+            recipientId: oldUser.id,
+            type: 'ticket_transferred_away',
+            title: 'Ticket Transferred',
+            body: `Your ticket for "${event.title}" has been transferred to ${newEmail}`,
+            actionUrl: `${baseUrl}/my-orders`,
+            metadata: {
+              eventTitle: event.title,
+              ticketSerial: ticket.serial,
+              transferredTo: newEmail,
+              eventSlug: event.slug
+            }
+          });
+        }
+        
+        // Notification for new ticket holder (ticket received)
+        if (newUser) {
+          await communitiesStorage.createNotification({
+            recipientId: newUser.id,
+            type: 'ticket_received',
+            title: 'Ticket Received',
+            body: `You've received a ticket for "${event.title}"`,
+            actionUrl: `${baseUrl}/my-orders`,
+            metadata: {
+              eventTitle: event.title,
+              newTicketSerial: newTicket.serial,
+              eventSlug: event.slug
+            }
+          });
+        }
+        
+        console.log(`[Transfer] In-app notifications sent for ticket transfer`);
+      } catch (notificationError) {
+        console.error('[Transfer] Failed to create notifications:', notificationError);
+        // Don't fail the transfer if notifications fail
       }
       
       res.json({
