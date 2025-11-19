@@ -1135,3 +1135,108 @@ export async function sendRefundEmail(
     return false;
   }
 }
+// Send transfer notification emails (to both old and new ticket holders)
+export async function sendTransferEmails(
+  oldTicketId: string,
+  newTicketId: string,
+  oldEmail: string,
+  oldName: string,
+  newEmail: string,
+  newName: string
+): Promise<boolean> {
+  try {
+    if (!initSendGrid()) {
+      console.warn('[Tickets Email] SendGrid not configured, skipping transfer emails');
+      return false;
+    }
+    
+    // Get old ticket details
+    const oldTicket = await ticketsStorage.getTicketById(oldTicketId);
+    if (!oldTicket) {
+      console.error('[Tickets Email] Old ticket not found:', oldTicketId);
+      return false;
+    }
+    
+    // Get new ticket details
+    const newTicket = await ticketsStorage.getTicketById(newTicketId);
+    if (!newTicket) {
+      console.error('[Tickets Email] New ticket not found:', newTicketId);
+      return false;
+    }
+    
+    // Get order item
+    const orderItem = await ticketsStorage.getOrderItemById(oldTicket.orderItemId);
+    if (!orderItem) {
+      console.error('[Tickets Email] Order item not found:', oldTicket.orderItemId);
+      return false;
+    }
+    
+    // Get tier
+    const tier = await ticketsStorage.getTierById(orderItem.tierId);
+    if (!tier) {
+      console.error('[Tickets Email] Tier not found:', orderItem.tierId);
+      return false;
+    }
+    
+    // Get order
+    const order = await ticketsStorage.getOrderById(orderItem.orderId);
+    if (!order) {
+      console.error('[Tickets Email] Order not found:', orderItem.orderId);
+      return false;
+    }
+    
+    // Get event
+    const event = await ticketsStorage.getEventById(order.eventId);
+    if (!event) {
+      console.error('[Tickets Email] Event not found:', order.eventId);
+      return false;
+    }
+    
+    const baseUrl = process.env.VITE_BASE_URL || 'https://thehouseofjugnu.com';
+    const eventDate = format(new Date(event.startAt), 'EEEE, MMMM d, yyyy');
+    const eventTime = format(new Date(event.startAt), 'h:mm a');
+    
+    // Generate QR code for new ticket
+    const qrCodeDataURL = await generateQRCodeDataURL(newTicket.id, newTicket.qrToken);
+    
+    // Send email to old holder
+    await sgMail.send({
+      to: oldEmail,
+      from: {
+        email: 'noreply@thehouseofjugnu.com',
+        name: 'Jugnu'
+      },
+      subject: `Ticket Transferred: ${event.title}`,
+      html: `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background-color:#f3f4f6}.container{max-width:600px;margin:0 auto;padding:20px}.header{background:linear-gradient(135deg,#c0580f 0%,#d3541e 100%);color:white;padding:30px;border-radius:10px 10px 0 0;text-align:center}.header h1{margin:0;font-size:28px;font-weight:600}.content{background:white;padding:30px;border:1px solid #e5e7eb;border-radius:0 0 10px 10px}.transfer-box{background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:20px;margin:20px 0}.info-grid{display:grid;grid-template-columns:1fr;gap:15px;margin:20px 0}.info-row{padding:12px;background:#f9fafb;border-radius:6px}.info-label{font-weight:600;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.5px}.info-value{color:#111827;font-size:16px;margin-top:4px}.footer{text-align:center;padding:20px;color:#6b7280;font-size:14px}</style>
+</head>
+<body><div class="container"><div class="header"><h1>🎫 Ticket Transferred</h1></div><div class="content"><p>Hi ${oldName},</p><div class="transfer-box"><strong>Your ticket has been transferred</strong><p style="margin:10px 0 0">Your ticket for <strong>${event.title}</strong> has been successfully transferred to another attendee.</p></div><div class="info-grid"><div class="info-row"><div class="info-label">Event</div><div class="info-value">${event.title}</div></div><div class="info-row"><div class="info-label">Date & Time</div><div class="info-value">${eventDate} at ${eventTime}</div></div><div class="info-row"><div class="info-label">Ticket Type</div><div class="info-value">${tier.name}</div></div><div class="info-row"><div class="info-label">Previous Ticket #</div><div class="info-value">${oldTicket.serial}</div></div><div class="info-row"><div class="info-label">Transferred To</div><div class="info-value">${newEmail}</div></div></div><p style="margin-top:24px;color:#6b7280">Your original ticket is no longer valid. If you believe this transfer was made in error, please contact the event organizer immediately.</p></div><div class="footer"><p>Questions? Contact us at <a href="mailto:support@thehouseofjugnu.com" style="color:#c0580f">support@thehouseofjugnu.com</a></p><p style="margin-top:10px">© ${new Date().getFullYear()} Jugnu</p></div></div></body>
+</html>`
+    });
+    
+    // Send email to new holder
+    await sgMail.send({
+      to: newEmail,
+      from: {
+        email: 'noreply@thehouseofjugnu.com',
+        name: 'Jugnu'
+      },
+      subject: `Your Ticket for ${event.title}`,
+      html: `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background-color:#f3f4f6}.container{max-width:600px;margin:0 auto;padding:20px}.header{background:linear-gradient(135deg,#c0580f 0%,#d3541e 100%);color:white;padding:30px;border-radius:10px 10px 0 0;text-align:center}.header h1{margin:0;font-size:28px;font-weight:600}.content{background:white;padding:30px;border:1px solid #e5e7eb;border-radius:0 0 10px 10px}.welcome-box{background:#d1fae5;border:1px solid #10b981;border-radius:8px;padding:20px;margin:20px 0;text-align:center}.qr-container{text-align:center;padding:24px;background:#f9fafb;border-radius:8px;margin:20px 0}.qr-container img{max-width:240px;height:auto;border:2px solid #c0580f;border-radius:8px}.info-grid{display:grid;grid-template-columns:1fr;gap:15px;margin:20px 0}.info-row{padding:12px;background:#f9fafb;border-radius:6px}.info-label{font-weight:600;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.5px}.info-value{color:#111827;font-size:16px;margin-top:4px}.footer{text-align:center;padding:20px;color:#6b7280;font-size:14px}</style>
+</head>
+<body><div class="container"><div class="header"><h1>🎉 Welcome! Your Ticket is Ready</h1></div><div class="content"><p>Hi ${newName},</p><div class="welcome-box"><strong style="font-size:18px">You've received a ticket!</strong><p style="margin:10px 0 0">A ticket for <strong>${event.title}</strong> has been transferred to you.</p></div><div class="info-grid"><div class="info-row"><div class="info-label">Event</div><div class="info-value">${event.title}</div></div><div class="info-row"><div class="info-label">Date & Time</div><div class="info-value">${eventDate} at ${eventTime}</div></div><div class="info-row"><div class="info-label">Venue</div><div class="info-value">${event.venue || 'TBA'}, ${event.city}, ${event.province}</div></div><div class="info-row"><div class="info-label">Ticket Type</div><div class="info-value">${tier.name}</div></div><div class="info-row"><div class="info-label">Your Ticket #</div><div class="info-value">${newTicket.serial}</div></div></div><h3 style="margin:30px 0 15px;color:#111827">Your QR Code</h3><p style="color:#6b7280;margin-bottom:15px">Present this QR code at the event entrance for check-in:</p><div class="qr-container"><img src="${qrCodeDataURL}" alt="Ticket QR Code"/><p style="margin-top:12px;font-size:14px;color:#6b7280">Scan this code at the venue</p></div><div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:16px;margin:20px 0"><strong>Important:</strong> Save this email or take a screenshot of your QR code. You'll need it for entry!</div></div><div class="footer"><p>Questions? Contact us at <a href="mailto:support@thehouseofjugnu.com" style="color:#c0580f">support@thehouseofjugnu.com</a></p><p style="margin-top:10px">© ${new Date().getFullYear()} Jugnu</p></div></div></body>
+</html>`
+    });
+    
+    console.log(`[Tickets Email] Sent transfer notifications - old: ${oldEmail}, new: ${newEmail}`);
+    return true;
+  } catch (error) {
+    console.error('[Tickets Email] Error sending transfer emails:', error);
+    return false;
+  }
+}

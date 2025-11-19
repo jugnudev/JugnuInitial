@@ -10,7 +10,7 @@ import {
   Edit, DollarSign, UserX, UserPlus, Tag,
   MessageSquare, Shield, ShieldOff, Star,
   ArrowLeft, Copy, FileText, ChevronRight,
-  QrCode, Phone, AtSign
+  QrCode, Phone, AtSign, ArrowRightLeft
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -603,6 +603,8 @@ export function TicketsAttendeesPageEnhanced() {
                     ? 'border-green-500/30 bg-green-500/5'
                     : attendee.status === 'refunded'
                     ? 'border-red-500/30 bg-red-500/5'
+                    : attendee.status === 'transferred'
+                    ? 'border-amber-500/30 bg-amber-500/5'
                     : 'border-copper-500/20'
                 } ${
                   selectedAttendees.has(attendee.ticketId) ? 'ring-2 ring-copper-500' : ''
@@ -640,6 +642,12 @@ export function TicketsAttendeesPageEnhanced() {
                         <Badge variant="destructive" className="h-6 px-2 text-xs">
                           <XCircle className="h-3 w-3 mr-1" />
                           Refunded
+                        </Badge>
+                      )}
+                      {attendee.status === 'transferred' && (
+                        <Badge variant="outline" className="border-amber-500/50 text-amber-300 bg-amber-500/10 h-6 px-2 text-xs">
+                          <ArrowRightLeft className="h-3 w-3 mr-1" />
+                          Transferred
                         </Badge>
                       )}
                       

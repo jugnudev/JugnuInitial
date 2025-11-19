@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { ticketsStorage } from "./tickets-storage";
 import { StripeService, stripe } from "./stripe-service";
-import { sendRefundEmail } from "./email-service";
+import { sendRefundEmail, sendTransferEmails } from "./email-service";
 import { nanoid } from 'nanoid';
 import type { TicketsOrder } from '@shared/schema';
 
@@ -324,15 +324,12 @@ export function addRefundRoutes(app: Express) {
         transferredAt: new Date()
       });
       
-      // Update order with new attendee info if provided
-      if (newName || newPhone) {
-        // Create a new order for the transferred ticket or update existing
-        // This is simplified - in production you might handle this differently
-        await ticketsStorage.updateOrder(order!.id, {
-          buyerName: newName || order!.buyerName,
-          buyerPhone: newPhone || order!.buyerPhone
-        });
-      }
+      // Update order with new attendee info
+      await ticketsStorage.updateOrder(order!.id, {
+        buyerEmail: newEmail,
+        buyerName: newName || order!.buyerName,
+        buyerPhone: newPhone || order!.buyerPhone
+      });
       
       // Create audit log
       await ticketsStorage.createAuditLog({
@@ -351,9 +348,21 @@ export function addRefundRoutes(app: Express) {
         userAgent: req.headers['user-agent']
       });
       
-      // TODO: Send transfer notification emails
-      // Email notifications for transfers can be added here
-      console.log(`[Transfer] Ticket ${ticket.serial} transferred from ${order!.buyerEmail} to ${newEmail}`);
+      // Send transfer notification emails
+      try {
+        await sendTransferEmails(
+          ticketId,
+          newTicket.id,
+          order!.buyerEmail,
+          order!.buyerName || 'Attendee',
+          newEmail,
+          newName || 'New Attendee'
+        );
+        console.log(`[Transfer] Ticket ${ticket.serial} transferred from ${order!.buyerEmail} to ${newEmail}, emails sent`);
+      } catch (emailError) {
+        console.error('[Transfer] Failed to send transfer emails:', emailError);
+        // Don't fail the transfer if email fails
+      }
       
       res.json({
         ok: true,
