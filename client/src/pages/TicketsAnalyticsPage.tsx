@@ -101,6 +101,8 @@ export function TicketsAnalyticsPage() {
   const [dateRange, setDateRange] = useState("last7days");
   const [compareMode, setCompareMode] = useState(false);
   
+  console.log('[Analytics] Component mounted, eventId:', eventId, 'params:', params);
+  
   // Fetch event details
   const { data: event } = useQuery<{ event: { title: string } }>({
     queryKey: ['/api/tickets/events', eventId],
@@ -108,16 +110,25 @@ export function TicketsAnalyticsPage() {
   });
   
   // Fetch analytics data
-  const { data: analytics, isLoading, refetch } = useQuery<AnalyticsData>({
+  const { data: analytics, isLoading, error, refetch } = useQuery<AnalyticsData>({
     queryKey: ['/api/tickets/events', eventId, 'analytics', dateRange],
     queryFn: async () => {
+      console.log('[Analytics] Fetching analytics for eventId:', eventId, 'dateRange:', dateRange);
       const response = await fetch(`/api/tickets/events/${eventId}/analytics?period=${dateRange}`);
-      if (!response.ok) throw new Error('Failed to fetch analytics');
+      console.log('[Analytics] Response status:', response.status, response.ok);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('[Analytics] API error:', errorData);
+        throw new Error(errorData.error || 'Failed to fetch analytics');
+      }
       const data = await response.json();
+      console.log('[Analytics] Response data:', data);
       return data.analytics; // Extract the analytics object from the response
     },
     enabled: !!eventId
   });
+  
+  console.log('[Analytics] Query state - analytics:', analytics, 'isLoading:', isLoading, 'error:', error);
   
   // Export analytics data
   const handleExport = (format: 'csv' | 'json') => {
