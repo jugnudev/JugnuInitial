@@ -137,7 +137,9 @@ export class StorageExtensions {
       .order('created_at', { ascending: false });
     
     if (ticketsError) throw new Error(`Failed to get tickets: ${ticketsError.message}`);
-    return tickets || [];
+    
+    // Convert snake_case to camelCase for consistency with rest of codebase
+    return tickets ? this.toCamelCase(tickets) : [];
   }
   
   async getTicketsByOrderItem(orderItemId: string): Promise<TicketsTicket[]> {
