@@ -36,7 +36,9 @@ function getSupabaseDatabaseURL(): string {
       const projectRef = match[1];
       const password = process.env.SUPABASE_DB_PASSWORD || process.env.SUPABASE_SERVICE_ROLE_KEY;
       // Use transaction mode pooler (port 6543) for serverless/Replit environments
-      return `postgresql://postgres.${projectRef}:${password}@aws-0-us-west-1.pooler.supabase.com:6543/postgres`;
+      // Use SUPABASE_DB_REGION environment variable or default to us-west-1
+      const region = process.env.SUPABASE_DB_REGION || 'us-west-1';
+      return `postgresql://postgres.${projectRef}:${password}@aws-0-${region}.pooler.supabase.com:6543/postgres`;
     }
   }
   
