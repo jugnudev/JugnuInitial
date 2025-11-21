@@ -1175,7 +1175,7 @@ export class CommunitiesSupabaseDB {
     // Get view counts for these posts
     const { data: analyticsData, error: analyticsError} = await this.client
       .from('community_post_analytics')
-      .select('post_id, impressions')
+      .select('post_id, views')
       .in('post_id', postIds);
 
     if (analyticsError) console.error('[Posts] Error fetching analytics:', analyticsError);
@@ -1184,7 +1184,7 @@ export class CommunitiesSupabaseDB {
     const viewCountsByPost: Record<string, number> = {};
     if (analyticsData) {
       analyticsData.forEach(analytics => {
-        viewCountsByPost[analytics.post_id] = analytics.impressions || 0;
+        viewCountsByPost[analytics.post_id] = analytics.views || 0;
       });
     }
 
