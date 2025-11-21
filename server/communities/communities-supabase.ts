@@ -1633,8 +1633,7 @@ export class CommunitiesSupabaseDB {
         .from('community_post_analytics')
         .upsert({
           post_id: postId,
-          views: newViews,
-          updated_at: new Date().toISOString()
+          views: newViews
         }, {
           onConflict: 'post_id'
         });
