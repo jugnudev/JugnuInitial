@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import {
 
 interface PostCardProps {
   id: string;
+  communityId?: string;
   title: string;
   content: string;
   imageUrl?: string;
@@ -91,6 +92,7 @@ const postAnimation = {
 
 export function PostCard({
   id,
+  communityId,
   title,
   content,
   imageUrl,
@@ -126,6 +128,65 @@ export function PostCard({
   const [expanded, setExpanded] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [showLightbox, setShowLightbox] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const viewTrackedRef = useRef(false);
+  
+  // Track post view when it becomes visible in viewport
+  useEffect(() => {
+    if (!communityId || !id || viewTrackedRef.current) return;
+    
+    let viewTimer: NodeJS.Timeout | null = null;
+    
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          // Track view when post is at least 50% visible and hasn't been tracked yet
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.5 && !viewTrackedRef.current) {
+            // Start timer - track view only if post remains visible for 1.5 seconds
+            viewTimer = setTimeout(() => {
+              if (!viewTrackedRef.current) {
+                viewTrackedRef.current = true;
+                
+                // Call the view tracking endpoint
+                fetch(`/api/communities/${communityId}/posts/${id}/view`, {
+                  method: 'POST',
+                  credentials: 'include',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  }
+                }).catch(err => {
+                  console.error('Failed to track post view:', err);
+                });
+              }
+            }, 1500); // 1.5 second dwell time
+          } else {
+            // Post became less than 50% visible - cancel the timer
+            if (viewTimer) {
+              clearTimeout(viewTimer);
+              viewTimer = null;
+            }
+          }
+        });
+      },
+      {
+        threshold: [0, 0.5, 1], // Track at 0%, 50%, and 100% visibility
+        rootMargin: '0px'
+      }
+    );
+    
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+    
+    return () => {
+      if (viewTimer) {
+        clearTimeout(viewTimer);
+      }
+      if (cardRef.current) {
+        observer.unobserve(cardRef.current);
+      }
+    };
+  }, [communityId, id]);
   
   // Calculate total reactions
   const totalReactions = reactions.reduce((sum, r) => sum + r.count, 0);
@@ -217,6 +278,7 @@ export function PostCard({
         layout
       >
         <Card 
+          ref={cardRef}
           className={`
             relative overflow-hidden backdrop-blur-sm
             ${postTypeStyle.card.background}

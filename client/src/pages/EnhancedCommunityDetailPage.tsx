@@ -230,6 +230,7 @@ function PostCardWithComments({
   return (
     <PostCard
       {...post}
+      communityId={communityId}
       authorName={authorName}
       authorAvatar={authorAvatar}
       comments={comments}

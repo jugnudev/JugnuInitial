@@ -1823,15 +1823,6 @@ export function addCommunitiesRoutes(app: Express) {
       if (isOwner) {
         // Owner gets full access
         const { posts } = await communitiesStorage.getPostsByCommunityId(community.id, 50, 0, user.id);
-        
-        // Track view for each post
-        console.log(`[View Tracking] Tracking views for ${posts.length} posts (owner view)`);
-        for (const post of posts) {
-          communitiesStorage.trackPostView(post.id, user.id).catch(err => {
-            console.error(`[View Tracking] Failed to track view for post ${post.id}:`, err);
-          });
-        }
-        
         const analytics = await communitiesStorage.getCommunityAnalytics(community.id);
         
         res.json({
@@ -1852,14 +1843,6 @@ export function addCommunitiesRoutes(app: Express) {
       } else if (isApprovedMember) {
         // Approved members can see posts and members
         const { posts } = await communitiesStorage.getPostsByCommunityId(community.id, 50, 0, user.id);
-        
-        // Track view for each post
-        console.log(`[View Tracking] Tracking views for ${posts.length} posts (member view)`);
-        for (const post of posts) {
-          communitiesStorage.trackPostView(post.id, user.id).catch(err => {
-            console.error(`[View Tracking] Failed to track view for post ${post.id}:`, err);
-          });
-        }
         
         res.json({
           ok: true,
@@ -2748,6 +2731,44 @@ export function addCommunitiesRoutes(app: Express) {
     } catch (error: any) {
       console.error('Get post error:', error);
       res.status(500).json({ ok: false, error: error.message || 'Failed to get post' });
+    }
+  });
+
+  /**
+   * POST /api/communities/:id/posts/:postId/view
+   * Track post view (members only) - lightweight endpoint for Intersection Observer
+   */
+  app.post('/api/communities/:id/posts/:postId/view', checkCommunitiesFeatureFlag, requireAuth, async (req: Request, res: Response) => {
+    try {
+      const { id, postId } = req.params;
+      const user = (req as any).user;
+
+      // Verify community exists
+      const community = await communitiesStorage.getCommunityById(id);
+      if (!community) {
+        return res.status(404).json({ ok: false, error: 'Community not found' });
+      }
+
+      // Check if user is owner or approved member
+      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      const isOwner = organizer && organizer.id === community.organizerId;
+      
+      if (!isOwner) {
+        const membership = await communitiesStorage.getMembershipByUserAndCommunity(user.id, community.id);
+        if (!membership || membership.status !== 'approved') {
+          return res.status(403).json({ ok: false, error: 'Access denied' });
+        }
+      }
+
+      // Track the view (non-blocking)
+      communitiesStorage.trackPostView(postId, user.id).catch(err => {
+        console.error(`[View Tracking] Failed to track view for post ${postId}:`, err);
+      });
+
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error('Track post view error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to track view' });
     }
   });
 
