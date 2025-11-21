@@ -4610,22 +4610,32 @@ export function addCommunitiesRoutes(app: Express) {
         : [];
 
       // Get post analytics (views, shares, etc.) from Supabase
-      const { data: postAnalytics } = postIds.length > 0
+      console.log(`[Analytics] Fetching analytics for ${postIds.length} posts`);
+      const { data: postAnalytics, error: analyticsError } = postIds.length > 0
         ? await (communitiesStorage as any).client
             .from('community_post_analytics')
             .select('post_id, views, shares')
             .in('post_id', postIds)
-        : { data: [] };
+        : { data: [], error: null };
+      
+      if (analyticsError) {
+        console.error(`[Analytics] Error fetching analytics:`, analyticsError);
+      } else {
+        console.log(`[Analytics] Fetched ${postAnalytics?.length || 0} analytics records:`, postAnalytics);
+      }
       
       // Create view count map for O(1) lookup
       const viewCountMap: { [postId: string]: number } = {};
       postAnalytics?.forEach((analytics: any) => {
         viewCountMap[analytics.post_id] = analytics.views || 0;
+        console.log(`[Analytics] Post ${analytics.post_id}: ${analytics.views} views`);
       });
       
       // Add viewCount to each post
+      console.log(`[Analytics] Mapping view counts to ${posts.length} posts`);
       posts.forEach(post => {
         post.viewCount = viewCountMap[post.id] || 0;
+        console.log(`[Analytics] Post "${post.title}": viewCount = ${post.viewCount}`);
       });
 
       // ============ PERFORMANCE OPTIMIZATION ============
