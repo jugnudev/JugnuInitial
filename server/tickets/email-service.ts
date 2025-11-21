@@ -1250,3 +1250,46 @@ export async function sendTransferEmails(
     return false;
   }
 }
+
+export async function sendBulkAttendeeEmail(params: {
+  to: string;
+  name: string;
+  subject: string;
+  message: string;
+  eventTitle: string;
+  organizerName: string;
+}): Promise<boolean> {
+  if (!sgMail) {
+    console.warn('[Tickets Email] SendGrid not configured - skipping bulk email');
+    return false;
+  }
+  
+  try {
+    const { to, name, subject, message, eventTitle, organizerName } = params;
+    
+    // Convert message line breaks to HTML
+    const htmlMessage = message.replace(/\n/g, '<br>');
+    
+    await sgMail.send({
+      to,
+      from: {
+        email: 'noreply@thehouseofjugnu.com',
+        name: 'Jugnu'
+      },
+      subject,
+      html: `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background-color:#f3f4f6}.container{max-width:600px;margin:0 auto;padding:20px}.header{background:linear-gradient(135deg,#c0580f 0%,#d3541e 100%);color:white;padding:30px;border-radius:10px 10px 0 0;text-align:center}.header h1{margin:0;font-size:24px;font-weight:600}.content{background:white;padding:30px;border:1px solid #e5e7eb;border-radius:0 0 10px 10px}.message-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:20px 0;white-space:pre-wrap}.footer{text-align:center;padding:20px;color:#6b7280;font-size:14px}</style>
+</head>
+<body><div class="container"><div class="header"><h1>📧 Message from ${organizerName}</h1></div><div class="content"><p>Hi ${name},</p><p>You're receiving this message regarding <strong>${eventTitle}</strong>.</p><div class="message-box">${htmlMessage}</div><p style="margin-top:24px;color:#6b7280">This message was sent by the event organizer.</p></div><div class="footer"><p>Questions? Contact us at <a href="mailto:support@thehouseofjugnu.com" style="color:#c0580f">support@thehouseofjugnu.com</a></p><p style="margin-top:10px">© ${new Date().getFullYear()} Jugnu</p></div></div></body>
+</html>`
+    });
+    
+    console.log(`[Tickets Email] Sent bulk message to: ${to}`);
+    return true;
+  } catch (error) {
+    console.error('[Tickets Email] Error sending bulk email:', error);
+    return false;
+  }
+}

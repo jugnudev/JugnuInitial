@@ -7,6 +7,7 @@ import { StripeService, stripe } from "./stripe-service";
 import { addConnectRoutes } from './connect-routes';
 import { addRefundRoutes } from './refund-routes';
 import { addAnalyticsRoutes } from './analytics-routes';
+import { addCommunicationRoutes } from './communication-routes';
 import { uploadTicketEventImage } from '../services/storageService';
 import { nanoid } from 'nanoid';
 import QRCode from 'qrcode';
@@ -121,6 +122,7 @@ export function addTicketsRoutes(app: Express) {
   
   // Add analytics and communication routes
   addAnalyticsRoutes(app);
+  addCommunicationRoutes(app);
   
   // Add my tickets routes
   addMyTicketsRoutes(app);

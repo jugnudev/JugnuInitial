@@ -242,6 +242,38 @@ export function TicketsAttendeesPageEnhanced() {
     }
   });
   
+  // Send message mutation
+  const sendMessageMutation = useMutation({
+    mutationFn: async ({ ticketIds, subject, message }: { ticketIds: string[]; subject: string; message: string }) => {
+      return apiRequest('POST', `/api/tickets/events/${eventId}/send-message`, { ticketIds, subject, message });
+    },
+    onSuccess: (data: any) => {
+      if (data.ok) {
+        toast({
+          title: "Emails Sent",
+          description: `Message sent to ${selectedAttendees.size} attendees`
+        });
+        setMessageDialogOpen(false);
+        setSelectedAttendees(new Set());
+        setMessageSubject("");
+        setMessageContent("");
+      } else {
+        toast({
+          title: "Failed to send emails",
+          description: data.error || "An error occurred",
+          variant: "destructive"
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to send emails",
+        description: error.message || "An error occurred",
+        variant: "destructive"
+      });
+    }
+  });
+  
   // Filter attendees
   const filteredAttendees = attendeesData?.attendees?.filter(attendee => {
     if (filterTier !== 'all' && attendee.tierName !== filterTier) return false;
@@ -1069,10 +1101,10 @@ export function TicketsAttendeesPageEnhanced() {
       
       {/* Refund Dialog */}
       <Dialog open={refundDialogOpen} onOpenChange={setRefundDialogOpen}>
-        <DialogContent className="glass-elevated border-copper-500/30">
+        <DialogContent className="glass-elevated border-copper-500/30" aria-describedby="refund-dialog-description">
           <DialogHeader>
             <DialogTitle className="font-fraunces text-xl text-white">Process Refund</DialogTitle>
-            <DialogDescription className="text-copper-300">
+            <DialogDescription id="refund-dialog-description" className="text-copper-300">
               Issue a refund for ticket {selectedTicket?.serial}
             </DialogDescription>
           </DialogHeader>
@@ -1151,10 +1183,10 @@ export function TicketsAttendeesPageEnhanced() {
       
       {/* Edit Attendee Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="glass-elevated border-copper-500/30">
+        <DialogContent className="glass-elevated border-copper-500/30" aria-describedby="edit-dialog-description">
           <DialogHeader>
             <DialogTitle className="font-fraunces text-xl text-white">Edit Attendee Info</DialogTitle>
-            <DialogDescription className="text-copper-300">
+            <DialogDescription id="edit-dialog-description" className="text-copper-300">
               Update contact information for {selectedTicket?.serial}
             </DialogDescription>
           </DialogHeader>
@@ -1215,10 +1247,10 @@ export function TicketsAttendeesPageEnhanced() {
       
       {/* Transfer Dialog */}
       <Dialog open={transferDialogOpen} onOpenChange={setTransferDialogOpen}>
-        <DialogContent className="glass-elevated border-copper-500/30">
+        <DialogContent className="glass-elevated border-copper-500/30" aria-describedby="transfer-dialog-description">
           <DialogHeader>
             <DialogTitle className="font-fraunces text-xl text-white">Transfer Ticket</DialogTitle>
-            <DialogDescription className="text-copper-300">
+            <DialogDescription id="transfer-dialog-description" className="text-copper-300">
               Transfer ticket {selectedTicket?.serial} to a new attendee
             </DialogDescription>
           </DialogHeader>
@@ -1275,10 +1307,10 @@ export function TicketsAttendeesPageEnhanced() {
       
       {/* Notes Dialog */}
       <Dialog open={notesDialogOpen} onOpenChange={setNotesDialogOpen}>
-        <DialogContent className="glass-elevated border-copper-500/30">
+        <DialogContent className="glass-elevated border-copper-500/30" aria-describedby="notes-dialog-description">
           <DialogHeader>
             <DialogTitle className="font-fraunces text-xl text-white">Notes & Tags</DialogTitle>
-            <DialogDescription className="text-copper-300">
+            <DialogDescription id="notes-dialog-description" className="text-copper-300">
               Add notes and tags for ticket {selectedTicket?.serial}
             </DialogDescription>
           </DialogHeader>
@@ -1292,6 +1324,8 @@ export function TicketsAttendeesPageEnhanced() {
                 className="min-h-[100px] bg-black/40 border-copper-500/30 text-white"
                 value={attendeeNotes}
                 onChange={(e) => setAttendeeNotes(e.target.value)}
+                data-testid="textarea-notes"
+                aria-label="Attendee notes"
               />
             </div>
             
@@ -1303,6 +1337,8 @@ export function TicketsAttendeesPageEnhanced() {
                 value={attendeeTags}
                 onChange={(e) => setAttendeeTags(e.target.value)}
                 className="bg-black/40 border-copper-500/30 text-white"
+                data-testid="input-tags"
+                aria-label="Attendee tags"
               />
             </div>
           </div>
@@ -1312,6 +1348,7 @@ export function TicketsAttendeesPageEnhanced() {
               variant="outline" 
               onClick={() => setNotesDialogOpen(false)}
               className="border-copper-500/30 text-copper-200"
+              data-testid="button-cancel-notes"
             >
               Cancel
             </Button>
@@ -1324,8 +1361,84 @@ export function TicketsAttendeesPageEnhanced() {
                 });
               }}
               className="bg-gradient-to-r from-copper-500 to-copper-600"
+              data-testid="button-save-notes"
             >
               Save Notes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Message Dialog */}
+      <Dialog open={messageDialogOpen} onOpenChange={setMessageDialogOpen}>
+        <DialogContent className="glass-elevated border-copper-500/30" aria-describedby="message-dialog-description">
+          <DialogHeader>
+            <DialogTitle className="font-fraunces text-xl text-white">Send Message to Attendees</DialogTitle>
+            <DialogDescription id="message-dialog-description" className="text-copper-300">
+              Send an email message to {selectedAttendees.size} selected attendee{selectedAttendees.size !== 1 ? 's' : ''}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="message-subject" className="text-white">Subject</Label>
+              <Input
+                id="message-subject"
+                placeholder="Enter email subject..."
+                value={messageSubject}
+                onChange={(e) => setMessageSubject(e.target.value)}
+                className="bg-black/40 border-copper-500/30 text-white"
+                data-testid="input-message-subject"
+                aria-label="Email subject"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="message-content" className="text-white">Message</Label>
+              <Textarea
+                id="message-content"
+                placeholder="Enter your message..."
+                className="min-h-[150px] bg-black/40 border-copper-500/30 text-white"
+                value={messageContent}
+                onChange={(e) => setMessageContent(e.target.value)}
+                data-testid="textarea-message-content"
+                aria-label="Email message"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setMessageDialogOpen(false)}
+              className="border-copper-500/30 text-copper-200"
+              data-testid="button-cancel-message"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (!messageSubject || !messageContent) {
+                  toast({
+                    title: "Missing Information",
+                    description: "Please enter both subject and message",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+                const ticketIds = Array.from(selectedAttendees);
+                sendMessageMutation.mutate({
+                  ticketIds,
+                  subject: messageSubject,
+                  message: messageContent
+                });
+              }}
+              disabled={!messageSubject || !messageContent || sendMessageMutation.isPending}
+              className="bg-gradient-to-r from-copper-500 to-copper-600"
+              data-testid="button-send-message"
+            >
+              <Send className="h-4 w-4 mr-2" />
+              {sendMessageMutation.isPending ? 'Sending...' : 'Send Message'}
             </Button>
           </DialogFooter>
         </DialogContent>
