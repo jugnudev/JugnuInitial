@@ -170,45 +170,75 @@ export function addAnalyticsRoutes(app: Express) {
         .sort((a, b) => b.totalSpent - a.totalSpent)
         .slice(0, 10);
       
-      // Format response
+      // Calculate refund stats
+      const refundReasons = new Map<string, number>();
+      tickets.filter(t => t.status === 'refunded').forEach(ticket => {
+        const reason = (ticket as any).refundReason || 'No reason provided';
+        refundReasons.set(reason, (refundReasons.get(reason) || 0) + 1);
+      });
+      
+      // Get total revenue for tier percentages
+      const totalTierRevenue = Array.from(revenueByTier.values()).reduce((sum, tier) => sum + tier.revenue, 0);
+      
+      // Format response to match frontend AnalyticsData interface
       const analytics = {
         summary: {
           totalTicketsSold,
-          totalTicketsUsed,
-          totalTicketsRefunded,
           totalRevenue,
-          totalRefunded,
-          netRevenue: totalRevenue - totalRefunded,
-          averageOrderValue,
-          checkInRate,
+          averageTicketPrice: totalTicketsSold > 0 ? totalRevenue / totalTicketsSold : 0,
+          conversionRate: 0, // Would need page view data to calculate
           refundRate,
-          totalOrders: paidOrders.length,
-          uniqueBuyers: new Set(paidOrders.map(o => o.buyerEmail)).size
+          checkInRate
         },
         
         salesOverTime: Array.from(salesByDate.entries()).map(([date, count]) => ({
           date,
-          ticketsSold: count,
+          tickets: count,
           revenue: revenueByDate.get(date) || 0
         })),
         
-        revenueByTier: Array.from(revenueByTier.values()),
-        
-        checkInPatterns: Array.from(checkinsByHour.entries()).map(([hour, count]) => ({
-          hour,
-          checkIns: count,
-          label: `${hour}:00 - ${hour}:59`
+        revenueByTier: Array.from(revenueByTier.values()).map(tier => ({
+          name: tier.name,
+          revenue: tier.revenue,
+          ticketsSold: tier.quantity,
+          percentage: totalTierRevenue > 0 ? (tier.revenue / totalTierRevenue) * 100 : 0
         })),
         
-        topBuyers,
+        checkInPatterns: Array.from(checkinsByHour.entries()).map(([hour, count]) => ({
+          hour: `${hour}:00`,
+          count
+        })),
         
-        // Tier capacity utilization
-        tierUtilization: tiers.map(tier => ({
-          name: tier.name,
-          sold: tier.soldCount || 0,
-          capacity: tier.capacity || null,
-          utilizationRate: tier.capacity ? ((tier.soldCount || 0) / tier.capacity) * 100 : null
-        }))
+        refundStats: {
+          totalRefunds: totalTicketsRefunded,
+          refundedAmount: totalRefunded,
+          reasons: Array.from(refundReasons.entries()).map(([reason, count]) => ({
+            reason,
+            count
+          }))
+        },
+        
+        attendeeDemographics: {
+          emailDomains: Array.from(
+            paidOrders.reduce((map, order) => {
+              const domain = order.buyerEmail.split('@')[1] || 'unknown';
+              map.set(domain, (map.get(domain) || 0) + 1);
+              return map;
+            }, new Map<string, number>())
+          )
+            .map(([domain, count]) => ({ domain, count }))
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10),
+          purchaseTimes: Array.from(
+            paidOrders.reduce((map, order) => {
+              if (order.placedAt) {
+                const hour = `${new Date(order.placedAt).getHours()}:00`;
+                map.set(hour, (map.get(hour) || 0) + 1);
+              }
+              return map;
+            }, new Map<string, number>())
+          ).map(([hour, count]) => ({ hour, count }))
+        }
       };
       
       res.json({

@@ -102,7 +102,7 @@ export function TicketsAnalyticsPage() {
   const [compareMode, setCompareMode] = useState(false);
   
   // Fetch event details
-  const { data: event } = useQuery({
+  const { data: event } = useQuery<{ event: { title: string } }>({
     queryKey: ['/api/tickets/events', eventId],
     enabled: !!eventId
   });
@@ -113,7 +113,8 @@ export function TicketsAnalyticsPage() {
     queryFn: async () => {
       const response = await fetch(`/api/tickets/events/${eventId}/analytics?period=${dateRange}`);
       if (!response.ok) throw new Error('Failed to fetch analytics');
-      return response.json();
+      const data = await response.json();
+      return data.analytics; // Extract the analytics object from the response
     },
     enabled: !!eventId
   });
