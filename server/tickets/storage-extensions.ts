@@ -6,7 +6,6 @@ import type {
   TicketsOrder
 } from '@shared/schema';
 import { getSupabaseAdmin } from '../supabaseAdmin';
-import { pool } from './tickets-db';
 
 export class StorageExtensions {
   
