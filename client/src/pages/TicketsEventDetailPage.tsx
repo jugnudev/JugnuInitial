@@ -71,6 +71,7 @@ export function TicketsEventDetailPage() {
   const [paymentClientSecret, setPaymentClientSecret] = useState<string | null>(null);
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
+  const [tierErrors, setTierErrors] = useState<Record<string, string>>({});
 
   // Email validation helper
   const isValidEmail = (email: string) => {
@@ -148,12 +149,69 @@ export function TicketsEventDetailPage() {
     },
     onError: (error: any) => {
       console.error('[EmbeddedCheckout] Payment Intent error:', error);
-      toast({
-        title: "Checkout failed",
-        description: error.message || "Please try again",
-        variant: "destructive"
-      });
       setIsCheckingOut(false);
+      
+      // Extract user-friendly error message
+      let errorMessage = "We couldn't complete your checkout. Please try again.";
+      const tierErrorsFromBackend: Record<string, string> = {};
+      
+      try {
+        const rawMessage = error.message || "";
+        
+        // Remove status code prefix (e.g., "500: " or "400: ")
+        const cleanedMessage = rawMessage.replace(/^\d+:\s*/, '');
+        
+        // Try to parse as JSON
+        if (cleanedMessage.startsWith('{')) {
+          try {
+            const errorData = JSON.parse(cleanedMessage);
+            // Extract error message from various structures
+            if (typeof errorData.error === 'string') {
+              errorMessage = errorData.error;
+            } else if (errorData.error?.message) {
+              errorMessage = errorData.error.message;
+            } else if (errorData.message) {
+              errorMessage = errorData.message;
+            }
+          } catch {
+            // Not valid JSON, use cleaned message
+            if (cleanedMessage.length > 0 && !cleanedMessage.includes('[object')) {
+              errorMessage = cleanedMessage;
+            }
+          }
+        } else if (cleanedMessage.length > 0 && !cleanedMessage.includes('[object')) {
+          // Plain text error (already cleaned of status code)
+          errorMessage = cleanedMessage;
+        }
+      } catch (e) {
+        console.warn('Error parsing error message:', e);
+      }
+      
+      // Handle "Not enough tickets" errors with inline display
+      if (errorMessage.includes("Not enough tickets available for")) {
+        const tierNameMatch = errorMessage.match(/for '([^']+)'/);
+        if (tierNameMatch && tierNameMatch[1]) {
+          const tierName = tierNameMatch[1];
+          const tier = event.tiers.find(t => t.name === tierName);
+          if (tier) {
+            const { remaining } = getTierAvailability(tier);
+            tierErrorsFromBackend[tier.id] = `Only ${remaining || 0} ticket${remaining !== 1 ? 's' : ''} available. Please lower your quantity.`;
+            setTierErrors(tierErrorsFromBackend);
+          }
+        }
+        
+        toast({
+          title: "Not enough tickets available",
+          description: "Please review your ticket quantities below.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Checkout failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
     }
   });
 
@@ -272,6 +330,15 @@ export function TicketsEventDetailPage() {
   };
 
   const updateTierQuantity = (tierId: string, quantity: number) => {
+    // Clear any existing error for this tier
+    if (tierErrors[tierId]) {
+      setTierErrors(prev => {
+        const updated = { ...prev };
+        delete updated[tierId];
+        return updated;
+      });
+    }
+    
     if (quantity <= 0) {
       setCart(cart.filter(i => i.tierId !== tierId));
     } else {
@@ -317,6 +384,38 @@ export function TicketsEventDetailPage() {
 
   const handleCheckout = () => {
     console.log('[EmbeddedCheckout] handleCheckout called, cart:', cart);
+    
+    // Clear all previous errors
+    setTierErrors({});
+    
+    // Client-side validation: Check available quantities
+    const errors: Record<string, string> = {};
+    for (const item of cart) {
+      const tier = event.tiers.find(t => t.id === item.tierId);
+      if (!tier) continue;
+      
+      const { available, remaining } = getTierAvailability(tier);
+      
+      if (!available) {
+        errors[item.tierId] = `Sorry, ${tier.name} is sold out.`;
+      } else if (remaining !== null && item.quantity > remaining) {
+        errors[item.tierId] = `Only ${remaining} ticket${remaining !== 1 ? 's' : ''} available for ${tier.name}. Please lower your quantity.`;
+      } else if (tier.maxPerOrder && item.quantity > tier.maxPerOrder) {
+        errors[item.tierId] = `Maximum ${tier.maxPerOrder} ticket${tier.maxPerOrder !== 1 ? 's' : ''} per order for ${tier.name}.`;
+      }
+    }
+    
+    // If there are validation errors, show them and don't proceed
+    if (Object.keys(errors).length > 0) {
+      setTierErrors(errors);
+      toast({
+        title: "Please review your ticket selection",
+        description: "Some quantities exceed available tickets.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsCheckingOut(true);
     
     // Use embedded checkout by default, fallback to hosted checkout if needed
@@ -680,6 +779,15 @@ export function TicketsEventDetailPage() {
                           </div>
                         )}
                       </div>
+                      
+                      {/* Inline Error Message */}
+                      {tierErrors[tier.id] && (
+                        <div className="mt-3 p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
+                          <p className="text-red-400 text-sm font-medium" data-testid={`error-${tier.id}`}>
+                            ⚠️ {tierErrors[tier.id]}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
