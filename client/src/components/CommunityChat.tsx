@@ -83,6 +83,7 @@ export default function CommunityChat({
     typingUsers,
     isConnected,
     isConnecting,
+    systemMessage,
     sendMessage: wsSendMessage,
     sendTyping,
     markMessageDeleted,
@@ -408,6 +409,13 @@ export default function CommunityChat({
 
         {/* Messages */}
         <ScrollArea className="flex-1 p-4">
+          {/* System Message - Moderation Error */}
+          {systemMessage && (
+            <div className="mb-4 p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-600 dark:text-red-400 text-sm">
+              {systemMessage.text}
+            </div>
+          )}
+          
           {!isConnected ? (
             <div className="text-center text-muted-foreground">Connecting to chat...</div>
           ) : allMessages.length === 0 ? (

@@ -36,6 +36,7 @@ export function useCommunityChat(communityId: string, token: string | null) {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [lastSentTime, setLastSentTime] = useState<number>(0);
+  const [systemMessage, setSystemMessage] = useState<{ text: string; timestamp: number } | null>(null);
   
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -147,6 +148,14 @@ export function useCommunityChat(communityId: string, token: string | null) {
                   description: "Authentication failed. Please refresh the page.",
                   variant: "destructive"
                 });
+              } else {
+                // Show moderation and other errors as system message in chat
+                setSystemMessage({
+                  text: data.payload,
+                  timestamp: Date.now()
+                });
+                // Clear after 5 seconds
+                setTimeout(() => setSystemMessage(null), 5000);
               }
               break;
               
@@ -310,6 +319,7 @@ export function useCommunityChat(communityId: string, token: string | null) {
     typingUsers,
     isConnected,
     isConnecting,
+    systemMessage,
     sendMessage,
     sendTyping,
     markMessageDeleted,
