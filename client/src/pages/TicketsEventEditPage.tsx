@@ -71,7 +71,8 @@ const eventFormSchema = z.object({
   isPstApplied: z.boolean().default(true),
   gstRate: z.number().min(0).max(100).default(5),
   pstRate: z.number().min(0).max(100).default(7),
-  buyerPaysServiceFee: z.boolean().default(true)
+  buyerPaysServiceFee: z.boolean().default(true),
+  serviceFeePercent: z.number().min(0).max(100).default(5)
 });
 
 interface TicketTier {
@@ -170,7 +171,8 @@ export function TicketsEventEditPage() {
       isPstApplied: true,
       gstRate: 5,
       pstRate: 7,
-      buyerPaysServiceFee: true
+      buyerPaysServiceFee: true,
+      serviceFeePercent: 5
     }
   });
 
@@ -199,6 +201,7 @@ export function TicketsEventEditPage() {
       const gstRate = event.gstRate ?? taxSettings.gstPercent ?? 5;
       const pstRate = event.pstRate ?? taxSettings.pstPercent ?? 7;
       const buyerPaysServiceFee = event.buyerPaysServiceFee ?? (feeStructure.type === 'buyer_pays');
+      const serviceFeePercent = feeStructure.serviceFeePercent ?? 5;
       
       form.reset({
         title: event.title,
@@ -219,7 +222,8 @@ export function TicketsEventEditPage() {
         isPstApplied,
         gstRate,
         pstRate,
-        buyerPaysServiceFee
+        buyerPaysServiceFee,
+        serviceFeePercent
       });
       
       if (event.coverUrl) {
@@ -284,7 +288,7 @@ export function TicketsEventEditPage() {
       
       const feeStructure = {
         type: values.buyerPaysServiceFee ? 'buyer_pays' : 'organizer_absorbs',
-        serviceFeePercent: 5
+        serviceFeePercent: values.serviceFeePercent || 5
       };
       
       // Only send fields that exist in the database schema
@@ -1104,6 +1108,37 @@ export function TicketsEventEditPage() {
                           </Select>
                           <FormDescription>
                             Optional service fee you can charge (goes to you, not Jugnu)
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="serviceFeePercent"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Service Fee Percentage</FormLabel>
+                          <FormControl>
+                            <div className="relative">
+                              <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.1"
+                                placeholder="5.0"
+                                {...field}
+                                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                data-testid="input-service-fee-percent"
+                                className="pr-10"
+                              />
+                              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                %
+                              </span>
+                            </div>
+                          </FormControl>
+                          <FormDescription>
+                            Percentage of ticket price to charge as a service fee (0-100%)
                           </FormDescription>
                         </FormItem>
                       )}
