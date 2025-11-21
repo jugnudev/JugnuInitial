@@ -4587,9 +4587,9 @@ export function addCommunitiesRoutes(app: Express) {
         return res.status(403).json({ ok: false, error: 'Access denied - community members only' });
       }
 
-      // Get community posts with all engagement data
-      console.log(`[Analytics] Calling getPostsByCommunityId with id: ${id}, userId: ${user.id}`);
-      const postsResult = await communitiesStorage.getPostsByCommunityId(id, user.id);
+      // Get community posts with all engagement data (fetch up to 1000 posts for analytics)
+      console.log(`[Analytics] Calling getPostsByCommunityId with id: ${id}, limit: 1000, offset: 0, userId: ${user.id}`);
+      const postsResult = await communitiesStorage.getPostsByCommunityId(id, 1000, 0, user.id);
       console.log(`[Analytics] getPostsByCommunityId returned:`, postsResult);
       const posts = postsResult.posts || [];
       console.log(`[Analytics] Final posts array length: ${posts.length}`);
