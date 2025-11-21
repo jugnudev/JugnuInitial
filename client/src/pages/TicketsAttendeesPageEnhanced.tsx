@@ -160,7 +160,7 @@ export function TicketsAttendeesPageEnhanced() {
     }
   });
   
-  // Update attendee mutation
+  // Update attendee mutation (with toast for single updates)
   const updateAttendeeMutation = useMutation({
     mutationFn: async ({ ticketId, ...data }: any) => {
       return apiRequest('PATCH', `/api/tickets/attendees/${ticketId}`, data);
@@ -175,6 +175,17 @@ export function TicketsAttendeesPageEnhanced() {
         setNotesDialogOpen(false);
         queryClient.invalidateQueries({ queryKey: ['/api/tickets/events', eventId, 'attendees'] });
       }
+    }
+  });
+  
+  // Silent update mutation for bulk operations (no toast spam)
+  const silentUpdateMutation = useMutation({
+    mutationFn: async ({ ticketId, ...data }: any) => {
+      const result = await apiRequest('PATCH', `/api/tickets/attendees/${ticketId}`, data);
+      if (!result.ok) {
+        throw new Error(result.error || 'Failed to update attendee');
+      }
+      return result;
     }
   });
   
@@ -333,9 +344,137 @@ export function TicketsAttendeesPageEnhanced() {
     });
   };
   
-  // Export attendees
-  const handleExport = (exportFormat: 'csv' | 'excel') => {
-    const data = filteredAttendees.map(a => ({
+  // Bulk VIP marking
+  const handleBulkVIP = async () => {
+    if (selectedAttendees.size === 0) return;
+    
+    try {
+      const ticketIds = Array.from(selectedAttendees);
+      let successCount = 0;
+      let failCount = 0;
+      
+      for (const ticketId of ticketIds) {
+        try {
+          await silentUpdateMutation.mutateAsync({
+            ticketId,
+            isVip: true
+          });
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to mark ticket ${ticketId} as VIP:`, error);
+          failCount++;
+        }
+      }
+      
+      if (failCount > 0 && successCount === 0) {
+        toast({
+          title: "VIP Update Failed",
+          description: `Failed to mark ${failCount} attendee(s) as VIP. Please try again.`,
+          variant: "destructive"
+        });
+      } else if (failCount > 0) {
+        toast({
+          title: "Partial Success",
+          description: `Marked ${successCount} attendee(s) as VIP, but ${failCount} failed. Please retry the failed attendees.`,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "VIP Status Updated",
+          description: `Successfully marked ${successCount} attendee(s) as VIP`
+        });
+      }
+      
+      setSelectedAttendees(new Set());
+      queryClient.invalidateQueries({ queryKey: ['/api/tickets/events', eventId, 'attendees'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update VIP status",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Bulk tagging
+  const [bulkTagsDialogOpen, setBulkTagsDialogOpen] = useState(false);
+  const [bulkTagsInput, setBulkTagsInput] = useState("");
+  
+  const handleBulkTags = async () => {
+    if (selectedAttendees.size === 0 || !bulkTagsInput.trim()) return;
+    
+    try {
+      const ticketIds = Array.from(selectedAttendees);
+      const newTags = bulkTagsInput.split(',').map(t => t.trim()).filter(t => t);
+      let successCount = 0;
+      let failCount = 0;
+      
+      for (const ticketId of ticketIds) {
+        try {
+          // Get current attendee to merge tags
+          const attendee = filteredAttendees.find(a => a.ticketId === ticketId);
+          const existingTags = attendee?.tags || [];
+          const mergedTags = Array.from(new Set([...existingTags, ...newTags]));
+          
+          await silentUpdateMutation.mutateAsync({
+            ticketId,
+            tags: mergedTags
+          });
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to tag ticket ${ticketId}:`, error);
+          failCount++;
+        }
+      }
+      
+      if (failCount > 0 && successCount === 0) {
+        toast({
+          title: "Tag Update Failed",
+          description: `Failed to tag ${failCount} attendee(s). Please try again.`,
+          variant: "destructive"
+        });
+      } else if (failCount > 0) {
+        toast({
+          title: "Partial Success",
+          description: `Tagged ${successCount} attendee(s), but ${failCount} failed. Please retry the failed attendees.`,
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Tags Added",
+          description: `Successfully tagged ${successCount} attendee(s)`
+        });
+      }
+      
+      setBulkTagsDialogOpen(false);
+      setBulkTagsInput("");
+      setSelectedAttendees(new Set());
+      queryClient.invalidateQueries({ queryKey: ['/api/tickets/events', eventId, 'attendees'] });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add tags",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Export attendees (all or selected only)
+  const handleExport = (exportFormat: 'csv' | 'excel', selectedOnly = false) => {
+    const attendeesToExport = selectedOnly 
+      ? filteredAttendees.filter(a => selectedAttendees.has(a.ticketId))
+      : filteredAttendees;
+    
+    if (selectedOnly && attendeesToExport.length === 0) {
+      toast({
+        title: "No Selection",
+        description: "Please select attendees to export",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const data = attendeesToExport.map(a => ({
       'Name': a.buyerName || 'N/A',
       'Email': a.buyerEmail,
       'Phone': a.buyerPhone || 'N/A',
@@ -954,13 +1093,8 @@ export function TicketsAttendeesPageEnhanced() {
                     variant="outline"
                     className="h-14 border-copper-500/30 text-white hover:bg-copper-500/10 justify-start"
                     disabled={selectedAttendees.size === 0 || refundMutation.isPending || updateAttendeeMutation.isPending || transferMutation.isPending || resendMutation.isPending || checkinMutation.isPending}
-                    onClick={() => {
-                      toast({
-                        title: "Tags Added",
-                        description: `Tags added to ${selectedAttendees.size} attendees`
-                      });
-                      setSelectedAttendees(new Set());
-                    }}
+                    onClick={() => setBulkTagsDialogOpen(true)}
+                    data-testid="button-bulk-tags"
                   >
                     <Tag className="h-5 w-5 mr-3 text-copper-300" />
                     <div className="text-left">
@@ -973,13 +1107,8 @@ export function TicketsAttendeesPageEnhanced() {
                     variant="outline"
                     className="h-14 border-copper-500/30 text-white hover:bg-copper-500/10 justify-start"
                     disabled={selectedAttendees.size === 0 || refundMutation.isPending || updateAttendeeMutation.isPending || transferMutation.isPending || resendMutation.isPending || checkinMutation.isPending}
-                    onClick={() => {
-                      toast({
-                        title: "VIP Status Updated",
-                        description: `Marked ${selectedAttendees.size} attendees as VIP`
-                      });
-                      setSelectedAttendees(new Set());
-                    }}
+                    onClick={handleBulkVIP}
+                    data-testid="button-bulk-vip"
                   >
                     <Star className="h-5 w-5 mr-3 text-purple-400" />
                     <div className="text-left">
@@ -993,9 +1122,13 @@ export function TicketsAttendeesPageEnhanced() {
                     className="h-14 border-copper-500/30 text-white hover:bg-copper-500/10 justify-start"
                     disabled={selectedAttendees.size === 0 || refundMutation.isPending || updateAttendeeMutation.isPending || transferMutation.isPending || resendMutation.isPending || checkinMutation.isPending}
                     onClick={() => {
-                      handleExport('csv');
-                      setSelectedAttendees(new Set());
+                      handleExport('csv', true);
+                      toast({
+                        title: "Export Complete",
+                        description: `Exported ${selectedAttendees.size} selected attendee(s)`
+                      });
                     }}
+                    data-testid="button-bulk-export"
                   >
                     <Download className="h-5 w-5 mr-3 text-copper-300" />
                     <div className="text-left">
@@ -1009,6 +1142,7 @@ export function TicketsAttendeesPageEnhanced() {
                     className="h-14 border-copper-500/30 text-white hover:bg-copper-500/10 justify-start"
                     disabled={selectedAttendees.size === 0 || refundMutation.isPending || updateAttendeeMutation.isPending || transferMutation.isPending || resendMutation.isPending || checkinMutation.isPending}
                     onClick={() => setMessageDialogOpen(true)}
+                    data-testid="button-bulk-email"
                   >
                     <Mail className="h-5 w-5 mr-3 text-copper-300" />
                     <div className="text-left">
@@ -1439,6 +1573,59 @@ export function TicketsAttendeesPageEnhanced() {
             >
               <Send className="h-4 w-4 mr-2" />
               {sendMessageMutation.isPending ? 'Sending...' : 'Send Message'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Bulk Tags Dialog */}
+      <Dialog open={bulkTagsDialogOpen} onOpenChange={setBulkTagsDialogOpen}>
+        <DialogContent className="glass-elevated border-copper-500/30" aria-describedby="bulk-tags-dialog-description">
+          <DialogHeader>
+            <DialogTitle className="font-fraunces text-xl text-white">Add Tags to Selected Attendees</DialogTitle>
+            <DialogDescription id="bulk-tags-dialog-description" className="text-copper-300">
+              Add tags to {selectedAttendees.size} selected attendee{selectedAttendees.size !== 1 ? 's' : ''}. Tags will be merged with existing tags.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="bulk-tags-input" className="text-white">Tags (comma-separated)</Label>
+              <Input
+                id="bulk-tags-input"
+                placeholder="e.g. VIP, Early Bird, Premium"
+                value={bulkTagsInput}
+                onChange={(e) => setBulkTagsInput(e.target.value)}
+                className="bg-black/40 border-copper-500/30 text-white"
+                data-testid="input-bulk-tags"
+                aria-label="Tags input"
+              />
+              <p className="text-xs text-copper-300 mt-2">
+                Enter tags separated by commas. These will be added to any existing tags.
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setBulkTagsDialogOpen(false);
+                setBulkTagsInput("");
+              }}
+              className="border-copper-500/30 text-copper-200"
+              data-testid="button-cancel-tags"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkTags}
+              disabled={!bulkTagsInput.trim() || updateAttendeeMutation.isPending}
+              className="bg-gradient-to-r from-copper-500 to-copper-600"
+              data-testid="button-save-tags"
+            >
+              <Tag className="h-4 w-4 mr-2" />
+              {updateAttendeeMutation.isPending ? 'Adding Tags...' : 'Add Tags'}
             </Button>
           </DialogFooter>
         </DialogContent>
