@@ -61,9 +61,26 @@ export function addAnalyticsRoutes(app: Express) {
       const paidOrders = orders.filter(o => o.status === 'paid');
       const refundedOrders = orders.filter(o => o.status === 'refunded' || o.status === 'partially_refunded');
       
-      // Fetch all tickets for analytics
+      // Fetch all tickets and tiers for analytics
       const tickets = await ticketsStorage.getTicketsByEvent(eventId);
       const tiers = await ticketsStorage.getTiersByEvent(eventId);
+      
+      // Build maps for quick lookups
+      const orderItemsMap = new Map<string, any>();
+      const ordersMap = new Map<string, any>();
+      
+      // Fetch all order items for these tickets
+      const uniqueOrderItemIds = Array.from(new Set(tickets.map(t => t.orderItemId)));
+      for (const itemId of uniqueOrderItemIds) {
+        const item = await ticketsStorage.getOrderItemById(itemId);
+        if (item) {
+          orderItemsMap.set(itemId, item);
+          if (!ordersMap.has(item.orderId)) {
+            const order = await ticketsStorage.getOrderById(item.orderId);
+            if (order) ordersMap.set(item.orderId, order);
+          }
+        }
+      }
       
       // 1. Sales over time
       const salesByDate = new Map<string, number>();
@@ -84,10 +101,10 @@ export function addAnalyticsRoutes(app: Express) {
             const currentSales = salesByDate.get(dateKey) || 0;
             const currentRevenue = revenueByDate.get(dateKey) || 0;
             
-            // Count tickets in this order
+            // Count tickets in this order using our maps
             const orderTickets = tickets.filter(t => {
-              const orderItem = ticketsStorage.getOrderItemById(t.orderItemId);
-              return orderItem && ticketsStorage.getOrderById(orderItem.orderId)?.id === order.id;
+              const orderItem = orderItemsMap.get(t.orderItemId);
+              return orderItem && orderItem.orderId === order.id;
             });
             
             salesByDate.set(dateKey, currentSales + orderTickets.length);
@@ -155,9 +172,10 @@ export function addAnalyticsRoutes(app: Express) {
           totalSpent: 0
         };
         
+        // Count tickets in this order using our maps
         const orderTickets = tickets.filter(t => {
-          const orderItem = ticketsStorage.getOrderItemById(t.orderItemId);
-          return orderItem && ticketsStorage.getOrderById(orderItem.orderId)?.id === order.id;
+          const orderItem = orderItemsMap.get(t.orderItemId);
+          return orderItem && orderItem.orderId === order.id;
         });
         
         existing.ticketCount += orderTickets.length;
@@ -221,7 +239,7 @@ export function addAnalyticsRoutes(app: Express) {
         attendeeDemographics: {
           emailDomains: Array.from(
             paidOrders.reduce((map, order) => {
-              const domain = order.buyerEmail.split('@')[1] || 'unknown';
+              const domain = order.buyerEmail ? (order.buyerEmail.split('@')[1] || 'unknown') : 'unknown';
               map.set(domain, (map.get(domain) || 0) + 1);
               return map;
             }, new Map<string, number>())
@@ -341,7 +359,7 @@ export function addAnalyticsRoutes(app: Express) {
       if (!scheduledFor && !testMode) {
         // Send immediately
         try {
-          const { sendBulkEventEmail } = await import('../services/emailService');
+          const { sendBulkAttendeeEmail } = await import('./email-service');
           
           const emailData = {
             eventTitle: event.title,
@@ -354,7 +372,7 @@ export function addAnalyticsRoutes(app: Express) {
           };
           
           // Queue emails for sending
-          const sendResults = await sendBulkEventEmail(recipients, emailData);
+          const sendResults = await sendBulkAttendeeEmail(recipients, emailData);
           
           // Update communication status
           await ticketsStorage.updateEmailCommunication(communication.id, {
