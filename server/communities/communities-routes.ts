@@ -4583,6 +4583,25 @@ export function addCommunitiesRoutes(app: Express) {
             .where(inArray(communityComments.postId, postIds))
         : [];
 
+      // Get post analytics (views, shares, etc.) from Supabase
+      const { data: postAnalytics } = postIds.length > 0
+        ? await (communitiesStorage as any).client
+            .from('community_post_analytics')
+            .select('post_id, views, shares')
+            .in('post_id', postIds)
+        : { data: [] };
+      
+      // Create view count map for O(1) lookup
+      const viewCountMap: { [postId: string]: number } = {};
+      postAnalytics?.forEach((analytics: any) => {
+        viewCountMap[analytics.post_id] = analytics.views || 0;
+      });
+      
+      // Add viewCount to each post
+      posts.forEach(post => {
+        post.viewCount = viewCountMap[post.id] || 0;
+      });
+
       // ============ PERFORMANCE OPTIMIZATION ============
       // Build maps for O(1) lookups instead of O(P*E) filtering
       const postEngagementMap: { [postId: string]: { 
