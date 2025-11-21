@@ -1613,15 +1613,15 @@ export class CommunitiesSupabaseDB {
   // ============ POST ANALYTICS ============
   async trackPostView(postId: string, viewerId: string | null): Promise<void> {
     try {
-      // Get current analytics for this post
-      const { data: existing } = await this.client
+      // Get current analytics for this post (without .single() to handle non-existent records)
+      const { data: existing, error: fetchError } = await this.client
         .from('community_post_analytics')
         .select('views')
-        .eq('post_id', postId)
-        .single();
+        .eq('post_id', postId);
       
-      // Increment views count
-      const newViews = (existing?.views || 0) + 1;
+      // Calculate new view count
+      const currentViews = existing && existing.length > 0 ? (existing[0]?.views || 0) : 0;
+      const newViews = currentViews + 1;
       
       // Upsert with incremented view count
       const { error } = await this.client
@@ -1634,9 +1634,11 @@ export class CommunitiesSupabaseDB {
           onConflict: 'post_id'
         });
 
-      if (error) console.error('Failed to track post view:', error);
+      if (error) {
+        console.error('Failed to track post view:', error);
+      }
     } catch (error) {
-      console.error('Failed to track post view:', error);
+      console.error('Failed to track post view error:', error);
     }
   }
 
