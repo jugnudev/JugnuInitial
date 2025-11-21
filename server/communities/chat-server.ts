@@ -320,7 +320,7 @@ export function startChatServer(httpServer: Server) {
           if (contentLower.includes(word.toLowerCase())) {
             ws.send(JSON.stringify({ 
               type: 'error', 
-              payload: 'Your message contains inappropriate content' 
+              payload: '⚠️ Please keep our community respectful. Certain language isn\'t allowed here. Let\'s keep things positive and kind for everyone!' 
             }));
             return;
           }
