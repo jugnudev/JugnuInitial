@@ -1613,12 +1613,22 @@ export class CommunitiesSupabaseDB {
   // ============ POST ANALYTICS ============
   async trackPostView(postId: string, viewerId: string | null): Promise<void> {
     try {
+      // Get current analytics for this post
+      const { data: existing } = await this.client
+        .from('community_post_analytics')
+        .select('views')
+        .eq('post_id', postId)
+        .single();
+      
+      // Increment views count
+      const newViews = (existing?.views || 0) + 1;
+      
+      // Upsert with incremented view count
       const { error } = await this.client
         .from('community_post_analytics')
         .upsert({
           post_id: postId,
-          views: 1,
-          unique_views: viewerId ? 1 : 0,
+          views: newViews,
           updated_at: new Date().toISOString()
         }, {
           onConflict: 'post_id'

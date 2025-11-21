@@ -2539,6 +2539,13 @@ export function addCommunitiesRoutes(app: Express) {
       // Track analytics
       await communitiesStorage.trackCommunityActivity(community.id, 'views');
 
+      // Track view for each post in the list (debounce to avoid excessive writes)
+      for (const post of posts) {
+        communitiesStorage.trackPostView(post.id, user.id).catch(err => {
+          console.error(`Failed to track view for post ${post.id}:`, err);
+        });
+      }
+
       res.json({
         ok: true,
         posts,
