@@ -105,17 +105,40 @@ export class StorageExtensions {
   }
   
   // ============ TICKET OPERATIONS ============
-  // TODO: Migrate to SQL view or Supabase RPC (complex 3-table JOIN)
   async getTicketsByEvent(eventId: string): Promise<TicketsTicket[]> {
-    const query = `
-      SELECT t.* FROM tickets_tickets t
-      JOIN tickets_order_items oi ON oi.id = t.order_item_id
-      JOIN tickets_orders o ON o.id = oi.order_id
-      WHERE o.event_id = $1
-      ORDER BY t.created_at DESC
-    `;
-    const result = await pool.query(query, [eventId]);
-    return result.rows;
+    const supabase = getSupabaseAdmin();
+    
+    // Step 1: Get all order IDs for this event
+    const { data: orders, error: ordersError } = await supabase
+      .from('tickets_orders')
+      .select('id')
+      .eq('event_id', eventId);
+    
+    if (ordersError) throw new Error(`Failed to get orders: ${ordersError.message}`);
+    if (!orders || orders.length === 0) return [];
+    
+    const orderIds = orders.map(o => o.id);
+    
+    // Step 2: Get all order_item IDs for these orders
+    const { data: orderItems, error: itemsError } = await supabase
+      .from('tickets_order_items')
+      .select('id')
+      .in('order_id', orderIds);
+    
+    if (itemsError) throw new Error(`Failed to get order items: ${itemsError.message}`);
+    if (!orderItems || orderItems.length === 0) return [];
+    
+    const orderItemIds = orderItems.map(oi => oi.id);
+    
+    // Step 3: Get all tickets for these order items
+    const { data: tickets, error: ticketsError } = await supabase
+      .from('tickets_tickets')
+      .select('*')
+      .in('order_item_id', orderItemIds)
+      .order('created_at', { ascending: false });
+    
+    if (ticketsError) throw new Error(`Failed to get tickets: ${ticketsError.message}`);
+    return tickets || [];
   }
   
   async getTicketsByOrderItem(orderItemId: string): Promise<TicketsTicket[]> {
