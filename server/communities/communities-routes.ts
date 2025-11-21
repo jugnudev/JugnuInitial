@@ -4595,28 +4595,39 @@ export function addCommunitiesRoutes(app: Express) {
       console.log(`[Analytics] Final posts array length: ${posts.length}`);
       const members = await communitiesStorage.getMembershipsByCommunityId(id);
 
-      // Get all reactions and comments for detailed analytics
-      const { db } = await import('../db');
-      const { communityPostReactions, communityComments } = await import('@shared/schema');
-      const { inArray } = await import('drizzle-orm');
-      
+      // Get all reactions and comments for detailed analytics using Supabase
       const postIds = posts.map(p => p.id);
       
       // Get all reactions with timestamps
-      const allReactions = postIds.length > 0 
-        ? await db.select().from(communityPostReactions)
-            .where(inArray(communityPostReactions.postId, postIds))
-        : [];
+      const { data: reactionsData, error: reactionsError } = postIds.length > 0 
+        ? await (communitiesStorage as any).client
+            .from('community_post_reactions')
+            .select('post_id, reaction_type, created_at')
+            .in('post_id', postIds)
+        : { data: [], error: null };
+      
+      if (reactionsError) {
+        console.error(`[Analytics] Error fetching reactions:`, reactionsError);
+      }
+      const allReactions = reactionsData ?? [];
       
       // Get all comments with timestamps  
-      const allComments = postIds.length > 0
-        ? await db.select().from(communityComments)
-            .where(inArray(communityComments.postId, postIds))
-        : [];
+      const { data: commentsData, error: commentsError } = postIds.length > 0
+        ? await (communitiesStorage as any).client
+            .from('community_comments')
+            .select('post_id, created_at')
+            .in('post_id', postIds)
+            .eq('is_hidden', false)
+        : { data: [], error: null };
+      
+      if (commentsError) {
+        console.error(`[Analytics] Error fetching comments:`, commentsError);
+      }
+      const allComments = commentsData ?? [];
 
       // Get post analytics (views, shares, etc.) from Supabase
       console.log(`[Analytics] Fetching analytics for ${postIds.length} posts`);
-      const { data: postAnalytics, error: analyticsError } = postIds.length > 0
+      const { data: analyticsData, error: analyticsError } = postIds.length > 0
         ? await (communitiesStorage as any).client
             .from('community_post_analytics')
             .select('post_id, views, shares')
@@ -4625,13 +4636,13 @@ export function addCommunitiesRoutes(app: Express) {
       
       if (analyticsError) {
         console.error(`[Analytics] Error fetching analytics:`, analyticsError);
-      } else {
-        console.log(`[Analytics] Fetched ${postAnalytics?.length || 0} analytics records:`, postAnalytics);
       }
+      const postAnalytics = analyticsData ?? [];
+      console.log(`[Analytics] Fetched ${postAnalytics.length} analytics records:`, postAnalytics);
       
       // Create view count map for O(1) lookup
       const viewCountMap: { [postId: string]: number } = {};
-      postAnalytics?.forEach((analytics: any) => {
+      postAnalytics.forEach((analytics: any) => {
         viewCountMap[analytics.post_id] = analytics.views || 0;
         console.log(`[Analytics] Post ${analytics.post_id}: ${analytics.views} views`);
       });
@@ -4655,22 +4666,22 @@ export function addCommunitiesRoutes(app: Express) {
         postEngagementMap[post.id] = { reactions: 0, comments: 0, firstEngagementAt: null };
       });
       
-      allReactions.forEach(r => {
-        if (postEngagementMap[r.postId]) {
-          postEngagementMap[r.postId].reactions++;
-          const engagementTime = new Date(r.createdAt).getTime();
-          if (!postEngagementMap[r.postId].firstEngagementAt || engagementTime < postEngagementMap[r.postId].firstEngagementAt!) {
-            postEngagementMap[r.postId].firstEngagementAt = engagementTime;
+      allReactions.forEach((r: any) => {
+        if (postEngagementMap[r.post_id]) {
+          postEngagementMap[r.post_id].reactions++;
+          const engagementTime = new Date(r.created_at).getTime();
+          if (!postEngagementMap[r.post_id].firstEngagementAt || engagementTime < postEngagementMap[r.post_id].firstEngagementAt!) {
+            postEngagementMap[r.post_id].firstEngagementAt = engagementTime;
           }
         }
       });
       
-      allComments.forEach(c => {
-        if (postEngagementMap[c.postId]) {
-          postEngagementMap[c.postId].comments++;
-          const engagementTime = new Date(c.createdAt).getTime();
-          if (!postEngagementMap[c.postId].firstEngagementAt || engagementTime < postEngagementMap[c.postId].firstEngagementAt!) {
-            postEngagementMap[c.postId].firstEngagementAt = engagementTime;
+      allComments.forEach((c: any) => {
+        if (postEngagementMap[c.post_id]) {
+          postEngagementMap[c.post_id].comments++;
+          const engagementTime = new Date(c.created_at).getTime();
+          if (!postEngagementMap[c.post_id].firstEngagementAt || engagementTime < postEngagementMap[c.post_id].firstEngagementAt!) {
+            postEngagementMap[c.post_id].firstEngagementAt = engagementTime;
           }
         }
       });
@@ -4681,16 +4692,16 @@ export function addCommunitiesRoutes(app: Express) {
       const hourOfDayEngagement: { [key: number]: number } = {};
       
       // Bucket engagement by timestamp of reactions/comments
-      allReactions.forEach(r => {
-        const engagementDate = new Date(r.createdAt);
+      allReactions.forEach((r: any) => {
+        const engagementDate = new Date(r.created_at);
         const dayOfWeek = engagementDate.getDay();
         const hour = engagementDate.getHours();
         dayOfWeekEngagement[dayOfWeek] = (dayOfWeekEngagement[dayOfWeek] || 0) + 1;
         hourOfDayEngagement[hour] = (hourOfDayEngagement[hour] || 0) + 1;
       });
       
-      allComments.forEach(c => {
-        const engagementDate = new Date(c.createdAt);
+      allComments.forEach((c: any) => {
+        const engagementDate = new Date(c.created_at);
         const dayOfWeek = engagementDate.getDay();
         const hour = engagementDate.getHours();
         dayOfWeekEngagement[dayOfWeek] = (dayOfWeekEngagement[dayOfWeek] || 0) + 1;
@@ -4728,33 +4739,43 @@ export function addCommunitiesRoutes(app: Express) {
       const avgEngagementPerPost = posts.length > 0 ? totalEngagement / posts.length : 0;
 
       // ============ MOST ACTIVE MEMBERS ============
-      // Count reactions and comments by user
+      // Count reactions and comments by user (use snake_case field names from Supabase)
       const userActivity: { [userId: string]: { reactions: number; comments: number; name?: string } } = {};
       
-      allReactions.forEach(r => {
-        if (!userActivity[r.userId]) {
-          userActivity[r.userId] = { reactions: 0, comments: 0 };
+      allReactions.forEach((r: any) => {
+        const userId = r.user_id;
+        if (!userActivity[userId]) {
+          userActivity[userId] = { reactions: 0, comments: 0 };
         }
-        userActivity[r.userId].reactions++;
+        userActivity[userId].reactions++;
       });
       
-      allComments.forEach(c => {
-        if (!userActivity[c.authorId]) {
-          userActivity[c.authorId] = { reactions: 0, comments: 0 };
+      allComments.forEach((c: any) => {
+        const userId = c.author_id;
+        if (!userActivity[userId]) {
+          userActivity[userId] = { reactions: 0, comments: 0 };
         }
-        userActivity[c.authorId].comments++;
+        userActivity[userId].comments++;
       });
       
-      // Get user names
+      // Get user names using Supabase
       const userIds = Object.keys(userActivity);
-      const { users } = await import('@shared/schema');
-      const userDetails = userIds.length > 0
-        ? await db.select().from(users).where(inArray(users.id, userIds))
-        : [];
+      const { data: usersData, error: usersError } = userIds.length > 0
+        ? await (communitiesStorage as any).client
+            .from('users')
+            .select('id, first_name, last_name, email')
+            .in('id', userIds)
+        : { data: [], error: null };
       
-      userDetails.forEach(u => {
+      if (usersError) {
+        console.error(`[Analytics] Error fetching user details:`, usersError);
+      }
+      const userDetails = usersData ?? [];
+      
+      // Map user names to activity records
+      userDetails.forEach((u: any) => {
         if (userActivity[u.id]) {
-          userActivity[u.id].name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email;
+          userActivity[u.id].name = `${u.first_name || ''} ${u.last_name || ''}`.trim() || u.email;
         }
       });
       
@@ -4782,13 +4803,13 @@ export function addCommunitiesRoutes(app: Express) {
         const weekEnd = new Date(weekStart);
         weekEnd.setDate(weekStart.getDate() + 7);
         
-        const weekReactions = allReactions.filter(r => {
-          const date = new Date(r.createdAt);
+        const weekReactions = allReactions.filter((r: any) => {
+          const date = new Date(r.created_at);
           return date >= weekStart && date < weekEnd;
         }).length;
         
-        const weekComments = allComments.filter(c => {
-          const date = new Date(c.createdAt);
+        const weekComments = allComments.filter((c: any) => {
+          const date = new Date(c.created_at);
           return date >= weekStart && date < weekEnd;
         }).length;
         
