@@ -1823,6 +1823,15 @@ export function addCommunitiesRoutes(app: Express) {
       if (isOwner) {
         // Owner gets full access
         const { posts } = await communitiesStorage.getPostsByCommunityId(community.id, 50, 0, user.id);
+        
+        // Track view for each post
+        console.log(`[View Tracking] Tracking views for ${posts.length} posts (owner view)`);
+        for (const post of posts) {
+          communitiesStorage.trackPostView(post.id, user.id).catch(err => {
+            console.error(`[View Tracking] Failed to track view for post ${post.id}:`, err);
+          });
+        }
+        
         const analytics = await communitiesStorage.getCommunityAnalytics(community.id);
         
         res.json({
@@ -1843,6 +1852,14 @@ export function addCommunitiesRoutes(app: Express) {
       } else if (isApprovedMember) {
         // Approved members can see posts and members
         const { posts } = await communitiesStorage.getPostsByCommunityId(community.id, 50, 0, user.id);
+        
+        // Track view for each post
+        console.log(`[View Tracking] Tracking views for ${posts.length} posts (member view)`);
+        for (const post of posts) {
+          communitiesStorage.trackPostView(post.id, user.id).catch(err => {
+            console.error(`[View Tracking] Failed to track view for post ${post.id}:`, err);
+          });
+        }
         
         res.json({
           ok: true,
@@ -2539,10 +2556,12 @@ export function addCommunitiesRoutes(app: Express) {
       // Track analytics
       await communitiesStorage.trackCommunityActivity(community.id, 'views');
 
-      // Track view for each post in the list (debounce to avoid excessive writes)
+      // Track view for each post in the list
+      console.log(`[View Tracking] Tracking views for ${posts.length} posts`);
       for (const post of posts) {
+        console.log(`[View Tracking] Calling trackPostView for post ${post.id}`);
         communitiesStorage.trackPostView(post.id, user.id).catch(err => {
-          console.error(`Failed to track view for post ${post.id}:`, err);
+          console.error(`[View Tracking] Failed to track view for post ${post.id}:`, err);
         });
       }
 
