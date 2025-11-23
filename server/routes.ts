@@ -1522,7 +1522,7 @@ Disallow: /account/*`;
   app.get("/api/community/weekly", async (req, res) => {
     try {
       const supabase = getSupabaseAdmin();
-      const { category, range } = req.query;
+      const { category, range, area } = req.query;
       
       // Check if data is stale and trigger background refresh (non-blocking)
       const { data: lastUpdate } = await supabase
@@ -1578,7 +1578,7 @@ Disallow: /account/*`;
           .select(`
             id, created_at, updated_at, title, description, category,
             start_at, end_at, timezone, venue, address, 
-            neighborhood, city, organizer, tickets_url, source_url, 
+            neighborhood, city, area, organizer, tickets_url, source_url, 
             image_url, price_from, tags, status, featured, source_hash,
             canonical_key, is_all_day
           `)
@@ -1598,7 +1598,7 @@ Disallow: /account/*`;
           .select(`
             id, created_at, updated_at, title, description, category,
             start_at, end_at, timezone, venue, address, 
-            neighborhood, city, organizer, tickets_url, source_url, 
+            neighborhood, city, area, organizer, tickets_url, source_url, 
             image_url, price_from, tags, status, featured, source_hash, is_all_day
           `)
           .in('status', ['upcoming', 'soldout'])
@@ -1619,6 +1619,16 @@ Disallow: /account/*`;
         } catch (columnError) {
           // If category column doesn't exist, ignore the filter
           console.log('Category column not available, ignoring filter');
+        }
+      }
+
+      // Filter by area if provided (gracefully handle missing column)
+      if (area && typeof area === 'string' && area !== 'all') {
+        try {
+          query = query.eq('area', area);
+        } catch (columnError) {
+          // If area column doesn't exist, ignore the filter
+          console.log('Area column not available, ignoring filter');
         }
       }
 
