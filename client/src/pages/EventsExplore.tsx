@@ -371,14 +371,17 @@ export default function EventsExplore() {
               </>
             ) : (
               <>
-                {/* Banner inside empty state */}
+                {/* Sponsored Banner above empty state */}
+                <div className="mb-8">
+                  <SponsoredBanner />
+                </div>
+                
                 <EmptyState
                   type="events"
                   hasFilters={hasActiveFilters}
                   showSavedOnly={showSavedOnly}
                   onAddClick={() => window.location.href = '/events/feature'}
                 />
-                <SponsoredBanner />
               </>
             )}
           </div>
