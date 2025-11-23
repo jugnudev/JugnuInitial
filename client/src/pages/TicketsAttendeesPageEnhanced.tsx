@@ -182,10 +182,14 @@ export function TicketsAttendeesPageEnhanced() {
   const silentUpdateMutation = useMutation({
     mutationFn: async ({ ticketId, ...data }: any) => {
       const result = await apiRequest('PATCH', `/api/tickets/attendees/${ticketId}`, data);
-      if (!result.ok) {
-        throw new Error(result.error || 'Failed to update attendee');
+      const jsonData = await result.json();
+      if (!jsonData.ok) {
+        throw new Error(jsonData.error || 'Failed to update attendee');
       }
-      return result;
+      return jsonData;
+    },
+    onError: (error: any) => {
+      console.error('Silent update error:', error);
     }
   });
   
@@ -256,13 +260,14 @@ export function TicketsAttendeesPageEnhanced() {
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async ({ ticketIds, subject, message }: { ticketIds: string[]; subject: string; message: string }) => {
-      return apiRequest('POST', `/api/tickets/events/${eventId}/send-message`, { ticketIds, subject, message });
+      const response = await apiRequest('POST', `/api/tickets/events/${eventId}/send-message`, { ticketIds, subject, message });
+      return response.json();
     },
     onSuccess: (data: any) => {
       if (data.ok) {
         toast({
           title: "Emails Sent",
-          description: `Message sent to ${selectedAttendees.size} attendees`
+          description: `Message sent to ${data.sent || 0} attendee${data.sent !== 1 ? 's' : ''}`
         });
         setMessageDialogOpen(false);
         setSelectedAttendees(new Set());
@@ -1056,19 +1061,19 @@ export function TicketsAttendeesPageEnhanced() {
                         });
                         return;
                       }
-                      toast({
-                        title: "Emails Sent",
-                        description: `Message sent to ${selectedAttendees.size} attendees`
+                      const ticketIds = Array.from(selectedAttendees);
+                      sendMessageMutation.mutate({
+                        ticketIds,
+                        subject: messageSubject,
+                        message: messageContent
                       });
-                      setSelectedAttendees(new Set());
-                      setMessageSubject("");
-                      setMessageContent("");
                     }}
-                    disabled={selectedAttendees.size === 0 || !messageSubject || !messageContent || refundMutation.isPending || updateAttendeeMutation.isPending || transferMutation.isPending || resendMutation.isPending || checkinMutation.isPending}
+                    disabled={selectedAttendees.size === 0 || !messageSubject || !messageContent || sendMessageMutation.isPending}
                     className="w-full h-12 bg-gradient-to-r from-copper-500 to-copper-600 hover:from-copper-600 hover:to-copper-700 text-white font-semibold"
+                    data-testid="button-send-message-inline"
                   >
                     <Send className="h-4 w-4 mr-2" />
-                    Send Message to {selectedAttendees.size || 0} Attendee{selectedAttendees.size !== 1 ? 's' : ''}
+                    {sendMessageMutation.isPending ? 'Sending...' : `Send Message to ${selectedAttendees.size || 0} Attendee${selectedAttendees.size !== 1 ? 's' : ''}`}
                   </Button>
                 </div>
               </CardContent>
