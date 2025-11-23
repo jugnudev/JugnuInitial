@@ -260,6 +260,35 @@ export class StorageExtensions {
     return data;
   }
   
+  // ============ BULK FETCH OPERATIONS ============
+  async getOrderItemsByIds(ids: string[]): Promise<any[]> {
+    if (ids.length === 0) return [];
+    
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('tickets_order_items')
+      .select('*')
+      .in('id', ids);
+    
+    if (error) throw new Error(`Failed to get order items: ${error.message}`);
+    // Convert snake_case to camelCase for consistency with analytics code
+    return this.toCamelCase(data) || [];
+  }
+  
+  async getOrdersByIds(ids: string[]): Promise<TicketsOrder[]> {
+    if (ids.length === 0) return [];
+    
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from('tickets_orders')
+      .select('*')
+      .in('id', ids);
+    
+    if (error) throw new Error(`Failed to get orders: ${error.message}`);
+    // Convert snake_case to camelCase for consistency with analytics code
+    return this.toCamelCase(data) || [];
+  }
+  
   // ============ ANALYTICS CACHE ============
   async updateAnalyticsCache(eventId: string, date: string, metricType: string, data: any): Promise<void> {
     const supabase = getSupabaseAdmin();

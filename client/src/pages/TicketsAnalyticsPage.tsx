@@ -90,7 +90,8 @@ interface AnalyticsData {
   };
 }
 
-const COLORS = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'];
+// Copper-themed chart colors matching the app's aesthetic
+const COLORS = ['#c0580f', '#FF8A47', '#a04a0c', '#f59e0b', '#ef4444', '#10b981', '#3b82f6'];
 
 export function TicketsAnalyticsPage() {
   const [, params] = useRoute("/tickets/organizer/events/:eventId/analytics");
@@ -223,6 +224,7 @@ export function TicketsAnalyticsPage() {
             <Button
               onClick={() => handleExport('csv')}
               data-testid="button-export"
+              className="bg-copper hover:bg-copper-dark text-white"
             >
               <Download className="h-4 w-4 mr-2" />
               Export
@@ -293,7 +295,10 @@ export function TicketsAnalyticsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{analytics.summary.checkInRate.toFixed(1)}%</div>
-                  <Progress value={analytics.summary.checkInRate} className="mt-2" />
+                  <Progress 
+                    value={analytics.summary.checkInRate} 
+                    className="mt-2 [&>div]:bg-copper" 
+                  />
                 </CardContent>
               </Card>
               
@@ -313,12 +318,47 @@ export function TicketsAnalyticsPage() {
             
             {/* Analytics Tabs */}
             <Tabs defaultValue="sales" className="space-y-4">
-              <TabsList>
-                <TabsTrigger value="sales">Sales</TabsTrigger>
-                <TabsTrigger value="revenue">Revenue</TabsTrigger>
-                <TabsTrigger value="checkins">Check-ins</TabsTrigger>
-                <TabsTrigger value="refunds">Refunds</TabsTrigger>
-                <TabsTrigger value="demographics">Demographics</TabsTrigger>
+              <TabsList className="bg-charcoal-800/50 border border-charcoal-700 p-1">
+                <TabsTrigger 
+                  value="sales"
+                  className="data-[state=active]:bg-copper data-[state=active]:text-white data-[state=active]:shadow-lg"
+                  data-testid="tab-sales"
+                >
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Sales
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="revenue"
+                  className="data-[state=active]:bg-copper data-[state=active]:text-white data-[state=active]:shadow-lg"
+                  data-testid="tab-revenue"
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Revenue
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="checkins"
+                  className="data-[state=active]:bg-copper data-[state=active]:text-white data-[state=active]:shadow-lg"
+                  data-testid="tab-checkins"
+                >
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  Check-ins
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="refunds"
+                  className="data-[state=active]:bg-copper data-[state=active]:text-white data-[state=active]:shadow-lg"
+                  data-testid="tab-refunds"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Refunds
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="demographics"
+                  className="data-[state=active]:bg-copper data-[state=active]:text-white data-[state=active]:shadow-lg"
+                  data-testid="tab-demographics"
+                >
+                  <Users className="h-4 w-4 mr-2" />
+                  Demographics
+                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="sales" className="space-y-4">
@@ -334,23 +374,29 @@ export function TicketsAnalyticsPage() {
                       <AreaChart data={analytics.salesOverTime}>
                         <defs>
                           <linearGradient id="colorTickets" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
-                            <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="#c0580f" stopOpacity={0.8}/>
+                            <stop offset="95%" stopColor="#c0580f" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" />
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-charcoal-700" />
                         <XAxis 
                           dataKey="date" 
                           tickFormatter={(value) => format(new Date(value), 'MMM dd')}
+                          className="text-muted-foreground"
                         />
-                        <YAxis />
+                        <YAxis className="text-muted-foreground" />
                         <Tooltip 
                           labelFormatter={(value) => format(new Date(value), 'MMMM dd, yyyy')}
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px'
+                          }}
                         />
                         <Area 
                           type="monotone" 
                           dataKey="tickets" 
-                          stroke="#8b5cf6" 
+                          stroke="#c0580f" 
                           fillOpacity={1} 
                           fill="url(#colorTickets)" 
                         />
@@ -472,11 +518,17 @@ export function TicketsAnalyticsPage() {
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={analytics.checkInPatterns}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="hour" />
-                        <YAxis />
-                        <Tooltip />
-                        <Bar dataKey="count" fill="#10b981" />
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-charcoal-700" />
+                        <XAxis dataKey="hour" className="text-muted-foreground" />
+                        <YAxis className="text-muted-foreground" />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '8px'
+                          }}
+                        />
+                        <Bar dataKey="count" fill="#c0580f" radius={[8, 8, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </CardContent>

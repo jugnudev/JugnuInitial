@@ -1,5 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { ticketsStorage } from "./tickets-storage";
+import { storageExtensions } from "./storage-extensions";
 import { format, startOfDay, endOfDay, subDays, eachDayOfInterval } from 'date-fns';
 
 // Middleware to check if ticketing is enabled
@@ -65,22 +66,19 @@ export function addAnalyticsRoutes(app: Express) {
       const tickets = await ticketsStorage.getTicketsByEvent(eventId);
       const tiers = await ticketsStorage.getTiersByEvent(eventId);
       
-      // Build maps for quick lookups
+      // Build maps for quick lookups using bulk fetches (performance optimization)
       const orderItemsMap = new Map<string, any>();
       const ordersMap = new Map<string, any>();
       
-      // Fetch all order items for these tickets
-      const uniqueOrderItemIds = Array.from(new Set(tickets.map(t => t.orderItemId)));
-      for (const itemId of uniqueOrderItemIds) {
-        const item = await ticketsStorage.getOrderItemById(itemId);
-        if (item) {
-          orderItemsMap.set(itemId, item);
-          if (!ordersMap.has(item.orderId)) {
-            const order = await ticketsStorage.getOrderById(item.orderId);
-            if (order) ordersMap.set(item.orderId, order);
-          }
-        }
-      }
+      // Fetch all order items in bulk (single query instead of N queries)
+      const uniqueOrderItemIds = Array.from(new Set(tickets.map(t => t.orderItemId).filter(Boolean)));
+      const orderItems = await storageExtensions.getOrderItemsByIds(uniqueOrderItemIds);
+      orderItems.forEach((item: any) => orderItemsMap.set(item.id, item));
+      
+      // Fetch all orders in bulk (single query instead of N queries)
+      const uniqueOrderIds = Array.from(new Set(orderItems.map((item: any) => item.orderId || item.order_id).filter(Boolean)));
+      const ordersBulk = await storageExtensions.getOrdersByIds(uniqueOrderIds);
+      ordersBulk.forEach((order: any) => ordersMap.set(order.id, order));
       
       // 1. Sales over time
       const salesByDate = new Map<string, number>();
