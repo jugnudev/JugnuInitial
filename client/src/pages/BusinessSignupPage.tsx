@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Mail, ArrowLeft, Briefcase, CheckCircle, Building2 } from 'lucide-react';
+import { Loader2, Mail, ArrowLeft, Briefcase, CheckCircle, Building2, Sparkles, Shield, TrendingUp, Users, DollarSign, Info } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useMutation } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { Link } from 'wouter';
 
 const businessSignupSchema = z.object({
   // Personal Information
@@ -284,19 +286,93 @@ export function BusinessSignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-8">
+    <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 py-12 px-4">
+      <div className="max-w-3xl mx-auto space-y-6">
+        {/* Value Proposition Banner */}
+        <Card className="border-copper-500/30 bg-gradient-to-br from-copper-500/10 to-amber-500/5 backdrop-blur-xl overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-copper-500/20 via-transparent to-transparent pointer-events-none" />
+          <CardContent className="pt-6 relative">
+            <div className="flex items-start gap-4 mb-4">
+              <div className="flex-shrink-0">
+                <Badge className="bg-jade-500/20 text-jade-400 border-jade-500/30 px-3 py-1">
+                  <Shield className="w-4 h-4 mr-1.5 inline" />
+                  FREE BETA
+                </Badge>
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-copper-400" />
+                  Get Full Access at No Cost
+                </h2>
+                <p className="text-white/70 text-sm leading-relaxed">
+                  Join during our FREE BETA and get unlimited access to all platform features. When billing launches at $50/month, 
+                  you'll keep 100% of your ticket revenue with <strong className="text-copper-400">zero commission</strong> — 
+                  unlike competitors who charge 5-10% per ticket.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3 mb-4">
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/10">
+                <Users className="w-5 h-5 text-copper-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold text-white text-sm">Community Platform</div>
+                  <div className="text-white/60 text-xs">Build & engage your members</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/10">
+                <DollarSign className="w-5 h-5 text-jade-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold text-white text-sm">0% Commission</div>
+                  <div className="text-white/60 text-xs">Keep 100% of ticket sales</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/10">
+                <TrendingUp className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold text-white text-sm">Full Analytics</div>
+                  <div className="text-white/60 text-xs">Track sales & engagement</div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/10">
+                <Sparkles className="w-5 h-5 text-copper-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold text-white text-sm">2 Ad Credits/Month</div>
+                  <div className="text-white/60 text-xs">Promote on homepage or events</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-3 rounded-lg bg-white/[0.05] border border-white/10">
+              <div className="flex items-center gap-2 text-white/80 text-sm">
+                <Info className="w-4 h-4 text-copper-400" />
+                <span>Want to learn more about our pricing?</span>
+              </div>
+              <Link href="/pricing">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-copper-400 hover:text-copper-300 hover:bg-copper-500/10"
+                  data-testid="button-view-pricing"
+                >
+                  View Details
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
-            <Building2 className="w-8 h-8 text-primary" />
-            <h1 className="text-3xl font-bold">Create Your Business Account</h1>
+            <Building2 className="w-8 h-8 text-copper-400" />
+            <h1 className="text-3xl font-bold text-white">Create Your Business Account</h1>
           </div>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-white/60 text-lg">
             Join Jugnu's community platform and start building your audience
           </p>
         </div>
 
-        <Card>
+        <Card className="border-white/10 bg-gradient-to-br from-white/[0.07] to-white/[0.02] backdrop-blur-xl">
           <CardHeader>
             <CardTitle>Business Information</CardTitle>
             <CardDescription>
