@@ -163,7 +163,8 @@ export function TicketsAttendeesPageEnhanced() {
   // Update attendee mutation (with toast for single updates)
   const updateAttendeeMutation = useMutation({
     mutationFn: async ({ ticketId, ...data }: any) => {
-      return apiRequest('PATCH', `/api/tickets/attendees/${ticketId}`, data);
+      const response = await apiRequest('PATCH', `/api/tickets/attendees/${ticketId}`, data);
+      return response.json();
     },
     onSuccess: (data: any) => {
       if (data.ok) {
@@ -860,6 +861,12 @@ export function TicketsAttendeesPageEnhanced() {
                     </div>
                     
                     <div className="flex items-center gap-2 flex-shrink-0">
+                      {attendee.isVip && (
+                        <Badge className="bg-purple-600/90 text-white h-6 px-2 text-xs">
+                          <Star className="h-3 w-3 mr-1" />
+                          VIP
+                        </Badge>
+                      )}
                       {attendee.status === 'used' && (
                         <Badge className="bg-green-600/90 text-white h-6 px-2 text-xs">
                           <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -1033,7 +1040,7 @@ export function TicketsAttendeesPageEnhanced() {
                           className="cursor-pointer text-white hover:bg-copper-500/10"
                         >
                           <Star className="h-4 w-4 mr-2 text-purple-400" />
-                          {attendee.isVip ? 'Remove VIP' : 'Mark as VIP'}
+                          {attendee.isVip ? 'Unmark as VIP' : 'Mark as VIP'}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator className="bg-copper-500/20" />
                         {attendee.status === 'valid' && (
