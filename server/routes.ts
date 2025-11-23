@@ -481,7 +481,7 @@ Disallow: /account/*`;
             let startAt = new Date(calendarEvent.start);
             let endAt = calendarEvent.end ? new Date(calendarEvent.end) : new Date(startAt.getTime() + 3 * 60 * 60 * 1000);
             let isAllDay = false;
-            let eventTimezone = 'America/Vancouver'; // Default to Vancouver timezone
+            let eventTimezone = 'America/Vancouver'; // Default to Vancouver timezone (will be updated based on area)
             
             // Check if event is all-day
             // Method 1: Check if DTSTART has VALUE=DATE (node-ical sets datetype)
@@ -633,12 +633,16 @@ Disallow: /account/*`;
                 // Map to canonical area names
                 if (normalizedArea.includes('metro vancouver') || normalizedArea.includes('vancouver')) {
                   area = 'Metro Vancouver';
+                  eventTimezone = 'America/Vancouver'; // Pacific Time
                 } else if (normalizedArea.includes('gta') || normalizedArea.includes('toronto') || normalizedArea.includes('greater toronto')) {
                   area = 'GTA';
+                  eventTimezone = 'America/Toronto'; // Eastern Time
                 } else if (normalizedArea.includes('montreal') || normalizedArea.includes('montréal')) {
                   area = 'Greater Montreal';
+                  eventTimezone = 'America/Montreal'; // Eastern Time
                 } else if (normalizedArea.includes('calgary')) {
                   area = 'Calgary';
+                  eventTimezone = 'America/Edmonton'; // Mountain Time
                 } else {
                   // If it doesn't match known areas, store the trimmed value as-is
                   area = rawArea;

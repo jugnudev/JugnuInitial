@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Calendar, Image, MapPin, Mail, User, Link as LinkIcon, MessageSquare, CheckCircle, Upload, Ticket } from "lucide-react";
+import { Calendar, Image, MapPin, Mail, User, Link as LinkIcon, MessageSquare, CheckCircle, Upload, Ticket, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,12 +12,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { DateTimePicker } from "@/components/DateTimePicker";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { getTimezoneName } from "@shared/timezones";
 
 const schema = z.object({
   organizerName: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
   eventUrl: z.string().url("Please enter a valid URL").or(z.string().startsWith("https://", "URL must start with https://")),
   category: z.string().min(1, "Please select a category"),
+  area: z.string().min(1, "Please select an area"),
   title: z.string().min(1, "Event name is required"),
   startIso: z.string().min(1, "Start date and time is required"),
   endIso: z.string().min(1, "End date and time is required"),
@@ -193,6 +195,7 @@ export default function CommunityFeature() {
           email: data.email.toLowerCase().trim(),
           event_url: data.eventUrl,
           category: data.category,
+          area: data.area,
           title: data.title,
           start_iso: data.startIso,
           end_iso: data.endIso,
@@ -382,24 +385,57 @@ export default function CommunityFeature() {
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="category">Category *</Label>
-                <Select onValueChange={(value) => form.setValue("category", value)}>
-                  <SelectTrigger data-testid="select-category">
-                    <SelectValue placeholder="Select event type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="concert">Concert</SelectItem>
-                    <SelectItem value="parties">Parties</SelectItem>
-                    <SelectItem value="comedy">Comedy</SelectItem>
-                    <SelectItem value="festival">Festival</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                {form.formState.errors.category && (
-                  <p className="text-sm text-red-400">{form.formState.errors.category.message}</p>
-                )}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="category">Category *</Label>
+                  <Select onValueChange={(value) => form.setValue("category", value)}>
+                    <SelectTrigger data-testid="select-category">
+                      <SelectValue placeholder="Select event type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="concert">Concert</SelectItem>
+                      <SelectItem value="parties">Parties</SelectItem>
+                      <SelectItem value="comedy">Comedy</SelectItem>
+                      <SelectItem value="festival">Festival</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {form.formState.errors.category && (
+                    <p className="text-sm text-red-400">{form.formState.errors.category.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="area">Event Area *</Label>
+                  <Select onValueChange={(value) => form.setValue("area", value)}>
+                    <SelectTrigger data-testid="select-area">
+                      <SelectValue placeholder="Select event area" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Metro Vancouver">Metro Vancouver</SelectItem>
+                      <SelectItem value="GTA">GTA (Greater Toronto Area)</SelectItem>
+                      <SelectItem value="Greater Montreal">Greater Montreal</SelectItem>
+                      <SelectItem value="Calgary">Calgary</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {form.formState.errors.area && (
+                    <p className="text-sm text-red-400">{form.formState.errors.area.message}</p>
+                  )}
+                </div>
               </div>
+
+              {/* Dynamic timezone indicator */}
+              {form.watch("area") && (
+                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-white font-medium">Timezone Information</p>
+                    <p className="text-xs text-muted mt-1">
+                      Times will be stored in {getTimezoneName(form.watch("area") === 'Metro Vancouver' ? 'America/Vancouver' : form.watch("area") === 'GTA' ? 'America/Toronto' : form.watch("area") === 'Greater Montreal' ? 'America/Montreal' : 'America/Edmonton')} for {form.watch("area")} events
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div>
@@ -411,7 +447,6 @@ export default function CommunityFeature() {
                     placeholder="Select event start time"
                     testId="start-datetime"
                   />
-                  <p className="text-xs text-muted/80 mt-1">Pacific timezone (UTC-8)</p>
                   {form.formState.errors.startIso && (
                     <p className="text-sm text-red-400 mt-1">{form.formState.errors.startIso.message}</p>
                   )}
@@ -426,7 +461,6 @@ export default function CommunityFeature() {
                     placeholder="Select event end time"
                     testId="end-datetime"
                   />
-                  <p className="text-xs text-muted/80 mt-1">Pacific timezone (UTC-8)</p>
                   {form.formState.errors.endIso && (
                     <p className="text-sm text-red-400 mt-1">{form.formState.errors.endIso.message}</p>
                   )}

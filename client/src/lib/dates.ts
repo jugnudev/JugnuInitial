@@ -127,3 +127,31 @@ export function detectAllDay(isoString?: string): boolean {
 export function safeDateString(iso?: string, fallback: string = 'TBA'): string {
   return isValidISO(iso) ? iso! : fallback;
 }
+
+// Get timezone abbreviation (PT, ET, MT, etc.)
+export function getTimezoneAbbreviation(timezone: string, date?: Date): string {
+  try {
+    const testDate = date || new Date();
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: timezone,
+      timeZoneName: 'short'
+    });
+    
+    const parts = formatter.formatToParts(testDate);
+    const tzPart = parts.find(part => part.type === 'timeZoneName');
+    
+    if (tzPart?.value) {
+      // Return the abbreviation (e.g., "PST", "PDT", "EST", "EDT")
+      return tzPart.value;
+    }
+  } catch (error) {
+    console.warn('Failed to get timezone abbreviation:', error);
+  }
+  
+  // Fallback based on timezone name
+  if (timezone.includes('Vancouver') || timezone.includes('Pacific')) return 'PT';
+  if (timezone.includes('Toronto') || timezone.includes('Montreal') || timezone.includes('Eastern')) return 'ET';
+  if (timezone.includes('Edmonton') || timezone.includes('Calgary') || timezone.includes('Mountain')) return 'MT';
+  
+  return 'PT'; // Default fallback
+}

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { formatPriceLevel } from "@/lib/taxonomy";
-import { formatDateBadge, formatTimeRange, isValidISO } from "@/lib/dates";
+import { formatDateBadge, formatTimeRange, isValidISO, getTimezoneAbbreviation } from "@/lib/dates";
 
 interface BaseItem {
   id: string;
@@ -19,7 +19,7 @@ interface EventItem extends BaseItem {
   date: string;
   start_at?: string;
   is_all_day?: boolean | string;
-  timezone?: string;
+  timezone: string;
   venue: string;
   city: string;
   area?: string;
@@ -268,15 +268,25 @@ export default function Card({ item, onClick, index = 0, showFavorite = false, o
             {item.name}
           </h3>
           
-          {/* Area Badge - for events with area data */}
-          {item.type === 'event' && 'area' in item && item.area && (
-            <div className="mb-2">
-              <Badge 
-                variant="secondary" 
-                className="bg-copper-500/40 backdrop-blur-sm border border-copper-500/60 text-white text-xs px-2.5 py-0.5 font-medium rounded-full ring-1 ring-copper-500/30 opacity-95 whitespace-nowrap"
-              >
-                {item.area}
-              </Badge>
+          {/* Area and Timezone Badges - for events */}
+          {item.type === 'event' && (
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              {item.area && (
+                <Badge 
+                  variant="secondary" 
+                  className="bg-copper-500/40 backdrop-blur-sm border border-copper-500/60 text-white text-xs px-2.5 py-0.5 font-medium rounded-full ring-1 ring-copper-500/30 opacity-95 whitespace-nowrap"
+                >
+                  {item.area}
+                </Badge>
+              )}
+              {'timezone' in item && item.timezone && (
+                <Badge 
+                  variant="secondary" 
+                  className="bg-white/10 backdrop-blur-sm border border-white/20 text-white text-xs px-2.5 py-0.5 font-medium rounded-full ring-1 ring-white/10 opacity-90 whitespace-nowrap"
+                >
+                  {getTimezoneAbbreviation(item.timezone)}
+                </Badge>
+              )}
             </div>
           )}
           

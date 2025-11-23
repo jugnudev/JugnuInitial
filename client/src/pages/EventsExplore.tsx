@@ -339,6 +339,7 @@ export default function EventsExplore() {
                         name: event.title,
                         venue: event.venue || '',
                         area: event.area,
+                        timezone: event.timezone || 'America/Vancouver',
                         date: event.start_at || event.date,
                         is_all_day: Boolean(event.is_all_day === 'true' || event.is_all_day === true),
                       }}
