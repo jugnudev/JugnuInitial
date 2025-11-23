@@ -17,6 +17,8 @@ interface FeatureEventDialogProps {
   onOpenChange: (open: boolean) => void;
   organizerId: string;
   currentCredits: number;
+  selectedEventId?: string | null;
+  creditsLoading?: boolean;
 }
 
 interface Event {
@@ -26,13 +28,20 @@ interface Event {
   venue: string;
 }
 
-export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCredits }: FeatureEventDialogProps) {
+export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCredits, selectedEventId: preselectedEventId, creditsLoading = false }: FeatureEventDialogProps) {
   const { toast } = useToast();
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [placementType, setPlacementType] = useState<"events_banner" | "homepage_feature">("events_banner");
   const [startDate, setStartDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState<string>(format(addDays(new Date(), 1), "yyyy-MM-dd"));
   const [creditsNeeded, setCreditsNeeded] = useState<number>(0);
+
+  // Pre-select event if provided from parent
+  useEffect(() => {
+    if (preselectedEventId) {
+      setSelectedEventId(preselectedEventId);
+    }
+  }, [preselectedEventId]);
 
   // Fetch organizer's events
   const { data: eventsData, isLoading: eventsLoading } = useQuery<{ ok: boolean; events: Event[] }>({
@@ -282,11 +291,16 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!selectedEventId || insufficientCredits || featureEventMutation.isPending}
+            disabled={!selectedEventId || (insufficientCredits && !isBeta) || featureEventMutation.isPending || creditsLoading}
             className="bg-gradient-to-r from-copper-500 to-copper-600 text-white hover:from-copper-600 hover:to-copper-700"
             data-testid="button-feature-event"
           >
-            {featureEventMutation.isPending ? (
+            {creditsLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Loading credits...
+              </>
+            ) : featureEventMutation.isPending ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Featuring...

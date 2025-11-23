@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Ticket, Calendar, MapPin, Clock, Users, ExternalLink, QrCode, BarChart3, Edit3, MoreVertical } from 'lucide-react';
+import { Ticket, Calendar, MapPin, Clock, Users, ExternalLink, QrCode, BarChart3, Edit3, MoreVertical, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'wouter';
 import {
@@ -11,6 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { FeatureEventDialog } from './FeatureEventDialog';
+import { useState } from 'react';
 
 interface TicketTier {
   id: string;
@@ -40,6 +42,9 @@ interface CommunityManageEventsProps {
 }
 
 export default function CommunityManageEvents({ organizerId }: CommunityManageEventsProps) {
+  const [featureDialogOpen, setFeatureDialogOpen] = useState(false);
+  const [selectedEventForFeature, setSelectedEventForFeature] = useState<string | null>(null);
+
   const { data, isLoading, error } = useQuery<{
     ok: boolean;
     events: TicketedEvent[];
@@ -47,7 +52,26 @@ export default function CommunityManageEvents({ organizerId }: CommunityManageEv
     queryKey: ['/api/tickets/organizers', organizerId, 'published-events'],
   });
 
+  // Fetch credit balance for featured event pricing
+  const { data: creditsData, isLoading: creditsLoading } = useQuery<{
+    ok: boolean;
+    credits: {
+      available: number;
+      used: number;
+      resetDate: string | null;
+      isBeta: boolean;
+    };
+  }>({
+    queryKey: ['/api/billing/credits/balance'],
+    enabled: !!organizerId,
+  });
+
   const allEvents = data?.events || [];
+  
+  const handleFeatureEvent = (eventId: string) => {
+    setSelectedEventForFeature(eventId);
+    setFeatureDialogOpen(true);
+  };
   
   const getEventStatus = (event: TicketedEvent): 'upcoming' | 'ongoing' | 'ended' => {
     const now = new Date();
@@ -294,6 +318,17 @@ export default function CommunityManageEvents({ organizerId }: CommunityManageEv
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="glass-elevated border-copper-500/30">
+                      <DropdownMenuItem 
+                        className="cursor-pointer text-white hover:bg-copper-500/10" 
+                        data-testid={`menu-feature-${event.slug}`}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleFeatureEvent(event.id);
+                        }}
+                      >
+                        <Sparkles className="h-4 w-4 mr-2 text-copper-300" />
+                        Feature Event
+                      </DropdownMenuItem>
                       <Link href={`/tickets/organizer/events/${event.id}/analytics`}>
                         <DropdownMenuItem className="cursor-pointer text-white hover:bg-copper-500/10" data-testid={`menu-analytics-${event.slug}`}>
                           <BarChart3 className="h-4 w-4 mr-2 text-copper-300" />
@@ -320,6 +355,16 @@ export default function CommunityManageEvents({ organizerId }: CommunityManageEv
           </Card>
         );
       })}
+      
+      {/* Feature Event Dialog */}
+      <FeatureEventDialog
+        open={featureDialogOpen}
+        onOpenChange={setFeatureDialogOpen}
+        organizerId={organizerId}
+        selectedEventId={selectedEventForFeature}
+        currentCredits={creditsData?.credits?.available || 0}
+        creditsLoading={creditsLoading}
+      />
     </div>
   );
 }

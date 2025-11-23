@@ -441,8 +441,10 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
     if (!event) {
       return res.status(404).json({ ok: false, error: 'Event not found' });
     }
+    
+    // CRITICAL: Verify the authenticated organizer owns this event
     if (event.organizerId !== organizer.id) {
-      return res.status(403).json({ ok: false, error: 'You do not own this event' });
+      return res.status(403).json({ ok: false, error: 'You can only feature events that you own' });
     }
 
     // Check credit balance
@@ -493,17 +495,16 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
       return res.status(500).json({ ok: false, error: 'Failed to create campaign' });
     }
 
-    // Deduct credits and log usage (skip in beta)
-    if (!isBeta) {
-      await creditsService.deductCredits(
-        organizer.id,
-        creditsToDeduct,
-        campaign.id,
-        [placement],
-        startDate,
-        endDate
-      );
-    }
+    // Deduct credits and log usage
+    // In FREE BETA, the service will skip actual deduction but still track usage for analytics
+    await creditsService.deductCredits(
+      organizer.id,
+      creditsToDeduct,
+      campaign.id,
+      [placement],
+      startDate,
+      endDate
+    );
 
     res.json({
       ok: true,
