@@ -626,7 +626,23 @@ Disallow: /account/*`;
               } else if (organizerMatch) {
                 organizer = cleanHtmlFromText(organizerMatch[1].trim());
               } else if (areaMatch) {
-                area = areaMatch[1].trim();
+                // Normalize area value to match frontend filter values (case-sensitive)
+                const rawArea = areaMatch[1].trim();
+                const normalizedArea = rawArea.toLowerCase();
+                
+                // Map to canonical area names
+                if (normalizedArea.includes('metro vancouver') || normalizedArea.includes('vancouver')) {
+                  area = 'Metro Vancouver';
+                } else if (normalizedArea.includes('gta') || normalizedArea.includes('toronto') || normalizedArea.includes('greater toronto')) {
+                  area = 'GTA';
+                } else if (normalizedArea.includes('montreal') || normalizedArea.includes('montréal')) {
+                  area = 'Greater Montreal';
+                } else if (normalizedArea.includes('calgary')) {
+                  area = 'Calgary';
+                } else {
+                  // If it doesn't match known areas, store the trimmed value as-is
+                  area = rawArea;
+                }
               } else if (priceMatch) {
                 priceFrom = parseFloat(priceMatch[1]);
               } else if (featuredMatch) {
@@ -1623,6 +1639,7 @@ Disallow: /account/*`;
       }
 
       // Filter by area if provided (gracefully handle missing column)
+      // Events are normalized at import time, so we can use exact matching
       if (area && typeof area === 'string' && area !== 'all') {
         try {
           query = query.eq('area', area);
