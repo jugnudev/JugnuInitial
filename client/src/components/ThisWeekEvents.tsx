@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Calendar, MapPin, ArrowRight, ChevronLeft, ChevronRight, Clock } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { format, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useState, useRef, useEffect } from "react";
+import { getTimezoneAbbreviation } from "@shared/timezones";
 
 interface CommunityEvent {
   id: string;
@@ -24,6 +25,8 @@ interface CommunityEvent {
   image_url?: string;
   featured: boolean;
   tickets_url?: string;
+  area?: string;
+  timezone?: string;
 }
 
 interface EventsResponse {
@@ -33,6 +36,7 @@ interface EventsResponse {
 }
 
 export default function ThisWeekEvents() {
+  const [, navigate] = useLocation();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
@@ -214,9 +218,8 @@ export default function ThisWeekEvents() {
                   <Card 
                     className="bg-white/5 border-white/10 hover:bg-white/10 hover:border-copper-500/30 transition-all duration-300 overflow-hidden group cursor-pointer h-full"
                     onClick={() => {
-                      if (eventUrl) {
-                        window.open(eventUrl, '_blank');
-                      }
+                      // Navigate to events page with event ID to open detail modal
+                      navigate(`/events?e=${event.id}`);
                     }}
                   >
                     {/* Event Image */}
@@ -261,12 +264,24 @@ export default function ThisWeekEvents() {
                         </div>
                       </div>
                       
-                      {/* Featured Badge */}
-                      {event.featured && (
-                        <div className="absolute top-3 right-3 bg-copper-500 text-black text-xs font-bold px-2 py-1 rounded">
-                          FEATURED
-                        </div>
-                      )}
+                      {/* Area & Timezone Badges */}
+                      <div className="absolute top-3 right-3 flex flex-col gap-1.5">
+                        {event.featured && (
+                          <div className="bg-copper-500 text-black text-xs font-bold px-2 py-1 rounded whitespace-nowrap">
+                            FEATURED
+                          </div>
+                        )}
+                        {event.area && (
+                          <div className="bg-black/70 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded whitespace-nowrap">
+                            {event.area}
+                          </div>
+                        )}
+                        {event.timezone && (
+                          <div className="bg-jade-500/90 text-black text-xs font-bold px-2 py-1 rounded whitespace-nowrap">
+                            {getTimezoneAbbreviation(event.timezone)}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     
                     {/* Event Details */}
@@ -286,7 +301,14 @@ export default function ThisWeekEvents() {
                         {eventTime && (
                           <div className="flex items-center gap-2 text-muted">
                             <Clock className="w-4 h-4 flex-shrink-0" />
-                            <span>{eventTime}</span>
+                            <span>
+                              {eventTime}
+                              {event.timezone && (
+                                <span className="ml-1 text-jade-400">
+                                  {getTimezoneAbbreviation(event.timezone)}
+                                </span>
+                              )}
+                            </span>
                           </div>
                         )}
                       </div>
@@ -303,11 +325,9 @@ export default function ThisWeekEvents() {
                           </span>
                         )}
                         
-                        {eventUrl && (
-                          <span className="text-copper-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <ArrowRight className="w-4 h-4" />
-                          </span>
-                        )}
+                        <span className="text-copper-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <ArrowRight className="w-4 h-4" />
+                        </span>
                       </div>
                     </div>
                   </Card>
