@@ -264,7 +264,7 @@ export default function ThisWeekEvents() {
                         </div>
                       </div>
                       
-                      {/* Area & Timezone Badges */}
+                      {/* Area & Featured Badges */}
                       <div className="absolute top-3 right-3 flex flex-col gap-1.5">
                         {event.featured && (
                           <div className="bg-copper-500 text-black text-xs font-bold px-2 py-1 rounded whitespace-nowrap">
@@ -274,11 +274,6 @@ export default function ThisWeekEvents() {
                         {event.area && (
                           <div className="bg-black/70 backdrop-blur-sm text-white text-xs font-medium px-2 py-1 rounded whitespace-nowrap">
                             {event.area}
-                          </div>
-                        )}
-                        {event.timezone && (
-                          <div className="bg-jade-500/90 text-black text-xs font-bold px-2 py-1 rounded whitespace-nowrap">
-                            {getTimezoneAbbreviation(event.timezone)}
                           </div>
                         )}
                       </div>
