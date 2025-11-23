@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Search, Filter, Calendar, MapPin, Clock, ExternalLink, Share2 } from 'lucide-react';
+import { Search, Filter, Calendar, MapPin, Clock, ExternalLink, Share2, Tag, Heart, Check } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import Card from "@/components/explore/Card";
 import FeaturedHero from "@/components/explore/FeaturedHero";
@@ -205,35 +206,35 @@ export default function EventsExplore() {
       />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        {/* Toolbar */}
-        <Toolbar
-          searchValue={searchQuery}
-          onSearchChange={setSearchQuery}
-          segmentOptions={CATEGORIES.map(c => c.value)}
-          segmentValue={categoryFilter}
-          onSegmentChange={setCategoryFilter}
-          // onFiltersClick removed
-          activeFiltersCount={hasActiveFilters ? 1 : 0}
-          showSavedOnly={showSavedOnly}
-          onSavedToggle={() => {
-            const newShowSaved = !showSavedOnly;
-            setShowSavedOnly(newShowSaved);
-            // Update URL to include/remove saved parameter
-            const url = new URL(window.location.href);
-            if (newShowSaved) {
-              url.searchParams.set('saved', '1');
-            } else {
-              url.searchParams.delete('saved');
-            }
-            window.history.replaceState({}, '', url.toString());
-          }}
-          savedCount={savedEventIds.length}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
+        {/* Desktop/Tablet Toolbar (hidden on mobile) */}
+        <div className="hidden lg:block">
+          <Toolbar
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            segmentOptions={CATEGORIES.map(c => c.value)}
+            segmentValue={categoryFilter}
+            onSegmentChange={setCategoryFilter}
+            activeFiltersCount={hasActiveFilters ? 1 : 0}
+            showSavedOnly={showSavedOnly}
+            onSavedToggle={() => {
+              const newShowSaved = !showSavedOnly;
+              setShowSavedOnly(newShowSaved);
+              const url = new URL(window.location.href);
+              if (newShowSaved) {
+                url.searchParams.set('saved', '1');
+              } else {
+                url.searchParams.delete('saved');
+              }
+              window.history.replaceState({}, '', url.toString());
+            }}
+            savedCount={savedEventIds.length}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
+        </div>
 
-        {/* Area Filter */}
-        <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        {/* Desktop Area Filter Pills (hidden on mobile) */}
+        <div className="hidden lg:flex mt-6 items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
           <MapPin className="h-4 w-4 text-muted flex-shrink-0" />
           <div className="flex gap-2">
             {AREAS.map((area) => (
@@ -251,6 +252,116 @@ export default function EventsExplore() {
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Mobile Premium Filters (shown only on mobile/tablet) */}
+        <div className="lg:hidden space-y-3">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted pointer-events-none" />
+            <Input
+              type="text"
+              placeholder="Search events..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full h-12 pl-12 pr-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-muted focus:bg-white/[0.08] focus:border-copper-400/60 focus:ring-1 focus:ring-copper-400/40 transition-all"
+              data-testid="input-search-events-mobile"
+            />
+          </div>
+
+          {/* Dropdowns Row */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Area Dropdown */}
+            <Select value={areaFilter} onValueChange={setAreaFilter}>
+              <SelectTrigger 
+                className="h-12 bg-white/5 border-white/10 hover:bg-white/[0.08] focus:border-copper-400/60 focus:ring-1 focus:ring-copper-400/40 rounded-xl backdrop-blur-sm transition-all data-[state=open]:border-copper-400/60 data-[state=open]:ring-1 data-[state=open]:ring-copper-400/40"
+                aria-label="Filter by area"
+                data-testid="select-area-filter"
+              >
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-copper-400 flex-shrink-0" />
+                  <span className={`truncate ${areaFilter !== 'All' ? 'text-copper-400' : 'text-white'}`}>
+                    {AREAS.find(a => a.value === areaFilter)?.label || 'All Areas'}
+                  </span>
+                </div>
+              </SelectTrigger>
+              <SelectContent className="bg-neutral-950/95 border-white/10 backdrop-blur-md">
+                {AREAS.map((area) => (
+                  <SelectItem 
+                    key={area.value} 
+                    value={area.value}
+                    className="text-white hover:bg-white/10 focus:bg-white/10 data-[state=checked]:text-copper-400"
+                    data-testid={`area-option-${area.value.toLowerCase().replace(' ', '-')}`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span>{area.label}</span>
+                      {areaFilter === area.value && (
+                        <Check className="h-4 w-4 text-copper-400 ml-2" />
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Category Dropdown */}
+            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+              <SelectTrigger 
+                className="h-12 bg-white/5 border-white/10 hover:bg-white/[0.08] focus:border-copper-400/60 focus:ring-1 focus:ring-copper-400/40 rounded-xl backdrop-blur-sm transition-all data-[state=open]:border-copper-400/60 data-[state=open]:ring-1 data-[state=open]:ring-copper-400/40"
+                aria-label="Filter by category"
+                data-testid="select-category-filter"
+              >
+                <div className="flex items-center gap-2">
+                  <Tag className="h-4 w-4 text-copper-400 flex-shrink-0" />
+                  <span className={`truncate ${categoryFilter !== 'All' ? 'text-copper-400' : 'text-white'}`}>
+                    {CATEGORIES.find(c => c.value === categoryFilter)?.label || 'All'}
+                  </span>
+                </div>
+              </SelectTrigger>
+              <SelectContent className="bg-neutral-950/95 border-white/10 backdrop-blur-md">
+                {CATEGORIES.map((category) => (
+                  <SelectItem 
+                    key={category.value} 
+                    value={category.value}
+                    className="text-white hover:bg-white/10 focus:bg-white/10 data-[state=checked]:text-copper-400"
+                    data-testid={`category-option-${category.value.toLowerCase().replace(' ', '-')}`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span>{category.label}</span>
+                      {categoryFilter === category.value && (
+                        <Check className="h-4 w-4 text-copper-400 ml-2" />
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Saved Filter Toggle */}
+          <button
+            onClick={() => {
+              const newShowSaved = !showSavedOnly;
+              setShowSavedOnly(newShowSaved);
+              const url = new URL(window.location.href);
+              if (newShowSaved) {
+                url.searchParams.set('saved', '1');
+              } else {
+                url.searchParams.delete('saved');
+              }
+              window.history.replaceState({}, '', url.toString());
+            }}
+            className={`w-full flex items-center justify-center gap-2 h-12 px-6 rounded-xl font-medium transition-all duration-200 ${
+              showSavedOnly
+                ? 'bg-copper-500 text-black shadow-lg shadow-copper-500/20'
+                : 'bg-white/5 text-white hover:bg-white/[0.08] border border-white/10'
+            }`}
+            aria-label={showSavedOnly ? 'Show all events' : 'Show saved events only'}
+            data-testid="button-saved-filter-mobile"
+          >
+            <Heart className={`h-4 w-4 ${showSavedOnly ? 'fill-current' : ''}`} />
+            <span>{showSavedOnly ? `Saved (${savedEventIds.length})` : 'View Saved'}</span>
+          </button>
         </div>
 
         {/* Loading State */}
