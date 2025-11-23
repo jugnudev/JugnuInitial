@@ -181,12 +181,29 @@ export function TicketsAttendeesPageEnhanced() {
   // Silent update mutation for bulk operations (no toast spam)
   const silentUpdateMutation = useMutation({
     mutationFn: async ({ ticketId, ...data }: any) => {
-      const result = await apiRequest('PATCH', `/api/tickets/attendees/${ticketId}`, data);
-      const jsonData = await result.json();
-      if (!jsonData.ok) {
-        throw new Error(jsonData.error || 'Failed to update attendee');
+      try {
+        const result = await apiRequest('PATCH', `/api/tickets/attendees/${ticketId}`, data);
+        const jsonData = await result.json();
+        if (!jsonData.ok) {
+          throw new Error(jsonData.error || 'Failed to update attendee');
+        }
+        return jsonData;
+      } catch (error: any) {
+        // apiRequest throws errors as "status: response_text"
+        // Try to extract meaningful error from response
+        const errorMessage = error.message || 'Failed to update attendee';
+        const jsonMatch = errorMessage.match(/\{.*\}/);
+        if (jsonMatch) {
+          try {
+            const errorData = JSON.parse(jsonMatch[0]);
+            throw new Error(errorData.error || errorMessage);
+          } catch {
+            // JSON parse failed, use original error
+            throw error;
+          }
+        }
+        throw error;
       }
-      return jsonData;
     },
     onError: (error: any) => {
       console.error('Silent update error:', error);
