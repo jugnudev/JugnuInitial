@@ -26,6 +26,7 @@ interface CommunityEvent {
   title: string;
   description?: string;
   category?: string;
+  area?: string;
   start_at: string;
   end_at?: string;
   timezone: string;
@@ -74,12 +75,19 @@ function EventInfo({
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white mb-3">
           {event.title}
         </h1>
-        {/* Category chip */}
-        {event.category && (
-          <Badge className="bg-white/10 text-white border-0 hover:bg-white/15">
-            {event.category}
-          </Badge>
-        )}
+        {/* Category and Area chips */}
+        <div className="flex flex-wrap gap-2">
+          {event.category && (
+            <Badge className="bg-white/10 text-white border-0 hover:bg-white/15">
+              {event.category}
+            </Badge>
+          )}
+          {event.area && (
+            <Badge className="bg-white/10 text-white border-0 hover:bg-white/15">
+              {event.area}
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Date row */}
