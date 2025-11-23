@@ -2898,60 +2898,58 @@ export default function EnhancedCommunityDetailPage() {
 
             {/* Desktop Tab Navigation */}
             <div className="hidden md:block">
-              <div className="bg-gradient-to-br from-charcoal-900/80 via-charcoal-950/90 to-charcoal-900/80 backdrop-blur-2xl rounded-2xl p-2 border-2 border-copper-500/20 shadow-xl shadow-black/20">
-                <TabsList className="grid grid-cols-6 gap-2 bg-transparent w-full p-0">
+              <TabsList className="grid grid-cols-6 gap-0.5 bg-gradient-to-b from-white/5 to-white/10 backdrop-blur-xl w-full p-0 rounded-2xl overflow-hidden border border-white/10">
+                <TabsTrigger 
+                  value="announcements"
+                  data-testid="member-posts-tab"
+                  className="h-14 rounded-none font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 data-[state=inactive]:bg-white/[0.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/10 data-[state=inactive]:backdrop-blur-sm flex items-center justify-center gap-2 first:rounded-l-2xl last:rounded-r-2xl"
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Posts</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="chat"
+                  data-testid="member-chat-tab"
+                  className="h-14 rounded-none font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 data-[state=inactive]:bg-white/[0.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/10 data-[state=inactive]:backdrop-blur-sm flex items-center justify-center gap-2 first:rounded-l-2xl last:rounded-r-2xl"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  <span>Chat</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="polls"
+                  data-testid="member-polls-tab"
+                  className="h-14 rounded-none font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 data-[state=inactive]:bg-white/[0.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/10 data-[state=inactive]:backdrop-blur-sm flex items-center justify-center gap-2 first:rounded-l-2xl last:rounded-r-2xl"
+                >
+                  <Vote className="h-4 w-4" />
+                  <span>Polls</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="giveaways"
+                  data-testid="member-giveaways-tab"
+                  className="h-14 rounded-none font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 data-[state=inactive]:bg-white/[0.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/10 data-[state=inactive]:backdrop-blur-sm flex items-center justify-center gap-2 first:rounded-l-2xl last:rounded-r-2xl"
+                >
+                  <Gift className="h-4 w-4" />
+                  <span>Giveaways</span>
+                </TabsTrigger>
+                {(community?.showEventsTab ?? true) && (
                   <TabsTrigger 
-                    value="announcements"
-                    data-testid="member-posts-tab"
-                    className="relative h-12 rounded-xl font-semibold text-sm transition-all duration-300 bg-white/[0.02] backdrop-blur-sm border border-white/5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500/20 data-[state=active]:to-copper-600/20 data-[state=active]:backdrop-blur-md data-[state=active]:border-copper-500/30 data-[state=active]:text-white data-[state=active]:shadow-[0_8px_24px_rgba(192,88,15,0.35)] data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/10 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
+                    value="events"
+                    data-testid="member-events-tab"
+                    className="h-14 rounded-none font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 data-[state=inactive]:bg-white/[0.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/10 data-[state=inactive]:backdrop-blur-sm flex items-center justify-center gap-2 first:rounded-l-2xl last:rounded-r-2xl"
                   >
-                    <MessageSquare className="h-4 w-4" />
-                    <span>Posts</span>
+                    <Ticket className="h-4 w-4" />
+                    <span>Events</span>
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="chat"
-                    data-testid="member-chat-tab"
-                    className="relative h-12 rounded-xl font-semibold text-sm transition-all duration-300 bg-white/[0.02] backdrop-blur-sm border border-white/5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500/20 data-[state=active]:to-copper-600/20 data-[state=active]:backdrop-blur-md data-[state=active]:border-copper-500/30 data-[state=active]:text-white data-[state=active]:shadow-[0_8px_24px_rgba(192,88,15,0.35)] data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/10 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    <span>Chat</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="polls"
-                    data-testid="member-polls-tab"
-                    className="relative h-12 rounded-xl font-semibold text-sm transition-all duration-300 bg-white/[0.02] backdrop-blur-sm border border-white/5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500/20 data-[state=active]:to-copper-600/20 data-[state=active]:backdrop-blur-md data-[state=active]:border-copper-500/30 data-[state=active]:text-white data-[state=active]:shadow-[0_8px_24px_rgba(192,88,15,0.35)] data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/10 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
-                  >
-                    <Vote className="h-4 w-4" />
-                    <span>Polls</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
-                    value="giveaways"
-                    data-testid="member-giveaways-tab"
-                    className="relative h-12 rounded-xl font-semibold text-sm transition-all duration-300 bg-white/[0.02] backdrop-blur-sm border border-white/5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500/20 data-[state=active]:to-copper-600/20 data-[state=active]:backdrop-blur-md data-[state=active]:border-copper-500/30 data-[state=active]:text-white data-[state=active]:shadow-[0_8px_24px_rgba(192,88,15,0.35)] data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/10 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
-                  >
-                    <Gift className="h-4 w-4" />
-                    <span>Giveaways</span>
-                  </TabsTrigger>
-                  {(community?.showEventsTab ?? true) && (
-                    <TabsTrigger 
-                      value="events"
-                      data-testid="member-events-tab"
-                      className="h-12 rounded-xl font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:shadow-copper-500/40 data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/5 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
-                    >
-                      <Ticket className="h-4 w-4" />
-                      <span>Events</span>
-                    </TabsTrigger>
-                  )}
-                  <TabsTrigger 
-                    value="settings"
-                    data-testid="member-settings-tab"
-                    className="relative h-12 rounded-xl font-semibold text-sm transition-all duration-300 bg-white/[0.02] backdrop-blur-sm border border-white/5 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500/20 data-[state=active]:to-copper-600/20 data-[state=active]:backdrop-blur-md data-[state=active]:border-copper-500/30 data-[state=active]:text-white data-[state=active]:shadow-[0_8px_24px_rgba(192,88,15,0.35)] data-[state=active]:scale-[1.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/10 data-[state=inactive]:hover:backdrop-blur-sm flex items-center justify-center gap-2"
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span>Settings</span>
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+                )}
+                <TabsTrigger 
+                  value="settings"
+                  data-testid="member-settings-tab"
+                  className="h-14 rounded-none font-semibold text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-br data-[state=active]:from-copper-500 data-[state=active]:to-copper-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-copper-500/30 data-[state=inactive]:bg-white/[0.02] data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white data-[state=inactive]:hover:bg-white/10 data-[state=inactive]:backdrop-blur-sm flex items-center justify-center gap-2 first:rounded-l-2xl last:rounded-r-2xl"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span>Settings</span>
+                </TabsTrigger>
+              </TabsList>
             </div>
 
             {/* Posts Tab */}
