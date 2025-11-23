@@ -766,6 +766,47 @@ export function TicketsAttendeesPageEnhanced() {
           </Sheet>
         </div>
         
+        {/* Selection Actions */}
+        {filteredAttendees.length > 0 && (
+          <div className="flex items-center justify-between gap-2 px-1">
+            <div className="text-sm text-copper-300">
+              {selectedAttendees.size > 0 ? (
+                <span className="font-semibold text-copper-200">
+                  {selectedAttendees.size} selected
+                </span>
+              ) : (
+                <span>Select attendees to send messages</span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {selectedAttendees.size > 0 ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedAttendees(new Set())}
+                  className="h-9 border-copper-500/30 text-copper-200 hover:bg-copper-500/10"
+                  data-testid="button-deselect-all"
+                >
+                  Deselect All
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const allIds = new Set(filteredAttendees.map(a => a.ticketId));
+                    setSelectedAttendees(allIds);
+                  }}
+                  className="h-9 border-copper-500/30 text-copper-200 hover:bg-copper-500/10"
+                  data-testid="button-select-all"
+                >
+                  Select All
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+        
         {/* Mobile-First Attendee Cards */}
         <div className="space-y-3">
           {isLoading ? (
