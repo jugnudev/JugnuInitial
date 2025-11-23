@@ -1,9 +1,11 @@
 import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { CommunitiesSupabaseDB } from './communities-supabase';
+import { CreditsService } from './credits-service';
 
 const router = Router();
 const communitiesStorage = new CommunitiesSupabaseDB();
+const creditsService = new CreditsService(communitiesStorage);
 
 // Auth middleware
 const requireAuth = async (req: Request, res: Response, next: any) => {
@@ -242,6 +244,169 @@ router.post('/cancel-subscription', requireAuth, async (req: Request, res: Respo
   } catch (error: any) {
     console.error('Cancel subscription error:', error);
     res.status(500).json({ ok: false, error: error.message || 'Failed to cancel subscription' });
+  }
+});
+
+/**
+ * GET /api/billing/credits/balance
+ * Get placement credit balance for the current organizer
+ */
+router.get('/credits/balance', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+
+    // Get organizer
+    const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+    if (!organizer) {
+      return res.status(404).json({ ok: false, error: 'Organizer account not found' });
+    }
+
+    // During FREE BETA, return unlimited credits
+    const isBeta = process.env.VITE_ENABLE_BILLING !== 'true';
+    if (isBeta) {
+      return res.json({
+        ok: true,
+        credits: {
+          available: 999, // Show large number during beta
+          used: 0,
+          resetDate: null,
+          isBeta: true
+        }
+      });
+    }
+
+    // Get subscription for the organizer's community
+    const communities = await communitiesStorage.getCommunitiesByOrganizerId(organizer.id);
+    if (communities.length === 0) {
+      return res.json({
+        ok: true,
+        credits: { available: 0, used: 0, resetDate: null, isBeta: false }
+      });
+    }
+
+    // Get subscription for first community (organizers typically have one main community)
+    const subscription = await communitiesStorage.getSubscriptionByCommunityId(communities[0].id);
+    if (!subscription) {
+      return res.json({
+        ok: true,
+        credits: { available: 0, used: 0, resetDate: null, isBeta: false }
+      });
+    }
+
+    // Check if credits need reset
+    await creditsService.checkAndResetCredits(subscription.id);
+
+    // Get updated subscription
+    const updatedSubscription = await communitiesStorage.getSubscriptionByCommunityId(communities[0].id);
+    
+    res.json({
+      ok: true,
+      credits: {
+        available: updatedSubscription?.placementCreditsAvailable || 0,
+        used: updatedSubscription?.placementCreditsUsed || 0,
+        resetDate: updatedSubscription?.creditsResetDate || null,
+        isBeta: false
+      }
+    });
+  } catch (error: any) {
+    console.error('Get credit balance error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to get credit balance' });
+  }
+});
+
+/**
+ * POST /api/billing/credits/check
+ * Check if organizer has enough credits for a placement
+ */
+router.post('/credits/check', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { creditsNeeded } = req.body;
+    const user = (req as any).user;
+
+    if (!creditsNeeded || creditsNeeded < 1) {
+      return res.status(400).json({ ok: false, error: 'Invalid credits amount' });
+    }
+
+    // Get organizer
+    const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+    if (!organizer) {
+      return res.status(404).json({ ok: false, error: 'Organizer account not found' });
+    }
+
+    // During FREE BETA, always allow
+    const isBeta = process.env.VITE_ENABLE_BILLING !== 'true';
+    if (isBeta) {
+      return res.json({
+        ok: true,
+        hasEnoughCredits: true,
+        available: 999,
+        needed: creditsNeeded,
+        isBeta: true
+      });
+    }
+
+    // Get subscription
+    const communities = await communitiesStorage.getCommunitiesByOrganizerId(organizer.id);
+    if (communities.length === 0) {
+      return res.json({
+        ok: true,
+        hasEnoughCredits: false,
+        available: 0,
+        needed: creditsNeeded,
+        isBeta: false
+      });
+    }
+
+    const subscription = await communitiesStorage.getSubscriptionByCommunityId(communities[0].id);
+    if (!subscription) {
+      return res.json({
+        ok: true,
+        hasEnoughCredits: false,
+        available: 0,
+        needed: creditsNeeded,
+        isBeta: false
+      });
+    }
+
+    const hasEnough = await creditsService.hasEnoughCredits(subscription.id, creditsNeeded);
+
+    res.json({
+      ok: true,
+      hasEnoughCredits: hasEnough,
+      available: subscription.placementCreditsAvailable || 0,
+      needed: creditsNeeded,
+      isBeta: false
+    });
+  } catch (error: any) {
+    console.error('Check credits error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to check credits' });
+  }
+});
+
+/**
+ * GET /api/billing/credits/usage
+ * Get placement credit usage history for the current organizer
+ */
+router.get('/credits/usage', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+
+    // Get organizer
+    const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+    if (!organizer) {
+      return res.status(404).json({ ok: false, error: 'Organizer account not found' });
+    }
+
+    // Get usage history
+    const usage = await communitiesStorage.getCreditUsageByOrganizer(organizer.id);
+
+    res.json({
+      ok: true,
+      usage: usage || []
+    });
+  } catch (error: any) {
+    console.error('Get credit usage error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to get credit usage' });
   }
 });
 
