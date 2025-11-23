@@ -2,9 +2,11 @@ import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
 import { CommunitiesSupabaseDB } from './communities-supabase';
 import { CreditsService } from './credits-service';
+import { TicketsSupabaseDB } from '../tickets/tickets-supabase';
 
 const router = Router();
 const communitiesStorage = new CommunitiesSupabaseDB();
+const ticketsStorage = new TicketsSupabaseDB();
 const creditsService = new CreditsService(communitiesStorage);
 
 // Auth middleware
@@ -408,6 +410,110 @@ router.get('/credits/usage', requireAuth, async (req: Request, res: Response) =>
   } catch (error: any) {
     console.error('Get credit usage error:', error);
     res.status(500).json({ ok: false, error: error.message || 'Failed to get credit usage' });
+  }
+});
+
+/**
+ * POST /api/billing/credits/spend
+ * Spend placement credits to feature an event
+ */
+router.post('/credits/spend', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const { eventId, placement, startDate, endDate, creditsToDeduct } = req.body;
+
+    // Validate input
+    if (!eventId || !placement || !startDate || !endDate || !creditsToDeduct) {
+      return res.status(400).json({ 
+        ok: false, 
+        error: 'Missing required fields: eventId, placement, startDate, endDate, creditsToDeduct' 
+      });
+    }
+
+    // Get organizer
+    const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+    if (!organizer) {
+      return res.status(404).json({ ok: false, error: 'Organizer account not found' });
+    }
+
+    // Get event and verify ownership
+    const event = await ticketsStorage.getEventById(eventId);
+    if (!event) {
+      return res.status(404).json({ ok: false, error: 'Event not found' });
+    }
+    if (event.organizerId !== organizer.id) {
+      return res.status(403).json({ ok: false, error: 'You do not own this event' });
+    }
+
+    // Check credit balance
+    const isBeta = process.env.VITE_ENABLE_BILLING !== 'true';
+    if (!isBeta) {
+      const creditCheck = await creditsService.checkCredits(organizer.id, creditsToDeduct);
+      if (!creditCheck.hasCredits) {
+        return res.status(402).json({ 
+          ok: false, 
+          error: 'Insufficient credits',
+          available: creditCheck.availableCredits,
+          needed: creditsToDeduct
+        });
+      }
+    }
+
+    // Check for booking conflicts
+    const conflicts = await communitiesStorage.checkPlacementConflicts(placement, startDate, endDate);
+    if (conflicts && conflicts.length > 0) {
+      return res.status(409).json({ 
+        ok: false, 
+        error: 'Placement slot already booked for selected dates',
+        conflicts: conflicts.map((c: any) => ({
+          campaignName: c.name,
+          startDate: c.startAt,
+          endDate: c.endAt
+        }))
+      });
+    }
+
+    // Create sponsor campaign for featured event
+    const campaign = await communitiesStorage.createSponsorCampaign({
+      name: `Featured: ${event.title}`,
+      sponsorName: organizer.businessName || user.firstName + ' ' + user.lastName,
+      headline: event.title,
+      subline: event.summary || `${event.venue} - ${new Date(event.startAt).toLocaleDateString()}`,
+      ctaText: 'Get Tickets',
+      clickUrl: `${process.env.VITE_APP_URL || 'https://thehouseofjugnu.com'}/events?e=${eventId}`,
+      placements: [placement],
+      startAt: new Date(startDate).toISOString(),
+      endAt: new Date(endDate + 'T23:59:59').toISOString(), // End of day
+      priority: 5, // Medium priority for community-featured events
+      isActive: true,
+      isSponsored: false // Community-featured events are not marked as sponsored
+    });
+
+    if (!campaign) {
+      return res.status(500).json({ ok: false, error: 'Failed to create campaign' });
+    }
+
+    // Deduct credits and log usage (skip in beta)
+    if (!isBeta) {
+      await creditsService.deductCredits(
+        organizer.id,
+        creditsToDeduct,
+        campaign.id,
+        [placement],
+        startDate,
+        endDate
+      );
+    }
+
+    res.json({
+      ok: true,
+      campaignId: campaign.id,
+      message: 'Event featured successfully',
+      creditsDeducted: isBeta ? 0 : creditsToDeduct
+    });
+  } catch (error: any) {
+    console.error('Spend credits error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to spend credits' });
   }
 });
 

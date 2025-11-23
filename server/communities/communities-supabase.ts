@@ -4398,6 +4398,60 @@ export class CommunitiesSupabaseDB {
       members: data.community_memberships?.slice(0, 10) || []
     };
   }
+
+  // ============ SPONSOR CAMPAIGNS METHODS ============
+  async checkPlacementConflicts(
+    placement: string,
+    startDate: string,
+    endDate: string
+  ): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('sponsor_campaigns')
+      .select('id, name, start_at, end_at')
+      .eq('is_active', true)
+      .contains('placements', [placement])
+      .or(`start_at.lte.${endDate},end_at.gte.${startDate}`);
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async createSponsorCampaign(campaignData: {
+    name: string;
+    sponsorName: string;
+    headline: string;
+    subline?: string;
+    ctaText: string;
+    clickUrl: string;
+    placements: string[];
+    startAt: string;
+    endAt: string;
+    priority: number;
+    isActive: boolean;
+    isSponsored: boolean;
+  }): Promise<any> {
+    const { data, error } = await this.client
+      .from('sponsor_campaigns')
+      .insert({
+        name: campaignData.name,
+        sponsor_name: campaignData.sponsorName,
+        headline: campaignData.headline,
+        subline: campaignData.subline,
+        cta_text: campaignData.ctaText,
+        click_url: campaignData.clickUrl,
+        placements: campaignData.placements,
+        start_at: campaignData.startAt,
+        end_at: campaignData.endAt,
+        priority: campaignData.priority,
+        is_active: campaignData.isActive,
+        is_sponsored: campaignData.isSponsored
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
 }
 
 export const communitiesStorage = new CommunitiesSupabaseDB();
