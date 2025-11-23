@@ -270,7 +270,7 @@ export default function CommunityFeature() {
           <div className="bg-premium-surface border border-premium-border rounded-xl p-6 text-left space-y-4">
             <h2 className="font-semibold text-white">Guidelines for Featured Events</h2>
             <ul className="space-y-2 text-sm text-muted">
-              <li>• Events must be South Asian cultural events in Vancouver</li>
+              <li>• Events must be South Asian cultural events across Canada</li>
               <li>• High-quality poster/image required (16:9 aspect ratio preferred)</li>
               <li>• Event details should be finalized (date, venue, tickets)</li>
               <li>• You must have rights to use the imagery and event information</li>
@@ -411,7 +411,7 @@ export default function CommunityFeature() {
                     placeholder="Select event start time"
                     testId="start-datetime"
                   />
-                  <p className="text-xs text-muted/80 mt-1">Vancouver timezone</p>
+                  <p className="text-xs text-muted/80 mt-1">Pacific timezone (UTC-8)</p>
                   {form.formState.errors.startIso && (
                     <p className="text-sm text-red-400 mt-1">{form.formState.errors.startIso.message}</p>
                   )}
@@ -426,7 +426,7 @@ export default function CommunityFeature() {
                     placeholder="Select event end time"
                     testId="end-datetime"
                   />
-                  <p className="text-xs text-muted/80 mt-1">Vancouver timezone</p>
+                  <p className="text-xs text-muted/80 mt-1">Pacific timezone (UTC-8)</p>
                   {form.formState.errors.endIso && (
                     <p className="text-sm text-red-400 mt-1">{form.formState.errors.endIso.message}</p>
                   )}
