@@ -534,7 +534,7 @@ export function TicketsAttendeesPageEnhanced() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => window.history.back()}
+              onClick={() => navigate(`/tickets/organizer/events/${eventId}/manage`)}
               className="h-10 w-10 p-0 text-copper-300 hover:text-white hover:bg-copper-500/10"
               data-testid="button-back"
             >

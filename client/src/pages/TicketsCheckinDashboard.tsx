@@ -519,9 +519,20 @@ export function TicketsCheckinDashboard() {
         <div className="container mx-auto px-4 py-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
-            <div>
-              <h1 className="text-3xl font-fraunces mb-2">Check-in Dashboard</h1>
-              <p className="text-muted-foreground">{eventTitle}</p>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate(`/tickets/organizer/events/${eventId}/manage`)}
+                className="text-muted-foreground hover:text-foreground"
+                data-testid="button-back-to-manage"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div>
+                <h1 className="text-3xl font-fraunces mb-2">Check-in Dashboard</h1>
+                <p className="text-muted-foreground">{eventTitle}</p>
+              </div>
             </div>
           <div className="flex gap-2">
             <Button
