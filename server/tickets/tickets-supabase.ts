@@ -1287,6 +1287,12 @@ export class TicketsSupabaseDB {
         status,
         checked_in_at:used_at,
         scanned_by,
+        notes,
+        tags,
+        is_vip,
+        is_blocked,
+        refunded_at,
+        refund_reason,
         tier:tickets_tiers!inner(
           name,
           event_id
@@ -1318,17 +1324,23 @@ export class TicketsSupabaseDB {
     
     // Flatten the nested structure to match expected format
     let results = (data || []).map((item: any) => ({
-      ticket_id: item.ticket_id,
+      ticketId: item.ticket_id,
       serial: item.serial,
-      qr_token: item.qr_token,
+      qrToken: item.qr_token,
       status: item.status,
-      checked_in_at: item.checked_in_at,
-      scanned_by: item.scanned_by,
-      tier_name: item.tier?.name,
-      buyer_email: item.order_item?.order?.buyer_email,
-      buyer_name: item.order_item?.order?.buyer_name,
-      buyer_phone: item.order_item?.order?.buyer_phone,
-      placed_at: item.order_item?.order?.created_at
+      checkedInAt: item.checked_in_at,
+      scannedBy: item.scanned_by,
+      notes: item.notes,
+      tags: item.tags,
+      isVip: item.is_vip,
+      isBlocked: item.is_blocked,
+      refundedAt: item.refunded_at,
+      refundReason: item.refund_reason,
+      tierName: item.tier?.name,
+      buyerEmail: item.order_item?.order?.buyer_email,
+      buyerName: item.order_item?.order?.buyer_name,
+      buyerPhone: item.order_item?.order?.buyer_phone,
+      placedAt: item.order_item?.order?.created_at
     }));
     
     // Apply search filter in-memory if provided
