@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { useEvents, useGallery } from "@/lib/events";
 import logoImage from "@assets/Upscaled Logo copy_1754763190534.png";
 import { Button } from "@/components/ui/button";
-import { UserPlus, User, LogOut, Settings, Loader2, Shield, BarChart3, Receipt, Menu, X, Home, Calendar, Tag, Users, Megaphone, ChevronRight, Bell, Sparkles } from "lucide-react";
+import { UserPlus, User, LogOut, Settings, Loader2, Shield, BarChart3, Receipt, Menu, X, Home, Calendar, Tag, Users, Megaphone, ChevronRight, Bell, Sparkles, Coins } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
@@ -16,6 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/NotificationBell";
 import { BetaBadge } from "@/components/BetaBadge";
+import { ComingSoonBadge } from "@/components/ComingSoonBadge";
 import {
   Sheet,
   SheetContent,
@@ -169,6 +170,20 @@ export default function Navigation() {
               >
                 Promote
               </Link>
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/loyalty"
+                  className={`transition-colors duration-200 font-medium ${
+                    location === '/loyalty' || location.startsWith('/loyalty/')
+                      ? 'text-accent' 
+                      : 'text-text hover:text-accent'
+                  }`}
+                  data-testid="nav-loyalty"
+                >
+                  Loyalty
+                </Link>
+                <ComingSoonBadge size="sm" variant="subtle" showIcon={false} />
+              </div>
               
               {/* Notification Bell - Show for authenticated users */}
               {isAuthenticated && (
@@ -412,6 +427,23 @@ export default function Navigation() {
                   >
                     <Megaphone className="h-5 w-5" />
                     <span className="font-medium text-base">Promote</span>
+                  </Link>
+
+                  <Link
+                    href="/loyalty"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 touch-target ${
+                      location === '/loyalty' || location.startsWith('/loyalty/')
+                        ? 'bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 text-[#d3541e] border border-[#c0580f]/20' 
+                        : 'hover:bg-white/5 text-white/90 hover:text-white'
+                    }`}
+                    data-testid="nav-mobile-loyalty"
+                  >
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <Coins className="h-5 w-5" />
+                      <span className="font-medium text-base">Loyalty</span>
+                    </div>
+                    <ComingSoonBadge size="sm" variant="subtle" showIcon={false} />
                   </Link>
                 </nav>
 
