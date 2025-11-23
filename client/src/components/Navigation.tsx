@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { useEvents, useGallery } from "@/lib/events";
 import logoImage from "@assets/Upscaled Logo copy_1754763190534.png";
 import { Button } from "@/components/ui/button";
-import { UserPlus, User, LogOut, Settings, Loader2, Shield, BarChart3, Receipt, Menu, X, Home, Calendar, Tag, Users, Megaphone, ChevronRight, Bell, Sparkles, Coins } from "lucide-react";
+import { UserPlus, User, LogOut, Settings, Loader2, Shield, BarChart3, Receipt, Menu, X, Home, Calendar, Tag, Users, Megaphone, ChevronRight, Bell, Sparkles, Coins, DollarSign } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
@@ -169,6 +169,17 @@ export default function Navigation() {
                 data-testid="nav-promote"
               >
                 Promote
+              </Link>
+              <Link
+                href="/pricing"
+                className={`transition-colors duration-200 font-medium ${
+                  location === '/pricing' 
+                    ? 'text-accent' 
+                    : 'text-text hover:text-accent'
+                }`}
+                data-testid="nav-pricing"
+              >
+                Pricing
               </Link>
               <div className="flex items-center gap-2">
                 <Link
@@ -427,6 +438,20 @@ export default function Navigation() {
                   >
                     <Megaphone className="h-5 w-5" />
                     <span className="font-medium text-base">Promote</span>
+                  </Link>
+
+                  <Link
+                    href="/pricing"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 touch-target ${
+                      location === '/pricing' 
+                        ? 'bg-gradient-to-r from-[#c0580f]/20 to-[#d3541e]/20 text-[#d3541e] border border-[#c0580f]/20' 
+                        : 'hover:bg-white/5 text-white/90 hover:text-white'
+                    }`}
+                    data-testid="nav-mobile-pricing"
+                  >
+                    <DollarSign className="h-5 w-5" />
+                    <span className="font-medium text-base">Pricing</span>
                   </Link>
 
                   <Link
