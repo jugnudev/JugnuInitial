@@ -338,6 +338,7 @@ export default function EventsExplore() {
                         type: 'event' as const,
                         name: event.title,
                         venue: event.venue || '',
+                        area: event.area,
                         date: event.start_at || event.date,
                         is_all_day: Boolean(event.is_all_day === 'true' || event.is_all_day === true),
                       }}

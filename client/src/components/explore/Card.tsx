@@ -22,6 +22,7 @@ interface EventItem extends BaseItem {
   timezone?: string;
   venue: string;
   city: string;
+  area?: string;
   buyUrl?: string;
   eventbriteId?: string;
   ticketTailorId?: string;
@@ -266,6 +267,18 @@ export default function Card({ item, onClick, index = 0, showFavorite = false, o
           <h3 className="text-xl font-bold text-white leading-tight mb-2 line-clamp-2">
             {item.name}
           </h3>
+          
+          {/* Area Badge - for events with area data */}
+          {item.type === 'event' && 'area' in item && item.area && (
+            <div className="mb-2">
+              <Badge 
+                variant="secondary" 
+                className="bg-copper-500/40 backdrop-blur-sm border border-copper-500/60 text-white text-xs px-2.5 py-0.5 font-medium rounded-full ring-1 ring-copper-500/30 opacity-95 whitespace-nowrap"
+              >
+                {item.area}
+              </Badge>
+            </div>
+          )}
           
           <div className="flex items-center gap-2 text-white/90 mb-3">
             <MapPin className="w-4 h-4 shrink-0" />
