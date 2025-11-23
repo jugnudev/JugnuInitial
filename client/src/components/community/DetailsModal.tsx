@@ -19,6 +19,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { getCalendarLinks } from "@/lib/calendar";
 import { formatEventDateDisplay, formatEventTime } from "@/utils/dateFormatters";
+import { getTimezoneAbbreviation } from "@shared/timezones";
 
 interface CommunityEvent {
   id: string;
@@ -97,6 +98,11 @@ function EventInfo({
         <div>
           <p className="text-white font-medium">
             {formatEventTime(event.start_at, event.end_at, event.timezone, event.is_all_day)}
+            {event.timezone && (
+              <span className="ml-1 text-white/70">
+                {getTimezoneAbbreviation(event.timezone)}
+              </span>
+            )}
           </p>
         </div>
       </div>
