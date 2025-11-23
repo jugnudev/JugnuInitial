@@ -941,9 +941,13 @@ export const communitySubscriptions = pgTable("community_subscriptions", {
   trialStart: timestamp("trial_start", { withTimezone: true }),
   trialEnd: timestamp("trial_end", { withTimezone: true }),
   memberLimit: integer("member_limit").notNull().default(100),
-  pricePerMonth: integer("price_per_month"), // in cents (2000 = $20)
+  pricePerMonth: integer("price_per_month"), // in cents (5000 = $50)
   features: jsonb("features").default(sql`'{}'::jsonb`), // Feature flags/limits
-  metadata: jsonb("metadata").default(sql`'{}'::jsonb`) // Additional Stripe metadata
+  metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Additional Stripe metadata
+  // Placement credits system
+  placementCreditsAvailable: integer("placement_credits_available").notNull().default(2), // Number of credits available this billing cycle
+  placementCreditsUsed: integer("placement_credits_used").notNull().default(0), // Number of credits used this billing cycle
+  creditsResetDate: timestamp("credits_reset_date", { withTimezone: true }) // Next date when credits reset
 });
 
 // Community billing payments
@@ -976,6 +980,20 @@ export const communityBillingEvents = pgTable("community_billing_events", {
   processed: boolean("processed").notNull().default(false),
   data: jsonb("data").notNull(),
   error: text("error"),
+});
+
+// Placement credits usage tracking
+export const placementCreditsUsage = pgTable("placement_credits_usage", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
+  organizerId: uuid("organizer_id").notNull().references(() => organizers.id),
+  subscriptionId: uuid("subscription_id").references(() => communitySubscriptions.id),
+  campaignId: uuid("campaign_id").references(() => sponsorCampaigns.id, { onDelete: 'set null' }),
+  placementsUsed: text("placements_used").array().notNull(), // Array of placements: ['home_hero', 'events_banner']
+  creditsDeducted: integer("credits_deducted").notNull(), // Number of credits deducted (1 per placement per day)
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  notes: text("notes"),
 });
 
 // Community notifications

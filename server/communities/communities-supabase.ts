@@ -2836,6 +2836,10 @@ export class CommunitiesSupabaseDB {
   
   // Individual Subscription Methods
   async createSubscription(data: InsertCommunitySubscription): Promise<CommunitySubscription> {
+    // Calculate credits reset date (1 month from current period start, or 1 month from now)
+    const resetDate = new Date(data.currentPeriodStart || new Date());
+    resetDate.setMonth(resetDate.getMonth() + 1);
+
     const { data: subscription, error } = await this.client
       .from('community_subscriptions')
       .insert({
@@ -2855,7 +2859,11 @@ export class CommunitiesSupabaseDB {
         member_limit: data.memberLimit || 100,
         price_per_month: data.pricePerMonth,
         features: data.features || {},
-        metadata: data.metadata || {}
+        metadata: data.metadata || {},
+        // Initialize placement credits
+        placement_credits_available: 2,
+        placement_credits_used: 0,
+        credits_reset_date: resetDate.toISOString()
       })
       .select()
       .single();
@@ -3014,6 +3022,85 @@ export class CommunitiesSupabaseDB {
     });
   }
 
+  // ============ PLACEMENT CREDITS METHODS ============
+  
+  async getSubscriptionById(id: string): Promise<CommunitySubscription | null> {
+    const { data, error } = await this.client
+      .from('community_subscriptions')
+      .select()
+      .eq('id', id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? this.mapSubscriptionFromDb(data) : null;
+  }
+
+  async updateSubscriptionCredits(
+    subscriptionId: string,
+    credits: {
+      placementCreditsAvailable?: number;
+      placementCreditsUsed?: number;
+      creditsResetDate?: string;
+    }
+  ): Promise<void> {
+    const updateData: any = { updated_at: new Date().toISOString() };
+    
+    if (credits.placementCreditsAvailable !== undefined) {
+      updateData.placement_credits_available = credits.placementCreditsAvailable;
+    }
+    if (credits.placementCreditsUsed !== undefined) {
+      updateData.placement_credits_used = credits.placementCreditsUsed;
+    }
+    if (credits.creditsResetDate !== undefined) {
+      updateData.credits_reset_date = credits.creditsResetDate;
+    }
+
+    const { error } = await this.client
+      .from('community_subscriptions')
+      .update(updateData)
+      .eq('id', subscriptionId);
+
+    if (error) throw error;
+  }
+
+  async recordCreditUsage(usage: {
+    organizerId: string;
+    subscriptionId: string;
+    campaignId: string | null;
+    placementsUsed: string[];
+    creditsDeducted: number;
+    startDate: string;
+    endDate: string;
+    notes: string | null;
+  }): Promise<void> {
+    const { error } = await this.client
+      .from('placement_credits_usage')
+      .insert({
+        organizer_id: usage.organizerId,
+        subscription_id: usage.subscriptionId,
+        campaign_id: usage.campaignId,
+        placements_used: usage.placementsUsed,
+        credits_deducted: usage.creditsDeducted,
+        start_date: usage.startDate,
+        end_date: usage.endDate,
+        notes: usage.notes
+      });
+
+    if (error) throw error;
+  }
+
+  async getCreditUsageByOrganizer(organizerId: string, limit: number = 10): Promise<any[]> {
+    const { data, error } = await this.client
+      .from('placement_credits_usage')
+      .select()
+      .eq('organizer_id', organizerId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
+  }
+
   // Helper methods to map database records to TypeScript types
   private mapSubscriptionFromDb(data: any): CommunitySubscription {
     return {
@@ -3036,7 +3123,10 @@ export class CommunitiesSupabaseDB {
       memberLimit: data.member_limit,
       pricePerMonth: data.price_per_month,
       features: data.features,
-      metadata: data.metadata
+      metadata: data.metadata,
+      placementCreditsAvailable: data.placement_credits_available,
+      placementCreditsUsed: data.placement_credits_used,
+      creditsResetDate: data.credits_reset_date
     };
   }
 

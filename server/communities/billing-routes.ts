@@ -47,8 +47,9 @@ const PRICING = {
   individual: {
     monthly: {
       priceId: process.env.STRIPE_PRICE_COMMUNITY_MONTHLY || 'price_community_monthly',
-      amount: 2000, // $20 CAD in cents
-      currency: 'cad'
+      amount: 5000, // $50 CAD in cents
+      currency: 'cad',
+      placementCredits: 2 // Number of ad placement credits per billing cycle
     }
   }
 };
