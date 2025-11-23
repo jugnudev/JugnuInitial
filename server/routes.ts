@@ -568,6 +568,7 @@ Disallow: /account/*`;
             let imageUrl: string | null = null;
             let tags: string[] = [];
             let priceFrom: number | null = null;
+            let area: string | null = null;
             
             console.log(`Processing event: ${title}`);
             console.log(`Raw description: ${description.substring(0, 200)}...`);
@@ -606,6 +607,7 @@ Disallow: /account/*`;
               const imageMatch = trimmedLine.match(/^image\s*:\s*(https?:\/\/[^\s"'<>]+)/i);
               const tagsMatch = trimmedLine.match(/^tags\s*:\s*(.+)/i);
               const organizerMatch = trimmedLine.match(/^organizer\s*:\s*(.+)/i);
+              const areaMatch = trimmedLine.match(/^area\s*:\s*(.+)/i);
               const priceMatch = trimmedLine.match(/^pricefrom\s*:\s*(\d+(?:\.\d{2})?)/i);
               // v2.8 Featured parsing
               const featuredMatch = trimmedLine.match(/^featured\s*:\s*(true|yes|1)\s*$/i);
@@ -623,6 +625,8 @@ Disallow: /account/*`;
                   .filter((tag: string) => tag.length > 0);
               } else if (organizerMatch) {
                 organizer = cleanHtmlFromText(organizerMatch[1].trim());
+              } else if (areaMatch) {
+                area = areaMatch[1].trim();
               } else if (priceMatch) {
                 priceFrom = parseFloat(priceMatch[1]);
               } else if (featuredMatch) {
@@ -711,7 +715,7 @@ Disallow: /account/*`;
                 .split(/\r?\n/)
                 .filter((line: string) => {
                   const trimmed = line.trim();
-                  return !(/^(tickets|source|image|tags|organizer|pricefrom)\s*:\s*/i.test(trimmed));
+                  return !(/^(tickets|source|image|tags|organizer|area|pricefrom)\s*:\s*/i.test(trimmed));
                 });
               
               // Collapse multiple blank lines and trim
@@ -762,6 +766,7 @@ Disallow: /account/*`;
               venue: venue || null,
               address,
               city: 'Vancouver, BC',
+              area,
               organizer,
               status,
               sourceHash: contentHash, // Keep for tracking content changes
@@ -787,6 +792,7 @@ Disallow: /account/*`;
               venue: eventData.venue,
               address: eventData.address,
               city: eventData.city,
+              area: eventData.area,
               organizer: eventData.organizer,
               status: eventData.status,
               tags: eventData.tags,

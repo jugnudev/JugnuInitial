@@ -50,6 +50,7 @@ export const communityEvents = pgTable("community_events", {
   address: text("address"),
   neighborhood: text("neighborhood"),
   city: text("city").notNull().default("Vancouver, BC"),
+  area: text("area"), // Metro Vancouver | GTA | Greater Montreal | Calgary
   organizer: text("organizer"),
   ticketsUrl: text("tickets_url"),
   sourceUrl: text("source_url"),
