@@ -41,7 +41,7 @@ const requireAuth = async (req: Request, res: Response, next: any) => {
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-11-20.acacia'
+  apiVersion: '2025-08-27.basil'
 });
 
 // Pricing configuration
@@ -179,7 +179,7 @@ router.get('/subscription/:communityId', requireAuth, async (req: Request, res: 
     const canManage = organizer && community.organizerId === organizer.id;
 
     // Get payment history if owner
-    let payments = [];
+    let payments: any[] = [];
     if (canManage && subscription.id) {
       payments = await communitiesStorage.getPaymentsBySubscriptionId(subscription.id);
     }
@@ -237,7 +237,7 @@ router.post('/cancel-subscription', requireAuth, async (req: Request, res: Respo
 
     // Update in database
     await communitiesStorage.updateSubscriptionStatus(subscription.id, 'canceled', {
-      canceledAt: new Date().toISOString()
+      canceledAt: new Date()
     });
 
     res.json({ ok: true, message: 'Subscription cancelled successfully' });
@@ -293,10 +293,10 @@ router.get('/credits/balance', requireAuth, async (req: Request, res: Response) 
       });
     }
 
-    // Check if credits need reset
-    await creditsService.checkAndResetCredits(subscription.id);
+    // Note: Credit reset is handled by Stripe webhooks on billing cycle
+    // For manual reset, admins can call creditsService.resetCredits(subscription.id)
 
-    // Get updated subscription
+    // Get subscription data
     const updatedSubscription = await communitiesStorage.getSubscriptionByCommunityId(communities[0].id);
     
     res.json({
@@ -368,12 +368,13 @@ router.post('/credits/check', requireAuth, async (req: Request, res: Response) =
       });
     }
 
-    const hasEnough = await creditsService.hasEnoughCredits(subscription.id, creditsNeeded);
+    // Check credits using checkCredits method
+    const creditCheck = await creditsService.checkCredits(organizer.id, creditsNeeded);
 
     res.json({
       ok: true,
-      hasEnoughCredits: hasEnough,
-      available: subscription.placementCreditsAvailable || 0,
+      hasEnoughCredits: creditCheck.hasCredits,
+      available: creditCheck.availableCredits,
       needed: creditsNeeded,
       isBeta: false
     });

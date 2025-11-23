@@ -1,4 +1,4 @@
-import type { CommunitiesSupabaseStorage } from './communities-supabase.js';
+import type { CommunitiesSupabaseDB } from './communities-supabase.js';
 
 export interface CreditCheckResult {
   hasCredits: boolean;
@@ -15,7 +15,7 @@ export interface CreditDeductionResult {
 }
 
 export class CreditsService {
-  constructor(private storage: CommunitiesSupabaseStorage) {}
+  constructor(private storage: CommunitiesSupabaseDB) {}
 
   /**
    * Check if an organizer has sufficient placement credits
@@ -25,7 +25,8 @@ export class CreditsService {
   async checkCredits(organizerId: string, creditsNeeded: number = 1): Promise<CreditCheckResult> {
     try {
       // Get active subscription for the organizer
-      const subscription = await this.storage.getSubscriptionByOrganizer(organizerId);
+      const subscriptions = await this.storage.getSubscriptionByOrganizer(organizerId);
+      const subscription = subscriptions.length > 0 ? subscriptions[0] : null;
 
       if (!subscription) {
         return {
@@ -56,7 +57,7 @@ export class CreditsService {
         hasCredits: remaining >= creditsNeeded,
         availableCredits: remaining,
         usedCredits: used,
-        resetDate: subscription.creditsResetDate || null,
+        resetDate: subscription.creditsResetDate?.toISOString() || null,
         message: remaining >= creditsNeeded 
           ? undefined 
           : `Insufficient credits. You have ${remaining} credits remaining but need ${creditsNeeded}.`
@@ -92,7 +93,8 @@ export class CreditsService {
   ): Promise<CreditDeductionResult> {
     try {
       // Get active subscription
-      const subscription = await this.storage.getSubscriptionByOrganizer(organizerId);
+      const subscriptions = await this.storage.getSubscriptionByOrganizer(organizerId);
+      const subscription = subscriptions.length > 0 ? subscriptions[0] : null;
 
       if (!subscription) {
         return {

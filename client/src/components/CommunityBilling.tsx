@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { SubscriptionDashboard } from "@/components/SubscriptionDashboard";
 
 interface BillingProps {
   communityId: string;
@@ -138,35 +139,14 @@ export default function CommunityBilling({
 
   return (
     <div className="space-y-8">
-      {/* Free Access Banner */}
-      <div className="relative overflow-hidden rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-white" data-testid="banner-free-access">
-        <div className="absolute top-0 right-0 -mt-4 -mr-4 h-24 w-24 rounded-full bg-white/10 blur-2xl"></div>
-        <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-32 w-32 rounded-full bg-white/10 blur-2xl"></div>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="w-6 h-6" />
-              <h3 className="text-2xl font-bold">Free Beta Access</h3>
-              <Badge className="bg-gradient-to-r from-amber-600 via-yellow-500 to-amber-600 text-amber-950 border-amber-300/50 font-bold text-xs px-2 py-1">
-                <Sparkles className="w-3 h-3 mr-1" />
-                BETA
-              </Badge>
-            </div>
-            <p className="text-sm text-white/90">
-              Your business account has unlimited access to all community features at no cost during the beta period
-            </p>
-          </div>
-          <Badge className="bg-white/20 text-white border-white/30 text-sm px-4 py-2">
-            No payment required
-          </Badge>
-        </div>
-      </div>
+      {/* Subscription & Credits Dashboard */}
+      <SubscriptionDashboard />
 
       <div className="space-y-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight mb-2">Your Community Features</h2>
-          <p className="text-muted-foreground">
-            All features are included with your business account at no cost
+          <h2 className="text-3xl font-bold tracking-tight mb-2 text-white">Your Community Features</h2>
+          <p className="text-white/60">
+            All features are included with your business account
           </p>
         </div>
 
@@ -174,19 +154,19 @@ export default function CommunityBilling({
           {communityFeatures.map((feature, index) => (
             <div
               key={index}
-              className="group relative overflow-hidden rounded-lg border bg-card p-5 hover:shadow-lg transition-all duration-300"
+              className="group relative overflow-hidden rounded-lg border border-white/10 bg-white/[0.03] p-5 hover:shadow-lg transition-all duration-300"
               data-testid={`feature-${index}`}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-100 group-hover:opacity-100 transition-opacity"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-copper-500/5 to-transparent opacity-100 group-hover:opacity-100 transition-opacity"></div>
               <div className="relative z-10 space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="inline-flex p-2 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
+                  <div className="inline-flex p-2 rounded-lg bg-copper-100 dark:bg-copper-900/30 text-copper-700 dark:text-copper-300">
                     {feature.icon}
                   </div>
-                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <CheckCircle className="w-5 h-5 text-jade-500" />
                 </div>
-                <h3 className="font-semibold">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
+                <h3 className="font-semibold text-white">{feature.title}</h3>
+                <p className="text-sm text-white/60">{feature.description}</p>
               </div>
             </div>
           ))}
