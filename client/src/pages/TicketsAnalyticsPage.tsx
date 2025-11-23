@@ -6,7 +6,7 @@ import {
   TrendingUp, TrendingDown, Users, DollarSign, 
   Clock, Calendar, Download, Filter, ChevronRight,
   BarChart3, PieChart, Activity, RefreshCw,
-  UserCheck, Ticket, AlertCircle, XCircle
+  UserCheck, Ticket, AlertCircle, XCircle, ArrowLeft
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -184,9 +184,27 @@ export function TicketsAnalyticsPage() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-fraunces mb-2">Event Analytics</h1>
-            <p className="text-muted-foreground">{event?.event?.title}</p>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                if (window.history.length > 1) {
+                  window.history.back();
+                } else {
+                  navigate('/tickets/organizer/dashboard');
+                }
+              }}
+              className="text-muted-foreground hover:text-foreground"
+              data-testid="button-back-to-manage"
+              aria-label="Back to manage events"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <h1 className="text-3xl font-fraunces mb-2">Event Analytics</h1>
+              <p className="text-muted-foreground">{event?.event?.title}</p>
+            </div>
           </div>
           <div className="flex gap-2">
             <Select value={dateRange} onValueChange={setDateRange}>

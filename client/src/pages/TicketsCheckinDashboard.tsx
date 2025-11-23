@@ -523,9 +523,16 @@ export function TicketsCheckinDashboard() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate(`/tickets/organizer/events/${eventId}/manage`)}
+                onClick={() => {
+                  if (window.history.length > 1) {
+                    window.history.back();
+                  } else {
+                    navigate('/tickets/organizer/dashboard');
+                  }
+                }}
                 className="text-muted-foreground hover:text-foreground"
                 data-testid="button-back-to-manage"
+                aria-label="Back to manage events"
               >
                 <ArrowLeft className="h-5 w-5" />
               </Button>
