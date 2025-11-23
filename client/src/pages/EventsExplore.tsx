@@ -27,9 +27,18 @@ const CATEGORIES = [
   { value: 'Other', label: 'Other' },
 ];
 
+const AREAS = [
+  { value: 'All', label: 'All Areas' },
+  { value: 'Metro Vancouver', label: 'Metro Vancouver' },
+  { value: 'GTA', label: 'GTA' },
+  { value: 'Greater Montreal', label: 'Greater Montreal' },
+  { value: 'Calgary', label: 'Calgary' },
+];
+
 export default function EventsExplore() {
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
+  const [areaFilter, setAreaFilter] = useState('All');
   const [filters, setFilters] = useState<Record<string, any>>({ range: 'all' });
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
   // Filter drawer removed
@@ -45,7 +54,7 @@ export default function EventsExplore() {
   const savedFromUrl = urlParams.get('saved') === '1';
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['/api/community/weekly', filters.range || 'month', categoryFilter === 'All' ? undefined : categoryFilter.toLowerCase(), searchQuery || undefined],
+    queryKey: ['/api/community/weekly', filters.range || 'month', categoryFilter === 'All' ? undefined : categoryFilter.toLowerCase(), areaFilter === 'All' ? undefined : areaFilter, searchQuery || undefined],
     queryFn: async () => {
       const params = new URLSearchParams({
         range: filters.range || 'all',
@@ -56,6 +65,7 @@ export default function EventsExplore() {
             .replace('festivals', 'festival')  // "Festivals" -> "festival"
             // "parties" stays as "parties" - no transformation needed
         }),
+        ...(areaFilter !== 'All' && { area: areaFilter }),
         ...(searchQuery && { q: searchQuery })
       });
       const response = await fetch(`/api/community/weekly?${params.toString()}`);
@@ -166,6 +176,7 @@ export default function EventsExplore() {
   const clearFilters = () => {
     setSearchQuery('');
     setCategoryFilter('All');
+    setAreaFilter('All');
     setFilters({ range: 'all' });
     setShowSavedOnly(false);
     // Update URL to remove saved parameter
@@ -174,7 +185,7 @@ export default function EventsExplore() {
     window.history.replaceState({}, '', url.toString());
   };
 
-  const hasActiveFilters = searchQuery || categoryFilter !== 'All' || filters.range !== 'all' || showSavedOnly;
+  const hasActiveFilters = searchQuery || categoryFilter !== 'All' || areaFilter !== 'All' || filters.range !== 'all' || showSavedOnly;
 
   return (
     <div className="min-h-screen bg-bg">
@@ -220,6 +231,27 @@ export default function EventsExplore() {
           viewMode={viewMode}
           onViewModeChange={setViewMode}
         />
+
+        {/* Area Filter */}
+        <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          <MapPin className="h-4 w-4 text-muted flex-shrink-0" />
+          <div className="flex gap-2">
+            {AREAS.map((area) => (
+              <button
+                key={area.value}
+                onClick={() => setAreaFilter(area.value)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 whitespace-nowrap ${
+                  areaFilter === area.value
+                    ? 'bg-copper-500 text-black shadow-lg shadow-copper-500/20'
+                    : 'bg-white/5 text-muted hover:bg-white/10 hover:text-white'
+                }`}
+                data-testid={`filter-area-${area.value.toLowerCase().replace(' ', '-')}`}
+              >
+                {area.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* Loading State */}
         {isLoading && (
