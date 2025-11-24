@@ -1717,15 +1717,46 @@ export function addCommunitiesRoutes(app: Express) {
       }
 
       const communityData = validationResult.data;
+      
+      // Create the community
       const community = await communitiesStorage.createCommunity({
         organizerId: organizer.id,
         ...communityData,
       });
 
+      // Automatically create trial subscription (14-day grace period)
+      const now = new Date();
+      const trialEndDate = new Date(now);
+      trialEndDate.setDate(trialEndDate.getDate() + 14); // 14-day trial
+
+      try {
+        await communitiesStorage.createSubscription({
+          communityId: community.id,
+          organizerId: organizer.id,
+          plan: 'free',
+          status: 'trialing',
+          trialStart: now,
+          trialEnd: trialEndDate,
+          memberLimit: 100,
+          placementCreditsAvailable: 0, // No credits during trial
+          placementCreditsUsed: 0,
+          placementCreditsTotal: 0,
+          creditsResetDate: null
+        });
+      } catch (subscriptionError: any) {
+        console.error('Failed to create trial subscription:', subscriptionError);
+        // Don't fail community creation if subscription creation fails
+        // User can subscribe manually later
+      }
+
       res.json({
         ok: true,
         community,
-        message: 'Community created successfully'
+        message: 'Community created successfully with 14-day trial',
+        trial: {
+          daysRemaining: 14,
+          expiresAt: trialEndDate.toISOString()
+        }
       });
     } catch (error: any) {
       console.error('Create community error:', error);
