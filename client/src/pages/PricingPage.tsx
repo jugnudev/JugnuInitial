@@ -1,11 +1,13 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, Zap, TrendingUp, Users, BarChart3, Star, Shield, Sparkles } from "lucide-react";
+import { Check, Zap, TrendingUp, Users, BarChart3, Star, Shield, Sparkles, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 
 const features = [
   {
@@ -63,6 +65,29 @@ const faqItems = [
 ];
 
 export default function PricingPage() {
+  const [hasBusinessAccount, setHasBusinessAccount] = useState(false);
+  const [communitySlug, setCommunitySlug] = useState<string | null>(null);
+
+  // Check if user is authenticated with business account
+  const { data: authData } = useQuery<{ ok: boolean; user?: any }>({
+    queryKey: ['/api/auth/me'],
+    retry: false,
+  });
+
+  // Fetch organizer/community data if authenticated
+  const { data: organizerData } = useQuery<{ ok: boolean; organizer?: any; communities?: any[] }>({
+    queryKey: ['/api/organizers/me'],
+    enabled: !!authData?.user,
+    retry: false,
+  });
+
+  useEffect(() => {
+    if (organizerData?.organizer && organizerData?.communities && organizerData.communities.length > 0) {
+      setHasBusinessAccount(true);
+      setCommunitySlug(organizerData.communities[0].slug);
+    }
+  }, [organizerData]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950">
       {/* Hero Section */}
@@ -129,16 +154,29 @@ export default function PricingPage() {
                 </div>
               </div>
 
-              <Link href="/business/signup">
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-copper-500 to-amber-600 hover:from-copper-600 hover:to-amber-700 text-white font-semibold px-8 py-6 text-lg"
-                  data-testid="button-get-started"
-                >
-                  <Zap className="w-5 h-5 mr-2" />
-                  Get Started Now
-                </Button>
-              </Link>
+              {hasBusinessAccount && communitySlug ? (
+                <Link href={`/communities/${communitySlug}/settings`}>
+                  <Button 
+                    size="lg" 
+                    className="bg-gradient-to-r from-jade-500 to-emerald-600 hover:from-jade-600 hover:to-emerald-700 text-white font-semibold px-8 py-6 text-lg"
+                    data-testid="button-manage-subscription"
+                  >
+                    <Settings className="w-5 h-5 mr-2" />
+                    Manage Your Subscription
+                  </Button>
+                </Link>
+              ) : (
+                <Link href="/business/signup">
+                  <Button 
+                    size="lg" 
+                    className="bg-gradient-to-r from-copper-500 to-amber-600 hover:from-copper-600 hover:to-amber-700 text-white font-semibold px-8 py-6 text-lg"
+                    data-testid="button-get-started"
+                  >
+                    <Zap className="w-5 h-5 mr-2" />
+                    Get Started Now
+                  </Button>
+                </Link>
+              )}
             </CardHeader>
 
             <Separator className="bg-white/10" />
@@ -278,36 +316,38 @@ export default function PricingPage() {
           </Accordion>
         </motion.div>
 
-        {/* CTA Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8 }}
-          className="mt-20 text-center"
-        >
-          <Card className="border-copper-500/30 bg-gradient-to-br from-copper-500/10 to-amber-500/5 backdrop-blur-xl">
-            <CardContent className="py-12 px-6">
-              <h2 className="text-3xl font-bold text-white mb-4">
-                Ready to Grow Your Events Business?
-              </h2>
-              <p className="text-white/70 text-lg mb-8 max-w-2xl mx-auto">
-                Join Canada's premier South Asian events platform. Start building your community today - completely free during our beta period.
-              </p>
-              <Link href="/business/signup">
-                <Button 
-                  size="lg" 
-                  className="bg-gradient-to-r from-copper-500 to-amber-600 hover:from-copper-600 hover:to-amber-700 text-white font-semibold px-8 py-6 text-lg"
-                  data-testid="button-cta-signup"
-                >
-                  Create Your Business Account
-                </Button>
-              </Link>
-              <p className="text-white/50 text-sm mt-4">
-                No credit card required · Free during beta · Cancel anytime
-              </p>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {/* CTA Section - Only show for non-business users */}
+        {!hasBusinessAccount && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="mt-20 text-center"
+          >
+            <Card className="border-copper-500/30 bg-gradient-to-br from-copper-500/10 to-amber-500/5 backdrop-blur-xl">
+              <CardContent className="py-12 px-6">
+                <h2 className="text-3xl font-bold text-white mb-4">
+                  Ready to Grow Your Events Business?
+                </h2>
+                <p className="text-white/70 text-lg mb-8 max-w-2xl mx-auto">
+                  Join Canada's premier South Asian events platform. Start building your community today - completely free during our beta period.
+                </p>
+                <Link href="/business/signup">
+                  <Button 
+                    size="lg" 
+                    className="bg-gradient-to-r from-copper-500 to-amber-600 hover:from-copper-600 hover:to-amber-700 text-white font-semibold px-8 py-6 text-lg"
+                    data-testid="button-cta-signup"
+                  >
+                    Create Your Business Account
+                  </Button>
+                </Link>
+                <p className="text-white/50 text-sm mt-4">
+                  No credit card required · Free during beta · Cancel anytime
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
       </div>
     </div>
   );
