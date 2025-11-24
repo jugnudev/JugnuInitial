@@ -126,6 +126,27 @@ export default function CommunityBilling({
   communitySlug,
   isOwner,
 }: BillingProps) {
+  // Fetch subscription status for trial banner
+  const { data: subscriptionData } = useQuery<{ ok: boolean; subscription: Subscription | null }>({
+    queryKey: [`/api/billing/subscription/${communityId}`],
+    enabled: isOwner && !!communityId,
+  });
+
+  const subscription = subscriptionData?.subscription;
+  const isTrialing = subscription?.status === 'trialing';
+  
+  // Calculate days remaining in trial
+  const calculateDaysRemaining = () => {
+    if (!subscription?.trialEnd) return 0;
+    const now = new Date();
+    const trialEnd = new Date(subscription.trialEnd);
+    const diffTime = trialEnd.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  };
+
+  const daysRemaining = isTrialing ? calculateDaysRemaining() : 0;
+
   if (!isOwner) {
     return (
       <Alert data-testid="alert-not-owner">
@@ -139,6 +160,60 @@ export default function CommunityBilling({
 
   return (
     <div className="space-y-8">
+      {/* Trial Status Banner */}
+      {isTrialing && daysRemaining > 0 && (
+        <Alert className="border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-amber-600/10" data-testid="alert-trial-status">
+          <Clock className="h-5 w-5 text-amber-400" />
+          <div className="flex-1">
+            <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-1">
+                <p className="font-semibold text-white">
+                  {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} remaining in your free trial
+                </p>
+                <p className="text-sm text-white/70">
+                  Subscribe to continue using all platform features + get 2 monthly placement credits ($1,250 value)
+                </p>
+              </div>
+              <Button
+                asChild
+                className="bg-copper-500 hover:bg-copper-600 text-black font-semibold whitespace-nowrap"
+                data-testid="button-subscribe-trial"
+              >
+                <a href={`/subscribe/${communityId}`}>
+                  Subscribe Now - $50/month
+                </a>
+              </Button>
+            </AlertDescription>
+          </div>
+        </Alert>
+      )}
+
+      {/* Trial Expired Warning */}
+      {isTrialing && daysRemaining === 0 && (
+        <Alert variant="destructive" data-testid="alert-trial-expired">
+          <AlertTriangle className="h-5 w-5" />
+          <div className="flex-1">
+            <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="space-y-1">
+                <p className="font-semibold">Your free trial has expired</p>
+                <p className="text-sm">
+                  Subscribe now to regain access to your community and all platform features
+                </p>
+              </div>
+              <Button
+                asChild
+                className="bg-white hover:bg-white/90 text-destructive font-semibold whitespace-nowrap"
+                data-testid="button-subscribe-expired"
+              >
+                <a href={`/subscribe/${communityId}`}>
+                  Subscribe Now
+                </a>
+              </Button>
+            </AlertDescription>
+          </div>
+        </Alert>
+      )}
+
       {/* Subscription & Credits Dashboard */}
       <SubscriptionDashboard />
 

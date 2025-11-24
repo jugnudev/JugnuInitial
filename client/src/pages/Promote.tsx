@@ -86,6 +86,8 @@ export default function Promote() {
   const [availableCredits, setAvailableCredits] = useState<number>(0);
   const [isLoadingCredits, setIsLoadingCredits] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
+  const [creditsMessage, setCreditsMessage] = useState<string | null>(null);
   
   // Quote prefill functionality
   const { quoteId, prefillData, isLoading: isPrefillLoading, error: prefillError, hasPrefill } = useQuotePrefill();
@@ -98,17 +100,26 @@ export default function Promote() {
         const response = await fetch('/api/billing/credits/balance');
         if (response.ok) {
           const data = await response.json();
-          setAvailableCredits(data.available || 0);
+          // Only show credits if subscription is active
+          if (data.subscriptionStatus === 'active') {
+            setAvailableCredits(data.credits?.available || 0);
+          } else {
+            setAvailableCredits(0);
+          }
+          setSubscriptionStatus(data.subscriptionStatus || null);
+          setCreditsMessage(data.message || null);
           setIsAuthenticated(true);
         } else if (response.status === 401) {
           // Not authenticated - this is fine, user will see public form
           setIsAuthenticated(false);
           setAvailableCredits(0);
+          setSubscriptionStatus(null);
         }
       } catch (error) {
         console.error('Failed to fetch credits:', error);
         setIsAuthenticated(false);
         setAvailableCredits(0);
+        setSubscriptionStatus(null);
       } finally {
         setIsLoadingCredits(false);
       }
@@ -1127,8 +1138,8 @@ export default function Promote() {
         </div>
       )}
 
-      {/* Placement Credits Banner - Only show for authenticated users with credits */}
-      {!isLoadingCredits && isAuthenticated && availableCredits > 0 && (
+      {/* Placement Credits Banner - Only show for authenticated users with active subscriptions */}
+      {!isLoadingCredits && isAuthenticated && availableCredits > 0 && subscriptionStatus === 'active' && (
         <div className="bg-gradient-to-r from-copper-500/20 to-amber-500/20 border-b border-copper-500/30">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-center gap-3">
@@ -1141,6 +1152,27 @@ export default function Promote() {
                 </div>
                 <div className="text-sm text-white/70">
                   Credits automatically reduce your cost below (1 credit = 1 day of placement)
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Trial User Info Banner - Show for trial users */}
+      {!isLoadingCredits && isAuthenticated && subscriptionStatus === 'trialing' && (
+        <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-b border-blue-500/30">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-center gap-3">
+              <div className="bg-blue-500/30 p-2 rounded-lg">
+                <Info className="w-5 h-5 text-blue-400" />
+              </div>
+              <div className="text-center">
+                <div className="font-semibold text-white">
+                  You're on a free trial - Subscribe to get 2 placement credits per month!
+                </div>
+                <div className="text-sm text-white/70">
+                  Each $50/month subscription includes 2 credits (worth $1,250) + full platform access
                 </div>
               </div>
             </div>

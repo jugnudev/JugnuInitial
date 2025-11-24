@@ -1,0 +1,313 @@
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useLocation, useRoute } from 'wouter';
+import { Helmet } from 'react-helmet-async';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Sparkles, CheckCircle, CreditCard, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
+
+interface Community {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+interface Subscription {
+  id: string;
+  status: string;
+  trialEnd: string | null;
+  currentPeriodEnd: string | null;
+}
+
+export default function SubscribePage() {
+  const [, params] = useRoute('/subscribe/:communityId');
+  const [, navigate] = useLocation();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const communityId = params?.communityId;
+
+  // Fetch community details by ID (requires auth)
+  const { data: communityData, isLoading: isLoadingCommunity } = useQuery<{ ok: boolean; community: Community }>({
+    queryKey: [`/api/communities/id/${communityId}`],
+    enabled: !!communityId,
+  });
+
+  // Fetch subscription status
+  const { data: subscriptionData, isLoading: isLoadingSubscription } = useQuery<{ 
+    ok: boolean; 
+    subscription: Subscription | null;
+  }>({
+    queryKey: [`/api/billing/subscription/${communityId}`],
+    enabled: !!communityId,
+  });
+
+  const community = communityData?.community;
+  const subscription = subscriptionData?.subscription;
+
+  // Redirect if subscription is already active
+  useEffect(() => {
+    if (subscription && subscription.status === 'active') {
+      toast({
+        title: 'Already Subscribed',
+        description: 'This community already has an active subscription.',
+      });
+      navigate(`/communities/${community?.slug}/settings`);
+    }
+  }, [subscription, community, navigate]);
+
+  const handleSubscribe = async () => {
+    if (!communityId) return;
+
+    setIsCheckingOut(true);
+    try {
+      // Get auth token from localStorage
+      const authToken = localStorage.getItem('community_auth_token');
+      if (!authToken) {
+        throw new Error('Please log in to subscribe');
+      }
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`,
+      };
+
+      const response = await fetch('/api/billing/create-checkout', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ communityId }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create checkout session');
+      }
+
+      const data = await response.json();
+
+      if (data.checkoutUrl) {
+        // Redirect to Stripe Checkout
+        window.location.href = data.checkoutUrl;
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      toast({
+        title: 'Checkout Failed',
+        description: error.message || 'Failed to start checkout process. Please try again.',
+        variant: 'destructive',
+      });
+      setIsCheckingOut(false);
+    }
+  };
+
+  const calculateDaysRemaining = () => {
+    if (!subscription?.trialEnd) return 0;
+    const now = new Date();
+    const trialEnd = new Date(subscription.trialEnd);
+    const diffTime = trialEnd.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.max(0, diffDays);
+  };
+
+  const daysRemaining = subscription?.status === 'trialing' ? calculateDaysRemaining() : 0;
+
+  if (isLoadingCommunity || isLoadingSubscription) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-bg via-bg-secondary to-bg flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-copper-400" />
+          <p className="text-white/60">Loading subscription details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!community) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-bg via-bg-secondary to-bg flex items-center justify-center">
+        <Card className="max-w-md w-full mx-4 premium-surface">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-white mb-2">Community Not Found</h2>
+            <p className="text-white/60 mb-4">The community you're looking for doesn't exist.</p>
+            <Button onClick={() => navigate('/')} variant="outline">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Go Back
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <Helmet>
+        <title>Subscribe to {community.name} - Jugnu</title>
+        <meta 
+          name="description" 
+          content={`Subscribe to ${community.name} for $50/month. Get full platform access, 2 monthly placement credits, and all premium features.`} 
+        />
+      </Helmet>
+
+      <div className="min-h-screen bg-gradient-to-br from-bg via-bg-secondary to-bg py-12 px-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Back Button */}
+          <Button
+            variant="ghost"
+            onClick={() => navigate(`/communities/${community.slug}/settings`)}
+            className="mb-6 text-white/70 hover:text-white"
+            data-testid="button-back"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Settings
+          </Button>
+
+          {/* Trial Status Banner */}
+          {subscription?.status === 'trialing' && daysRemaining > 0 && (
+            <Card className="mb-6 border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-amber-600/10">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-white font-semibold">
+                      {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} remaining in your free trial
+                    </p>
+                    <p className="text-white/60 text-sm">
+                      Subscribe now to continue using all platform features after your trial ends
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Subscription Plan Card */}
+          <Card className="premium-surface-elevated">
+            <CardHeader className="text-center border-b border-white/10 pb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-copper-500/20 mb-4 mx-auto">
+                <Sparkles className="w-8 h-8 text-copper-400" />
+              </div>
+              <CardTitle className="text-3xl font-bold text-white mb-2">
+                Jugnu Community Subscription
+              </CardTitle>
+              <CardDescription className="text-lg text-white/70">
+                Subscribe to {community.name}
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="pt-6">
+              {/* Pricing */}
+              <div className="text-center mb-8">
+                <div className="flex items-baseline justify-center gap-2 mb-2">
+                  <span className="text-5xl font-bold text-white">$50</span>
+                  <span className="text-xl text-white/60">CAD / month</span>
+                </div>
+                <Badge variant="outline" className="border-jade-500/50 text-jade-400">
+                  No commission on ticket sales - Keep 100% of revenue
+                </Badge>
+              </div>
+
+              {/* Features */}
+              <div className="space-y-4 mb-8">
+                <h3 className="font-semibold text-white text-lg mb-4">What's Included:</h3>
+                
+                <div className="grid gap-3">
+                  {[
+                    'Full platform access (Communities, Events, Ticketing)',
+                    '2 monthly ad placement credits ($1,250 value)',
+                    'Unlimited ticket sales with ZERO commission',
+                    'Advanced analytics & reporting',
+                    'QR code check-in system',
+                    'Email notifications via SendGrid',
+                    'Priority support',
+                    'All future features & updates',
+                  ].map((feature, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <CheckCircle className="w-5 h-5 text-jade-400 flex-shrink-0 mt-0.5" />
+                      <span className="text-white/80">{feature}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Value Comparison */}
+              <div className="p-4 rounded-lg bg-white/[0.03] border border-white/10 mb-8">
+                <h4 className="font-semibold text-white mb-3">Why Jugnu?</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/70">Competitors charge:</span>
+                    <span className="text-red-400 font-semibold">5-10% per ticket</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-white/70">Jugnu charges:</span>
+                    <span className="text-jade-400 font-semibold">$50/month flat fee</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                    <span className="text-white/70">You keep:</span>
+                    <span className="text-jade-400 font-bold text-lg">100% of ticket revenue</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* CTA Button */}
+              <Button
+                onClick={handleSubscribe}
+                disabled={isCheckingOut}
+                className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold text-lg py-6"
+                data-testid="button-subscribe"
+              >
+                {isCheckingOut ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Redirecting to checkout...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-5 h-5 mr-2" />
+                    Subscribe for $50/month
+                  </>
+                )}
+              </Button>
+
+              {/* Fine Print */}
+              <p className="text-center text-sm text-white/50 mt-4">
+                Secure payment powered by Stripe. Cancel anytime.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* FAQ */}
+          <Card className="mt-6 premium-surface">
+            <CardHeader>
+              <CardTitle className="text-white">Common Questions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h4 className="font-semibold text-white mb-2">What happens after I subscribe?</h4>
+                <p className="text-white/70 text-sm">
+                  You'll have immediate access to all platform features including ticketing, communities, and 2 monthly placement credits.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-white mb-2">Can I cancel anytime?</h4>
+                <p className="text-white/70 text-sm">
+                  Yes! You can cancel your subscription at any time from your community settings. You'll retain access until the end of your billing period.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-white mb-2">What are placement credits?</h4>
+                <p className="text-white/70 text-sm">
+                  Credits let you feature your events on the homepage or events page. Each credit = 1 day of placement (normally $625/day). You get 2 credits per month ($1,250 value).
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </>
+  );
+}
