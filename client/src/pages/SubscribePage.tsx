@@ -45,14 +45,14 @@ export default function SubscribePage() {
   const community = communityData?.community;
   const subscription = subscriptionData?.subscription;
 
-  // Redirect if subscription is already active
+  // Redirect if subscription is already active (only when we have both subscription and community data)
   useEffect(() => {
-    if (subscription && subscription.status === 'active') {
+    if (subscription && subscription.status === 'active' && community?.slug) {
       toast({
         title: 'Already Subscribed',
         description: 'This community already has an active subscription.',
       });
-      navigate(`/communities/${community?.slug}/settings`);
+      navigate(`/communities/${community.slug}/settings`);
     }
   }, [subscription, community, navigate]);
 

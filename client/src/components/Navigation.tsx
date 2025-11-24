@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { useEvents, useGallery } from "@/lib/events";
 import logoImage from "@assets/Upscaled Logo copy_1754763190534.png";
 import { Button } from "@/components/ui/button";
-import { UserPlus, User, LogOut, Settings, Loader2, Shield, BarChart3, Receipt, Menu, X, Home, Calendar, Tag, Users, Megaphone, ChevronRight, Bell, Sparkles, Coins, DollarSign, Briefcase, ChevronDown } from "lucide-react";
+import { UserPlus, User, LogOut, Settings, Loader2, Shield, BarChart3, Receipt, Menu, X, Home, Calendar, Tag, Users, Megaphone, ChevronRight, Bell, Sparkles, Coins, DollarSign, Briefcase, ChevronDown, CreditCard } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
@@ -254,6 +254,12 @@ export default function Navigation() {
                       <Link href="/tickets/my-tickets" className="flex items-center gap-2 cursor-pointer" data-testid="nav-my-orders">
                         <Receipt className="h-4 w-4" />
                         My Orders
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/account/billing" className="flex items-center gap-2 cursor-pointer" data-testid="nav-billing">
+                        <CreditCard className="h-4 w-4" />
+                        Billing
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -541,6 +547,17 @@ export default function Navigation() {
                       >
                         <Receipt className="h-5 w-5" />
                         <span className="font-medium text-base">My Orders</span>
+                        <ChevronRight className="h-4 w-4 ml-auto text-white/40" />
+                      </Link>
+
+                      <Link
+                        href="/account/billing"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 text-white/90 hover:text-white transition-all duration-200 touch-target"
+                        data-testid="nav-mobile-billing"
+                      >
+                        <CreditCard className="h-5 w-5" />
+                        <span className="font-medium text-base">Billing</span>
                         <ChevronRight className="h-4 w-4 ml-auto text-white/40" />
                       </Link>
 
