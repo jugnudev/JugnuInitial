@@ -72,16 +72,16 @@ function ManageSubscriptionButton({ communityId }: { communityId: string }) {
   const handleManageSubscription = async () => {
     setIsLoading(true);
     try {
-      const response = await apiRequest(
+      const res = await apiRequest(
+        'POST',
         '/api/billing/create-portal-session',
-        {
-          method: 'POST',
-          body: JSON.stringify({ communityId }),
-        }
-      ) as { ok: boolean; url: string };
+        { communityId }
+      );
+      
+      const data = await res.json() as { ok: boolean; url: string };
 
-      if (response.url) {
-        window.location.href = response.url;
+      if (data.url) {
+        window.location.href = data.url;
       } else {
         throw new Error('No portal URL returned');
       }

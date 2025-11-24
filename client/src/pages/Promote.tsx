@@ -2754,14 +2754,14 @@ export default function Promote() {
                               Placement Credits ({currentPricing.creditsApplied} applied)
                             </span>
                             <span className="text-jade-400 font-medium">
-                              -{formatCAD(currentPricing.creditDiscount)}
+                              -{formatCAD(currentPricing.creditsDiscount)}
                             </span>
                           </div>
                         )}
                         <div className="flex justify-between items-center">
                           <span className="text-white font-semibold">Total:</span>
                           <div className="text-right">
-                            {(currentPricing.promoDiscount > 0 || currentPricing.creditDiscount > 0) && (
+                            {(currentPricing.promoDiscount > 0 || currentPricing.creditsDiscount > 0) && (
                               <div className="text-sm text-muted line-through">
                                 {formatCAD(currentPricing.subtotal)}
                               </div>
@@ -2778,7 +2778,7 @@ export default function Promote() {
                         )}
                         {currentPricing.creditsApplied > 0 && (
                           <div className="text-xs text-jade-400 mt-1">
-                            You save {formatCAD(currentPricing.creditDiscount)} with placement credits!
+                            You save {formatCAD(currentPricing.creditsDiscount)} with placement credits!
                           </div>
                         )}
                       </div>
