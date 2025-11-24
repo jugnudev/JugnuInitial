@@ -145,6 +145,8 @@ export default function PricingPage() {
       status: string; 
       trialEndsAt?: string;
       creditsResetDate?: string;
+      hasStripeCustomer?: boolean;
+      trialDaysRemaining?: number;
     };
     credits?: { available: number };
   }>({
@@ -154,8 +156,10 @@ export default function PricingPage() {
   });
 
   const subscriptionStatus = subscriptionData?.subscription?.status;
+  const hasStripeCustomer = subscriptionData?.subscription?.hasStripeCustomer || false;
   const isTrialing = subscriptionStatus === 'trialing';
   const isActive = subscriptionStatus === 'active';
+  const canManageInPortal = isActive && hasStripeCustomer;
   const availableCredits = subscriptionData?.credits?.available || 0;
   
   // Calculate days remaining for trial
@@ -230,12 +234,36 @@ export default function PricingPage() {
               </div>
 
               {/* State-specific CTAs */}
-              {isActive && firstCommunity && (
+              {canManageInPortal && firstCommunity && (
                 <div className="space-y-3">
                   <ManageSubscriptionButton communityId={firstCommunity.id} />
                   <p className="text-sm text-white/60">
                     {availableCredits} placement credit{availableCredits !== 1 ? 's' : ''} available
                   </p>
+                </div>
+              )}
+              
+              {/* Active subscription but no Stripe customer (edge case - shouldn't happen but handle it) */}
+              {isActive && !hasStripeCustomer && firstCommunity && (
+                <div className="space-y-4">
+                  <div className="bg-jade-500/20 border border-jade-500/30 rounded-lg p-4">
+                    <p className="text-jade-400 font-medium text-sm">
+                      ✅ Subscription Active
+                    </p>
+                    <p className="text-white/60 text-xs mt-1">
+                      Complete payment setup to access billing portal
+                    </p>
+                  </div>
+                  <Link href={`/subscribe/${firstCommunity.id}`}>
+                    <Button 
+                      size="lg" 
+                      className="w-full bg-gradient-to-r from-copper-500 to-amber-600 hover:from-copper-600 hover:to-amber-700 text-white font-semibold px-8 py-6 text-lg"
+                      data-testid="button-complete-payment-setup"
+                    >
+                      <Zap className="w-5 h-5 mr-2" />
+                      Complete Payment Setup
+                    </Button>
+                  </Link>
                 </div>
               )}
               

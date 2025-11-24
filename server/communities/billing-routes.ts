@@ -186,16 +186,32 @@ router.get('/subscription/:communityId', requireAuth, async (req: Request, res: 
       payments = await communitiesStorage.getPaymentsBySubscriptionId(subscription.id);
     }
 
+    // Get credits balance for active subscriptions
+    let creditsAvailable = 0;
+    if (subscription.status === 'active' && subscription.organizerId) {
+      const creditCheck = await creditsService.checkCredits(subscription.organizerId, 0);
+      creditsAvailable = creditCheck.availableCredits;
+    }
+
+    // Normalize trial end date (Supabase returns strings, not Date objects)
+    const trialEndDate = subscription.trialEnd ? new Date(subscription.trialEnd) : null;
+    const trialEndsAt = trialEndDate?.toISOString() || null;
+    const trialDaysRemaining = trialEndDate 
+      ? Math.max(0, Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+      : null;
+
     res.json({
       ok: true,
       subscription: {
         ...subscription,
         payments: canManage ? payments : [],
         canManage,
-        // Calculate trial days remaining
-        trialDaysRemaining: subscription.trialEnd 
-          ? Math.max(0, Math.ceil((new Date(subscription.trialEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-          : null
+        hasStripeCustomer: !!subscription.stripeCustomerId,
+        trialEndsAt,
+        trialDaysRemaining
+      },
+      credits: {
+        available: creditsAvailable
       }
     });
   } catch (error: any) {
@@ -233,7 +249,10 @@ router.post('/create-portal-session', requireAuth, async (req: Request, res: Res
 
     // Ensure customer has a Stripe customer ID
     if (!subscription.stripeCustomerId) {
-      return res.status(400).json({ ok: false, error: 'No Stripe customer found for this subscription' });
+      return res.status(400).json({ 
+        ok: false, 
+        error: 'No Stripe customer found for this subscription. Please complete the checkout process first to set up your payment method.'
+      });
     }
 
     // Create billing portal session
