@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, Zap, TrendingUp, Users, BarChart3, Star, Shield, Sparkles, Settings, Plus } from "lucide-react";
+import { Check, Zap, TrendingUp, Users, BarChart3, Star, Shield, Sparkles, Settings, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,8 @@ import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { toast } from "@/hooks/use-toast";
 
 const features = [
   {
@@ -63,6 +65,58 @@ const faqItems = [
     answer: "Most platforms charge 5-10% per ticket sold, which adds up fast. If you sell $10,000 in tickets, that's $500-$1,000 in fees! With Jugnu, you pay $50/month and keep everything else. Plus you get community tools and ad credits included."
   }
 ];
+
+function ManageSubscriptionButton({ communityId }: { communityId: string }) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleManageSubscription = async () => {
+    setIsLoading(true);
+    try {
+      const response = await apiRequest<{ ok: boolean; url: string }>(
+        '/api/billing/create-portal-session',
+        {
+          method: 'POST',
+          body: JSON.stringify({ communityId }),
+        }
+      );
+
+      if (response.url) {
+        window.location.href = response.url;
+      } else {
+        throw new Error('No portal URL returned');
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to open billing portal. Please try again.",
+      });
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Button
+      size="lg"
+      className="bg-gradient-to-r from-jade-500 to-emerald-600 hover:from-jade-600 hover:to-emerald-700 text-white font-semibold px-8 py-6 text-lg"
+      onClick={handleManageSubscription}
+      disabled={isLoading}
+      data-testid="button-manage-subscription"
+    >
+      {isLoading ? (
+        <>
+          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+          Opening Portal...
+        </>
+      ) : (
+        <>
+          <Settings className="w-5 h-5 mr-2" />
+          Manage Your Subscription
+        </>
+      )}
+    </Button>
+  );
+}
 
 export default function PricingPage() {
   // Check if user is authenticated and has organizer account
@@ -178,16 +232,7 @@ export default function PricingPage() {
               {/* State-specific CTAs */}
               {isActive && firstCommunity && (
                 <div className="space-y-3">
-                  <Link href={`/communities/${firstCommunity.slug}/settings`}>
-                    <Button 
-                      size="lg" 
-                      className="bg-gradient-to-r from-jade-500 to-emerald-600 hover:from-jade-600 hover:to-emerald-700 text-white font-semibold px-8 py-6 text-lg"
-                      data-testid="button-manage-subscription"
-                    >
-                      <Settings className="w-5 h-5 mr-2" />
-                      Manage Your Subscription
-                    </Button>
-                  </Link>
+                  <ManageSubscriptionButton communityId={firstCommunity.id} />
                   <p className="text-sm text-white/60">
                     {availableCredits} placement credit{availableCredits !== 1 ? 's' : ''} available
                   </p>

@@ -205,6 +205,54 @@ router.get('/subscription/:communityId', requireAuth, async (req: Request, res: 
 });
 
 /**
+ * POST /api/billing/create-portal-session
+ * Create a Stripe billing portal session for subscription management
+ */
+router.post('/create-portal-session', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { communityId } = req.body;
+    const user = (req as any).user;
+
+    if (!communityId) {
+      return res.status(400).json({ ok: false, error: 'Community ID required' });
+    }
+
+    // Get subscription and verify ownership
+    const subscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
+    if (!subscription) {
+      return res.status(404).json({ ok: false, error: 'No subscription found for this community' });
+    }
+
+    // Verify ownership
+    const community = await communitiesStorage.getCommunityById(communityId);
+    const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+    
+    if (!community || !organizer || community.organizerId !== organizer.id) {
+      return res.status(403).json({ ok: false, error: 'Unauthorized' });
+    }
+
+    // Ensure customer has a Stripe customer ID
+    if (!subscription.stripeCustomerId) {
+      return res.status(400).json({ ok: false, error: 'No Stripe customer found for this subscription' });
+    }
+
+    // Create billing portal session
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: subscription.stripeCustomerId,
+      return_url: `${process.env.VITE_APP_URL || 'http://localhost:5000'}/pricing`,
+    });
+
+    res.json({
+      ok: true,
+      url: portalSession.url
+    });
+  } catch (error: any) {
+    console.error('Create portal session error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to create portal session' });
+  }
+});
+
+/**
  * POST /api/billing/cancel-subscription
  * Cancel an individual community subscription
  */
