@@ -35,39 +35,9 @@ interface Community {
   organizerId: string;
 }
 
-export default function AccountBillingPage() {
-  const [, navigate] = useLocation();
+function CommunityBillingCard({ community }: { community: Community }) {
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
 
-  // Fetch current user
-  const { data: authData, isLoading: authLoading } = useQuery<{ 
-    ok: boolean; 
-    user: { id: string } | null;
-  }>({ queryKey: ['/api/auth/me'] });
-
-  // Fetch organizer profile
-  const { data: organizerData, isLoading: organizerLoading } = useQuery<{ 
-    ok: boolean; 
-    organizer: Organizer | null;
-  }>({ 
-    queryKey: ['/api/organizers/me'],
-    enabled: !!authData?.user 
-  });
-
-  // Fetch communities
-  const { data: communitiesData, isLoading: communitiesLoading } = useQuery<{ 
-    ok: boolean; 
-    communities: Community[];
-  }>({ 
-    queryKey: ['/api/communities'],
-    enabled: !!organizerData?.organizer 
-  });
-
-  const organizer = organizerData?.organizer;
-  const communities = communitiesData?.communities || [];
-  const firstCommunity = communities[0];
-
-  // Fetch subscription status for first community
   const {
     subscription,
     isTrialing,
@@ -77,13 +47,12 @@ export default function AccountBillingPage() {
     availableCredits,
     canManage,
     isLoading: subscriptionLoading
-  } = useSubscriptionStatus(firstCommunity?.id);
+  } = useSubscriptionStatus(community.id);
 
-  const isLoading = authLoading || organizerLoading || communitiesLoading || subscriptionLoading;
+  const hasStripeCustomer = !!subscription?.stripeCustomerId;
+  const canAccessPortal = isActive && hasStripeCustomer && canManage;
 
   const handleOpenBillingPortal = async () => {
-    if (!firstCommunity?.id) return;
-
     setIsOpeningPortal(true);
     try {
       const authToken = localStorage.getItem('community_auth_token');
@@ -98,7 +67,7 @@ export default function AccountBillingPage() {
           'Authorization': `Bearer ${authToken}`,
         },
         body: JSON.stringify({ 
-          communityId: firstCommunity.id,
+          communityId: community.id,
           returnUrl: window.location.href 
         }),
         credentials: 'include',
@@ -126,6 +95,223 @@ export default function AccountBillingPage() {
       setIsOpeningPortal(false);
     }
   };
+
+  if (subscriptionLoading) {
+    return (
+      <Card className="premium-surface-elevated">
+        <CardContent className="pt-6 flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-copper-400" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="premium-surface-elevated">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-xl text-white flex items-center gap-2">
+              {community.name}
+            </CardTitle>
+            <CardDescription className="text-white/60 mt-1">
+              Community Subscription
+            </CardDescription>
+          </div>
+          <Badge 
+            variant={isActive ? 'default' : isTrialing ? 'secondary' : 'outline'}
+            className={
+              isActive 
+                ? 'bg-jade-500/20 text-jade-400 border-jade-500/30' 
+                : isTrialing 
+                ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                : 'bg-red-500/20 text-red-400 border-red-500/30'
+            }
+            data-testid={`badge-subscription-status-${community.id}`}
+          >
+            {isActive ? '✅ Active' : isTrialing ? '🎉 Trial' : '⚠️ Inactive'}
+          </Badge>
+        </div>
+      </CardHeader>
+      
+      <Separator className="bg-white/10" />
+
+      <CardContent className="pt-6">
+        {/* Trial Banner */}
+        {isTrialing && trialDaysRemaining !== null && (
+          <TrialBanner 
+            daysRemaining={trialDaysRemaining} 
+            communityId={community.id}
+            className="mb-6"
+          />
+        )}
+
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          {/* Plan Details */}
+          <div>
+            <h3 className="text-sm font-semibold text-white/60 mb-3">Plan Details</h3>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-white/70">Price:</span>
+                <span className="text-white font-semibold">$50/month CAD</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/70">Commission:</span>
+                <span className="text-jade-400 font-semibold">0%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-white/70">Monthly Credits:</span>
+                <span className="text-white font-semibold">2 placements</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Current Status */}
+          <div>
+            <h3 className="text-sm font-semibold text-white/60 mb-3">Current Status</h3>
+            <div className="space-y-3">
+              {isActive && subscription?.currentPeriodEnd && (
+                <div className="flex items-start gap-2">
+                  <Calendar className="w-4 h-4 text-white/70 mt-0.5" />
+                  <div>
+                    <p className="text-white/70 text-sm">Next billing date:</p>
+                    <p className="text-white font-medium">
+                      {new Date(subscription.currentPeriodEnd).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {isTrialing && subscription?.trialEndsAt && (
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5" />
+                  <div>
+                    <p className="text-white/70 text-sm">Trial ends:</p>
+                    <p className="text-white font-medium">
+                      {new Date(subscription.trialEndsAt).toLocaleDateString('en-US', {
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-start gap-2">
+                <Sparkles className="w-4 h-4 text-copper-400 mt-0.5" />
+                <div>
+                  <p className="text-white/70 text-sm">Available credits:</p>
+                  <p className="text-white font-medium">{availableCredits} placement{availableCredits !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          {canAccessPortal && (
+            <Button
+              onClick={handleOpenBillingPortal}
+              disabled={isOpeningPortal}
+              className="flex-1 bg-copper-500 hover:bg-copper-600 text-black font-semibold"
+              data-testid={`button-manage-billing-${community.id}`}
+            >
+              {isOpeningPortal ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Opening Portal...
+                </>
+              ) : (
+                <>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Manage Billing
+                </>
+              )}
+            </Button>
+          )}
+
+          {isActive && !hasStripeCustomer && (
+            <Link href={`/subscribe/${community.id}`} className="flex-1">
+              <Button 
+                className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold"
+                data-testid={`button-complete-payment-${community.id}`}
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Complete Payment Setup
+              </Button>
+            </Link>
+          )}
+
+          {isTrialing && (
+            <Link href={`/subscribe/${community.id}`} className="flex-1">
+              <Button 
+                className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold"
+                data-testid={`button-upgrade-subscription-${community.id}`}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Upgrade to Paid
+              </Button>
+            </Link>
+          )}
+
+          {!isActive && !isTrialing && (
+            <Link href={`/subscribe/${community.id}`} className="flex-1">
+              <Button 
+                className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold"
+                data-testid={`button-subscribe-${community.id}`}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Subscribe Now
+              </Button>
+            </Link>
+          )}
+
+          <Link href={`/communities/${community.slug}/settings`} className="flex-1">
+            <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+              Community Settings
+            </Button>
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function AccountBillingPage() {
+  const [, navigate] = useLocation();
+
+  // Fetch current user
+  const { data: authData, isLoading: authLoading } = useQuery<{ 
+    ok: boolean; 
+    user: { id: string } | null;
+  }>({ queryKey: ['/api/auth/me'] });
+
+  // Fetch organizer profile
+  const { data: organizerData, isLoading: organizerLoading } = useQuery<{ 
+    ok: boolean; 
+    organizer: Organizer | null;
+  }>({ 
+    queryKey: ['/api/organizers/me'],
+    enabled: !!authData?.user 
+  });
+
+  // Fetch communities
+  const { data: communitiesData, isLoading: communitiesLoading } = useQuery<{ 
+    ok: boolean; 
+    communities: Community[];
+  }>({ 
+    queryKey: ['/api/communities'],
+    enabled: !!organizerData?.organizer 
+  });
+
+  const organizer = organizerData?.organizer;
+  const communities = communitiesData?.communities || [];
+
+  const isLoading = authLoading || organizerLoading || communitiesLoading;
 
   if (isLoading) {
     return (
@@ -181,9 +367,6 @@ export default function AccountBillingPage() {
     );
   }
 
-  const hasStripeCustomer = !!subscription?.stripeCustomerId;
-  const canAccessPortal = isActive && hasStripeCustomer && canManage;
-
   return (
     <>
       <Helmet>
@@ -192,191 +375,26 @@ export default function AccountBillingPage() {
       </Helmet>
 
       <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950 py-12 px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-white mb-2">Billing & Subscription</h1>
-            <p className="text-white/60">Manage your subscription and payment information</p>
+            <p className="text-white/60">
+              {communities.length === 1 
+                ? 'Manage your community subscription and payment information' 
+                : `Manage subscriptions for your ${communities.length} communities`}
+            </p>
           </div>
 
-          {/* Trial Banner */}
-          {isTrialing && trialDaysRemaining !== null && firstCommunity && (
-            <TrialBanner 
-              daysRemaining={trialDaysRemaining} 
-              communityId={firstCommunity.id}
-              className="mb-6"
-            />
-          )}
-
-          {/* Subscription Overview Card */}
-          <Card className="premium-surface-elevated mb-6">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-2xl text-white flex items-center gap-2">
-                    <Shield className="w-6 h-6 text-copper-400" />
-                    Subscription Status
-                  </CardTitle>
-                  <CardDescription className="text-white/60 mt-1">
-                    {firstCommunity.name}
-                  </CardDescription>
-                </div>
-                <Badge 
-                  variant={isActive ? 'default' : isTrialing ? 'secondary' : 'outline'}
-                  className={
-                    isActive 
-                      ? 'bg-jade-500/20 text-jade-400 border-jade-500/30' 
-                      : isTrialing 
-                      ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
-                      : 'bg-red-500/20 text-red-400 border-red-500/30'
-                  }
-                  data-testid="badge-subscription-status"
-                >
-                  {isActive ? '✅ Active' : isTrialing ? '🎉 Trial' : '⚠️ Inactive'}
-                </Badge>
-              </div>
-            </CardHeader>
-            
-            <Separator className="bg-white/10" />
-
-            <CardContent className="pt-6">
-              <div className="grid md:grid-cols-2 gap-6">
-                {/* Plan Details */}
-                <div>
-                  <h3 className="text-sm font-semibold text-white/60 mb-3">Plan Details</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-white/70">Price:</span>
-                      <span className="text-white font-semibold">$50/month CAD</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-white/70">Commission:</span>
-                      <span className="text-jade-400 font-semibold">0%</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-white/70">Monthly Credits:</span>
-                      <span className="text-white font-semibold">2 placements</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Current Status */}
-                <div>
-                  <h3 className="text-sm font-semibold text-white/60 mb-3">Current Status</h3>
-                  <div className="space-y-3">
-                    {isActive && subscription?.currentPeriodEnd && (
-                      <div className="flex items-start gap-2">
-                        <Calendar className="w-4 h-4 text-white/70 mt-0.5" />
-                        <div>
-                          <p className="text-white/70 text-sm">Next billing date:</p>
-                          <p className="text-white font-medium">
-                            {new Date(subscription.currentPeriodEnd).toLocaleDateString('en-US', {
-                              month: 'long',
-                              day: 'numeric',
-                              year: 'numeric'
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {isTrialing && subscription?.trialEndsAt && (
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="w-4 h-4 text-amber-400 mt-0.5" />
-                        <div>
-                          <p className="text-white/70 text-sm">Trial ends:</p>
-                          <p className="text-white font-medium">
-                            {new Date(subscription.trialEndsAt).toLocaleDateString('en-US', {
-                              month: 'long',
-                              day: 'numeric',
-                              year: 'numeric'
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    <div className="flex items-start gap-2">
-                      <Sparkles className="w-4 h-4 text-copper-400 mt-0.5" />
-                      <div>
-                        <p className="text-white/70 text-sm">Available credits:</p>
-                        <p className="text-white font-medium">{availableCredits} placement{availableCredits !== 1 ? 's' : ''}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* CTAs */}
-              <Separator className="bg-white/10 my-6" />
-
-              <div className="flex flex-col sm:flex-row gap-3">
-                {canAccessPortal && (
-                  <Button
-                    onClick={handleOpenBillingPortal}
-                    disabled={isOpeningPortal}
-                    className="flex-1 bg-copper-500 hover:bg-copper-600 text-black font-semibold"
-                    data-testid="button-manage-billing"
-                  >
-                    {isOpeningPortal ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Opening Portal...
-                      </>
-                    ) : (
-                      <>
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Manage Billing
-                      </>
-                    )}
-                  </Button>
-                )}
-
-                {isActive && !hasStripeCustomer && firstCommunity && (
-                  <Link href={`/subscribe/${firstCommunity.id}`} className="flex-1">
-                    <Button 
-                      className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold"
-                      data-testid="button-complete-payment"
-                    >
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Complete Payment Setup
-                    </Button>
-                  </Link>
-                )}
-
-                {isTrialing && firstCommunity && (
-                  <Link href={`/subscribe/${firstCommunity.id}`} className="flex-1">
-                    <Button 
-                      className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold"
-                      data-testid="button-upgrade-subscription"
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Upgrade to Paid
-                    </Button>
-                  </Link>
-                )}
-
-                {!isActive && !isTrialing && firstCommunity && (
-                  <Link href={`/subscribe/${firstCommunity.id}`} className="flex-1">
-                    <Button 
-                      className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold"
-                      data-testid="button-subscribe"
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Subscribe Now
-                    </Button>
-                  </Link>
-                )}
-
-                <Link href="/pricing" className="flex-1">
-                  <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
-                    View Pricing Details
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Communities List */}
+          <div className="space-y-6 mb-8">
+            {communities.map((community) => (
+              <CommunityBillingCard key={community.id} community={community} />
+            ))}
+          </div>
 
           {/* Features Included Card */}
-          <Card className="premium-surface">
+          <Card className="premium-surface mb-6">
             <CardHeader>
               <CardTitle className="text-white">What's Included</CardTitle>
               <CardDescription className="text-white/60">
@@ -405,7 +423,7 @@ export default function AccountBillingPage() {
           </Card>
 
           {/* Business Info Card */}
-          <Card className="mt-6 premium-surface">
+          <Card className="premium-surface">
             <CardHeader>
               <CardTitle className="text-white">Business Information</CardTitle>
             </CardHeader>

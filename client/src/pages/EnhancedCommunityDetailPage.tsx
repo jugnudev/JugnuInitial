@@ -108,6 +108,8 @@ import CommunityManageEvents from "@/components/CommunityManageEvents";
 import BillingCheckout from "@/components/BillingCheckout";
 import { BetaBadge } from "@/components/BetaBadge";
 import { NotificationPreferences } from "@/components/NotificationPreferences";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
+import { TrialBanner } from "@/components/billing/TrialBanner";
 import {
   Dialog,
   DialogContent,
@@ -413,6 +415,12 @@ export default function EnhancedCommunityDetailPage() {
   // Override roles when in "View as Member" mode
   const isOwner = viewAsMember ? false : actualIsOwner;
   const isOwnerOrModerator = viewAsMember ? false : actualIsOwnerOrModerator;
+
+  // Get subscription status for trial/billing info
+  const {
+    isTrialing,
+    trialDaysRemaining
+  } = useSubscriptionStatus(community?.id);
 
   // Rehydrate viewAsMember from localStorage when communitySlug changes
   // Using useLayoutEffect to ensure state is updated synchronously before write effect runs
@@ -2378,6 +2386,14 @@ export default function EnhancedCommunityDetailPage() {
             
             {/* Settings Tab */}
             <TabsContent value="settings" className="space-y-6">
+              {/* Trial Banner - Show to owners on trial */}
+              {isOwner && isTrialing && trialDaysRemaining !== null && community && (
+                <TrialBanner 
+                  daysRemaining={trialDaysRemaining} 
+                  communityId={community.id}
+                />
+              )}
+
               <Card className="bg-gradient-to-b from-premium-surface to-premium-surface-elevated border-premium-border">
                 <CardHeader>
                   <CardTitle className="text-base md:text-lg">Chat Settings</CardTitle>
