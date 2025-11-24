@@ -83,9 +83,29 @@ export default function Promote() {
   const [promoCodeValidation, setPromoCodeValidation] = useState<{ valid: boolean, message: string, discount?: any } | null>(null);
   const [isValidatingPromoCode, setIsValidatingPromoCode] = useState(false);
   const [isLoadingBlockedDates, setIsLoadingBlockedDates] = useState(true);
+  const [availableCredits, setAvailableCredits] = useState<number>(0);
+  const [isLoadingCredits, setIsLoadingCredits] = useState(true);
   
   // Quote prefill functionality
   const { quoteId, prefillData, isLoading: isPrefillLoading, error: prefillError, hasPrefill } = useQuotePrefill();
+  
+  // Fetch available placement credits
+  useEffect(() => {
+    const fetchCredits = async () => {
+      try {
+        const response = await fetch('/api/billing/credits/balance');
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableCredits(data.available || 0);
+        }
+      } catch (error) {
+        console.error('Failed to fetch credits:', error);
+      } finally {
+        setIsLoadingCredits(false);
+      }
+    };
+    fetchCredits();
+  }, []);
   
   // Fetch blocked dates based on selected package
   useEffect(() => {
@@ -165,7 +185,7 @@ export default function Promote() {
     selected_add_ons: [] as AddOnType[]
   });
 
-  // Calculate current pricing with promo code discount
+  // Calculate current pricing with promo code discount and placement credits
   const currentPricing = useMemo(() => {
     if (!selectedPackage) return null;
     
@@ -179,9 +199,10 @@ export default function Promote() {
         type: promoCodeValidation.discount.discount_type,
         value: promoCodeValidation.discount.discount_value,
         code: formData.promo_code
-      } : null
+      } : null,
+      availableCredits
     );
-  }, [selectedPackage, durationType, weekDuration, dayDuration, selectedAddOns, promoCodeValidation, formData.promo_code]);
+  }, [selectedPackage, durationType, weekDuration, dayDuration, selectedAddOns, promoCodeValidation, formData.promo_code, availableCredits]);
 
   // Honeypot and latency check for spam prevention
   const [honeypot, setHoneypot] = useState('');
@@ -1086,6 +1107,27 @@ export default function Promote() {
               <span className="font-medium">
                 Form prefilled with your previous campaign settings
               </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Placement Credits Banner */}
+      {!isLoadingCredits && availableCredits > 0 && (
+        <div className="bg-gradient-to-r from-copper-500/20 to-amber-500/20 border-b border-copper-500/30">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center justify-center gap-3">
+              <div className="bg-copper-500/30 p-2 rounded-lg">
+                <Zap className="w-5 h-5 text-copper-400" />
+              </div>
+              <div className="text-center">
+                <div className="font-semibold text-white">
+                  You have {availableCredits} placement {availableCredits === 1 ? 'credit' : 'credits'} available
+                </div>
+                <div className="text-sm text-white/70">
+                  Credits automatically reduce your cost below (1 credit = 1 day of placement)
+                </div>
+              </div>
             </div>
           </div>
         </div>

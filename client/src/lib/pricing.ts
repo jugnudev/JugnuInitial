@@ -121,6 +121,8 @@ export interface PricingCalculation {
   multiWeekDiscount: number;
   earlyPartnerDiscount: number;
   promoDiscount: number;
+  creditsDiscount: number;
+  creditsApplied: number;
   total: number;
   savings: number;
   weeklySavingsPercent: number; // Savings percentage vs daily×7
@@ -139,7 +141,8 @@ export function calculatePricing(
   weekDuration: number,
   dayDuration: number = 1,
   addOns: AddOnType[],
-  promoDiscount?: { type: 'percentage' | 'fixed_amount' | 'free_days', value: number, code: string } | null
+  promoDiscount?: { type: 'percentage' | 'fixed_amount' | 'free_days', value: number, code: string } | null,
+  availableCredits: number = 0
 ): PricingCalculation {
   const pkg = PRICING_CONFIG.packages[packageType];
   
@@ -206,7 +209,23 @@ export function calculatePricing(
     }
   }
   
-  const discountedBasePrice = basePrice - multiWeekDiscount - earlyPartnerDiscount - promoDiscountAmount;
+  // Calculate placement credits discount (after promo but before add-ons)
+  // 1 credit = 1 placement day at the package's daily rate
+  // Only applies to base package, NOT add-ons
+  let creditsDiscountAmount = 0;
+  let creditsUsed = 0;
+  if (availableCredits > 0) {
+    const priceAfterOtherDiscounts = basePrice - multiWeekDiscount - earlyPartnerDiscount - promoDiscountAmount;
+    const totalDays = durationType === 'daily' ? dayDuration : (weekDuration * 7);
+    
+    // Determine how many credits can be applied (max = total days)
+    creditsUsed = Math.min(availableCredits, totalDays);
+    
+    // Calculate credit value: each credit = 1 day at daily rate
+    creditsDiscountAmount = Math.min(creditsUsed * pkg.daily, priceAfterOtherDiscounts);
+  }
+  
+  const discountedBasePrice = basePrice - multiWeekDiscount - earlyPartnerDiscount - promoDiscountAmount - creditsDiscountAmount;
   
   // Add-ons are added after discounts (no discounts apply to add-ons)
   const addOnsTotal = addOns.reduce((sum, addOn) => {
@@ -215,7 +234,7 @@ export function calculatePricing(
   
   const subtotal = basePrice + addOnsTotal;
   const total = discountedBasePrice + addOnsTotal;
-  const savings = multiWeekDiscount + earlyPartnerDiscount + promoDiscountAmount;
+  const savings = multiWeekDiscount + earlyPartnerDiscount + promoDiscountAmount + creditsDiscountAmount;
   
   return {
     basePrice,
@@ -225,6 +244,8 @@ export function calculatePricing(
     multiWeekDiscount,
     earlyPartnerDiscount,
     promoDiscount: promoDiscountAmount,
+    creditsDiscount: creditsDiscountAmount,
+    creditsApplied: creditsUsed,
     total,
     savings,
     weeklySavingsPercent,
@@ -237,7 +258,8 @@ export function calculatePricing(
       discounts: [
         ...(multiWeekDiscount > 0 ? [{ name: PRICING_CONFIG.discounts.multiWeek.label, amount: multiWeekDiscount }] : []),
         ...(earlyPartnerDiscount > 0 ? [{ name: PRICING_CONFIG.discounts.earlyPartner.label, amount: earlyPartnerDiscount }] : []),
-        ...(promoDiscountAmount > 0 && promoDiscount ? [{ name: `Promo Code: ${promoDiscount.code}`, amount: promoDiscountAmount }] : [])
+        ...(promoDiscountAmount > 0 && promoDiscount ? [{ name: `Promo Code: ${promoDiscount.code}`, amount: promoDiscountAmount }] : []),
+        ...(creditsDiscountAmount > 0 ? [{ name: `Placement Credits (${creditsUsed} applied)`, amount: creditsDiscountAmount }] : [])
       ]
     }
   };
