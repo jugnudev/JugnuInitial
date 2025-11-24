@@ -36,7 +36,13 @@ const requireAuth = async (req: Request, res: Response, next: any) => {
     
     next();
   } catch (error: any) {
-    console.error('Auth middleware error:', error);
+    console.error('[Billing Auth] Error details:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint,
+      stack: error.stack?.split('\n').slice(0, 3).join('\n')
+    });
     return res.status(500).json({ ok: false, error: 'Authentication failed' });
   }
 };

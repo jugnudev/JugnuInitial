@@ -1309,7 +1309,13 @@ export function addCommunitiesRoutes(app: Express) {
         }
       });
     } catch (error: any) {
-      console.error('Get organizer error:', error);
+      console.error('[Get Organizer] Error details:', {
+        userId: (req as any).user?.id,
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
       res.status(500).json({ ok: false, error: 'Failed to fetch organizer profile' });
     }
   });
