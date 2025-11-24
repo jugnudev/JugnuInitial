@@ -210,7 +210,10 @@ export const sponsorLeads = pgTable("sponsor_leads", {
   addOns: jsonb("add_ons").notNull().default(sql`'[]'::jsonb`),
   promoApplied: boolean("promo_applied").notNull().default(false),
   promoCode: text("promo_code"),
+  creditsApplied: integer("credits_applied").notNull().default(0), // Number of placement credits used
+  creditsSavingsCents: integer("credits_savings_cents").notNull().default(0), // Total savings from credits in cents
   currency: text("currency").notNull().default("CAD"),
+  basePriceCents: integer("base_price_cents").notNull(), // Base package price before any discounts
   subtotalCents: integer("subtotal_cents").notNull(),
   addonsCents: integer("addons_cents").notNull(),
   totalCents: integer("total_cents").notNull(),

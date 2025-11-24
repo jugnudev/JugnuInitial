@@ -85,26 +85,35 @@ export default function Promote() {
   const [isLoadingBlockedDates, setIsLoadingBlockedDates] = useState(true);
   const [availableCredits, setAvailableCredits] = useState<number>(0);
   const [isLoadingCredits, setIsLoadingCredits] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   // Quote prefill functionality
   const { quoteId, prefillData, isLoading: isPrefillLoading, error: prefillError, hasPrefill } = useQuotePrefill();
   
-  // Fetch available placement credits
+  // Check authentication status and fetch placement credits if authenticated
   useEffect(() => {
-    const fetchCredits = async () => {
+    const checkAuthAndFetchCredits = async () => {
       try {
+        // Try to fetch credits - this will fail if not authenticated
         const response = await fetch('/api/billing/credits/balance');
         if (response.ok) {
           const data = await response.json();
           setAvailableCredits(data.available || 0);
+          setIsAuthenticated(true);
+        } else if (response.status === 401) {
+          // Not authenticated - this is fine, user will see public form
+          setIsAuthenticated(false);
+          setAvailableCredits(0);
         }
       } catch (error) {
         console.error('Failed to fetch credits:', error);
+        setIsAuthenticated(false);
+        setAvailableCredits(0);
       } finally {
         setIsLoadingCredits(false);
       }
     };
-    fetchCredits();
+    checkAuthAndFetchCredits();
   }, []);
   
   // Fetch blocked dates based on selected package
@@ -185,7 +194,7 @@ export default function Promote() {
     selected_add_ons: [] as AddOnType[]
   });
 
-  // Calculate current pricing with promo code discount and placement credits
+  // Calculate current pricing with promo code discount and placement credits (only if authenticated)
   const currentPricing = useMemo(() => {
     if (!selectedPackage) return null;
     
@@ -200,9 +209,9 @@ export default function Promote() {
         value: promoCodeValidation.discount.discount_value,
         code: formData.promo_code
       } : null,
-      availableCredits
+      isAuthenticated ? availableCredits : 0 // Only apply credits if authenticated
     );
-  }, [selectedPackage, durationType, weekDuration, dayDuration, selectedAddOns, promoCodeValidation, formData.promo_code, availableCredits]);
+  }, [selectedPackage, durationType, weekDuration, dayDuration, selectedAddOns, promoCodeValidation, formData.promo_code, availableCredits, isAuthenticated]);
 
   // Honeypot and latency check for spam prevention
   const [honeypot, setHoneypot] = useState('');
@@ -734,6 +743,12 @@ export default function Promote() {
       // Always send promoCode field, even if empty
       formDataToSend.append('promoCode', formData.promo_code && promoCodeValidation?.valid ? formData.promo_code : '');
       
+      // Add placement credits information if authenticated and credits are being applied
+      if (isAuthenticated && currentPricing && currentPricing.creditsApplied > 0) {
+        formDataToSend.append('creditsToUse', String(currentPricing.creditsApplied));
+        formDataToSend.append('creditsDiscount', String(currentPricing.creditsDiscount));
+      }
+      
       // Add creative assets based on package type
       // Priority: uploaded files first, then links if no files
       const hasUploadedFiles = creatives.eventsDesktop || creatives.eventsMobile || 
@@ -1112,8 +1127,8 @@ export default function Promote() {
         </div>
       )}
 
-      {/* Placement Credits Banner */}
-      {!isLoadingCredits && availableCredits > 0 && (
+      {/* Placement Credits Banner - Only show for authenticated users with credits */}
+      {!isLoadingCredits && isAuthenticated && availableCredits > 0 && (
         <div className="bg-gradient-to-r from-copper-500/20 to-amber-500/20 border-b border-copper-500/30">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-center gap-3">

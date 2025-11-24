@@ -15,6 +15,8 @@ import sgMail from '@sendgrid/mail';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import { getSupabaseAdmin } from './supabaseAdmin';
+import { CreditsService } from './communities/credits-service';
+import { communitiesStorage } from './communities/communities-supabase';
 
 
 // Rate limiting for quote and application endpoints
@@ -410,7 +412,8 @@ export function addQuotesRoutes(app: Express) {
         ackExclusive: true,
         ackGuarantee: true,
         quoteId: req.body.quoteId,
-        promoCode: req.body.promoCode
+        promoCode: req.body.promoCode,
+        creditsToUse: req.body.creditsToUse ? parseInt(req.body.creditsToUse) : undefined
       };
       
       // Handle creative assets based on package type
@@ -496,6 +499,56 @@ export function addQuotesRoutes(app: Express) {
         .select('*')
         .eq('id', leadId)
         .single();
+      
+      // Handle placement credits deduction if authenticated and credits are being used
+      const creditsToUse = parseInt(req.body.creditsToUse);
+      if (creditsToUse && creditsToUse > 0) {
+        try {
+          // Check if user is authenticated via session or token
+          const token = req.headers['authorization']?.replace('Bearer ', '') || 
+                        req.cookies?.['community_auth_token'];
+          
+          let userId: string | undefined;
+          if (token) {
+            const session = await communitiesStorage.getSessionByToken(token);
+            if (session) {
+              userId = session.userId;
+            }
+          } else if (req.session?.userId) {
+            userId = req.session.userId;
+          }
+          
+          if (userId) {
+            // Get organizer record
+            const organizer = await communitiesStorage.getOrganizerByUserId(userId);
+            
+            if (organizer) {
+              // Initialize credits service and deduct credits
+              const creditsService = new CreditsService(communitiesStorage);
+              
+              // Note: We don't have a campaign_id yet (this is just an application/lead)
+              // We'll track the credit usage against the lead_id for now
+              // deductCredits will throw an error if insufficient balance
+              await creditsService.deductCredits(
+                organizer.id,
+                creditsToUse,
+                leadId, // Use lead_id as a reference
+                ['sponsor_application'], // Custom placement type for sponsor applications
+                body.startDate || new Date().toISOString().split('T')[0],
+                body.endDate || new Date().toISOString().split('T')[0]
+              );
+              
+              console.log(`✅ Deducted ${creditsToUse} credits for organizer ${organizer.id} on application ${leadId}`);
+            }
+          } else {
+            console.log('⚠️ Credits requested but user not authenticated or not an organizer');
+          }
+        } catch (creditsError) {
+          console.error('Credits deduction error (non-fatal):', creditsError);
+          // Don't fail the application if credits deduction fails
+          // The application still goes through, just log the error
+        }
+      }
       
       // Send admin notification email with complete lead data
       if (leadData) {

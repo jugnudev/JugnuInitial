@@ -53,6 +53,7 @@ export const createApplicationSchema = z.object({
   endDate: z.string().optional(),
   addOns: z.array(z.string()).optional(),
   promoCode: z.string().optional(),
+  creditsToUse: z.number().int().min(0).optional(),
   
   // Campaign details
   budgetRange: z.string().optional(),
@@ -100,7 +101,8 @@ export async function calculatePricing(
   numWeeks: number,
   numDays: number,
   addOns: string[],
-  promoCode?: string
+  promoCode?: string,
+  credits?: number
 ) {
   const pkg = PRICING.packages[packageCode];
   
@@ -175,14 +177,32 @@ export async function calculatePricing(
     }
   }
   
-  const discountedBasePrice = basePrice - discountAmount;
+  // Apply placement credits discount (after promo but before add-ons)
+  // 1 credit = 1 placement day at the package's daily rate
+  // Only applies to base package, NOT add-ons
+  let creditsDiscountAmount = 0;
+  let creditsUsed = 0;
+  if (credits && credits > 0) {
+    const priceAfterPromo = basePrice - discountAmount;
+    const totalDays = duration === 'daily' ? numDays : (numWeeks * 7);
+    
+    // Determine how many credits can be applied (max = total days)
+    creditsUsed = Math.min(credits, totalDays);
+    
+    // Calculate credit value: each credit = 1 day at daily rate
+    creditsDiscountAmount = Math.min(creditsUsed * pkg.daily, priceAfterPromo);
+  }
+  
+  const discountedBasePrice = basePrice - discountAmount - creditsDiscountAmount;
   
   return {
     basePriceCents: basePrice * 100,
     addonsCents: addOnsPrice * 100,
     subtotalCents: (basePrice + addOnsPrice) * 100,
     totalCents: (discountedBasePrice + addOnsPrice) * 100,
-    promoSavingsCents: promoApplied ? discountAmount * 100 : 0
+    promoSavingsCents: promoApplied ? discountAmount * 100 : 0,
+    creditsSavingsCents: creditsDiscountAmount * 100,
+    creditsUsed: creditsUsed
   };
 }
 
@@ -287,9 +307,9 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
       throw new Error('Package selection does not match quote');
     }
     
-    // If a promo code is provided, recalculate pricing with the promo
+    // If a promo code OR credits are provided, recalculate pricing
     // Otherwise use the quote's stored pricing
-    if (data.promoCode) {
+    if (data.promoCode || (data.creditsToUse && data.creditsToUse > 0)) {
       // Use numDays from the application data if available (for daily duration)
       // This is more reliable than trying to calculate from potentially null dates
       let numDays = 1;
@@ -305,12 +325,13 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
         }
       }
       
-      console.log('🔄 Recalculating pricing with promo code:', {
+      console.log('🔄 Recalculating pricing with promo code and/or credits:', {
         packageCode: finalPackageCode,
         duration: finalDuration,
         numWeeks: finalNumWeeks,
         numDays,
         promoCode: data.promoCode,
+        creditsToUse: data.creditsToUse,
         fromApplicationData: data.numDays
       });
       
@@ -320,7 +341,8 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
         finalNumWeeks,
         numDays,
         finalAddOns.map((a: any) => a.code),
-        data.promoCode
+        data.promoCode,
+        data.creditsToUse || 0
       );
     } else {
       pricing = {
@@ -378,14 +400,18 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
       finalNumWeeks,
       actualNumDays,
       data.addOns || [],
-      data.promoCode || undefined
+      data.promoCode || undefined,
+      data.creditsToUse || 0
     );
     
     console.log('💰 Pricing calculated:', {
       basePriceCents: pricing.basePriceCents,
       addonsCents: pricing.addonsCents,
       subtotalCents: pricing.subtotalCents,
-      totalCents: pricing.totalCents
+      totalCents: pricing.totalCents,
+      promoSavingsCents: pricing.promoSavingsCents || 0,
+      creditsSavingsCents: pricing.creditsSavingsCents || 0,
+      creditsUsed: pricing.creditsUsed || 0
     });
   }
   
@@ -523,6 +549,8 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
     subtotal_cents: pricing.subtotalCents,
     addons_cents: pricing.addonsCents,
     total_cents: pricing.totalCents,
+    credits_applied: pricing.creditsUsed || 0,
+    credits_savings_cents: pricing.creditsSavingsCents || 0,
     objective: data.objective || null,
     ack_exclusive: data.ackExclusive,
     ack_guarantee: data.ackGuarantee,
