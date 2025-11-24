@@ -1278,6 +1278,42 @@ export function addCommunitiesRoutes(app: Express) {
     }
   });
 
+  /**
+   * GET /api/organizers/me
+   * Get current user's organizer profile
+   * curl http://localhost:5000/api/organizers/me \
+   *   -H "Authorization: Bearer YOUR_TOKEN"
+   */
+  app.get('/api/organizers/me', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user;
+
+      // Get organizer profile for this user
+      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+      
+      if (!organizer) {
+        return res.status(404).json({ ok: false, error: 'Not found' });
+      }
+
+      res.json({
+        ok: true,
+        organizer: {
+          id: organizer.id,
+          businessName: organizer.businessName,
+          email: organizer.email,
+          status: organizer.status,
+          businessType: organizer.businessType,
+          businessWebsite: organizer.businessWebsite,
+          businessDescription: organizer.businessDescription,
+          createdAt: organizer.createdAt
+        }
+      });
+    } catch (error: any) {
+      console.error('Get organizer error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to fetch organizer profile' });
+    }
+  });
+
   // ============ ADMIN ORGANIZER APPROVAL ENDPOINTS ============
   
   // Admin key middleware for API endpoints (using ADMIN_PASSWORD)
