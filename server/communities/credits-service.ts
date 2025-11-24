@@ -42,11 +42,16 @@ export class CreditsService {
       const used = subscription.placementCreditsUsed || 0;
       const remaining = available - used;
 
+      // Normalize reset date (Supabase returns strings, not Date objects)
+      const resetDate = subscription.creditsResetDate 
+        ? new Date(subscription.creditsResetDate).toISOString() 
+        : null;
+
       return {
         hasCredits: remaining >= creditsNeeded,
         availableCredits: remaining,
         usedCredits: used,
-        resetDate: subscription.creditsResetDate?.toISOString() || null,
+        resetDate,
         message: remaining >= creditsNeeded 
           ? undefined 
           : `Insufficient credits. You have ${remaining} credits remaining but need ${creditsNeeded}.`

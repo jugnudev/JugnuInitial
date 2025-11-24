@@ -167,13 +167,21 @@ router.get('/subscription/:communityId', requireAuth, async (req: Request, res: 
     }
 
     // Get subscription
-    const subscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
+    let subscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
     if (!subscription) {
       return res.json({
         ok: true,
         subscription: null,
         canManage: false
       });
+    }
+
+    // DETECT and LOG inconsistent status (active without stripe_customer_id should be trialing)
+    // Don't auto-fix as it could affect valid paid subscriptions with sync issues
+    if (subscription.status === 'active' && !subscription.stripeCustomerId) {
+      console.warn(`[Billing] WARNING: Subscription ${subscription.id} has status='active' but no stripe_customer_id. This may indicate a data inconsistency.`);
+      // For now, return the subscription as-is and let the UI handle the edge case
+      // Manual database fix: UPDATE community_subscriptions SET status = 'trialing' WHERE id = '${subscription.id}';
     }
 
     // Check if user can manage billing

@@ -120,13 +120,13 @@ function ManageSubscriptionButton({ communityId }: { communityId: string }) {
 
 export default function PricingPage() {
   // Check if user is authenticated and has organizer account
-  const { data: authData } = useQuery<{ ok: boolean; user?: any; organizer?: any }>({
+  const { data: authData, isLoading: authLoading } = useQuery<{ ok: boolean; user?: any; organizer?: any }>({
     queryKey: ['/api/auth/me'],
     retry: false,
   });
 
   // Fetch communities owned by user if they have an organizer account
-  const { data: communitiesData } = useQuery<{ ok: boolean; communities?: any[] }>({
+  const { data: communitiesData, isLoading: communitiesLoading } = useQuery<{ ok: boolean; communities?: any[] }>({
     queryKey: ['/api/user/communities'],
     enabled: !!authData?.organizer,
     retry: false,
@@ -139,7 +139,7 @@ export default function PricingPage() {
   const firstCommunity = communitiesData?.communities?.[0];
   
   // Fetch subscription status for first community if available
-  const { data: subscriptionData } = useQuery<{ 
+  const { data: subscriptionData, isLoading: subscriptionLoading } = useQuery<{ 
     ok: boolean; 
     subscription?: { 
       status: string; 
@@ -166,6 +166,12 @@ export default function PricingPage() {
   const trialDaysRemaining = subscriptionData?.subscription?.trialEndsAt 
     ? Math.ceil((new Date(subscriptionData.subscription.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
+
+  // Determine if we're still loading initial data to prevent flickering
+  // Only show loader if we're actively waiting for data that determines the CTA
+  const isLoadingUserState = authLoading || 
+    (hasOrganizer && communitiesLoading) || 
+    (hasCommunity && firstCommunity?.id && subscriptionLoading);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950">
@@ -233,8 +239,15 @@ export default function PricingPage() {
                 </div>
               </div>
 
+              {/* Loading state to prevent flickering */}
+              {isLoadingUserState && (
+                <div className="py-8">
+                  <Loader2 className="w-8 h-8 mx-auto animate-spin text-copper-400" />
+                </div>
+              )}
+
               {/* State-specific CTAs */}
-              {canManageInPortal && firstCommunity && (
+              {!isLoadingUserState && canManageInPortal && firstCommunity && (
                 <div className="space-y-3">
                   <ManageSubscriptionButton communityId={firstCommunity.id} />
                   <p className="text-sm text-white/60">
@@ -244,7 +257,7 @@ export default function PricingPage() {
               )}
               
               {/* Active subscription but no Stripe customer (edge case - shouldn't happen but handle it) */}
-              {isActive && !hasStripeCustomer && firstCommunity && (
+              {!isLoadingUserState && isActive && !hasStripeCustomer && firstCommunity && (
                 <div className="space-y-4">
                   <div className="bg-jade-500/20 border border-jade-500/30 rounded-lg p-4">
                     <p className="text-jade-400 font-medium text-sm">
@@ -267,7 +280,7 @@ export default function PricingPage() {
                 </div>
               )}
               
-              {isTrialing && firstCommunity && (
+              {!isLoadingUserState && isTrialing && firstCommunity && (
                 <div className="space-y-4">
                   <div className="bg-amber-500/20 border border-amber-500/30 rounded-lg p-4">
                     <p className="text-amber-400 font-medium text-sm">
@@ -304,7 +317,7 @@ export default function PricingPage() {
                 </div>
               )}
               
-              {hasOrganizer && !hasCommunity && (
+              {!isLoadingUserState && hasOrganizer && !hasCommunity && (
                 <Link href="/communities/signup">
                   <Button 
                     size="lg" 
@@ -318,7 +331,7 @@ export default function PricingPage() {
               )}
               
               {/* Fallback for communities with no subscription status or expired trial */}
-              {hasCommunity && firstCommunity && !isActive && !isTrialing && (
+              {!isLoadingUserState && hasCommunity && firstCommunity && !isActive && !isTrialing && (
                 <Link href={`/subscribe/${firstCommunity.id}`}>
                   <Button 
                     size="lg" 
@@ -331,7 +344,7 @@ export default function PricingPage() {
                 </Link>
               )}
               
-              {!hasOrganizer && !isLoggedOut && (
+              {!isLoadingUserState && !hasOrganizer && !isLoggedOut && (
                 <Link href="/business/signup">
                   <Button 
                     size="lg" 
@@ -344,7 +357,7 @@ export default function PricingPage() {
                 </Link>
               )}
               
-              {isLoggedOut && (
+              {!isLoadingUserState && isLoggedOut && (
                 <Link href="/auth">
                   <Button 
                     size="lg" 
