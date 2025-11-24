@@ -277,23 +277,35 @@ router.get('/credits/balance', requireAuth, async (req: Request, res: Response) 
     if (!subscription) {
       return res.json({
         ok: true,
-        credits: { available: 0, used: 0, resetDate: null }
+        credits: { available: 0, used: 0, resetDate: null },
+        subscriptionStatus: 'none'
+      });
+    }
+
+    // Only show credits for active subscriptions
+    // Trial and inactive subscriptions get 0 credits
+    if (subscription.status !== 'active') {
+      return res.json({
+        ok: true,
+        credits: { available: 0, used: 0, resetDate: null },
+        subscriptionStatus: subscription.status,
+        message: subscription.status === 'trialing' 
+          ? 'Credits are only available with an active paid subscription'
+          : 'Active subscription required for placement credits'
       });
     }
 
     // Note: Credit reset is handled by Stripe webhooks on billing cycle
     // For manual reset, admins can call creditsService.resetCredits(subscription.id)
-
-    // Get subscription data
-    const updatedSubscription = await communitiesStorage.getSubscriptionByCommunityId(communities[0].id);
     
     res.json({
       ok: true,
       credits: {
-        available: updatedSubscription?.placementCreditsAvailable || 0,
-        used: updatedSubscription?.placementCreditsUsed || 0,
-        resetDate: updatedSubscription?.creditsResetDate || null
-      }
+        available: subscription.placementCreditsAvailable || 0,
+        used: subscription.placementCreditsUsed || 0,
+        resetDate: subscription.creditsResetDate || null
+      },
+      subscriptionStatus: subscription.status
     });
   } catch (error: any) {
     console.error('Get credit balance error:', error);
@@ -337,7 +349,22 @@ router.post('/credits/check', requireAuth, async (req: Request, res: Response) =
         ok: true,
         hasEnoughCredits: false,
         available: 0,
-        needed: creditsNeeded
+        needed: creditsNeeded,
+        subscriptionStatus: 'none'
+      });
+    }
+
+    // Only active subscriptions have credits
+    if (subscription.status !== 'active') {
+      return res.json({
+        ok: true,
+        hasEnoughCredits: false,
+        available: 0,
+        needed: creditsNeeded,
+        subscriptionStatus: subscription.status,
+        message: subscription.status === 'trialing'
+          ? 'Credits are only available with an active paid subscription'
+          : 'Active subscription required for placement credits'
       });
     }
 
@@ -348,7 +375,8 @@ router.post('/credits/check', requireAuth, async (req: Request, res: Response) =
       ok: true,
       hasEnoughCredits: creditCheck.hasCredits,
       available: creditCheck.availableCredits,
-      needed: creditsNeeded
+      needed: creditsNeeded,
+      subscriptionStatus: subscription.status
     });
   } catch (error: any) {
     console.error('Check credits error:', error);
