@@ -932,6 +932,7 @@ export const communitySubscriptions = pgTable("community_subscriptions", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
   communityId: uuid("community_id").notNull().references(() => communities.id, { onDelete: 'cascade' }).unique(),
   organizerId: uuid("organizer_id").notNull().references(() => organizers.id),
+  bundleId: uuid("bundle_id"), // For future bundle subscriptions
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   stripePriceId: text("stripe_price_id"), // Current price ID (monthly)
@@ -947,9 +948,11 @@ export const communitySubscriptions = pgTable("community_subscriptions", {
   pricePerMonth: integer("price_per_month"), // in cents (5000 = $50)
   features: jsonb("features").default(sql`'{}'::jsonb`), // Feature flags/limits
   metadata: jsonb("metadata").default(sql`'{}'::jsonb`), // Additional Stripe metadata
-  // Placement credits system
-  placementCreditsAvailable: integer("placement_credits_available").notNull().default(2), // Number of credits available this billing cycle
-  placementCreditsUsed: integer("placement_credits_used").notNull().default(0), // Number of credits used this billing cycle
+  // Placement credits system (2 credits per billing cycle, resets monthly)
+  placementCreditsAvailable: integer("placement_credits_available").notNull().default(0), // Credits available for use
+  placementCreditsUsed: integer("placement_credits_used").notNull().default(0), // Credits used this cycle
+  placementCreditsTotal: integer("placement_credits_total").default(2), // Total credits per cycle (2 for monthly plan)
+  placementCreditsRemaining: integer("placement_credits_remaining").default(2), // Legacy column (same as available)
   creditsResetDate: timestamp("credits_reset_date", { withTimezone: true }) // Next date when credits reset
 });
 

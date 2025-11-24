@@ -1,0 +1,27 @@
+| column_name                 | data_type                | is_nullable | column_default    |
+| --------------------------- | ------------------------ | ----------- | ----------------- |
+| id                          | uuid                     | NO          | gen_random_uuid() |
+| created_at                  | timestamp with time zone | NO          | now()             |
+| updated_at                  | timestamp with time zone | NO          | now()             |
+| community_id                | uuid                     | NO          | null              |
+| organizer_id                | uuid                     | NO          | null              |
+| bundle_id                   | uuid                     | YES         | null              |
+| stripe_subscription_id      | text                     | YES         | null              |
+| stripe_customer_id          | text                     | YES         | null              |
+| stripe_price_id             | text                     | YES         | null              |
+| plan                        | text                     | NO          | 'free'::text      |
+| status                      | text                     | NO          | 'trialing'::text  |
+| current_period_start        | timestamp with time zone | YES         | null              |
+| current_period_end          | timestamp with time zone | YES         | null              |
+| cancel_at                   | timestamp with time zone | YES         | null              |
+| canceled_at                 | timestamp with time zone | YES         | null              |
+| trial_start                 | timestamp with time zone | YES         | null              |
+| trial_end                   | timestamp with time zone | YES         | null              |
+| member_limit                | integer                  | NO          | 100               |
+| features                    | jsonb                    | YES         | '{}'::jsonb       |
+| metadata                    | jsonb                    | YES         | '{}'::jsonb       |
+| placement_credits_total     | integer                  | YES         | 2                 |
+| placement_credits_remaining | integer                  | YES         | 2                 |
+| credits_reset_date          | timestamp with time zone | YES         | null              |
+| placement_credits_available | integer                  | NO          | 2                 |
+| placement_credits_used      | integer                  | NO          | 0                 |
