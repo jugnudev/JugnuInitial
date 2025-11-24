@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Check, Zap, TrendingUp, Users, BarChart3, Star, Shield, Sparkles, Settings } from "lucide-react";
+import { Check, Zap, TrendingUp, Users, BarChart3, Star, Shield, Sparkles, Settings, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -65,9 +65,6 @@ const faqItems = [
 ];
 
 export default function PricingPage() {
-  const [hasBusinessAccount, setHasBusinessAccount] = useState(false);
-  const [communitySlug, setCommunitySlug] = useState<string | null>(null);
-
   // Check if user is authenticated and has organizer account
   const { data: authData } = useQuery<{ ok: boolean; user?: any; organizer?: any }>({
     queryKey: ['/api/auth/me'],
@@ -81,15 +78,36 @@ export default function PricingPage() {
     retry: false,
   });
 
-  useEffect(() => {
-    if (authData?.organizer && communitiesData?.communities && communitiesData.communities.length > 0) {
-      setHasBusinessAccount(true);
-      setCommunitySlug(communitiesData.communities[0].slug);
-    } else {
-      setHasBusinessAccount(false);
-      setCommunitySlug(null);
-    }
-  }, [authData, communitiesData]);
+  // Determine user state for targeted CTAs
+  const isLoggedOut = !authData?.user;
+  const hasOrganizer = !!authData?.organizer;
+  const hasCommunity = (communitiesData?.communities?.length || 0) > 0;
+  const firstCommunity = communitiesData?.communities?.[0];
+  
+  // Fetch subscription status for first community if available
+  const { data: subscriptionData } = useQuery<{ 
+    ok: boolean; 
+    subscription?: { 
+      status: string; 
+      trialEndsAt?: string;
+      creditsResetDate?: string;
+    };
+    credits?: { available: number };
+  }>({
+    queryKey: ['/api/billing/subscription', firstCommunity?.id],
+    enabled: !!firstCommunity?.id,
+    retry: false,
+  });
+
+  const subscriptionStatus = subscriptionData?.subscription?.status;
+  const isTrialing = subscriptionStatus === 'trialing';
+  const isActive = subscriptionStatus === 'active';
+  const availableCredits = subscriptionData?.credits?.available || 0;
+  
+  // Calculate days remaining for trial
+  const trialDaysRemaining = subscriptionData?.subscription?.trialEndsAt 
+    ? Math.ceil((new Date(subscriptionData.subscription.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+    : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950">
@@ -157,26 +175,111 @@ export default function PricingPage() {
                 </div>
               </div>
 
-              {hasBusinessAccount && communitySlug ? (
-                <Link href={`/communities/${communitySlug}/settings`}>
+              {/* State-specific CTAs */}
+              {isActive && firstCommunity && (
+                <div className="space-y-3">
+                  <Link href={`/communities/${firstCommunity.slug}/settings`}>
+                    <Button 
+                      size="lg" 
+                      className="bg-gradient-to-r from-jade-500 to-emerald-600 hover:from-jade-600 hover:to-emerald-700 text-white font-semibold px-8 py-6 text-lg"
+                      data-testid="button-manage-subscription"
+                    >
+                      <Settings className="w-5 h-5 mr-2" />
+                      Manage Your Subscription
+                    </Button>
+                  </Link>
+                  <p className="text-sm text-white/60">
+                    {availableCredits} placement credit{availableCredits !== 1 ? 's' : ''} available
+                  </p>
+                </div>
+              )}
+              
+              {isTrialing && firstCommunity && (
+                <div className="space-y-4">
+                  <div className="bg-amber-500/20 border border-amber-500/30 rounded-lg p-4">
+                    <p className="text-amber-400 font-medium text-sm">
+                      {trialDaysRemaining !== null && trialDaysRemaining > 0 ? (
+                        <>🎉 Free trial active - {trialDaysRemaining} day{trialDaysRemaining !== 1 ? 's' : ''} remaining</>
+                      ) : (
+                        <>⚠️ Trial expired - Subscribe to continue</>
+                      )}
+                    </p>
+                    <p className="text-white/60 text-xs mt-1">
+                      0 placement credits (available after subscribing)
+                    </p>
+                  </div>
+                  <Link href={`/subscribe/${firstCommunity.id}`}>
+                    <Button 
+                      size="lg" 
+                      className="w-full bg-gradient-to-r from-copper-500 to-amber-600 hover:from-copper-600 hover:to-amber-700 text-white font-semibold px-8 py-6 text-lg"
+                      data-testid="button-start-subscription"
+                    >
+                      <Zap className="w-5 h-5 mr-2" />
+                      Start Paid Subscription
+                    </Button>
+                  </Link>
+                  <Link href={`/communities/${firstCommunity.slug}/settings`}>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="w-full text-white/60 hover:text-white"
+                      data-testid="button-manage-trial"
+                    >
+                      Manage Community Settings
+                    </Button>
+                  </Link>
+                </div>
+              )}
+              
+              {hasOrganizer && !hasCommunity && (
+                <Link href="/communities/signup">
                   <Button 
                     size="lg" 
-                    className="bg-gradient-to-r from-jade-500 to-emerald-600 hover:from-jade-600 hover:to-emerald-700 text-white font-semibold px-8 py-6 text-lg"
-                    data-testid="button-manage-subscription"
+                    className="bg-gradient-to-r from-copper-500 to-amber-600 hover:from-copper-600 hover:to-amber-700 text-white font-semibold px-8 py-6 text-lg"
+                    data-testid="button-create-community"
                   >
-                    <Settings className="w-5 h-5 mr-2" />
-                    Manage Your Subscription
+                    <Plus className="w-5 h-5 mr-2" />
+                    Create Your First Community
                   </Button>
                 </Link>
-              ) : (
+              )}
+              
+              {/* Fallback for communities with no subscription status or expired trial */}
+              {hasCommunity && firstCommunity && !isActive && !isTrialing && (
+                <Link href={`/subscribe/${firstCommunity.id}`}>
+                  <Button 
+                    size="lg" 
+                    className="bg-gradient-to-r from-copper-500 to-amber-600 hover:from-copper-600 hover:to-amber-700 text-white font-semibold px-8 py-6 text-lg"
+                    data-testid="button-subscribe-now"
+                  >
+                    <Zap className="w-5 h-5 mr-2" />
+                    Subscribe Now
+                  </Button>
+                </Link>
+              )}
+              
+              {!hasOrganizer && !isLoggedOut && (
                 <Link href="/business/signup">
                   <Button 
                     size="lg" 
                     className="bg-gradient-to-r from-copper-500 to-amber-600 hover:from-copper-600 hover:to-amber-700 text-white font-semibold px-8 py-6 text-lg"
-                    data-testid="button-get-started"
+                    data-testid="button-create-business"
                   >
                     <Zap className="w-5 h-5 mr-2" />
-                    Get Started Now
+                    Create Business Account
+                  </Button>
+                </Link>
+              )}
+              
+              {isLoggedOut && (
+                <Link href="/auth">
+                  <Button 
+                    size="lg" 
+                    className="bg-gradient-to-r from-copper-500 to-amber-600 hover:from-copper-600 hover:to-amber-700 text-white font-semibold px-8 py-6 text-lg"
+                    data-testid="button-sign-in"
+                  >
+                    <Zap className="w-5 h-5 mr-2" />
+                    Sign In to Get Started
                   </Button>
                 </Link>
               )}
@@ -319,8 +422,8 @@ export default function PricingPage() {
           </Accordion>
         </motion.div>
 
-        {/* CTA Section - Only show for non-business users */}
-        {!hasBusinessAccount && (
+        {/* CTA Section - Only show for users without organizer account */}
+        {!hasOrganizer && (
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}

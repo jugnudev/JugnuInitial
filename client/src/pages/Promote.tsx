@@ -18,6 +18,7 @@ import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip 
 import { PRICING_CONFIG, calculatePricing, formatCAD, type PackageType, type AddOnType, type DurationType } from '@/lib/pricing';
 import { useQuotePrefill } from '@/hooks/useQuotePrefill';
 import QuotePrefillBanner from '@/components/QuotePrefillBanner';
+import { useQuery } from '@tanstack/react-query';
 
 // Sample data for analytics preview
 const sampleData = [
@@ -83,49 +84,32 @@ export default function Promote() {
   const [promoCodeValidation, setPromoCodeValidation] = useState<{ valid: boolean, message: string, discount?: any } | null>(null);
   const [isValidatingPromoCode, setIsValidatingPromoCode] = useState(false);
   const [isLoadingBlockedDates, setIsLoadingBlockedDates] = useState(true);
-  const [availableCredits, setAvailableCredits] = useState<number>(0);
-  const [isLoadingCredits, setIsLoadingCredits] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null);
-  const [creditsMessage, setCreditsMessage] = useState<string | null>(null);
   
   // Quote prefill functionality
   const { quoteId, prefillData, isLoading: isPrefillLoading, error: prefillError, hasPrefill } = useQuotePrefill();
   
-  // Check authentication status and fetch placement credits if authenticated
-  useEffect(() => {
-    const checkAuthAndFetchCredits = async () => {
-      try {
-        // Try to fetch credits - this will fail if not authenticated
-        const response = await fetch('/api/billing/credits/balance');
-        if (response.ok) {
-          const data = await response.json();
-          // Only show credits if subscription is active
-          if (data.subscriptionStatus === 'active') {
-            setAvailableCredits(data.credits?.available || 0);
-          } else {
-            setAvailableCredits(0);
-          }
-          setSubscriptionStatus(data.subscriptionStatus || null);
-          setCreditsMessage(data.message || null);
-          setIsAuthenticated(true);
-        } else if (response.status === 401) {
-          // Not authenticated - this is fine, user will see public form
-          setIsAuthenticated(false);
-          setAvailableCredits(0);
-          setSubscriptionStatus(null);
-        }
-      } catch (error) {
-        console.error('Failed to fetch credits:', error);
-        setIsAuthenticated(false);
-        setAvailableCredits(0);
-        setSubscriptionStatus(null);
-      } finally {
-        setIsLoadingCredits(false);
-      }
-    };
-    checkAuthAndFetchCredits();
-  }, []);
+  // Fetch credits and subscription status using authenticated apiRequest
+  const { data: creditsData, isLoading: isLoadingCredits, error: creditsError } = useQuery<{
+    ok: boolean;
+    credits?: { available: number };
+    subscriptionStatus?: string;
+    message?: string;
+  }>({
+    queryKey: ['/api/billing/credits/balance'],
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401 (not authenticated)
+      if (error?.status === 401) return false;
+      return failureCount < 2;
+    },
+    staleTime: 30000,
+  });
+
+  // Handle authentication state - we're authenticated if we got data back
+  // For errors, we're unauthenticated only if it's explicitly a 401
+  const isAuthenticated = !!creditsData;
+  const availableCredits = creditsData?.subscriptionStatus === 'active' ? (creditsData?.credits?.available || 0) : 0;
+  const subscriptionStatus = creditsData?.subscriptionStatus || null;
+  const creditsMessage = creditsData?.message || null;
   
   // Fetch blocked dates based on selected package
   useEffect(() => {
