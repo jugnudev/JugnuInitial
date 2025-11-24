@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { useEvents, useGallery } from "@/lib/events";
 import logoImage from "@assets/Upscaled Logo copy_1754763190534.png";
 import { Button } from "@/components/ui/button";
-import { UserPlus, User, LogOut, Settings, Loader2, Shield, BarChart3, Receipt, Menu, X, Home, Calendar, Tag, Users, Megaphone, ChevronRight, Bell, Sparkles, Coins, DollarSign } from "lucide-react";
+import { UserPlus, User, LogOut, Settings, Loader2, Shield, BarChart3, Receipt, Menu, X, Home, Calendar, Tag, Users, Megaphone, ChevronRight, Bell, Sparkles, Coins, DollarSign, Briefcase, ChevronDown } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { 
@@ -159,42 +159,50 @@ export default function Navigation() {
                   <BetaBadge size="sm" variant="subtle" showIcon={false} />
                 </div>
               )}
-              <Link
-                href="/promote"
-                className={`transition-colors duration-200 font-medium ${
-                  location === '/promote' 
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-promote"
-              >
-                Promote
-              </Link>
-              <Link
-                href="/pricing"
-                className={`transition-colors duration-200 font-medium ${
-                  location === '/pricing' 
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-pricing"
-              >
-                Pricing
-              </Link>
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/loyalty"
-                  className={`transition-colors duration-200 font-medium ${
-                    location === '/loyalty' || location.startsWith('/loyalty/')
-                      ? 'text-accent' 
-                      : 'text-text hover:text-accent'
-                  }`}
-                  data-testid="nav-loyalty"
-                >
-                  Loyalty
-                </Link>
-                <ComingSoonBadge size="sm" variant="subtle" showIcon={false} />
-              </div>
+              
+              {/* For Business Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={`flex items-center gap-1 px-3 h-auto py-2 transition-colors duration-200 font-medium ${
+                      location === '/promote' || location === '/pricing' || location.startsWith('/loyalty')
+                        ? 'text-accent' 
+                        : 'text-text hover:text-accent'
+                    }`}
+                    data-testid="nav-for-business"
+                  >
+                    <Briefcase className="h-4 w-4" />
+                    For Business
+                    <ChevronDown className="h-3 w-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem asChild>
+                    <Link href="/promote" className="flex items-center gap-2 cursor-pointer" data-testid="nav-dropdown-promote">
+                      <Megaphone className="h-4 w-4" />
+                      Promote
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/pricing" className="flex items-center gap-2 cursor-pointer" data-testid="nav-dropdown-pricing">
+                      <DollarSign className="h-4 w-4" />
+                      Pricing
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/loyalty" className="flex items-center gap-2 cursor-pointer" data-testid="nav-dropdown-loyalty">
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2">
+                          <Coins className="h-4 w-4" />
+                          Loyalty
+                        </div>
+                        <ComingSoonBadge size="sm" variant="subtle" showIcon={false} />
+                      </div>
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               
               {/* Notification Bell - Show for authenticated users */}
               {isAuthenticated && (
@@ -425,7 +433,16 @@ export default function Navigation() {
                       <BetaBadge size="sm" variant="subtle" showIcon={false} />
                     </Link>
                   )}
+                </nav>
 
+                {/* For Business Section */}
+                <div className="mt-6 mb-3 px-4">
+                  <div className="flex items-center gap-2 text-white/40 text-xs font-semibold uppercase tracking-wider">
+                    <Briefcase className="h-4 w-4" />
+                    For Business
+                  </div>
+                </div>
+                <nav className="space-y-1">
                   <Link
                     href="/promote"
                     onClick={() => setIsMobileMenuOpen(false)}
