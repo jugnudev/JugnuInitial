@@ -1538,6 +1538,60 @@ export function addCommunitiesRoutes(app: Express) {
     }
   };
 
+  // Middleware to check if community has active subscription (for trial enforcement)
+  const requireActiveSubscription = async (req: Request, res: Response, next: any) => {
+    const communityId = req.params.id || req.body.communityId;
+    
+    if (!communityId) {
+      return res.status(400).json({ ok: false, error: 'Community ID required' });
+    }
+
+    try {
+      // Get the subscription for this community
+      const subscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
+      
+      if (!subscription) {
+        return res.status(403).json({ 
+          ok: false, 
+          error: 'No subscription found for this community',
+          requiresSubscription: true,
+          trialExpired: false
+        });
+      }
+
+      const now = new Date();
+      const trialEnd = subscription.trialEnd ? new Date(subscription.trialEnd) : null;
+      
+      // Check if subscription is active
+      if (subscription.status === 'active') {
+        (req as any).subscription = subscription;
+        return next();
+      }
+      
+      // Check if trial is still valid
+      if (subscription.status === 'trialing' && trialEnd && now < trialEnd) {
+        (req as any).subscription = subscription;
+        return next();
+      }
+      
+      // Subscription inactive or trial expired
+      const trialExpired = subscription.status === 'trialing' && trialEnd && now >= trialEnd;
+      
+      return res.status(403).json({ 
+        ok: false, 
+        error: trialExpired 
+          ? 'Your trial period has expired. Please subscribe to continue.' 
+          : 'Active subscription required for this action.',
+        requiresSubscription: true,
+        trialExpired,
+        subscriptionStatus: subscription.status
+      });
+    } catch (error) {
+      console.error('Subscription check error:', error);
+      res.status(500).json({ ok: false, error: 'Failed to verify subscription status' });
+    }
+  };
+
   // Session-based approved organizer middleware for platform integration
   const requireSessionApprovedOrganizer = async (req: Request, res: Response, next: any) => {
     const userId = req.session?.userId;
