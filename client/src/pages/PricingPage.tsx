@@ -123,9 +123,9 @@ export default function PricingPage() {
                   <span className="text-2xl text-white/60">/month</span>
                 </div>
                 
-                <div className="inline-flex items-center gap-2 bg-jade-500/20 text-jade-400 px-4 py-2 rounded-full text-sm font-medium">
+                <div className="inline-flex items-center gap-2 bg-copper-500/20 text-copper-400 px-4 py-2 rounded-full text-sm font-medium">
                   <Shield className="w-4 h-4" />
-                  Currently FREE in Beta
+                  0% Commission on Tickets
                 </div>
               </div>
 
@@ -136,7 +136,7 @@ export default function PricingPage() {
                   data-testid="button-get-started"
                 >
                   <Zap className="w-5 h-5 mr-2" />
-                  Get Started Free
+                  Get Started Now
                 </Button>
               </Link>
             </CardHeader>
