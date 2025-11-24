@@ -2746,10 +2746,22 @@ export default function Promote() {
                         </div>
                       )}
                       <div className="border-t border-white/10 pt-2">
+                        {/* Show credit discount if applied */}
+                        {currentPricing.creditsApplied > 0 && (
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-jade-400 text-sm flex items-center gap-1">
+                              <Star className="w-4 h-4" />
+                              Placement Credits ({currentPricing.creditsApplied} applied)
+                            </span>
+                            <span className="text-jade-400 font-medium">
+                              -{formatCAD(currentPricing.creditDiscount)}
+                            </span>
+                          </div>
+                        )}
                         <div className="flex justify-between items-center">
                           <span className="text-white font-semibold">Total:</span>
                           <div className="text-right">
-                            {currentPricing.promoDiscount > 0 && (
+                            {(currentPricing.promoDiscount > 0 || currentPricing.creditDiscount > 0) && (
                               <div className="text-sm text-muted line-through">
                                 {formatCAD(currentPricing.subtotal)}
                               </div>
@@ -2762,6 +2774,11 @@ export default function Promote() {
                         {currentPricing.promoDiscount > 0 && (
                           <div className="text-xs text-green-400 mt-1">
                             You save {formatCAD(currentPricing.promoDiscount)} with promo code!
+                          </div>
+                        )}
+                        {currentPricing.creditsApplied > 0 && (
+                          <div className="text-xs text-jade-400 mt-1">
+                            You save {formatCAD(currentPricing.creditDiscount)} with placement credits!
                           </div>
                         )}
                       </div>
