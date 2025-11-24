@@ -294,20 +294,19 @@ export function BusinessSignupPage() {
           <CardContent className="pt-6 relative">
             <div className="flex items-start gap-4 mb-4">
               <div className="flex-shrink-0">
-                <Badge className="bg-jade-500/20 text-jade-400 border-jade-500/30 px-3 py-1">
+                <Badge className="bg-copper-500/20 text-copper-400 border-copper-500/30 px-3 py-1">
                   <Shield className="w-4 h-4 mr-1.5 inline" />
-                  FREE BETA
+                  $50/MONTH
                 </Badge>
               </div>
               <div className="flex-1">
                 <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-copper-400" />
-                  Get Full Access at No Cost
+                  Full Platform Access
                 </h2>
                 <p className="text-white/70 text-sm leading-relaxed">
-                  Join during our FREE BETA and get unlimited access to all platform features. When billing launches at $50/month, 
-                  you'll keep 100% of your ticket revenue with <strong className="text-copper-400">zero commission</strong> — 
-                  unlike competitors who charge 5-10% per ticket.
+                  Join for just $50/month and keep 100% of your ticket revenue with <strong className="text-copper-400">zero commission</strong> — 
+                  unlike competitors who charge 5-10% per ticket. Includes 2 monthly ad placement credits.
                 </p>
               </div>
             </div>

@@ -53,10 +53,6 @@ const faqItems = [
     answer: "Absolutely not! Unlike platforms that charge 5-10% commission per ticket, you keep 100% of your ticket revenue. We only charge the flat $50/month subscription - that's it."
   },
   {
-    question: "What happens during FREE BETA?",
-    answer: "Right now, everything is completely free while we're in beta. You get full access to all features at no cost. When we launch billing, you'll be notified well in advance and can decide whether to continue with a paid subscription."
-  },
-  {
     question: "Can I cancel anytime?",
     answer: "Yes! There are no long-term contracts. Cancel your subscription anytime and you'll have access until the end of your current billing period."
   },
@@ -81,7 +77,7 @@ export default function PricingPage() {
           >
             <Badge className="bg-copper-500/20 text-copper-400 border-copper-500/30 px-4 py-2">
               <Star className="w-4 h-4 mr-2 inline" />
-              Currently FREE during Beta
+              Simple, Flat-Rate Pricing
             </Badge>
             
             <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white">
@@ -177,8 +173,8 @@ export default function PricingPage() {
                 </h3>
                 <div className="grid sm:grid-cols-2 gap-3">
                   {[
-                    "Unlimited community members",
-                    "Unlimited events & tickets",
+                    "No limits on members",
+                    "No limits on events or tickets",
                     "Real-time analytics",
                     "Email notifications",
                     "Mobile-optimized design",

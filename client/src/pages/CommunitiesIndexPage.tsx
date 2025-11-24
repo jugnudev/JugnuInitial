@@ -230,12 +230,12 @@ export default function CommunitiesIndexPage() {
       <div className="min-h-screen bg-bg relative overflow-hidden">
         <Helmet>
           <title>Communities - Premium Cultural Communities Platform | Jugnu</title>
-          <meta name="description" content="Join exclusive communities hosted by Canada's premier cultural businesses. Connect with like-minded members, access live chat, giveaways, polls, events, and members-only experiences. Free beta access available." />
+          <meta name="description" content="Join exclusive communities hosted by Canada's premier cultural businesses. Connect with like-minded members, access live chat, giveaways, polls, events, and members-only experiences." />
           <meta name="keywords" content="cultural communities, South Asian communities Canada, community platform, live chat, giveaways, polls, announcements, member engagement, cultural events, exclusive communities" />
           
           {/* Open Graph */}
           <meta property="og:title" content="Communities - Connect with Canada's Cultural Communities | Jugnu" />
-          <meta property="og:description" content="Join exclusive communities with live chat, giveaways, polls, and members-only experiences. Free beta access available for businesses and members." />
+          <meta property="og:description" content="Join exclusive communities with live chat, giveaways, polls, and members-only experiences." />
           <meta property="og:type" content="website" />
           <meta property="og:url" content="https://thehouseofjugnu.com/communities" />
           <meta property="og:image" content="https://thehouseofjugnu.com/og.png" />
@@ -390,21 +390,23 @@ export default function CommunitiesIndexPage() {
               </CardHeader>
               
               <CardContent className="space-y-6">
-                {/* Free Beta Access */}
-                <div className="bg-gradient-to-br from-green-500/10 to-emerald-500/10 border border-green-500/30 rounded-xl p-4">
+                {/* Subscription Info */}
+                <div className="bg-gradient-to-br from-copper-500/10 to-amber-500/10 border border-copper-500/30 rounded-xl p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-3xl font-bold text-green-400">FREE</span>
-                    <BetaBadge size="md" variant="prominent" />
+                    <span className="text-3xl font-bold text-copper-400">$50/mo</span>
+                    <Badge className="bg-copper-500/20 text-copper-400 border-copper-500/30">
+                      Subscription
+                    </Badge>
                   </div>
                   <p className="text-sm text-premium-text-secondary">
-                    All community features included at <span className="font-semibold text-green-400">no cost</span> during beta
+                    Full platform access with <span className="font-semibold text-copper-400">0% commission</span> on ticket sales
                   </p>
                 </div>
                 
                 {/* Features */}
                 <div className="space-y-4">
                   {[
-                    { icon: Rocket, text: "Unlimited community members" },
+                    { icon: Rocket, text: "No limits on members" },
                     { icon: BarChart3, text: "Advanced analytics & insights" },
                     { icon: Target, text: "Direct member engagement tools" },
                     { icon: DollarSign, text: "Monetization opportunities" },
@@ -436,7 +438,7 @@ export default function CommunitiesIndexPage() {
                   </Link>
                   
                   <p className="text-center text-xs text-premium-text-muted mt-4">
-                    Free beta • No payment required
+                    Start your cultural community platform
                   </p>
                 </div>
               </CardContent>

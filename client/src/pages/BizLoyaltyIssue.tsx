@@ -162,16 +162,6 @@ export default function BizLoyaltyIssue() {
           </p>
         </div>
 
-        {/* FREE BETA Alert */}
-        {config.isBetaFree && (
-          <Alert className="mb-6 border-orange-200 dark:border-orange-900 bg-orange-50 dark:bg-orange-950/20" data-testid="alert-beta">
-            <Sparkles className="h-4 w-4 text-orange-600 dark:text-orange-400" />
-            <AlertDescription className="text-orange-900 dark:text-orange-100">
-              <strong>FREE BETA</strong> — Loyalty is free during beta. Issue points at no cost!
-            </AlertDescription>
-          </Alert>
-        )}
-
         {/* Success Message */}
         {successData && (
           <Card className="mb-6 border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20" data-testid="card-success">

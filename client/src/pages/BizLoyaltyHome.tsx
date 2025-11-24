@@ -129,14 +129,6 @@ export default function BizLoyaltyHome() {
           </p>
         </div>
 
-        {/* FREE BETA Badge */}
-        <Alert className="bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800">
-          <Zap className="w-4 h-4 text-orange-600 dark:text-orange-400" />
-          <AlertDescription className="text-sm text-orange-900 dark:text-orange-100">
-            <strong>FREE BETA:</strong> Loyalty Program is currently free for all business accounts. Enjoy!
-          </AlertDescription>
-        </Alert>
-
         <div className="grid gap-6 md:grid-cols-2">
           {/* Point Bank Card */}
           <Card className="premium-gradient-border" data-testid="card-point-bank">
