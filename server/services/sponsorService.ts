@@ -349,7 +349,10 @@ export async function createApplication(data: z.infer<typeof createApplicationSc
         basePriceCents: quoteData.base_price_cents,
         addonsCents: finalAddOns.reduce((sum: number, addon: any) => sum + (addon.price * 100), 0),
         subtotalCents: quoteData.base_price_cents + finalAddOns.reduce((sum: number, addon: any) => sum + (addon.price * 100), 0),
-        totalCents: quoteData.total_cents
+        totalCents: quoteData.total_cents,
+        promoSavingsCents: 0,
+        creditsSavingsCents: 0,
+        creditsUsed: 0
       };
     }
   } else {
