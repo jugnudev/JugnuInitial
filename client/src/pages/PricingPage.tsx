@@ -68,25 +68,28 @@ export default function PricingPage() {
   const [hasBusinessAccount, setHasBusinessAccount] = useState(false);
   const [communitySlug, setCommunitySlug] = useState<string | null>(null);
 
-  // Check if user is authenticated with business account
-  const { data: authData } = useQuery<{ ok: boolean; user?: any }>({
+  // Check if user is authenticated and has organizer account
+  const { data: authData } = useQuery<{ ok: boolean; user?: any; organizer?: any }>({
     queryKey: ['/api/auth/me'],
     retry: false,
   });
 
-  // Fetch organizer/community data if authenticated
-  const { data: organizerData } = useQuery<{ ok: boolean; organizer?: any; communities?: any[] }>({
-    queryKey: ['/api/organizers/me'],
-    enabled: !!authData?.user,
+  // Fetch communities owned by user if they have an organizer account
+  const { data: communitiesData } = useQuery<{ ok: boolean; communities?: any[] }>({
+    queryKey: ['/api/user/communities'],
+    enabled: !!authData?.organizer,
     retry: false,
   });
 
   useEffect(() => {
-    if (organizerData?.organizer && organizerData?.communities && organizerData.communities.length > 0) {
+    if (authData?.organizer && communitiesData?.communities && communitiesData.communities.length > 0) {
       setHasBusinessAccount(true);
-      setCommunitySlug(organizerData.communities[0].slug);
+      setCommunitySlug(communitiesData.communities[0].slug);
+    } else {
+      setHasBusinessAccount(false);
+      setCommunitySlug(null);
     }
-  }, [organizerData]);
+  }, [authData, communitiesData]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-charcoal-950 via-charcoal-900 to-charcoal-950">
