@@ -38,17 +38,6 @@ export class CreditsService {
         };
       }
 
-      // During FREE BETA, all subscriptions have unlimited credits
-      if (subscription.status === 'active' && subscription.plan === 'free') {
-        return {
-          hasCredits: true,
-          availableCredits: 999,
-          usedCredits: 0,
-          resetDate: null,
-          message: 'FREE BETA - unlimited credits'
-        };
-      }
-
       const available = subscription.placementCreditsAvailable || 0;
       const used = subscription.placementCreditsUsed || 0;
       const remaining = available - used;
@@ -101,28 +90,6 @@ export class CreditsService {
           success: false,
           remainingCredits: 0,
           message: 'No active subscription found'
-        };
-      }
-
-      // During FREE BETA, don't actually deduct credits
-      if (subscription.status === 'active' && subscription.plan === 'free') {
-        // Still track usage for analytics
-        if (placements && startDate && endDate) {
-          await this.trackCreditUsage(
-            organizerId,
-            subscription.id,
-            campaignId,
-            placements,
-            creditsToDeduct,
-            startDate,
-            endDate
-          );
-        }
-
-        return {
-          success: true,
-          remainingCredits: 999,
-          message: 'FREE BETA - credits not deducted'
         };
       }
 

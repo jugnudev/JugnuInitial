@@ -11,7 +11,6 @@ interface CreditBalance {
   available: number;
   used: number;
   resetDate: string | null;
-  isBeta: boolean;
 }
 
 interface CreditUsage {
@@ -49,24 +48,6 @@ export function SubscriptionDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Beta Notice */}
-      {credits?.isBeta && (
-        <Card className="border-jade-500/30 bg-gradient-to-br from-jade-500/10 to-jade-600/5">
-          <CardContent className="pt-6">
-            <div className="flex items-start gap-3">
-              <Shield className="w-5 h-5 text-jade-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-jade-300 mb-1">FREE BETA Access</h3>
-                <p className="text-sm text-white/70 leading-relaxed">
-                  You're enjoying unlimited ad placement credits during our beta period. When billing launches at 
-                  $50/month, you'll receive 2 credits monthly with your subscription.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Credit Balance Card */}
       <Card className="border-copper-500/30 bg-gradient-to-br from-white/[0.07] to-white/[0.02] backdrop-blur-xl">
         <CardHeader>
@@ -102,10 +83,10 @@ export function SubscriptionDashboard() {
                 <span className="text-sm text-white/60">Available</span>
               </div>
               <div className="text-3xl font-bold text-white">
-                {credits?.isBeta ? '∞' : credits?.available || 0}
+                {credits?.available || 0}
               </div>
               <div className="text-xs text-white/50 mt-1">
-                {credits?.isBeta ? 'Unlimited in Beta' : `of ${totalCreditsInCycle} this month`}
+                of {totalCreditsInCycle} this month
               </div>
             </div>
 
@@ -128,10 +109,10 @@ export function SubscriptionDashboard() {
               <div className="text-lg font-semibold text-white">
                 {credits?.resetDate 
                   ? format(new Date(credits.resetDate), 'MMM dd')
-                  : credits?.isBeta ? 'N/A' : 'Not Set'}
+                  : 'Not Set'}
               </div>
               <div className="text-xs text-white/50 mt-1">
-                {credits?.isBeta ? 'During beta period' : 'Next billing cycle'}
+                Next billing cycle
               </div>
             </div>
           </div>

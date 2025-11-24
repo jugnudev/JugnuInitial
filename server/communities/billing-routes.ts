@@ -263,26 +263,12 @@ router.get('/credits/balance', requireAuth, async (req: Request, res: Response) 
       return res.status(404).json({ ok: false, error: 'Organizer account not found' });
     }
 
-    // During FREE BETA, return unlimited credits
-    const isBeta = process.env.VITE_ENABLE_BILLING !== 'true';
-    if (isBeta) {
-      return res.json({
-        ok: true,
-        credits: {
-          available: 999, // Show large number during beta
-          used: 0,
-          resetDate: null,
-          isBeta: true
-        }
-      });
-    }
-
     // Get subscription for the organizer's community
     const communities = await communitiesStorage.getCommunitiesByOrganizerId(organizer.id);
     if (communities.length === 0) {
       return res.json({
         ok: true,
-        credits: { available: 0, used: 0, resetDate: null, isBeta: false }
+        credits: { available: 0, used: 0, resetDate: null }
       });
     }
 
@@ -291,7 +277,7 @@ router.get('/credits/balance', requireAuth, async (req: Request, res: Response) 
     if (!subscription) {
       return res.json({
         ok: true,
-        credits: { available: 0, used: 0, resetDate: null, isBeta: false }
+        credits: { available: 0, used: 0, resetDate: null }
       });
     }
 
@@ -306,8 +292,7 @@ router.get('/credits/balance', requireAuth, async (req: Request, res: Response) 
       credits: {
         available: updatedSubscription?.placementCreditsAvailable || 0,
         used: updatedSubscription?.placementCreditsUsed || 0,
-        resetDate: updatedSubscription?.creditsResetDate || null,
-        isBeta: false
+        resetDate: updatedSubscription?.creditsResetDate || null
       }
     });
   } catch (error: any) {
@@ -335,18 +320,6 @@ router.post('/credits/check', requireAuth, async (req: Request, res: Response) =
       return res.status(404).json({ ok: false, error: 'Organizer account not found' });
     }
 
-    // During FREE BETA, always allow
-    const isBeta = process.env.VITE_ENABLE_BILLING !== 'true';
-    if (isBeta) {
-      return res.json({
-        ok: true,
-        hasEnoughCredits: true,
-        available: 999,
-        needed: creditsNeeded,
-        isBeta: true
-      });
-    }
-
     // Get subscription
     const communities = await communitiesStorage.getCommunitiesByOrganizerId(organizer.id);
     if (communities.length === 0) {
@@ -354,8 +327,7 @@ router.post('/credits/check', requireAuth, async (req: Request, res: Response) =
         ok: true,
         hasEnoughCredits: false,
         available: 0,
-        needed: creditsNeeded,
-        isBeta: false
+        needed: creditsNeeded
       });
     }
 
@@ -365,8 +337,7 @@ router.post('/credits/check', requireAuth, async (req: Request, res: Response) =
         ok: true,
         hasEnoughCredits: false,
         available: 0,
-        needed: creditsNeeded,
-        isBeta: false
+        needed: creditsNeeded
       });
     }
 
@@ -377,8 +348,7 @@ router.post('/credits/check', requireAuth, async (req: Request, res: Response) =
       ok: true,
       hasEnoughCredits: creditCheck.hasCredits,
       available: creditCheck.availableCredits,
-      needed: creditsNeeded,
-      isBeta: false
+      needed: creditsNeeded
     });
   } catch (error: any) {
     console.error('Check credits error:', error);
@@ -448,17 +418,14 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
     }
 
     // Check credit balance
-    const isBeta = process.env.VITE_ENABLE_BILLING !== 'true';
-    if (!isBeta) {
-      const creditCheck = await creditsService.checkCredits(organizer.id, creditsToDeduct);
-      if (!creditCheck.hasCredits) {
-        return res.status(402).json({ 
-          ok: false, 
-          error: 'Insufficient credits',
-          available: creditCheck.availableCredits,
-          needed: creditsToDeduct
-        });
-      }
+    const creditCheck = await creditsService.checkCredits(organizer.id, creditsToDeduct);
+    if (!creditCheck.hasCredits) {
+      return res.status(402).json({ 
+        ok: false, 
+        error: 'Insufficient credits',
+        available: creditCheck.availableCredits,
+        needed: creditsToDeduct
+      });
     }
 
     // Check for booking conflicts
@@ -496,7 +463,6 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
     }
 
     // Deduct credits and log usage
-    // In FREE BETA, the service will skip actual deduction but still track usage for analytics
     await creditsService.deductCredits(
       organizer.id,
       creditsToDeduct,
@@ -510,7 +476,7 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
       ok: true,
       campaignId: campaign.id,
       message: 'Event featured successfully',
-      creditsDeducted: isBeta ? 0 : creditsToDeduct
+      creditsDeducted: creditsToDeduct
     });
   } catch (error: any) {
     console.error('Spend credits error:', error);

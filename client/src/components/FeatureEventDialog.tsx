@@ -128,7 +128,6 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
 
   const selectedEvent = events.find((e) => e.id === selectedEventId);
   const insufficientCredits = creditsNeeded > currentCredits;
-  const isBeta = import.meta.env.VITE_ENABLE_BILLING !== "true";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -158,11 +157,6 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
                 </p>
               </div>
             </div>
-            {isBeta && (
-              <p className="text-xs text-neutral-500 mt-2">
-                🎉 FREE BETA: Unlimited credits during beta period
-              </p>
-            )}
           </div>
 
           {/* Event Selection */}
@@ -275,7 +269,7 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
           </div>
 
           {/* Insufficient Credits Warning */}
-          {insufficientCredits && !isBeta && (
+          {insufficientCredits && (
             <Alert className="bg-red-500/10 border-red-500/30">
               <AlertCircle className="h-4 w-4 text-red-500" />
               <AlertDescription className="text-red-200">
@@ -291,7 +285,7 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!selectedEventId || (insufficientCredits && !isBeta) || featureEventMutation.isPending || creditsLoading}
+            disabled={!selectedEventId || insufficientCredits || featureEventMutation.isPending || creditsLoading}
             className="bg-gradient-to-r from-copper-500 to-copper-600 text-white hover:from-copper-600 hover:to-copper-700"
             data-testid="button-feature-event"
           >
