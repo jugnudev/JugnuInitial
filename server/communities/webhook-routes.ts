@@ -199,6 +199,8 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
 
 /**
  * Handle subscription deletion
+ * This is called when a subscription is completely deleted (after grace period ends)
+ * The community should be drafted (hidden from public) when this happens
  */
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   const metadata = subscription.metadata;
@@ -215,7 +217,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
     return;
   }
 
-  // Cancel individual subscription
+  // Update subscription status to canceled
   const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
   
   if (existingSubscription) {
@@ -226,6 +228,13 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
         canceledAt: new Date().toISOString()
       }
     );
+    
+    // Draft the community (hide from public discovery)
+    // This happens when the subscription is fully deleted (grace period ended)
+    console.log(`[Webhook] Drafting community ${communityId} after subscription ended`);
+    await communitiesStorage.updateCommunity(communityId, {
+      status: 'draft'
+    });
   }
 }
 

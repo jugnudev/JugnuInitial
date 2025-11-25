@@ -45,6 +45,7 @@ import { addCommunitiesRoutes } from "./communities/communities-routes";
 import billingRoutes from "./communities/billing-routes";
 import webhookRoutes from "./communities/webhook-routes";
 import loyaltyRoutes from "./loyalty/loyalty-routes";
+import { startSubscriptionScheduler } from "./communities/subscription-scheduler";
 import { importFromGoogle, importFromYelp, reverifyAllPlaces } from "./lib/places-sync.js";
 import { matchAndEnrichPlaces, inactivateUnmatchedPlaces, getPlaceMatchingStats } from "./lib/place-matcher.js";
 import { sendDailyAnalyticsEmail } from "./services/emailService";
@@ -4031,7 +4032,12 @@ Disallow: /account/*`;
   console.log('📊 [Analytics] Auto-save interval: 10 minutes');
   console.log('📊 [Analytics] Email report time: 10:00 PM Pacific');
   scheduleAnalyticsSaving();
-  console.log('📊 [Analytics] Scheduler started successfully')
+  console.log('📊 [Analytics] Scheduler started successfully');
+  
+  // Start the subscription scheduler (checks every 4 hours for expired subscriptions)
+  if (process.env.ENABLE_COMMUNITIES === 'true') {
+    startSubscriptionScheduler();
+  }
   
   // Store daily analytics (called manually from admin dashboard)
   app.post('/api/admin/analytics/store-daily', async (req, res) => {

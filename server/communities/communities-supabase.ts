@@ -2905,6 +2905,16 @@ export class CommunitiesSupabaseDB {
     return data ? this.mapSubscriptionFromDb(data) : null;
   }
 
+  async getAllSubscriptions(): Promise<CommunitySubscription[]> {
+    const { data, error } = await this.client
+      .from('community_subscriptions')
+      .select()
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return (data || []).map(sub => this.mapSubscriptionFromDb(sub));
+  }
+
   async updateSubscriptionStatus(
     subscriptionId: string, 
     status: string, 

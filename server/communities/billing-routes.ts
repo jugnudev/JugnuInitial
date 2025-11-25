@@ -263,6 +263,217 @@ router.post('/create-checkout', requireAuth, async (req: Request, res: Response)
 });
 
 /**
+ * Subscription State Machine:
+ * 
+ * 1. platform_trial - Initial 14-day trial when community is created (no Stripe setup yet)
+ *    - Community has full platform access
+ *    - No placement credits
+ *    - User should see "14-day platform trial" messaging
+ *    - Community should be public (discovery)
+ * 
+ * 2. stripe_trial - Stripe's 14-day trial after completing checkout (no charge yet)
+ *    - User has set up payment method
+ *    - First charge will occur after 14 days
+ *    - Gets placement credits
+ *    - Community is fully active
+ * 
+ * 3. active - Fully paid subscription
+ *    - Billing is active
+ *    - Gets placement credits
+ *    - Community is fully active
+ * 
+ * 4. grace_period - Subscription canceled but still within billing period
+ *    - User canceled, but access continues until currentPeriodEnd
+ *    - Still has access to features
+ *    - After grace period, moves to 'ended'
+ * 
+ * 5. ended - Subscription ended, community should be drafted
+ *    - Access is revoked
+ *    - Community should be hidden from public
+ */
+type SubscriptionState = 'platform_trial' | 'stripe_trial' | 'active' | 'grace_period' | 'past_due' | 'ended' | 'none';
+
+function computeSubscriptionState(subscription: any): { 
+  state: SubscriptionState; 
+  accessExpiresAt: string | null;
+  trialEndsAt: string | null;
+  trialDaysRemaining: number | null;
+  platformTrialDaysRemaining: number | null;
+  isPublicAllowed: boolean;
+  hasFullAccess: boolean;
+} {
+  const now = new Date();
+  const hasStripeSubscription = !!subscription.stripeSubscriptionId;
+  
+  // Case 1: No Stripe subscription = platform trial or ended
+  if (!hasStripeSubscription) {
+    // Check if this subscription was canceled (not just missing Stripe setup)
+    if (subscription.status === 'canceled') {
+      return {
+        state: 'ended',
+        accessExpiresAt: null,
+        trialEndsAt: null,
+        trialDaysRemaining: null,
+        platformTrialDaysRemaining: null,
+        isPublicAllowed: false,
+        hasFullAccess: false
+      };
+    }
+    
+    // Calculate platform trial end (14 days from creation)
+    const createdAt = new Date(subscription.createdAt);
+    const platformTrialEnd = new Date(createdAt.getTime() + (14 * 24 * 60 * 60 * 1000));
+    const platformTrialDaysRemaining = Math.max(0, Math.ceil((platformTrialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+    
+    // If platform trial has expired (0 or fewer days remaining), treat as ended
+    // Use <= to handle the edge case where platformTrialEnd === now
+    if (platformTrialEnd <= now) {
+      return {
+        state: 'ended',
+        accessExpiresAt: platformTrialEnd.toISOString(),
+        trialEndsAt: platformTrialEnd.toISOString(),
+        trialDaysRemaining: null,
+        platformTrialDaysRemaining: 0,
+        isPublicAllowed: false, // Hide from discovery after trial expires
+        hasFullAccess: false // No access after trial expires
+      };
+    }
+    
+    // Platform trial still active
+    return {
+      state: 'platform_trial',
+      accessExpiresAt: platformTrialEnd.toISOString(),
+      trialEndsAt: platformTrialEnd.toISOString(),
+      trialDaysRemaining: null,
+      platformTrialDaysRemaining,
+      isPublicAllowed: true, // Allow discovery during trial
+      hasFullAccess: true // Full platform access during trial
+    };
+  }
+  
+  // Case 2: Has Stripe subscription - check status
+  const status = subscription.status;
+  
+  // Stripe trial (first 14 days after checkout, no charge yet)
+  if (status === 'trialing') {
+    const trialEnd = subscription.trialEnd ? new Date(subscription.trialEnd) : null;
+    const trialDaysRemaining = trialEnd 
+      ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+      : null;
+    
+    return {
+      state: 'stripe_trial',
+      accessExpiresAt: null, // No access expiration during trial
+      trialEndsAt: trialEnd?.toISOString() || null,
+      trialDaysRemaining,
+      platformTrialDaysRemaining: null,
+      isPublicAllowed: true,
+      hasFullAccess: true
+    };
+  }
+  
+  // Active subscription
+  if (status === 'active') {
+    // Check if cancellation has been requested (cancel_at_period_end=true in Stripe)
+    // This is detected by: cancelAt being set, or canceledAt being set
+    const hasCancelRequest = subscription.cancelAt || subscription.canceledAt;
+    
+    if (hasCancelRequest) {
+      // Use cancelAt (from Stripe current_period_end) or currentPeriodEnd
+      const periodEnd = subscription.cancelAt 
+        ? new Date(subscription.cancelAt) 
+        : (subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null);
+      
+      if (periodEnd && periodEnd > now) {
+        // Still in grace period - access continues until period end
+        return {
+          state: 'grace_period',
+          accessExpiresAt: periodEnd.toISOString(),
+          trialEndsAt: null,
+          trialDaysRemaining: null,
+          platformTrialDaysRemaining: null,
+          isPublicAllowed: true,
+          hasFullAccess: true
+        };
+      }
+      
+      // Grace period has ended
+      return {
+        state: 'ended',
+        accessExpiresAt: periodEnd?.toISOString() || null,
+        trialEndsAt: null,
+        trialDaysRemaining: null,
+        platformTrialDaysRemaining: null,
+        isPublicAllowed: false,
+        hasFullAccess: false
+      };
+    }
+    
+    return {
+      state: 'active',
+      accessExpiresAt: null,
+      trialEndsAt: null,
+      trialDaysRemaining: null,
+      platformTrialDaysRemaining: null,
+      isPublicAllowed: true,
+      hasFullAccess: true
+    };
+  }
+  
+  // Past due - payment failed
+  if (status === 'past_due') {
+    return {
+      state: 'past_due',
+      accessExpiresAt: subscription.currentPeriodEnd || null,
+      trialEndsAt: null,
+      trialDaysRemaining: null,
+      platformTrialDaysRemaining: null,
+      isPublicAllowed: true, // Keep visible while resolving payment
+      hasFullAccess: true // Usually still has access during past_due
+    };
+  }
+  
+  // Canceled subscription
+  if (status === 'canceled') {
+    // Check if still within period (Stripe might keep it active until period end)
+    const periodEnd = subscription.currentPeriodEnd ? new Date(subscription.currentPeriodEnd) : null;
+    if (periodEnd && periodEnd > now) {
+      return {
+        state: 'grace_period',
+        accessExpiresAt: periodEnd.toISOString(),
+        trialEndsAt: null,
+        trialDaysRemaining: null,
+        platformTrialDaysRemaining: null,
+        isPublicAllowed: true,
+        hasFullAccess: true
+      };
+    }
+    
+    // Grace period ended
+    return {
+      state: 'ended',
+      accessExpiresAt: periodEnd?.toISOString() || null,
+      trialEndsAt: null,
+      trialDaysRemaining: null,
+      platformTrialDaysRemaining: null,
+      isPublicAllowed: false, // Community should be hidden
+      hasFullAccess: false
+    };
+  }
+  
+  // Other states (paused, expired, etc.)
+  return {
+    state: 'ended',
+    accessExpiresAt: null,
+    trialEndsAt: null,
+    trialDaysRemaining: null,
+    platformTrialDaysRemaining: null,
+    isPublicAllowed: false,
+    hasFullAccess: false
+  };
+}
+
+/**
  * GET /api/billing/subscription/:communityId
  * Get subscription details for a community
  */
@@ -283,31 +494,33 @@ router.get('/subscription/:communityId', requireAuth, async (req: Request, res: 
       return res.json({
         ok: true,
         subscription: null,
+        subscriptionState: 'none' as SubscriptionState,
         canManage: false
       });
     }
 
-    // Detect if subscription has incomplete Stripe setup
-    // A subscription with stripeCustomerId means payment was initiated
-    // A subscription with stripeSubscriptionId means subscription is fully set up in Stripe
+    // Compute the unified subscription state
+    const stateInfo = computeSubscriptionState(subscription);
+    
+    // SYNCHRONOUS DRAFTING: If state is 'ended' and community is still active, draft it now
+    // This ensures we don't wait for the scheduler to run
+    let updatedCommunityStatus = community.status;
+    if (stateInfo.state === 'ended' && community.status === 'active') {
+      console.log(`[Billing] Synchronously drafting community ${communityId} - subscription state is 'ended'`);
+      await communitiesStorage.updateCommunity(communityId, { status: 'draft' });
+      updatedCommunityStatus = 'draft';
+    }
+    
+    // Clamp platformTrialDaysRemaining to 0 when state is 'ended' to avoid rounding artifacts
+    const finalPlatformTrialDaysRemaining = stateInfo.state === 'ended' ? 0 : stateInfo.platformTrialDaysRemaining;
+    
+    // Detect Stripe setup status for UI purposes
     const hasStripeCustomer = !!subscription.stripeCustomerId;
     const hasStripeSubscription = !!subscription.stripeSubscriptionId;
-    
-    // Subscription is complete only when it has BOTH customer and subscription IDs
-    // Missing stripeSubscriptionId means checkout wasn't completed
     const isIncompleteSetup = !hasStripeSubscription;
     
-    // Determine if this is effectively a trial that needs completion
-    // Case 1: DB status is 'trialing' (normal Stripe trial)
-    // Case 2: Missing stripeSubscriptionId AND not canceled (incomplete setup = trial)
-    // This covers: status='active' with no IDs, status with customer but no subscription
-    const isEffectivelyTrialing = 
-      subscription.status === 'trialing' ||
-      (isIncompleteSetup && subscription.status !== 'canceled');
-    
-    if (subscription.status === 'active' && isIncompleteSetup) {
-      console.warn(`[Billing] Subscription ${subscription.id} has status='active' but no stripeSubscriptionId. Treating as trial for UI.`);
-    }
+    // For backward compatibility with existing UI
+    const isEffectivelyTrialing = stateInfo.state === 'platform_trial' || stateInfo.state === 'stripe_trial';
 
     // Check if user can manage billing
     const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
@@ -319,44 +532,38 @@ router.get('/subscription/:communityId', requireAuth, async (req: Request, res: 
       payments = await communitiesStorage.getPaymentsBySubscriptionId(subscription.id);
     }
 
-    // Get credits balance for active subscriptions WITH Stripe customer
-    // Having a customer means they have or had a payment method
+    // Get credits balance for active subscriptions WITH Stripe subscription
+    // Credits only available for paid subscriptions (active or stripe_trial)
     let creditsAvailable = 0;
-    if (hasStripeCustomer && subscription.status === 'active' && subscription.organizerId) {
+    if (hasStripeSubscription && (stateInfo.state === 'active' || stateInfo.state === 'stripe_trial') && subscription.organizerId) {
       const creditCheck = await creditsService.checkCredits(subscription.organizerId, 0);
       creditsAvailable = creditCheck.availableCredits;
     }
-
-    // Calculate trial information
-    // Use trial_end from DB, or calculate from created_at if no trial_end set
-    let trialEndDate: Date | null = null;
-    if (subscription.trialEnd) {
-      trialEndDate = new Date(subscription.trialEnd);
-    } else if (isEffectivelyTrialing && subscription.createdAt) {
-      // If no trial_end but effectively trialing, calculate 14 days from creation
-      const createdDate = new Date(subscription.createdAt);
-      trialEndDate = new Date(createdDate.getTime() + (14 * 24 * 60 * 60 * 1000));
-    }
-    
-    const trialEndsAt = trialEndDate?.toISOString() || null;
-    const trialDaysRemaining = trialEndDate 
-      ? Math.max(0, Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
-      : null;
 
     res.json({
       ok: true,
       subscription: {
         ...subscription,
-        // KEEP original status - don't override
         payments: canManage ? payments : [],
         canManage,
+        // Stripe setup flags
         hasStripeCustomer,
         hasStripeSubscription,
-        isIncompleteSetup, // True if no Stripe IDs at all
-        isEffectivelyTrialing, // True if should show trial UI
-        trialEndsAt,
-        trialDaysRemaining
+        isIncompleteSetup,
+        // Trial flags (backward compatibility)
+        isEffectivelyTrialing,
+        trialEndsAt: stateInfo.trialEndsAt,
+        trialDaysRemaining: stateInfo.trialDaysRemaining,
+        // New unified state info
+        subscriptionState: stateInfo.state,
+        platformTrialDaysRemaining: finalPlatformTrialDaysRemaining,
+        accessExpiresAt: stateInfo.accessExpiresAt,
+        isPublicAllowed: stateInfo.isPublicAllowed,
+        hasFullAccess: stateInfo.hasFullAccess,
+        // Include updated community status so clients get consistent state
+        communityStatus: updatedCommunityStatus
       },
+      subscriptionState: stateInfo.state,
       credits: {
         available: creditsAvailable
       }
@@ -421,6 +628,12 @@ router.post('/create-portal-session', requireAuth, async (req: Request, res: Res
 /**
  * POST /api/billing/cancel-subscription
  * Cancel an individual community subscription
+ * 
+ * IMPORTANT: Uses cancel_at_period_end for grace period:
+ * - Subscription stays 'active' until billing period ends
+ * - User retains full access until currentPeriodEnd
+ * - After period ends, Stripe sends webhook to mark as 'canceled'
+ * - Community gets drafted when subscription enters 'ended' state
  */
 router.post('/cancel-subscription', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -444,19 +657,38 @@ router.post('/cancel-subscription', requireAuth, async (req: Request, res: Respo
       return res.status(403).json({ ok: false, error: 'Unauthorized' });
     }
 
-    // Cancel in Stripe
+    let accessExpiresAt: Date | null = null;
+
+    // Cancel in Stripe with grace period (cancel at period end)
     if (subscription.stripeSubscriptionId) {
-      await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+      const updatedSub = await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
         cancel_at_period_end: true
+      });
+      
+      // Get the period end date for grace period
+      accessExpiresAt = new Date(updatedSub.current_period_end * 1000);
+      
+      // Update subscription with cancelAt (NOT status) - keeps it active until period end
+      // Status will be changed to 'canceled' by webhook when Stripe actually cancels it
+      await communitiesStorage.updateSubscriptionStatus(subscription.id, subscription.status, {
+        cancelAt: accessExpiresAt,
+        canceledAt: new Date()
+      });
+    } else {
+      // No Stripe subscription - just mark as canceled immediately
+      await communitiesStorage.updateSubscriptionStatus(subscription.id, 'canceled', {
+        canceledAt: new Date()
       });
     }
 
-    // Update in database
-    await communitiesStorage.updateSubscriptionStatus(subscription.id, 'canceled', {
-      canceledAt: new Date()
+    res.json({ 
+      ok: true, 
+      message: accessExpiresAt 
+        ? `Subscription will be cancelled. You'll have access until ${accessExpiresAt.toLocaleDateString()}.`
+        : 'Subscription cancelled successfully.',
+      accessExpiresAt: accessExpiresAt?.toISOString() || null,
+      gracePeriod: !!accessExpiresAt
     });
-
-    res.json({ ok: true, message: 'Subscription cancelled successfully' });
   } catch (error: any) {
     console.error('Cancel subscription error:', error);
     res.status(500).json({ ok: false, error: error.message || 'Failed to cancel subscription' });

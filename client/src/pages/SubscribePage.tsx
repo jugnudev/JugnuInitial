@@ -27,6 +27,9 @@ interface Subscription {
   hasStripeSubscription?: boolean;
   isIncompleteSetup?: boolean;
   isEffectivelyTrialing?: boolean;
+  subscriptionState?: 'platform_trial' | 'stripe_trial' | 'active' | 'grace_period' | 'past_due' | 'ended' | 'none';
+  platformTrialDaysRemaining?: number | null;
+  accessExpiresAt?: string | null;
 }
 
 export default function SubscribePage() {
@@ -118,17 +121,21 @@ export default function SubscribePage() {
     }
   };
 
-  // Use trial days from backend if available, otherwise calculate
-  const daysRemaining = subscription?.trialDaysRemaining ?? 0;
+  // Get subscription state from backend
+  const subscriptionState = subscription?.subscriptionState || 'none';
   
-  // Check if subscription needs payment setup (effectively trialing or no Stripe)
-  const needsPaymentSetup = subscription && (subscription.isEffectivelyTrialing || !subscription.hasStripeSubscription);
+  // Use platform trial days if on platform trial, otherwise stripe trial days
+  const platformTrialDaysRemaining = subscription?.platformTrialDaysRemaining ?? 0;
+  const stripeTrialDaysRemaining = subscription?.trialDaysRemaining ?? 0;
+  
+  // Check if subscription needs payment setup
+  const needsPaymentSetup = subscriptionState === 'platform_trial' || subscriptionState === 'ended' || subscriptionState === 'none';
   
   // Determine if we should show trial information
-  const showTrialInfo = subscription && (
-    subscription.status === 'trialing' || 
-    subscription.isEffectivelyTrialing
-  );
+  const showPlatformTrialInfo = subscriptionState === 'platform_trial';
+  const showStripeTrialInfo = subscriptionState === 'stripe_trial';
+  // Show trial expired only when backend state is 'ended' - this is the single source of truth
+  const showTrialExpiredInfo = subscriptionState === 'ended';
 
   if (isLoadingCommunity || isLoadingSubscription) {
     return (
@@ -182,24 +189,62 @@ export default function SubscribePage() {
             Back to Settings
           </Button>
 
-          {/* Trial Banner - Show when on trial (either db status or effectively trialing) */}
-          {showTrialInfo && (
+          {/* Platform Trial Banner - No payment set up yet */}
+          {showPlatformTrialInfo && (
             <Card className="mb-6 border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-amber-600/10" data-testid="card-trial-banner">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
                   <div>
                     <p className="text-white font-semibold">
-                      {daysRemaining > 0 
-                        ? `${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'} remaining in your free trial`
-                        : 'Your free trial has ended'
+                      {platformTrialDaysRemaining > 0 
+                        ? `${platformTrialDaysRemaining} ${platformTrialDaysRemaining === 1 ? 'day' : 'days'} remaining in your platform trial`
+                        : 'Your platform trial has ended'
                       }
                     </p>
                     <p className="text-white/60 text-sm">
-                      {daysRemaining > 0 
-                        ? 'Subscribe now to continue using all platform features after your trial ends. Your trial includes full access - no credit card required until you subscribe.'
-                        : 'Subscribe now to regain access to all platform features and unlock your community.'
+                      {platformTrialDaysRemaining > 0 
+                        ? 'You have full platform access during your trial. Complete payment setup below to secure your subscription. You\'ll get an additional 14 days before your first charge.'
+                        : 'Subscribe now to continue using all platform features.'
                       }
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Stripe Trial Banner - Payment set up, in Stripe trial period */}
+          {showStripeTrialInfo && (
+            <Card className="mb-6 border-jade-500/30 bg-gradient-to-r from-jade-500/10 to-jade-600/10" data-testid="card-stripe-trial-banner">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-jade-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-white font-semibold">
+                      Payment setup complete! {stripeTrialDaysRemaining > 0 && `${stripeTrialDaysRemaining} ${stripeTrialDaysRemaining === 1 ? 'day' : 'days'} until first charge`}
+                    </p>
+                    <p className="text-white/60 text-sm">
+                      You're in your 14-day trial period. Your first payment of $50 will be charged when the trial ends. You now have access to placement credits and all premium features.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Trial Expired Banner */}
+          {showTrialExpiredInfo && (
+            <Card className="mb-6 border-red-500/30 bg-gradient-to-r from-red-500/10 to-red-600/10" data-testid="card-trial-expired-banner">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-white font-semibold">
+                      Your trial has ended
+                    </p>
+                    <p className="text-white/60 text-sm">
+                      Subscribe now to restore full access to your community and unlock all platform features. Your community will be hidden from public discovery until you subscribe.
                     </p>
                   </div>
                 </div>
@@ -309,15 +354,21 @@ export default function SubscribePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
+                <h4 className="font-semibold text-white mb-2">How does the trial work?</h4>
+                <p className="text-white/70 text-sm">
+                  You get a 14-day platform trial when you create your community. When you complete payment setup, you get an additional 14-day trial before your first $50 charge. During both trials, you have full platform access.
+                </p>
+              </div>
+              <div>
                 <h4 className="font-semibold text-white mb-2">What happens after I subscribe?</h4>
                 <p className="text-white/70 text-sm">
-                  You'll have immediate access to all platform features including ticketing, communities, and 2 monthly placement credits.
+                  You'll have immediate access to all platform features including ticketing, communities, and 2 monthly placement credits. Your first payment is charged after the 14-day Stripe trial.
                 </p>
               </div>
               <div>
                 <h4 className="font-semibold text-white mb-2">Can I cancel anytime?</h4>
                 <p className="text-white/70 text-sm">
-                  Yes! You can cancel your subscription at any time from your community settings. You'll retain access until the end of your billing period.
+                  Yes! You can cancel your subscription at any time from your community settings. You'll retain full access until the end of your current billing period.
                 </p>
               </div>
               <div>
