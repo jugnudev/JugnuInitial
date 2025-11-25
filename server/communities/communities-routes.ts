@@ -1819,12 +1819,15 @@ export function addCommunitiesRoutes(app: Express) {
       const communities = await communitiesStorage.getCommunitiesByOrganizerId(organizer.id);
 
       // Add membership information since these are owned communities
+      // Include draft status so frontend can show appropriate UI
       const communitiesWithMembership = communities.map(community => ({
         ...community,
         membership: {
           status: 'approved',
           role: 'owner'
-        }
+        },
+        isDraft: community.status === 'draft',
+        draftReason: community.status === 'draft' ? 'subscription_expired' : null
       }));
 
       res.json({

@@ -863,11 +863,12 @@ export class CommunitiesSupabaseDB {
   }
 
   async getCommunitiesByOrganizerId(organizerId: string): Promise<Community[]> {
+    // Include ALL communities for organizer (including draft) - owners should see their drafted communities
     const { data, error } = await this.client
       .from('communities')
       .select('*')
       .eq('organizer_id', organizerId)
-      .eq('status', 'active')
+      .in('status', ['active', 'draft']) // Include draft communities for owner view
       .order('created_at', { ascending: false });
 
     if (error) throw error;
