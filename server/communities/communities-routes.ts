@@ -6091,6 +6091,32 @@ export function addCommunitiesRoutes(app: Express) {
   });
 
   /**
+   * POST /api/admin/communities/:id/set-status
+   * Directly set community status (for fixing drafted communities from billing system)
+   */
+  app.post('/api/admin/communities/:id/set-status', requireAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      if (!status || !['active', 'draft', 'pending', 'suspended'].includes(status)) {
+        return res.status(400).json({ ok: false, error: 'Valid status required (active, draft, pending, suspended)' });
+      }
+      
+      const community = await communitiesStorage.updateCommunity(id, { status });
+      
+      res.json({
+        ok: true,
+        community,
+        message: `Community status updated to ${status}`
+      });
+    } catch (error: any) {
+      console.error('Set community status admin error:', error);
+      res.status(500).json({ ok: false, error: error.message || 'Failed to update community status' });
+    }
+  });
+
+  /**
    * GET /api/admin/communities/metrics
    * Platform-wide metrics
    */
