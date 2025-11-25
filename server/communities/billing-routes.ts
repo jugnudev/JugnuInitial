@@ -52,17 +52,100 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2025-08-27.basil'
 });
 
-// Pricing configuration
+// Pricing configuration - priceId will be resolved dynamically if not set
 const PRICING = {
   individual: {
     monthly: {
-      priceId: process.env.STRIPE_PRICE_COMMUNITY_MONTHLY || 'price_community_monthly',
+      priceId: process.env.STRIPE_PRICE_COMMUNITY_MONTHLY || null, // Will be created if null
       amount: 5000, // $50 CAD in cents
       currency: 'cad',
       placementCredits: 2 // Number of ad placement credits per billing cycle
     }
   }
 };
+
+// Cache for dynamically created Stripe price ID
+let cachedPriceId: string | null = null;
+
+/**
+ * Get or create the Stripe price for community subscriptions
+ * This ensures we have a valid price ID even if not configured via environment variable
+ */
+async function getOrCreateCommunityPrice(): Promise<string> {
+  // Return cached price if available
+  if (cachedPriceId) {
+    return cachedPriceId;
+  }
+  
+  // Return environment-configured price if set
+  if (PRICING.individual.monthly.priceId) {
+    cachedPriceId = PRICING.individual.monthly.priceId;
+    return cachedPriceId;
+  }
+  
+  console.log('[Billing] No price ID configured, searching for existing Jugnu product...');
+  
+  // Search for existing Jugnu product
+  const existingProducts = await stripe.products.list({
+    active: true,
+    limit: 100
+  });
+  
+  let jognuProduct = existingProducts.data.find(p => 
+    p.name === 'Jugnu Community Subscription' || 
+    p.metadata?.jugnu_community === 'true'
+  );
+  
+  // Create product if it doesn't exist
+  if (!jognuProduct) {
+    console.log('[Billing] Creating Jugnu Community product in Stripe...');
+    jognuProduct = await stripe.products.create({
+      name: 'Jugnu Community Subscription',
+      description: 'Monthly subscription for Jugnu community platform - $50/month flat fee, 0% commission on tickets, includes 2 monthly placement credits',
+      metadata: {
+        jugnu_community: 'true',
+        plan_type: 'individual'
+      }
+    });
+    console.log('[Billing] Created product:', jognuProduct.id);
+  }
+  
+  // Search for existing price on this product
+  const existingPrices = await stripe.prices.list({
+    product: jognuProduct.id,
+    active: true,
+    limit: 10
+  });
+  
+  let monthlyPrice = existingPrices.data.find(p => 
+    p.recurring?.interval === 'month' && 
+    p.unit_amount === 5000 && 
+    p.currency === 'cad'
+  );
+  
+  // Create price if it doesn't exist
+  if (!monthlyPrice) {
+    console.log('[Billing] Creating $50 CAD/month price in Stripe...');
+    monthlyPrice = await stripe.prices.create({
+      product: jognuProduct.id,
+      unit_amount: 5000, // $50 CAD in cents
+      currency: 'cad',
+      recurring: {
+        interval: 'month'
+      },
+      metadata: {
+        jugnu_plan: 'community_monthly',
+        placement_credits: '2'
+      }
+    });
+    console.log('[Billing] Created price:', monthlyPrice.id);
+  }
+  
+  // Cache and return
+  cachedPriceId = monthlyPrice.id;
+  console.log('[Billing] Using price ID:', cachedPriceId);
+  return cachedPriceId;
+}
 
 /**
  * POST /api/billing/create-checkout
@@ -139,8 +222,8 @@ router.post('/create-checkout', requireAuth, async (req: Request, res: Response)
       customerId = customer.id;
     }
 
-    // Get price and metadata
-    const priceConfig = PRICING.individual.monthly;
+    // Get or create the Stripe price
+    const priceId = await getOrCreateCommunityPrice();
     const metadata = {
       type: 'individual',
       communityId,
@@ -152,7 +235,7 @@ router.post('/create-checkout', requireAuth, async (req: Request, res: Response)
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{
-        price: priceConfig.priceId,
+        price: priceId,
         quantity: 1
       }],
       mode: 'subscription',
@@ -204,12 +287,26 @@ router.get('/subscription/:communityId', requireAuth, async (req: Request, res: 
       });
     }
 
-    // DETECT and LOG inconsistent status (active without stripe_customer_id should be trialing)
-    // Don't auto-fix as it could affect valid paid subscriptions with sync issues
-    if (subscription.status === 'active' && !subscription.stripeCustomerId) {
-      console.warn(`[Billing] WARNING: Subscription ${subscription.id} has status='active' but no stripe_customer_id. This may indicate a data inconsistency.`);
-      // For now, return the subscription as-is and let the UI handle the edge case
-      // Manual database fix: UPDATE community_subscriptions SET status = 'trialing' WHERE id = '${subscription.id}';
+    // Detect if subscription has incomplete Stripe setup
+    // A subscription with stripeCustomerId means payment was initiated
+    // A subscription with stripeSubscriptionId means subscription is fully set up in Stripe
+    const hasStripeCustomer = !!subscription.stripeCustomerId;
+    const hasStripeSubscription = !!subscription.stripeSubscriptionId;
+    
+    // Subscription is complete only when it has BOTH customer and subscription IDs
+    // Missing stripeSubscriptionId means checkout wasn't completed
+    const isIncompleteSetup = !hasStripeSubscription;
+    
+    // Determine if this is effectively a trial that needs completion
+    // Case 1: DB status is 'trialing' (normal Stripe trial)
+    // Case 2: Missing stripeSubscriptionId AND not canceled (incomplete setup = trial)
+    // This covers: status='active' with no IDs, status with customer but no subscription
+    const isEffectivelyTrialing = 
+      subscription.status === 'trialing' ||
+      (isIncompleteSetup && subscription.status !== 'canceled');
+    
+    if (subscription.status === 'active' && isIncompleteSetup) {
+      console.warn(`[Billing] Subscription ${subscription.id} has status='active' but no stripeSubscriptionId. Treating as trial for UI.`);
     }
 
     // Check if user can manage billing
@@ -222,15 +319,25 @@ router.get('/subscription/:communityId', requireAuth, async (req: Request, res: 
       payments = await communitiesStorage.getPaymentsBySubscriptionId(subscription.id);
     }
 
-    // Get credits balance for active subscriptions
+    // Get credits balance for active subscriptions WITH Stripe customer
+    // Having a customer means they have or had a payment method
     let creditsAvailable = 0;
-    if (subscription.status === 'active' && subscription.organizerId) {
+    if (hasStripeCustomer && subscription.status === 'active' && subscription.organizerId) {
       const creditCheck = await creditsService.checkCredits(subscription.organizerId, 0);
       creditsAvailable = creditCheck.availableCredits;
     }
 
-    // Normalize trial end date (Supabase returns strings, not Date objects)
-    const trialEndDate = subscription.trialEnd ? new Date(subscription.trialEnd) : null;
+    // Calculate trial information
+    // Use trial_end from DB, or calculate from created_at if no trial_end set
+    let trialEndDate: Date | null = null;
+    if (subscription.trialEnd) {
+      trialEndDate = new Date(subscription.trialEnd);
+    } else if (isEffectivelyTrialing && subscription.createdAt) {
+      // If no trial_end but effectively trialing, calculate 14 days from creation
+      const createdDate = new Date(subscription.createdAt);
+      trialEndDate = new Date(createdDate.getTime() + (14 * 24 * 60 * 60 * 1000));
+    }
+    
     const trialEndsAt = trialEndDate?.toISOString() || null;
     const trialDaysRemaining = trialEndDate 
       ? Math.max(0, Math.ceil((trialEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
@@ -240,9 +347,13 @@ router.get('/subscription/:communityId', requireAuth, async (req: Request, res: 
       ok: true,
       subscription: {
         ...subscription,
+        // KEEP original status - don't override
         payments: canManage ? payments : [],
         canManage,
-        hasStripeCustomer: !!subscription.stripeCustomerId,
+        hasStripeCustomer,
+        hasStripeSubscription,
+        isIncompleteSetup, // True if no Stripe IDs at all
+        isEffectivelyTrialing, // True if should show trial UI
         trialEndsAt,
         trialDaysRemaining
       },

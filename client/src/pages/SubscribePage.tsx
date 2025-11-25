@@ -18,9 +18,15 @@ interface Subscription {
   id: string;
   status: string;
   trialEnd: string | null;
+  trialEndsAt: string | null;
+  trialDaysRemaining: number | null;
   currentPeriodEnd: string | null;
   stripeSubscriptionId: string | null;
   stripeCustomerId: string | null;
+  hasStripeCustomer?: boolean;
+  hasStripeSubscription?: boolean;
+  isIncompleteSetup?: boolean;
+  isEffectivelyTrialing?: boolean;
 }
 
 export default function SubscribePage() {
@@ -49,11 +55,13 @@ export default function SubscribePage() {
 
   // Redirect if subscription is fully active with valid Stripe setup
   useEffect(() => {
-    // Only redirect if status is 'active' AND has a valid Stripe subscription ID
+    // Only redirect if truly active (status = active AND has full Stripe setup AND not trialing)
     // This ensures users with incomplete setup can still complete checkout
     if (subscription && 
         subscription.status === 'active' && 
-        subscription.stripeSubscriptionId && 
+        subscription.hasStripeCustomer &&
+        subscription.hasStripeSubscription && 
+        !subscription.isEffectivelyTrialing &&
         community?.slug) {
       toast({
         title: 'Already Subscribed',
@@ -110,20 +118,17 @@ export default function SubscribePage() {
     }
   };
 
-  const calculateDaysRemaining = () => {
-    if (!subscription?.trialEnd) return 0;
-    const now = new Date();
-    const trialEnd = new Date(subscription.trialEnd);
-    const diffTime = trialEnd.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return Math.max(0, diffDays);
-  };
-
-  // Calculate days remaining for trial or incomplete subscription
-  const daysRemaining = subscription?.trialEnd ? calculateDaysRemaining() : 0;
+  // Use trial days from backend if available, otherwise calculate
+  const daysRemaining = subscription?.trialDaysRemaining ?? 0;
   
-  // Check if subscription needs payment setup (has record but no Stripe)
-  const needsPaymentSetup = subscription && !subscription.stripeSubscriptionId;
+  // Check if subscription needs payment setup (effectively trialing or no Stripe)
+  const needsPaymentSetup = subscription && (subscription.isEffectivelyTrialing || !subscription.hasStripeSubscription);
+  
+  // Determine if we should show trial information
+  const showTrialInfo = subscription && (
+    subscription.status === 'trialing' || 
+    subscription.isEffectivelyTrialing
+  );
 
   if (isLoadingCommunity || isLoadingSubscription) {
     return (
@@ -177,40 +182,24 @@ export default function SubscribePage() {
             Back to Settings
           </Button>
 
-          {/* Incomplete Setup Banner - show when subscription exists but no Stripe */}
-          {needsPaymentSetup && (
-            <Card className="mb-6 border-copper-500/30 bg-gradient-to-r from-copper-500/10 to-copper-600/10">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-3">
-                  <CreditCard className="w-5 h-5 text-copper-400 flex-shrink-0" />
-                  <div>
-                    <p className="text-white font-semibold">
-                      Complete your subscription setup
-                    </p>
-                    <p className="text-white/60 text-sm">
-                      {daysRemaining > 0 
-                        ? `You have ${daysRemaining} days of trial remaining. Subscribe now to continue access.`
-                        : 'Subscribe now to activate your community and unlock all features.'
-                      }
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Trial Status Banner - only show for proper trialing status */}
-          {!needsPaymentSetup && subscription?.status === 'trialing' && daysRemaining > 0 && (
-            <Card className="mb-6 border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-amber-600/10">
+          {/* Trial Banner - Show when on trial (either db status or effectively trialing) */}
+          {showTrialInfo && (
+            <Card className="mb-6 border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-amber-600/10" data-testid="card-trial-banner">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0" />
                   <div>
                     <p className="text-white font-semibold">
-                      {daysRemaining} {daysRemaining === 1 ? 'day' : 'days'} remaining in your free trial
+                      {daysRemaining > 0 
+                        ? `${daysRemaining} ${daysRemaining === 1 ? 'day' : 'days'} remaining in your free trial`
+                        : 'Your free trial has ended'
+                      }
                     </p>
                     <p className="text-white/60 text-sm">
-                      Subscribe now to continue using all platform features after your trial ends
+                      {daysRemaining > 0 
+                        ? 'Subscribe now to continue using all platform features after your trial ends. Your trial includes full access - no credit card required until you subscribe.'
+                        : 'Subscribe now to regain access to all platform features and unlock your community.'
+                      }
                     </p>
                   </div>
                 </div>
