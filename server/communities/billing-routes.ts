@@ -90,10 +90,32 @@ router.post('/create-checkout', requireAuth, async (req: Request, res: Response)
       return res.status(403).json({ ok: false, error: 'Only community owners can manage billing' });
     }
 
-    // Check if already has active subscription
+    // Check if already has a subscription with valid Stripe setup
     const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
-    if (existingSubscription && ['active', 'trialing'].includes(existingSubscription.status)) {
-      return res.status(400).json({ ok: false, error: 'Community already has an active subscription' });
+    if (existingSubscription) {
+      // Block if subscription already has a Stripe subscription ID (already on Stripe)
+      // This prevents double billing for active, past_due, or unpaid subscriptions
+      if (existingSubscription.stripeSubscriptionId) {
+        // Only truly cancelled subscriptions can restart via checkout
+        if (existingSubscription.status !== 'canceled') {
+          console.log('[Billing] Blocking checkout - subscription already exists on Stripe:', {
+            status: existingSubscription.status,
+            stripeSubscriptionId: existingSubscription.stripeSubscriptionId
+          });
+          return res.status(400).json({ 
+            ok: false, 
+            error: existingSubscription.status === 'active' 
+              ? 'Community already has an active subscription' 
+              : 'Community has a subscription that needs attention. Please contact support.'
+          });
+        }
+      }
+      // Allow checkout for subscriptions without Stripe setup (incomplete trial, needs payment)
+      console.log('[Billing] Allowing checkout for incomplete subscription:', {
+        status: existingSubscription.status,
+        hasStripeSubscription: !!existingSubscription.stripeSubscriptionId,
+        reason: 'No Stripe subscription ID - needs to complete checkout'
+      });
     }
 
     // Get or create Stripe customer

@@ -19,6 +19,8 @@ interface Subscription {
   status: string;
   trialEnd: string | null;
   currentPeriodEnd: string | null;
+  stripeSubscriptionId: string | null;
+  stripeCustomerId: string | null;
 }
 
 export default function SubscribePage() {
@@ -45,9 +47,14 @@ export default function SubscribePage() {
   const community = communityData?.community;
   const subscription = subscriptionData?.subscription;
 
-  // Redirect if subscription is already active (only when we have both subscription and community data)
+  // Redirect if subscription is fully active with valid Stripe setup
   useEffect(() => {
-    if (subscription && subscription.status === 'active' && community?.slug) {
+    // Only redirect if status is 'active' AND has a valid Stripe subscription ID
+    // This ensures users with incomplete setup can still complete checkout
+    if (subscription && 
+        subscription.status === 'active' && 
+        subscription.stripeSubscriptionId && 
+        community?.slug) {
       toast({
         title: 'Already Subscribed',
         description: 'This community already has an active subscription.',
@@ -112,7 +119,11 @@ export default function SubscribePage() {
     return Math.max(0, diffDays);
   };
 
-  const daysRemaining = subscription?.status === 'trialing' ? calculateDaysRemaining() : 0;
+  // Calculate days remaining for trial or incomplete subscription
+  const daysRemaining = subscription?.trialEnd ? calculateDaysRemaining() : 0;
+  
+  // Check if subscription needs payment setup (has record but no Stripe)
+  const needsPaymentSetup = subscription && !subscription.stripeSubscriptionId;
 
   if (isLoadingCommunity || isLoadingSubscription) {
     return (
@@ -166,8 +177,30 @@ export default function SubscribePage() {
             Back to Settings
           </Button>
 
-          {/* Trial Status Banner */}
-          {subscription?.status === 'trialing' && daysRemaining > 0 && (
+          {/* Incomplete Setup Banner - show when subscription exists but no Stripe */}
+          {needsPaymentSetup && (
+            <Card className="mb-6 border-copper-500/30 bg-gradient-to-r from-copper-500/10 to-copper-600/10">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <CreditCard className="w-5 h-5 text-copper-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-white font-semibold">
+                      Complete your subscription setup
+                    </p>
+                    <p className="text-white/60 text-sm">
+                      {daysRemaining > 0 
+                        ? `You have ${daysRemaining} days of trial remaining. Subscribe now to continue access.`
+                        : 'Subscribe now to activate your community and unlock all features.'
+                      }
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Trial Status Banner - only show for proper trialing status */}
+          {!needsPaymentSetup && subscription?.status === 'trialing' && daysRemaining > 0 && (
             <Card className="mb-6 border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-amber-600/10">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-3">
