@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
+import { DraftCommunityBanner } from "@/components/billing/DraftCommunityBanner";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -185,6 +186,8 @@ interface CommunityDetailResponse {
   posts?: Post[];
   members?: Member[];
   canManage?: boolean;
+  isDraft?: boolean;
+  draftReason?: string | null;
 }
 
 // PostCard wrapper that fetches comments for each post
@@ -1317,9 +1320,17 @@ export default function EnhancedCommunityDetailPage() {
       initial="initial"
       animate="animate"
     >
-      {/* Community Header */}
+      {/* Draft Community Banner - shown when owner views a draft community */}
+      {communityData?.isDraft && isOwner && (
+        <DraftCommunityBanner 
+          communityId={community.id} 
+          communityName={community.name}
+        />
+      )}
+      
+      {/* Community Header - add top padding when draft banner is shown */}
       <motion.div 
-        className="relative h-80 sm:h-96 md:h-[28rem] overflow-hidden"
+        className={`relative h-80 sm:h-96 md:h-[28rem] overflow-hidden ${communityData?.isDraft && isOwner ? 'pt-16 sm:pt-14' : ''}`}
         variants={headerAnimation}
       >
         {community.coverUrl ? (

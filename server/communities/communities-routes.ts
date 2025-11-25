@@ -1912,8 +1912,41 @@ export function addCommunitiesRoutes(app: Express) {
         }
       }
 
+      // Check if community is in draft status
+      const isDraft = community.status === 'draft';
+      
+      // Check if user is the community owner or has owner/moderator membership (needed for draft access check)
+      let isOwner = false;
+      let canManageCommunity = false;
+      let membership: any = null;
+      
+      if (user) {
+        // Check if user is organizer-owner
+        const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+        const isOrganizerOwner = !!(organizer && organizer.id === community.organizerId);
+        
+        // Check membership role for owner/moderator privileges
+        membership = await communitiesStorage.getMembershipByUserAndCommunity(user.id, community.id);
+        const membershipRole = membership?.role;
+        const hasMembershipOwnership = membershipRole === 'owner' || membershipRole === 'moderator';
+        
+        // User is considered owner if they're the organizer OR have owner/moderator membership role
+        isOwner = isOrganizerOwner || hasMembershipOwnership;
+        canManageCommunity = isOwner;
+      }
+      
+      // If draft, only owners/moderators can access
+      if (isDraft && !canManageCommunity) {
+        return res.status(403).json({ 
+          ok: false, 
+          error: 'This community is currently unavailable',
+          isDraft: true,
+          requiresSubscription: true
+        });
+      }
+
       if (!user) {
-        // Public view - only basic info
+        // Public view - only basic info (draft communities blocked above)
         return res.json({
           ok: true,
           community: {
@@ -1935,12 +1968,7 @@ export function addCommunitiesRoutes(app: Express) {
         });
       }
 
-      // Check if user is the community owner
-      const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
-      const isOwner = organizer && organizer.id === community.organizerId;
-
-      // Check user's membership status
-      const membership = await communitiesStorage.getMembershipByUserAndCommunity(user.id, community.id);
+      // Membership already loaded above
       const isApprovedMember = membership && membership.status === 'approved';
 
       // Track view analytics
@@ -1965,7 +1993,10 @@ export function addCommunitiesRoutes(app: Express) {
           members: memberships,
           posts,
           analytics,
-          canManage: true
+          canManage: true,
+          // Include draft status for owner to show banner
+          isDraft,
+          draftReason: isDraft ? 'subscription_expired' : null
         });
       } else if (isApprovedMember) {
         // Approved members can see posts and members
