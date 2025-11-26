@@ -194,23 +194,61 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
     // Check existing subscription
     const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
     
-    // If there's an active or trialing subscription with Stripe, check if community needs reactivation
+    // If there's an active or trialing subscription with Stripe, check if it's actually valid
     if (existingSubscription?.stripeSubscriptionId && 
         (existingSubscription.status === 'active' || existingSubscription.status === 'trialing')) {
-      // If community is in draft but subscription is active, reactivate the community
-      if (community.status === 'draft') {
-        console.log('[Billing] Reactivating community with existing active subscription:', communityId);
-        await communitiesStorage.updateCommunity(communityId, { status: 'active' });
-        return res.json({ 
-          ok: true, 
-          message: 'Community reactivated with existing subscription',
-          reactivated: true
+      
+      // For 'trialing' status, check if trial has actually expired
+      const now = new Date();
+      let isTrialExpired = false;
+      
+      if (existingSubscription.status === 'trialing') {
+        const createdAt = new Date(existingSubscription.createdAt);
+        const fallbackTrialEnd = new Date(createdAt.getTime() + (14 * 24 * 60 * 60 * 1000));
+        const trialEnd = existingSubscription.trialEnd 
+          ? new Date(existingSubscription.trialEnd) 
+          : fallbackTrialEnd;
+        
+        if (trialEnd <= now) {
+          isTrialExpired = true;
+          console.log('[Billing] Existing subscription trial has expired, allowing re-subscription:', {
+            communityId,
+            trialEnd: trialEnd.toISOString(),
+            now: now.toISOString()
+          });
+        }
+      }
+      
+      // If trial hasn't expired and subscription is active, handle accordingly
+      if (!isTrialExpired) {
+        // If community is in draft but subscription is active, reactivate the community
+        if (community.status === 'draft') {
+          console.log('[Billing] Reactivating community with existing active subscription:', communityId);
+          await communitiesStorage.updateCommunity(communityId, { status: 'active' });
+          return res.json({ 
+            ok: true, 
+            message: 'Community reactivated with existing subscription',
+            reactivated: true
+          });
+        }
+        return res.status(400).json({ 
+          ok: false, 
+          error: 'Community already has an active subscription'
         });
       }
-      return res.status(400).json({ 
-        ok: false, 
-        error: 'Community already has an active subscription'
-      });
+      
+      // Trial expired - need to cancel old subscription before creating new one
+      try {
+        console.log('[Billing] Canceling expired trial subscription in Stripe:', existingSubscription.stripeSubscriptionId);
+        await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
+        
+        // Update local subscription status
+        await communitiesStorage.updateSubscriptionStatus(existingSubscription.id, 'canceled', {
+          canceledAt: new Date().toISOString() as any
+        });
+      } catch (cancelErr: any) {
+        console.log('[Billing] Could not cancel old subscription, may already be canceled:', cancelErr.message);
+      }
     }
     
     // If there's an incomplete subscription with Stripe ID, try to reuse it
@@ -695,15 +733,31 @@ function computeSubscriptionState(subscription: any): {
   
   // Stripe trial (first 14 days after checkout, no charge yet)
   if (status === 'trialing') {
-    const trialEnd = subscription.trialEnd ? new Date(subscription.trialEnd) : null;
-    const trialDaysRemaining = trialEnd 
-      ? Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-      : null;
+    // If trialEnd is null (legacy data), fall back to createdAt + 14 days
+    const createdAt = new Date(subscription.createdAt);
+    const fallbackTrialEnd = new Date(createdAt.getTime() + (14 * 24 * 60 * 60 * 1000));
+    const trialEnd = subscription.trialEnd ? new Date(subscription.trialEnd) : fallbackTrialEnd;
+    
+    // Check if trial has actually expired
+    if (trialEnd <= now) {
+      const trialDaysRemaining = 0;
+      return {
+        state: 'ended',
+        accessExpiresAt: trialEnd.toISOString(),
+        trialEndsAt: trialEnd.toISOString(),
+        trialDaysRemaining,
+        platformTrialDaysRemaining: null,
+        isPublicAllowed: false,
+        hasFullAccess: false
+      };
+    }
+    
+    const trialDaysRemaining = Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
     
     return {
       state: 'stripe_trial',
       accessExpiresAt: null, // No access expiration during trial
-      trialEndsAt: trialEnd?.toISOString() || null,
+      trialEndsAt: trialEnd.toISOString(),
       trialDaysRemaining,
       platformTrialDaysRemaining: null,
       isPublicAllowed: true,
