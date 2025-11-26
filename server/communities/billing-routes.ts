@@ -800,7 +800,40 @@ function computeSubscriptionState(subscription: any): {
     };
   }
   
+  // Incomplete status - payment was never confirmed
+  // This is a setup failure, should be treated as ended (needs to restart subscription)
+  if (status === 'incomplete' || status === 'incomplete_expired') {
+    // For incomplete, also check the platform trial (14 days from creation)
+    const createdAt = new Date(subscription.createdAt);
+    const platformTrialEnd = new Date(createdAt.getTime() + (14 * 24 * 60 * 60 * 1000));
+    const platformTrialDaysRemaining = Math.max(0, Math.ceil((platformTrialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+    
+    if (platformTrialEnd <= now) {
+      return {
+        state: 'ended',
+        accessExpiresAt: platformTrialEnd.toISOString(),
+        trialEndsAt: platformTrialEnd.toISOString(),
+        trialDaysRemaining: null,
+        platformTrialDaysRemaining: 0,
+        isPublicAllowed: false,
+        hasFullAccess: false
+      };
+    }
+    
+    // Still in grace period for incomplete subscriptions
+    return {
+      state: 'platform_trial',
+      accessExpiresAt: platformTrialEnd.toISOString(),
+      trialEndsAt: platformTrialEnd.toISOString(),
+      trialDaysRemaining: null,
+      platformTrialDaysRemaining,
+      isPublicAllowed: true,
+      hasFullAccess: true
+    };
+  }
+  
   // Other states (paused, expired, etc.)
+  console.log(`[Billing] Unknown subscription status: ${status}, treating as ended`);
   return {
     state: 'ended',
     accessExpiresAt: null,
@@ -840,6 +873,15 @@ router.get('/subscription/:communityId', requireAuth, async (req: Request, res: 
 
     // Compute the unified subscription state
     const stateInfo = computeSubscriptionState(subscription);
+    
+    console.log(`[Billing] Subscription state for ${communityId}:`, {
+      dbStatus: subscription.status,
+      computedState: stateInfo.state,
+      communityStatus: community.status,
+      hasStripeId: !!subscription.stripeSubscriptionId,
+      trialEnd: subscription.trialEnd,
+      createdAt: subscription.createdAt
+    });
     
     // SYNCHRONOUS DRAFTING: If state is 'ended' and community is still active, draft it now
     // This ensures we don't wait for the scheduler to run

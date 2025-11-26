@@ -42,6 +42,27 @@ export async function checkExpiredSubscriptions(): Promise<void> {
         }
       }
       
+      // Case 3: Incomplete subscription - payment was never confirmed
+      // Check if subscription was created but never completed (status stayed 'incomplete')
+      if (subscription.status === 'incomplete' && subscription.stripeSubscriptionId) {
+        const createdAt = new Date(subscription.createdAt);
+        const incompleteDeadline = new Date(createdAt.getTime() + (14 * 24 * 60 * 60 * 1000));
+        
+        if (incompleteDeadline <= now) {
+          shouldDraft = true;
+          reason = 'subscription incomplete - payment never confirmed within 14 days';
+        }
+      }
+      
+      // Case 4: Trialing subscription with no payment method and trial ended
+      if (subscription.status === 'trialing' && subscription.trialEnd) {
+        const trialEnd = new Date(subscription.trialEnd);
+        if (trialEnd <= now) {
+          shouldDraft = true;
+          reason = 'trial period ended without active payment';
+        }
+      }
+      
       if (shouldDraft) {
         console.log(`[Subscription Scheduler] Drafting community ${subscription.communityId} - ${reason}`);
         
