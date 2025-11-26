@@ -258,7 +258,7 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
       }
     }
     
-    // If there's an incomplete subscription with Stripe ID, try to reuse it
+    // If there's an incomplete subscription with Stripe ID, check if we can reuse it
     if (existingSubscription?.stripeSubscriptionId && existingSubscription.status === 'incomplete') {
       try {
         const existingStripeSubscription = await stripe.subscriptions.retrieve(
@@ -266,9 +266,21 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
           { expand: ['pending_setup_intent', 'latest_invoice.payment_intent'] }
         );
         
-        // If the Stripe subscription is still valid, return its client secret
-        if (existingStripeSubscription.status === 'incomplete' || 
+        // Check if the existing subscription has a trial that shouldn't exist
+        // (i.e., user is not eligible for trial but subscription has one)
+        const existingHasTrial = existingStripeSubscription.trial_end !== null;
+        
+        if (existingHasTrial && !trialEligible) {
+          // Cancel this subscription - it has a trial but user shouldn't get one
+          console.log('[Billing] Canceling incomplete subscription with invalid trial:', existingSubscription.stripeSubscriptionId);
+          await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
+          await communitiesStorage.updateSubscriptionStatus(existingSubscription.id, 'canceled', {
+            canceledAt: new Date().toISOString() as any
+          });
+          // Continue to create a new subscription without trial below
+        } else if (existingStripeSubscription.status === 'incomplete' || 
             existingStripeSubscription.status === 'trialing') {
+          // Subscription is valid and matches trial eligibility - reuse it
           let clientSecret: string | null = null;
           
           if (existingStripeSubscription.pending_setup_intent) {
@@ -285,6 +297,7 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
             const trialEndDate = existingStripeSubscription.trial_end 
               ? new Date(existingStripeSubscription.trial_end * 1000) 
               : null;
+            console.log('[Billing] Reusing existing subscription:', existingStripeSubscription.id);
             return res.json({
               ok: true,
               clientSecret,
