@@ -173,14 +173,21 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
     }
 
     // Check if organizer has already used a trial (across all their communities)
+    // A trial is considered "used" if ANY subscription exists with:
+    // - A Stripe subscription ID (they went through checkout process)
+    // - OR trial dates set
+    // - OR any status indicating a subscription was started
     const organizerSubscriptions = await communitiesStorage.getSubscriptionByOrganizer(organizer.id);
     const hasUsedTrial = organizerSubscriptions.some(sub => 
+      sub.stripeSubscriptionId !== null ||  // Has gone through Stripe checkout
       sub.trialEnd !== null || 
       sub.trialStart !== null ||
       sub.status === 'trialing' ||
       sub.status === 'active' ||
       sub.status === 'ended' ||
-      sub.status === 'canceled'
+      sub.status === 'canceled' ||
+      sub.status === 'incomplete' ||  // Started checkout process
+      sub.status === 'incomplete_expired'
     );
     const trialEligible = !hasUsedTrial;
     
