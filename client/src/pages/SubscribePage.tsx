@@ -1,12 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useRoute } from 'wouter';
 import { Helmet } from 'react-helmet-async';
+import { loadStripe } from '@stripe/stripe-js';
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, CheckCircle, CreditCard, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
+import { Sparkles, CheckCircle, CreditCard, ArrowLeft, Loader2, AlertCircle, X } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
 
 interface Community {
   id: string;
@@ -35,16 +39,16 @@ interface Subscription {
 export default function SubscribePage() {
   const [, params] = useRoute('/subscribe/:communityId');
   const [, navigate] = useLocation();
-  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const communityId = params?.communityId;
 
-  // Fetch community details by ID (requires auth)
   const { data: communityData, isLoading: isLoadingCommunity } = useQuery<{ ok: boolean; community: Community }>({
     queryKey: [`/api/communities/id/${communityId}`],
     enabled: !!communityId,
   });
 
-  // Fetch subscription status
   const { data: subscriptionData, isLoading: isLoadingSubscription } = useQuery<{ 
     ok: boolean; 
     subscription: Subscription | null;
@@ -56,10 +60,7 @@ export default function SubscribePage() {
   const community = communityData?.community;
   const subscription = subscriptionData?.subscription;
 
-  // Redirect if subscription is fully active with valid Stripe setup
   useEffect(() => {
-    // Only redirect if truly active (status = active AND has full Stripe setup AND not trialing)
-    // This ensures users with incomplete setup can still complete checkout
     if (subscription && 
         subscription.status === 'active' && 
         subscription.hasStripeCustomer &&
@@ -74,67 +75,72 @@ export default function SubscribePage() {
     }
   }, [subscription, community, navigate]);
 
-  const handleSubscribe = async () => {
-    if (!communityId) return;
+  const fetchClientSecret = useCallback(async (): Promise<string> => {
+    if (!communityId) {
+      throw new Error('Community ID is required');
+    }
+    
+    const authToken = localStorage.getItem('community_auth_token');
+    if (!authToken) {
+      throw new Error('Please log in to subscribe');
+    }
 
-    setIsCheckingOut(true);
-    try {
-      // Get auth token from localStorage
-      const authToken = localStorage.getItem('community_auth_token');
-      if (!authToken) {
-        throw new Error('Please log in to subscribe');
-      }
-
-      const headers: Record<string, string> = {
+    const response = await fetch('/api/billing/create-checkout', {
+      method: 'POST',
+      headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`,
-      };
+      },
+      body: JSON.stringify({ communityId, embedded: true }),
+      credentials: 'include',
+    });
 
-      const response = await fetch('/api/billing/create-checkout', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ communityId }),
-        credentials: 'include',
-      });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to create checkout session');
+    }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create checkout session');
+    const data = await response.json();
+    
+    if (!data.clientSecret) {
+      throw new Error('Unable to initialize payment form. Please try again.');
+    }
+    
+    return data.clientSecret;
+  }, [communityId]);
+
+  const handleStartCheckout = async () => {
+    setIsLoading(true);
+    try {
+      const secret = await fetchClientSecret();
+      
+      // Validate the secret before showing checkout
+      if (!secret || typeof secret !== 'string' || secret.length === 0) {
+        throw new Error('Unable to initialize payment form. Please try again.');
       }
-
-      const data = await response.json();
-
-      if (data.checkoutUrl) {
-        // Redirect to Stripe Checkout
-        window.location.href = data.checkoutUrl;
-      } else {
-        throw new Error('No checkout URL returned');
-      }
+      
+      setClientSecret(secret);
+      setShowCheckout(true);
     } catch (error: any) {
       console.error('Checkout error:', error);
       toast({
         title: 'Checkout Failed',
-        description: error.message || 'Failed to start checkout process. Please try again.',
+        description: error.message || 'Failed to start checkout. Please try again.',
         variant: 'destructive',
       });
-      setIsCheckingOut(false);
+      // Reset states on error
+      setClientSecret(null);
+      setShowCheckout(false);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Get subscription state from backend
   const subscriptionState = subscription?.subscriptionState || 'none';
-  
-  // Use platform trial days if on platform trial, otherwise stripe trial days
   const platformTrialDaysRemaining = subscription?.platformTrialDaysRemaining ?? 0;
   const stripeTrialDaysRemaining = subscription?.trialDaysRemaining ?? 0;
-  
-  // Check if subscription needs payment setup
-  const needsPaymentSetup = subscriptionState === 'platform_trial' || subscriptionState === 'ended' || subscriptionState === 'none';
-  
-  // Determine if we should show trial information
   const showPlatformTrialInfo = subscriptionState === 'platform_trial';
   const showStripeTrialInfo = subscriptionState === 'stripe_trial';
-  // Show trial expired only when backend state is 'ended' - this is the single source of truth
   const showTrialExpiredInfo = subscriptionState === 'ended';
 
   if (isLoadingCommunity || isLoadingSubscription) {
@@ -166,6 +172,70 @@ export default function SubscribePage() {
     );
   }
 
+  if (showCheckout && clientSecret) {
+    return (
+      <>
+        <Helmet>
+          <title>Complete Payment - {community.name} | Jugnu</title>
+        </Helmet>
+        <div className="min-h-screen bg-gradient-to-br from-bg via-bg-secondary to-bg py-8 px-4">
+          <div className="max-w-3xl mx-auto">
+            <div className="flex items-center justify-between mb-6">
+              <Button
+                variant="ghost"
+                onClick={() => setShowCheckout(false)}
+                className="text-white/70 hover:text-white"
+                data-testid="button-back-to-plan"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Plan Details
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowCheckout(false)}
+                className="text-white/70 hover:text-white"
+                data-testid="button-close-checkout"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+
+            <Card className="premium-surface-elevated overflow-hidden">
+              <CardHeader className="border-b border-white/10 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-copper-500/20">
+                    <CreditCard className="w-5 h-5 text-copper-400" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-xl text-white">Complete Your Subscription</CardTitle>
+                    <CardDescription className="text-white/60">
+                      Subscribing to {community.name} - $50 CAD/month
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="bg-white rounded-b-lg" data-testid="embedded-checkout-container">
+                  <EmbeddedCheckoutProvider
+                    stripe={stripePromise}
+                    options={{ clientSecret }}
+                  >
+                    <EmbeddedCheckout />
+                  </EmbeddedCheckoutProvider>
+                </div>
+              </CardContent>
+            </Card>
+
+            <p className="text-center text-sm text-white/50 mt-4">
+              Secure payment powered by Stripe. Your subscription includes a 14-day free trial.
+            </p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <Helmet>
@@ -178,7 +248,6 @@ export default function SubscribePage() {
 
       <div className="min-h-screen bg-gradient-to-br from-bg via-bg-secondary to-bg py-12 px-4">
         <div className="max-w-4xl mx-auto">
-          {/* Back Button */}
           <Button
             variant="ghost"
             onClick={() => navigate(`/communities/${community.slug}/settings`)}
@@ -189,7 +258,6 @@ export default function SubscribePage() {
             Back to Settings
           </Button>
 
-          {/* Platform Trial Banner - No payment set up yet */}
           {showPlatformTrialInfo && (
             <Card className="mb-6 border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-amber-600/10" data-testid="card-trial-banner">
               <CardContent className="pt-6">
@@ -214,7 +282,6 @@ export default function SubscribePage() {
             </Card>
           )}
           
-          {/* Stripe Trial Banner - Payment set up, in Stripe trial period */}
           {showStripeTrialInfo && (
             <Card className="mb-6 border-jade-500/30 bg-gradient-to-r from-jade-500/10 to-jade-600/10" data-testid="card-stripe-trial-banner">
               <CardContent className="pt-6">
@@ -233,7 +300,6 @@ export default function SubscribePage() {
             </Card>
           )}
           
-          {/* Trial Expired Banner */}
           {showTrialExpiredInfo && (
             <Card className="mb-6 border-red-500/30 bg-gradient-to-r from-red-500/10 to-red-600/10" data-testid="card-trial-expired-banner">
               <CardContent className="pt-6">
@@ -252,7 +318,6 @@ export default function SubscribePage() {
             </Card>
           )}
 
-          {/* Subscription Plan Card */}
           <Card className="premium-surface-elevated">
             <CardHeader className="text-center border-b border-white/10 pb-6">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-copper-500/20 mb-4 mx-auto">
@@ -267,7 +332,6 @@ export default function SubscribePage() {
             </CardHeader>
 
             <CardContent className="pt-6">
-              {/* Pricing */}
               <div className="text-center mb-8">
                 <div className="flex items-baseline justify-center gap-2 mb-2">
                   <span className="text-5xl font-bold text-white">$50</span>
@@ -278,7 +342,6 @@ export default function SubscribePage() {
                 </Badge>
               </div>
 
-              {/* Features */}
               <div className="space-y-4 mb-8">
                 <h3 className="font-semibold text-white text-lg mb-4">What's Included:</h3>
                 
@@ -301,7 +364,6 @@ export default function SubscribePage() {
                 </div>
               </div>
 
-              {/* Value Comparison */}
               <div className="p-4 rounded-lg bg-white/[0.03] border border-white/10 mb-8">
                 <h4 className="font-semibold text-white mb-3">Why Jugnu?</h4>
                 <div className="space-y-2 text-sm">
@@ -320,17 +382,16 @@ export default function SubscribePage() {
                 </div>
               </div>
 
-              {/* CTA Button */}
               <Button
-                onClick={handleSubscribe}
-                disabled={isCheckingOut}
+                onClick={handleStartCheckout}
+                disabled={isLoading}
                 className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold text-lg py-6"
                 data-testid="button-subscribe"
               >
-                {isCheckingOut ? (
+                {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Redirecting to checkout...
+                    Preparing checkout...
                   </>
                 ) : (
                   <>
@@ -340,14 +401,12 @@ export default function SubscribePage() {
                 )}
               </Button>
 
-              {/* Fine Print */}
               <p className="text-center text-sm text-white/50 mt-4">
                 Secure payment powered by Stripe. Cancel anytime.
               </p>
             </CardContent>
           </Card>
 
-          {/* FAQ */}
           <Card className="mt-6 premium-surface">
             <CardHeader>
               <CardTitle className="text-white">Common Questions</CardTitle>

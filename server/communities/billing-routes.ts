@@ -150,10 +150,11 @@ async function getOrCreateCommunityPrice(): Promise<string> {
 /**
  * POST /api/billing/create-checkout
  * Create a Stripe checkout session for individual community subscription
+ * Supports both embedded mode (ui_mode: 'embedded') and redirect mode
  */
 router.post('/create-checkout', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { communityId } = req.body;
+    const { communityId, embedded } = req.body;
     const user = (req as any).user;
 
     // Validate input
@@ -230,32 +231,64 @@ router.post('/create-checkout', requireAuth, async (req: Request, res: Response)
       userId: user.id
     };
 
-    // Create Stripe checkout session
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      payment_method_types: ['card'],
-      line_items: [{
-        price: priceId,
-        quantity: 1
-      }],
-      mode: 'subscription',
-      success_url: `${process.env.VITE_APP_URL || 'http://localhost:5000'}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.VITE_APP_URL || 'http://localhost:5000'}/billing/cancelled`,
-      metadata,
-      subscription_data: {
-        trial_period_days: 14,
-        metadata
-      },
-      customer_update: {
-        address: 'auto'
-      }
-    });
+    const baseUrl = process.env.VITE_APP_URL || 'http://localhost:5000';
 
-    res.json({
-      ok: true,
-      checkoutUrl: session.url,
-      sessionId: session.id
-    });
+    // Create Stripe checkout session - embedded or redirect mode
+    if (embedded) {
+      // Embedded mode - displays checkout form directly on your page
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [{
+          price: priceId,
+          quantity: 1
+        }],
+        mode: 'subscription',
+        ui_mode: 'embedded',
+        return_url: `${baseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+        metadata,
+        subscription_data: {
+          trial_period_days: 14,
+          metadata
+        },
+        customer_update: {
+          address: 'auto'
+        }
+      });
+
+      res.json({
+        ok: true,
+        clientSecret: session.client_secret,
+        sessionId: session.id
+      });
+    } else {
+      // Redirect mode - opens Stripe hosted checkout in new tab/window
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [{
+          price: priceId,
+          quantity: 1
+        }],
+        mode: 'subscription',
+        success_url: `${baseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/billing/cancelled`,
+        metadata,
+        subscription_data: {
+          trial_period_days: 14,
+          metadata
+        },
+        customer_update: {
+          address: 'auto'
+        }
+      });
+
+      res.json({
+        ok: true,
+        checkoutUrl: session.url,
+        sessionId: session.id
+      });
+    }
   } catch (error: any) {
     console.error('Create checkout session error:', error);
     res.status(500).json({ ok: false, error: error.message || 'Failed to create checkout session' });
@@ -666,7 +699,9 @@ router.post('/cancel-subscription', requireAuth, async (req: Request, res: Respo
       });
       
       // Get the period end date for grace period
-      accessExpiresAt = new Date(updatedSub.current_period_end * 1000);
+      // Type assertion needed as Stripe types may not expose current_period_end directly
+      const periodEnd = (updatedSub as any).current_period_end;
+      accessExpiresAt = new Date(periodEnd * 1000);
       
       // Update subscription with cancelAt (NOT status) - keeps it active until period end
       // Status will be changed to 'canceled' by webhook when Stripe actually cancels it
