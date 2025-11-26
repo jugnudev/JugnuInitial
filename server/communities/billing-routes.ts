@@ -317,13 +317,32 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
         clientSecret = paymentIntent.client_secret;
       }
     }
+    
+    // If no client secret was returned (can happen with trials), 
+    // we need to create a SetupIntent to collect payment method
+    if (!clientSecret && trialEligible) {
+      console.log('[Billing] No SetupIntent from subscription, creating one manually');
+      const setupIntent = await stripe.setupIntents.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        usage: 'off_session',
+        metadata: {
+          subscriptionId: subscription.id,
+          communityId,
+          userId: user.id
+        }
+      });
+      clientSecret = setupIntent.client_secret;
+    }
 
     // Always persist the subscription info to our database immediately
     const trialEndDate = subscription.trial_end ? new Date(subscription.trial_end * 1000) : null;
     
+    // IMPORTANT: Status should ALWAYS be 'incomplete' until payment method is confirmed
+    // The subscription will be updated to 'trialing' or 'active' only after confirm-subscription
     if (existingSubscription) {
       await communitiesStorage.updateSubscriptionStatus(existingSubscription.id, 
-        clientSecret ? 'incomplete' : 'trialing', 
+        'incomplete', 
         {
           stripeSubscriptionId: subscription.id,
           stripeCustomerId: customerId,
@@ -335,20 +354,19 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
       await communitiesStorage.createSubscription({
         communityId,
         organizerId: organizer.id,
-        status: clientSecret ? 'incomplete' : 'trialing',
+        status: 'incomplete',
         stripeSubscriptionId: subscription.id,
         stripeCustomerId: customerId,
         trialEnd: trialEndDate
       });
     }
 
+    // We should ALWAYS have a clientSecret at this point
     if (!clientSecret) {
-      return res.json({
-        ok: true,
-        subscriptionId: subscription.id,
-        status: subscription.status,
-        trialEligible,
-        message: trialEligible ? 'Subscription activated with trial period' : 'Subscription activated'
+      console.error('[Billing] Failed to get client secret for subscription');
+      return res.status(500).json({
+        ok: false,
+        error: 'Failed to initialize payment setup'
       });
     }
 
