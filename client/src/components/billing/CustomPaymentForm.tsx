@@ -78,12 +78,24 @@ const stripeAppearance: Appearance = {
 
 interface PaymentFormProps {
   clientSecret: string;
+  communityId: string;
   communityName: string;
+  subscriptionId: string;
+  trialEndDate?: string;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-function CheckoutForm({ communityName, onSuccess, onCancel }: Omit<PaymentFormProps, 'clientSecret'>) {
+interface CheckoutFormProps {
+  communityName: string;
+  communityId: string;
+  subscriptionId: string;
+  trialEndDate?: string;
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+function CheckoutForm({ communityName, communityId, subscriptionId, trialEndDate, onSuccess, onCancel }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -117,6 +129,22 @@ function CheckoutForm({ communityName, onSuccess, onCancel }: Omit<PaymentFormPr
         }
         setIsProcessing(false);
       } else {
+        // Confirm subscription status with backend
+        try {
+          const authToken = localStorage.getItem('community_auth_token');
+          await fetch('/api/billing/confirm-subscription', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`,
+            },
+            body: JSON.stringify({ communityId, subscriptionId }),
+            credentials: 'include',
+          });
+        } catch (confirmErr) {
+          console.error('Error confirming subscription:', confirmErr);
+        }
+        
         toast({
           title: 'Payment Method Saved!',
           description: 'Your subscription is now active with a 14-day free trial.',
@@ -149,7 +177,10 @@ function CheckoutForm({ communityName, onSuccess, onCancel }: Omit<PaymentFormPr
             <span className="text-jade-400 font-medium text-sm">14-day free trial</span>
           </div>
           <p className="text-white/60 text-xs mt-1 ml-6">
-            Your card will be charged $50 CAD on December 10, 2025
+            {trialEndDate 
+              ? `Your card will be charged $50 CAD on ${new Date(trialEndDate).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}`
+              : 'Your card will be charged $50 CAD after the 14-day trial ends'
+            }
           </p>
         </div>
 
@@ -220,7 +251,7 @@ function CheckoutForm({ communityName, onSuccess, onCancel }: Omit<PaymentFormPr
   );
 }
 
-export function CustomPaymentForm({ clientSecret, communityName, onSuccess, onCancel }: PaymentFormProps) {
+export function CustomPaymentForm({ clientSecret, communityId, communityName, subscriptionId, trialEndDate, onSuccess, onCancel }: PaymentFormProps) {
   const options: StripeElementsOptions = {
     clientSecret,
     appearance: stripeAppearance,
@@ -231,7 +262,10 @@ export function CustomPaymentForm({ clientSecret, communityName, onSuccess, onCa
       <CardContent className="pt-6">
         <Elements stripe={stripePromise} options={options}>
           <CheckoutForm 
-            communityName={communityName} 
+            communityId={communityId}
+            communityName={communityName}
+            subscriptionId={subscriptionId}
+            trialEndDate={trialEndDate}
             onSuccess={onSuccess} 
             onCancel={onCancel}
           />
@@ -255,6 +289,8 @@ export function CustomPaymentFormWrapper({
   onCancel 
 }: CustomPaymentFormWrapperProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
+  const [trialEndDate, setTrialEndDate] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -285,6 +321,10 @@ export function CustomPaymentFormWrapper({
         
         if (data.clientSecret) {
           setClientSecret(data.clientSecret);
+          setSubscriptionId(data.subscriptionId);
+          if (data.trialEnd) {
+            setTrialEndDate(data.trialEnd);
+          }
         } else if (data.status === 'trialing') {
           toast({
             title: 'Subscription Activated',
@@ -347,14 +387,17 @@ export function CustomPaymentFormWrapper({
     );
   }
 
-  if (!clientSecret) {
+  if (!clientSecret || !subscriptionId) {
     return null;
   }
 
   return (
     <CustomPaymentForm
       clientSecret={clientSecret}
+      communityId={communityId}
       communityName={communityName}
+      subscriptionId={subscriptionId}
+      trialEndDate={trialEndDate}
       onSuccess={onSuccess}
       onCancel={onCancel}
     />

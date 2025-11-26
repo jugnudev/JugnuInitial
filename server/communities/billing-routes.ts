@@ -174,13 +174,55 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
 
     // Check existing subscription
     const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
-    if (existingSubscription?.stripeSubscriptionId && existingSubscription.status !== 'canceled') {
+    
+    // If there's an active or trialing subscription with Stripe, don't create a new one
+    if (existingSubscription?.stripeSubscriptionId && 
+        (existingSubscription.status === 'active' || existingSubscription.status === 'trialing')) {
       return res.status(400).json({ 
         ok: false, 
-        error: existingSubscription.status === 'active' 
-          ? 'Community already has an active subscription' 
-          : 'Community has a subscription that needs attention'
+        error: 'Community already has an active subscription'
       });
+    }
+    
+    // If there's an incomplete subscription with Stripe ID, try to reuse it
+    if (existingSubscription?.stripeSubscriptionId && existingSubscription.status === 'incomplete') {
+      try {
+        const existingStripeSubscription = await stripe.subscriptions.retrieve(
+          existingSubscription.stripeSubscriptionId,
+          { expand: ['pending_setup_intent', 'latest_invoice.payment_intent'] }
+        );
+        
+        // If the Stripe subscription is still valid, return its client secret
+        if (existingStripeSubscription.status === 'incomplete' || 
+            existingStripeSubscription.status === 'trialing') {
+          let clientSecret: string | null = null;
+          
+          if (existingStripeSubscription.pending_setup_intent) {
+            const setupIntent = existingStripeSubscription.pending_setup_intent as Stripe.SetupIntent;
+            clientSecret = setupIntent.client_secret;
+          } else if (existingStripeSubscription.latest_invoice) {
+            const invoice = existingStripeSubscription.latest_invoice as any;
+            if (invoice.payment_intent?.client_secret) {
+              clientSecret = invoice.payment_intent.client_secret;
+            }
+          }
+          
+          if (clientSecret) {
+            const trialEndDate = existingStripeSubscription.trial_end 
+              ? new Date(existingStripeSubscription.trial_end * 1000) 
+              : null;
+            return res.json({
+              ok: true,
+              clientSecret,
+              subscriptionId: existingStripeSubscription.id,
+              customerId: existingSubscription.stripeCustomerId,
+              trialEnd: trialEndDate?.toISOString()
+            });
+          }
+        }
+      } catch (err: any) {
+        console.log('Could not reuse existing subscription, creating new one:', err.message);
+      }
     }
 
     // Get or create Stripe customer
@@ -236,17 +278,31 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
       }
     }
 
-    if (!clientSecret) {
-      // Subscription was created successfully (likely immediate trial activation)
-      // Update our database with the subscription info
-      if (existingSubscription) {
-        await communitiesStorage.updateSubscriptionStatus(existingSubscription.id, 'trialing', {
+    // Always persist the subscription info to our database immediately
+    const trialEndDate = subscription.trial_end ? new Date(subscription.trial_end * 1000) : null;
+    
+    if (existingSubscription) {
+      await communitiesStorage.updateSubscriptionStatus(existingSubscription.id, 
+        clientSecret ? 'incomplete' : 'trialing', 
+        {
           stripeSubscriptionId: subscription.id,
           stripeCustomerId: customerId,
-          trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null
-        });
-      }
-      
+          trialEnd: trialEndDate
+        }
+      );
+    } else {
+      // Create new subscription record if one doesn't exist
+      await communitiesStorage.createSubscription({
+        communityId,
+        organizerId: organizer.id,
+        status: clientSecret ? 'incomplete' : 'trialing',
+        stripeSubscriptionId: subscription.id,
+        stripeCustomerId: customerId,
+        trialEnd: trialEndDate
+      });
+    }
+
+    if (!clientSecret) {
       return res.json({
         ok: true,
         subscriptionId: subscription.id,
@@ -259,11 +315,81 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
       ok: true,
       clientSecret,
       subscriptionId: subscription.id,
-      customerId
+      customerId,
+      trialEnd: trialEndDate?.toISOString()
     });
   } catch (error: any) {
     console.error('Create subscription intent error:', error);
     res.status(500).json({ ok: false, error: error.message || 'Failed to create subscription' });
+  }
+});
+
+/**
+ * POST /api/billing/confirm-subscription
+ * Called after SetupIntent is confirmed to sync subscription status from Stripe
+ */
+router.post('/confirm-subscription', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { communityId, subscriptionId } = req.body;
+    const user = (req as any).user;
+
+    if (!communityId || !subscriptionId) {
+      return res.status(400).json({ ok: false, error: 'Community ID and Subscription ID required' });
+    }
+
+    // Verify community ownership
+    const community = await communitiesStorage.getCommunityById(communityId);
+    if (!community) {
+      return res.status(404).json({ ok: false, error: 'Community not found' });
+    }
+
+    const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+    if (!organizer || community.organizerId !== organizer.id) {
+      return res.status(403).json({ ok: false, error: 'Only community owners can manage billing' });
+    }
+
+    // Fetch latest subscription status from Stripe
+    const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+    
+    // Get our subscription record
+    const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
+    if (!existingSubscription) {
+      return res.status(404).json({ ok: false, error: 'Subscription record not found' });
+    }
+
+    // Update status based on Stripe's status
+    let newStatus = existingSubscription.status;
+    if (stripeSubscription.status === 'trialing') {
+      newStatus = 'trialing';
+    } else if (stripeSubscription.status === 'active') {
+      newStatus = 'active';
+    } else if (stripeSubscription.status === 'incomplete') {
+      newStatus = 'incomplete';
+    }
+
+    // Update the subscription record
+    await communitiesStorage.updateSubscriptionStatus(existingSubscription.id, newStatus, {
+      stripeSubscriptionId: stripeSubscription.id,
+      trialEnd: stripeSubscription.trial_end 
+        ? new Date(stripeSubscription.trial_end * 1000) 
+        : null
+    });
+
+    // Update community visibility if subscription is now active/trialing
+    if (newStatus === 'trialing' || newStatus === 'active') {
+      await communitiesStorage.updateCommunity(communityId, {
+        isDraft: false
+      });
+    }
+
+    res.json({
+      ok: true,
+      status: newStatus,
+      message: `Subscription is now ${newStatus}`
+    });
+  } catch (error: any) {
+    console.error('Confirm subscription error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to confirm subscription' });
   }
 });
 
