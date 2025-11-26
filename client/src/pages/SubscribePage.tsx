@@ -1,16 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useLocation, useRoute } from 'wouter';
 import { Helmet } from 'react-helmet-async';
-import { loadStripe } from '@stripe/stripe-js';
-import { EmbeddedCheckoutProvider, EmbeddedCheckout } from '@stripe/react-stripe-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, CheckCircle, CreditCard, ArrowLeft, Loader2, AlertCircle, X } from 'lucide-react';
+import { Sparkles, CheckCircle, CreditCard, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
+import { CustomPaymentFormWrapper } from '@/components/billing/CustomPaymentForm';
 
 interface Community {
   id: string;
@@ -39,9 +36,7 @@ interface Subscription {
 export default function SubscribePage() {
   const [, params] = useRoute('/subscribe/:communityId');
   const [, navigate] = useLocation();
-  const [showCheckout, setShowCheckout] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [showPaymentForm, setShowPaymentForm] = useState(false);
   const communityId = params?.communityId;
 
   const { data: communityData, isLoading: isLoadingCommunity } = useQuery<{ ok: boolean; community: Community }>({
@@ -49,7 +44,7 @@ export default function SubscribePage() {
     enabled: !!communityId,
   });
 
-  const { data: subscriptionData, isLoading: isLoadingSubscription } = useQuery<{ 
+  const { data: subscriptionData, isLoading: isLoadingSubscription, refetch: refetchSubscription } = useQuery<{ 
     ok: boolean; 
     subscription: Subscription | null;
   }>({
@@ -75,64 +70,10 @@ export default function SubscribePage() {
     }
   }, [subscription, community, navigate]);
 
-  const fetchClientSecret = useCallback(async (): Promise<string> => {
-    if (!communityId) {
-      throw new Error('Community ID is required');
-    }
-    
-    const authToken = localStorage.getItem('community_auth_token');
-    if (!authToken) {
-      throw new Error('Please log in to subscribe');
-    }
-
-    const response = await fetch('/api/billing/create-checkout', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${authToken}`,
-      },
-      body: JSON.stringify({ communityId, embedded: true }),
-      credentials: 'include',
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to create checkout session');
-    }
-
-    const data = await response.json();
-    
-    if (!data.clientSecret) {
-      throw new Error('Unable to initialize payment form. Please try again.');
-    }
-    
-    return data.clientSecret;
-  }, [communityId]);
-
-  const handleStartCheckout = async () => {
-    setIsLoading(true);
-    try {
-      const secret = await fetchClientSecret();
-      
-      // Validate the secret before showing checkout
-      if (!secret || typeof secret !== 'string' || secret.length === 0) {
-        throw new Error('Unable to initialize payment form. Please try again.');
-      }
-      
-      setClientSecret(secret);
-      setShowCheckout(true);
-    } catch (error: any) {
-      console.error('Checkout error:', error);
-      toast({
-        title: 'Checkout Failed',
-        description: error.message || 'Failed to start checkout. Please try again.',
-        variant: 'destructive',
-      });
-      // Reset states on error
-      setClientSecret(null);
-      setShowCheckout(false);
-    } finally {
-      setIsLoading(false);
+  const handlePaymentSuccess = () => {
+    refetchSubscription();
+    if (community?.slug) {
+      navigate(`/communities/${community.slug}/settings`);
     }
   };
 
@@ -172,64 +113,30 @@ export default function SubscribePage() {
     );
   }
 
-  if (showCheckout && clientSecret) {
+  if (showPaymentForm) {
     return (
       <>
         <Helmet>
           <title>Complete Payment - {community.name} | Jugnu</title>
         </Helmet>
-        <div className="min-h-screen bg-gradient-to-br from-bg via-bg-secondary to-bg py-8 px-4">
-          <div className="max-w-3xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
-              <Button
-                variant="ghost"
-                onClick={() => setShowCheckout(false)}
-                className="text-white/70 hover:text-white"
-                data-testid="button-back-to-plan"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Plan Details
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowCheckout(false)}
-                className="text-white/70 hover:text-white"
-                data-testid="button-close-checkout"
-              >
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
+        <div className="min-h-screen bg-gradient-to-br from-bg via-bg-secondary to-bg py-12 px-4">
+          <div className="max-w-lg mx-auto">
+            <Button
+              variant="ghost"
+              onClick={() => setShowPaymentForm(false)}
+              className="mb-6 text-white/70 hover:text-white"
+              data-testid="button-back-to-plan"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Plan Details
+            </Button>
 
-            <Card className="premium-surface-elevated overflow-hidden">
-              <CardHeader className="border-b border-white/10 pb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-full bg-copper-500/20">
-                    <CreditCard className="w-5 h-5 text-copper-400" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl text-white">Complete Your Subscription</CardTitle>
-                    <CardDescription className="text-white/60">
-                      Subscribing to {community.name} - $50 CAD/month
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="bg-white rounded-b-lg" data-testid="embedded-checkout-container">
-                  <EmbeddedCheckoutProvider
-                    stripe={stripePromise}
-                    options={{ clientSecret }}
-                  >
-                    <EmbeddedCheckout />
-                  </EmbeddedCheckoutProvider>
-                </div>
-              </CardContent>
-            </Card>
-
-            <p className="text-center text-sm text-white/50 mt-4">
-              Secure payment powered by Stripe. Your subscription includes a 14-day free trial.
-            </p>
+            <CustomPaymentFormWrapper
+              communityId={community.id}
+              communityName={community.name}
+              onSuccess={handlePaymentSuccess}
+              onCancel={() => setShowPaymentForm(false)}
+            />
           </div>
         </div>
       </>
@@ -383,22 +290,12 @@ export default function SubscribePage() {
               </div>
 
               <Button
-                onClick={handleStartCheckout}
-                disabled={isLoading}
+                onClick={() => setShowPaymentForm(true)}
                 className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold text-lg py-6"
                 data-testid="button-subscribe"
               >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Preparing checkout...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="w-5 h-5 mr-2" />
-                    Subscribe for $50/month
-                  </>
-                )}
+                <CreditCard className="w-5 h-5 mr-2" />
+                Subscribe for $50/month
               </Button>
 
               <p className="text-center text-sm text-white/50 mt-4">

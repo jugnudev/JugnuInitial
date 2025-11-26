@@ -148,6 +148,126 @@ async function getOrCreateCommunityPrice(): Promise<string> {
 }
 
 /**
+ * POST /api/billing/create-subscription-intent
+ * Create a subscription with a payment intent for custom Stripe Elements integration
+ * Returns client secret for PaymentElement
+ */
+router.post('/create-subscription-intent', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { communityId } = req.body;
+    const user = (req as any).user;
+
+    if (!communityId) {
+      return res.status(400).json({ ok: false, error: 'Community ID required' });
+    }
+
+    // Verify community ownership
+    const community = await communitiesStorage.getCommunityById(communityId);
+    if (!community) {
+      return res.status(404).json({ ok: false, error: 'Community not found' });
+    }
+
+    const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+    if (!organizer || community.organizerId !== organizer.id) {
+      return res.status(403).json({ ok: false, error: 'Only community owners can manage billing' });
+    }
+
+    // Check existing subscription
+    const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
+    if (existingSubscription?.stripeSubscriptionId && existingSubscription.status !== 'canceled') {
+      return res.status(400).json({ 
+        ok: false, 
+        error: existingSubscription.status === 'active' 
+          ? 'Community already has an active subscription' 
+          : 'Community has a subscription that needs attention'
+      });
+    }
+
+    // Get or create Stripe customer
+    let customerId: string;
+    const existingCustomer = await stripe.customers.list({ email: user.email, limit: 1 });
+    
+    if (existingCustomer.data.length > 0) {
+      customerId = existingCustomer.data[0].id;
+    } else {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        metadata: { userId: user.id, communityId }
+      });
+      customerId = customer.id;
+    }
+
+    // Get the price ID
+    const priceId = await getOrCreateCommunityPrice();
+
+    // Create subscription with payment_behavior: 'default_incomplete'
+    // This creates the subscription but waits for payment confirmation
+    const subscription = await stripe.subscriptions.create({
+      customer: customerId,
+      items: [{ price: priceId }],
+      payment_behavior: 'default_incomplete',
+      payment_settings: { 
+        save_default_payment_method: 'on_subscription',
+        payment_method_types: ['card']
+      },
+      expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
+      trial_period_days: 14,
+      metadata: {
+        type: 'individual',
+        communityId,
+        userId: user.id
+      }
+    });
+
+    // Get the client secret from either the payment intent or setup intent
+    let clientSecret: string | null = null;
+    
+    // During trial, Stripe uses a SetupIntent instead of PaymentIntent
+    if (subscription.pending_setup_intent) {
+      const setupIntent = subscription.pending_setup_intent as Stripe.SetupIntent;
+      clientSecret = setupIntent.client_secret;
+    } else if (subscription.latest_invoice) {
+      // Access payment_intent via type assertion since it's expanded
+      const invoice = subscription.latest_invoice as any;
+      const paymentIntent = invoice.payment_intent;
+      if (paymentIntent?.client_secret) {
+        clientSecret = paymentIntent.client_secret;
+      }
+    }
+
+    if (!clientSecret) {
+      // Subscription was created successfully (likely immediate trial activation)
+      // Update our database with the subscription info
+      if (existingSubscription) {
+        await communitiesStorage.updateSubscriptionStatus(existingSubscription.id, 'trialing', {
+          stripeSubscriptionId: subscription.id,
+          stripeCustomerId: customerId,
+          trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null
+        });
+      }
+      
+      return res.json({
+        ok: true,
+        subscriptionId: subscription.id,
+        status: subscription.status,
+        message: 'Subscription activated with trial period'
+      });
+    }
+
+    res.json({
+      ok: true,
+      clientSecret,
+      subscriptionId: subscription.id,
+      customerId
+    });
+  } catch (error: any) {
+    console.error('Create subscription intent error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to create subscription' });
+  }
+});
+
+/**
  * POST /api/billing/create-checkout
  * Create a Stripe checkout session for individual community subscription
  * Supports both embedded mode (ui_mode: 'embedded') and redirect mode
