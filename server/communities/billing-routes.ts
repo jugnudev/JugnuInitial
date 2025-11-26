@@ -343,23 +343,34 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
     // Get the client secret from either the payment intent or setup intent
     let clientSecret: string | null = null;
     
+    console.log('[Billing] Subscription created:', {
+      id: subscription.id,
+      status: subscription.status,
+      hasSetupIntent: !!subscription.pending_setup_intent,
+      hasLatestInvoice: !!subscription.latest_invoice
+    });
+    
     // During trial, Stripe uses a SetupIntent instead of PaymentIntent
     if (subscription.pending_setup_intent) {
       const setupIntent = subscription.pending_setup_intent as Stripe.SetupIntent;
       clientSecret = setupIntent.client_secret;
+      console.log('[Billing] Got client secret from pending_setup_intent');
     } else if (subscription.latest_invoice) {
       // Access payment_intent via type assertion since it's expanded
       const invoice = subscription.latest_invoice as any;
       const paymentIntent = invoice.payment_intent;
+      console.log('[Billing] Invoice payment_intent:', paymentIntent?.id, 'status:', paymentIntent?.status);
       if (paymentIntent?.client_secret) {
         clientSecret = paymentIntent.client_secret;
+        console.log('[Billing] Got client secret from latest_invoice.payment_intent');
       }
     }
     
-    // If no client secret was returned (can happen with trials), 
-    // we need to create a SetupIntent to collect payment method
-    if (!clientSecret && trialEligible) {
-      console.log('[Billing] No SetupIntent from subscription, creating one manually');
+    // If no client secret was returned, create a SetupIntent to collect payment method
+    // This handles both trials (where we need to collect a payment method for later)
+    // and immediate subscriptions that might not have a PaymentIntent ready
+    if (!clientSecret) {
+      console.log('[Billing] No client secret from subscription, creating SetupIntent manually');
       const setupIntent = await stripe.setupIntents.create({
         customer: customerId,
         payment_method_types: ['card'],
@@ -371,6 +382,7 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
         }
       });
       clientSecret = setupIntent.client_secret;
+      console.log('[Billing] Created manual SetupIntent with client secret');
     }
 
     // Always persist the subscription info to our database immediately
