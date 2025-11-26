@@ -172,6 +172,25 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
       return res.status(403).json({ ok: false, error: 'Only community owners can manage billing' });
     }
 
+    // Check if organizer has already used a trial (across all their communities)
+    const organizerSubscriptions = await communitiesStorage.getSubscriptionByOrganizer(organizer.id);
+    const hasUsedTrial = organizerSubscriptions.some(sub => 
+      sub.trialEnd !== null || 
+      sub.trialStart !== null ||
+      sub.status === 'trialing' ||
+      sub.status === 'active' ||
+      sub.status === 'ended' ||
+      sub.status === 'canceled'
+    );
+    const trialEligible = !hasUsedTrial;
+    
+    console.log('[Billing] Trial eligibility check:', { 
+      organizerId: organizer.id, 
+      hasUsedTrial, 
+      trialEligible,
+      subscriptionCount: organizerSubscriptions.length
+    });
+
     // Check existing subscription
     const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
     
@@ -216,7 +235,8 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
               clientSecret,
               subscriptionId: existingStripeSubscription.id,
               customerId: existingSubscription.stripeCustomerId,
-              trialEnd: trialEndDate?.toISOString()
+              trialEnd: trialEndDate?.toISOString(),
+              trialEligible: trialEndDate !== null // Has trial means they used it
             });
           }
         }
@@ -245,7 +265,8 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
 
     // Create subscription with payment_behavior: 'default_incomplete'
     // This creates the subscription but waits for payment confirmation
-    const subscription = await stripe.subscriptions.create({
+    // Only add trial period if user is eligible (hasn't used one before)
+    const subscriptionParams: any = {
       customer: customerId,
       items: [{ price: priceId }],
       payment_behavior: 'default_incomplete',
@@ -254,13 +275,22 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
         payment_method_types: ['card']
       },
       expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
-      trial_period_days: 14,
       metadata: {
         type: 'individual',
         communityId,
         userId: user.id
       }
-    });
+    };
+    
+    // Only add trial if eligible
+    if (trialEligible) {
+      subscriptionParams.trial_period_days = 14;
+      console.log('[Billing] Adding 14-day trial for new subscriber');
+    } else {
+      console.log('[Billing] Skipping trial - organizer has already used their trial');
+    }
+    
+    const subscription = await stripe.subscriptions.create(subscriptionParams);
 
     // Get the client secret from either the payment intent or setup intent
     let clientSecret: string | null = null;
@@ -307,7 +337,8 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
         ok: true,
         subscriptionId: subscription.id,
         status: subscription.status,
-        message: 'Subscription activated with trial period'
+        trialEligible,
+        message: trialEligible ? 'Subscription activated with trial period' : 'Subscription activated'
       });
     }
 
@@ -316,7 +347,8 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
       clientSecret,
       subscriptionId: subscription.id,
       customerId,
-      trialEnd: trialEndDate?.toISOString()
+      trialEnd: trialEndDate?.toISOString(),
+      trialEligible
     });
   } catch (error: any) {
     console.error('Create subscription intent error:', error);

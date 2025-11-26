@@ -82,6 +82,7 @@ interface PaymentFormProps {
   communityName: string;
   subscriptionId: string;
   trialEndDate?: string;
+  trialEligible: boolean;
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -91,11 +92,12 @@ interface CheckoutFormProps {
   communityId: string;
   subscriptionId: string;
   trialEndDate?: string;
+  trialEligible: boolean;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-function CheckoutForm({ communityName, communityId, subscriptionId, trialEndDate, onSuccess, onCancel }: CheckoutFormProps) {
+function CheckoutForm({ communityName, communityId, subscriptionId, trialEndDate, trialEligible, onSuccess, onCancel }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -113,17 +115,32 @@ function CheckoutForm({ communityName, communityId, subscriptionId, trialEndDate
     setErrorMessage(null);
 
     try {
-      const { error } = await stripe.confirmSetup({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/billing/success`,
-        },
-        redirect: 'if_required',
-      });
+      let confirmError: any = null;
+      
+      // Use confirmSetup for trial (SetupIntent) or confirmPayment for immediate billing (PaymentIntent)
+      if (trialEligible) {
+        const result = await stripe.confirmSetup({
+          elements,
+          confirmParams: {
+            return_url: `${window.location.origin}/billing/success`,
+          },
+          redirect: 'if_required',
+        });
+        confirmError = result.error;
+      } else {
+        const result = await stripe.confirmPayment({
+          elements,
+          confirmParams: {
+            return_url: `${window.location.origin}/billing/success`,
+          },
+          redirect: 'if_required',
+        });
+        confirmError = result.error;
+      }
 
-      if (error) {
-        if (error.type === 'card_error' || error.type === 'validation_error') {
-          setErrorMessage(error.message || 'Payment failed');
+      if (confirmError) {
+        if (confirmError.type === 'card_error' || confirmError.type === 'validation_error') {
+          setErrorMessage(confirmError.message || 'Payment failed');
         } else {
           setErrorMessage('An unexpected error occurred. Please try again.');
         }
@@ -146,8 +163,10 @@ function CheckoutForm({ communityName, communityId, subscriptionId, trialEndDate
         }
         
         toast({
-          title: 'Payment Method Saved!',
-          description: 'Your subscription is now active with a 14-day free trial.',
+          title: trialEligible ? 'Payment Method Saved!' : 'Subscription Activated!',
+          description: trialEligible 
+            ? 'Your subscription is now active with a 14-day free trial.'
+            : 'Your subscription is now active. You will be charged $50 CAD.',
         });
         onSuccess();
       }
@@ -171,18 +190,30 @@ function CheckoutForm({ communityName, communityId, subscriptionId, trialEndDate
           </div>
         </div>
 
-        <div className="p-4 rounded-lg bg-jade-500/10 border border-jade-500/30 mb-4">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-jade-400" />
-            <span className="text-jade-400 font-medium text-sm">14-day free trial</span>
+        {trialEligible ? (
+          <div className="p-4 rounded-lg bg-jade-500/10 border border-jade-500/30 mb-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-jade-400" />
+              <span className="text-jade-400 font-medium text-sm">14-day free trial</span>
+            </div>
+            <p className="text-white/60 text-xs mt-1 ml-6">
+              {trialEndDate 
+                ? `Your card will be charged $50 CAD on ${new Date(trialEndDate).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}`
+                : 'Your card will be charged $50 CAD after the 14-day trial ends'
+              }
+            </p>
           </div>
-          <p className="text-white/60 text-xs mt-1 ml-6">
-            {trialEndDate 
-              ? `Your card will be charged $50 CAD on ${new Date(trialEndDate).toLocaleDateString('en-CA', { year: 'numeric', month: 'long', day: 'numeric' })}`
-              : 'Your card will be charged $50 CAD after the 14-day trial ends'
-            }
-          </p>
-        </div>
+        ) : (
+          <div className="p-4 rounded-lg bg-copper-500/10 border border-copper-500/30 mb-4">
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-copper-400" />
+              <span className="text-copper-400 font-medium text-sm">Immediate billing</span>
+            </div>
+            <p className="text-white/60 text-xs mt-1 ml-6">
+              Your card will be charged $50 CAD now. Your trial has already been used.
+            </p>
+          </div>
+        )}
 
         <PaymentElement 
           onReady={() => setIsReady(true)}
@@ -223,10 +254,15 @@ function CheckoutForm({ communityName, communityId, subscriptionId, trialEndDate
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
               Loading...
             </>
-          ) : (
+          ) : trialEligible ? (
             <>
               <Shield className="w-5 h-5 mr-2" />
               Start Free Trial
+            </>
+          ) : (
+            <>
+              <CreditCard className="w-5 h-5 mr-2" />
+              Subscribe Now - $50/month
             </>
           )}
         </Button>
@@ -251,7 +287,7 @@ function CheckoutForm({ communityName, communityId, subscriptionId, trialEndDate
   );
 }
 
-export function CustomPaymentForm({ clientSecret, communityId, communityName, subscriptionId, trialEndDate, onSuccess, onCancel }: PaymentFormProps) {
+export function CustomPaymentForm({ clientSecret, communityId, communityName, subscriptionId, trialEndDate, trialEligible, onSuccess, onCancel }: PaymentFormProps) {
   const options: StripeElementsOptions = {
     clientSecret,
     appearance: stripeAppearance,
@@ -266,6 +302,7 @@ export function CustomPaymentForm({ clientSecret, communityId, communityName, su
             communityName={communityName}
             subscriptionId={subscriptionId}
             trialEndDate={trialEndDate}
+            trialEligible={trialEligible}
             onSuccess={onSuccess} 
             onCancel={onCancel}
           />
@@ -291,6 +328,7 @@ export function CustomPaymentFormWrapper({
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
   const [trialEndDate, setTrialEndDate] = useState<string | undefined>(undefined);
+  const [trialEligible, setTrialEligible] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -322,13 +360,16 @@ export function CustomPaymentFormWrapper({
         if (data.clientSecret) {
           setClientSecret(data.clientSecret);
           setSubscriptionId(data.subscriptionId);
+          setTrialEligible(data.trialEligible ?? true);
           if (data.trialEnd) {
             setTrialEndDate(data.trialEnd);
           }
-        } else if (data.status === 'trialing') {
+        } else if (data.status === 'trialing' || data.status === 'active') {
           toast({
-            title: 'Subscription Activated',
-            description: 'Your 14-day free trial has started!',
+            title: data.trialEligible ? 'Subscription Activated' : 'Subscription Activated!',
+            description: data.trialEligible 
+              ? 'Your 14-day free trial has started!'
+              : 'Your subscription is now active.',
           });
           onSuccess();
         } else {
@@ -398,6 +439,7 @@ export function CustomPaymentFormWrapper({
       communityName={communityName}
       subscriptionId={subscriptionId}
       trialEndDate={trialEndDate}
+      trialEligible={trialEligible}
       onSuccess={onSuccess}
       onCancel={onCancel}
     />
