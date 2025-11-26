@@ -357,6 +357,16 @@ export function CustomPaymentFormWrapper({
 
         const data = await response.json();
         
+        // Handle community reactivation (had active subscription but was in draft)
+        if (data.reactivated) {
+          toast({
+            title: 'Community Reactivated!',
+            description: 'Your community is now visible again with your existing subscription.',
+          });
+          onSuccess();
+          return;
+        }
+        
         if (data.clientSecret) {
           setClientSecret(data.clientSecret);
           setSubscriptionId(data.subscriptionId);

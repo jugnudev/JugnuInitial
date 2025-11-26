@@ -194,9 +194,19 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
     // Check existing subscription
     const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
     
-    // If there's an active or trialing subscription with Stripe, don't create a new one
+    // If there's an active or trialing subscription with Stripe, check if community needs reactivation
     if (existingSubscription?.stripeSubscriptionId && 
         (existingSubscription.status === 'active' || existingSubscription.status === 'trialing')) {
+      // If community is in draft but subscription is active, reactivate the community
+      if (community.status === 'draft') {
+        console.log('[Billing] Reactivating community with existing active subscription:', communityId);
+        await communitiesStorage.updateCommunity(communityId, { status: 'active' });
+        return res.json({ 
+          ok: true, 
+          message: 'Community reactivated with existing subscription',
+          reactivated: true
+        });
+      }
       return res.status(400).json({ 
         ok: false, 
         error: 'Community already has an active subscription'
@@ -410,7 +420,7 @@ router.post('/confirm-subscription', requireAuth, async (req: Request, res: Resp
     // Update community visibility if subscription is now active/trialing
     if (newStatus === 'trialing' || newStatus === 'active') {
       await communitiesStorage.updateCommunity(communityId, {
-        isDraft: false
+        status: 'active'
       });
     }
 
