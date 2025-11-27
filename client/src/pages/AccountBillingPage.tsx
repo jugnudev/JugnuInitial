@@ -81,6 +81,8 @@ export default function AccountBillingPage() {
     subscription: OrganizerSubscription | null;
     communities: Community[];
     hasLegacySubscription?: boolean;
+    hasUsedTrial?: boolean;
+    legacyTrialExpired?: boolean;
   }>({ 
     queryKey: ['/api/billing/organizer/subscription'],
     enabled: !!organizerData?.organizer 
@@ -90,6 +92,8 @@ export default function AccountBillingPage() {
   const subscription = subscriptionData?.subscription;
   const communities = subscriptionData?.communities || [];
   const hasLegacySubscription = subscriptionData?.hasLegacySubscription;
+  const hasUsedTrial = subscriptionData?.hasUsedTrial;
+  const legacyTrialExpired = subscriptionData?.legacyTrialExpired;
 
   const isLoading = authLoading || organizerLoading || subscriptionLoading;
 
@@ -197,7 +201,23 @@ export default function AccountBillingPage() {
               </p>
             </div>
 
-            {hasLegacySubscription && (
+            {legacyTrialExpired && (
+              <Card className="mb-6 border-red-500/30 bg-gradient-to-r from-red-500/10 to-red-600/10">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                    <div>
+                      <p className="text-white font-semibold">Your trial has ended</p>
+                      <p className="text-white/60 text-sm">
+                        Subscribe now to restore full access to your community and unlock all platform features. Your community will be hidden from public discovery until you subscribe.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            {hasLegacySubscription && !legacyTrialExpired && (
               <Card className="mb-6 border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-amber-600/10">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3">
@@ -257,12 +277,14 @@ export default function AccountBillingPage() {
                     data-testid="button-subscribe"
                   >
                     <Sparkles className="w-5 h-5 mr-2" />
-                    Start 14-Day Free Trial
+                    {hasUsedTrial ? 'Subscribe Now' : 'Start 14-Day Free Trial'}
                   </Button>
                 </Link>
-                <p className="text-center text-white/50 text-sm mt-3">
-                  No credit card required to start your trial
-                </p>
+                {!hasUsedTrial && (
+                  <p className="text-center text-white/50 text-sm mt-3">
+                    No credit card required to start your trial
+                  </p>
+                )}
               </CardContent>
             </Card>
 

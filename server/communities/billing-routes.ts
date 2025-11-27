@@ -1492,7 +1492,7 @@ router.post('/organizer/subscribe', requireAuth, async (req: Request, res: Respo
           await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
           await communitiesStorage.updateOrganizerSubscription(organizer.id, {
             status: 'canceled',
-            canceledAt: new Date().toISOString()
+            canceledAt: new Date()
           });
         } else if (existingStripeSubscription.status === 'incomplete' || existingStripeSubscription.status === 'trialing') {
           let clientSecret: string | null = null;
@@ -1618,8 +1618,8 @@ router.post('/organizer/subscribe', requireAuth, async (req: Request, res: Respo
         stripeSubscriptionId: subscription.id,
         stripeCustomerId: customerId,
         stripePriceId: priceId,
-        trialStart: trialEligible ? new Date().toISOString() : null,
-        trialEnd: trialEndDate?.toISOString(),
+        trialStart: trialEligible ? new Date() : undefined,
+        trialEnd: trialEndDate ?? undefined,
         placementCreditsAvailable: 0,
         placementCreditsUsed: 0
       });
@@ -1631,8 +1631,8 @@ router.post('/organizer/subscribe', requireAuth, async (req: Request, res: Respo
         stripeCustomerId: customerId,
         stripePriceId: priceId,
         plan: 'monthly',
-        trialStart: trialEligible ? new Date().toISOString() : null,
-        trialEnd: trialEndDate?.toISOString(),
+        trialStart: trialEligible ? new Date() : undefined,
+        trialEnd: trialEndDate ?? undefined,
         pricePerMonth: 5000,
         placementCreditsAvailable: 0,
         placementCreditsUsed: 0,
@@ -1692,11 +1692,11 @@ router.post('/organizer/confirm', requireAuth, async (req: Request, res: Respons
     const updates: any = {
       status: newStatus,
       currentPeriodStart: stripeSubscription.current_period_start 
-        ? new Date(stripeSubscription.current_period_start * 1000).toISOString() 
-        : null,
+        ? new Date(stripeSubscription.current_period_start * 1000) 
+        : undefined,
       currentPeriodEnd: stripeSubscription.current_period_end 
-        ? new Date(stripeSubscription.current_period_end * 1000).toISOString() 
-        : null
+        ? new Date(stripeSubscription.current_period_end * 1000) 
+        : undefined
     };
 
     // Grant credits on activation or trial start
@@ -1706,7 +1706,7 @@ router.post('/organizer/confirm', requireAuth, async (req: Request, res: Respons
       
       const resetDate = new Date();
       resetDate.setMonth(resetDate.getMonth() + 1);
-      updates.creditsResetDate = resetDate.toISOString();
+      updates.creditsResetDate = resetDate;
 
       // Activate all organizer's communities
       const communities = await communitiesStorage.getCommunitiesByOrganizerId(organizer.id);
@@ -1773,10 +1773,10 @@ async function migrateToOrganizerSubscription(organizerId: string): Promise<{
       stripeSubscriptionId: activeLegacy.stripeSubscriptionId,
       stripePriceId: null,
       plan: 'monthly',
-      trialStart: activeLegacy.trialStart?.toString(),
-      trialEnd: activeLegacy.trialEnd?.toString(),
-      currentPeriodStart: activeLegacy.currentPeriodStart?.toString(),
-      currentPeriodEnd: activeLegacy.currentPeriodEnd?.toString(),
+      trialStart: activeLegacy.trialStart ? new Date(activeLegacy.trialStart) : undefined,
+      trialEnd: activeLegacy.trialEnd ? new Date(activeLegacy.trialEnd) : undefined,
+      currentPeriodStart: activeLegacy.currentPeriodStart ? new Date(activeLegacy.currentPeriodStart) : undefined,
+      currentPeriodEnd: activeLegacy.currentPeriodEnd ? new Date(activeLegacy.currentPeriodEnd) : undefined,
       pricePerMonth: 5000,
       placementCreditsAvailable: activeLegacy.placementCreditsAvailable || 2,
       placementCreditsUsed: activeLegacy.placementCreditsUsed || 0,
@@ -1818,6 +1818,33 @@ router.get('/organizer/subscription', requireAuth, async (req: Request, res: Res
         const oldSubscriptions = await communitiesStorage.getSubscriptionByOrganizer(organizer.id);
         const activeOld = oldSubscriptions.find(s => s.status === 'active' || s.status === 'trialing');
         
+        // Check if user has ANY legacy subscription (including expired trials)
+        // This determines if they've already used their trial
+        const anyLegacySubscription = oldSubscriptions.length > 0;
+        const hasUsedTrial = oldSubscriptions.some(s => {
+          // Trial was used if subscription exists and either:
+          // 1. Had a trial that ended
+          // 2. Status indicates trial was started
+          if (s.trialStart || s.trialEnd) return true;
+          if (s.status === 'trialing' || s.status === 'canceled' || s.status === 'expired') return true;
+          return false;
+        });
+        
+        // Check if any legacy trial has expired
+        const legacyTrialExpired = oldSubscriptions.some(s => {
+          if (s.status === 'trialing' && s.trialEnd) {
+            return new Date(s.trialEnd) <= new Date();
+          }
+          // Also check if created more than 14 days ago without payment
+          if (!s.stripeSubscriptionId && s.createdAt) {
+            const createdAt = new Date(s.createdAt);
+            const now = new Date();
+            const daysSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+            return daysSinceCreation > 14;
+          }
+          return false;
+        });
+        
         // Get communities even without subscription
         const communities = await communitiesStorage.getCommunitiesByOrganizerId(organizer.id);
         
@@ -1825,6 +1852,8 @@ router.get('/organizer/subscription', requireAuth, async (req: Request, res: Res
           ok: true,
           subscription: null,
           hasLegacySubscription: !!activeOld,
+          hasUsedTrial,
+          legacyTrialExpired,
           legacySubscription: activeOld ? {
             status: activeOld.status,
             communityId: activeOld.communityId
