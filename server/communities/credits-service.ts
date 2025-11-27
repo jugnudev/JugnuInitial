@@ -19,14 +19,38 @@ export class CreditsService {
 
   /**
    * Check if an organizer has sufficient placement credits
+   * Uses new organizer subscription model, falls back to legacy community subscriptions
    * @param organizerId - The organizer's ID
    * @param creditsNeeded - Number of credits needed (1 per placement per day)
    */
   async checkCredits(organizerId: string, creditsNeeded: number = 1): Promise<CreditCheckResult> {
     try {
-      // Get active subscription for the organizer
+      // First try new organizer subscription model
+      const organizerSubscription = await this.storage.getOrganizerSubscription(organizerId);
+      
+      if (organizerSubscription && (organizerSubscription.status === 'active' || organizerSubscription.status === 'trialing')) {
+        const available = organizerSubscription.placementCreditsAvailable || 0;
+        const used = organizerSubscription.placementCreditsUsed || 0;
+        const remaining = available - used;
+
+        const resetDate = organizerSubscription.creditsResetDate 
+          ? new Date(organizerSubscription.creditsResetDate).toISOString() 
+          : null;
+
+        return {
+          hasCredits: remaining >= creditsNeeded,
+          availableCredits: remaining,
+          usedCredits: used,
+          resetDate,
+          message: remaining >= creditsNeeded 
+            ? undefined 
+            : `Insufficient credits. You have ${remaining} credits remaining but need ${creditsNeeded}.`
+        };
+      }
+
+      // Fallback to legacy community subscriptions
       const subscriptions = await this.storage.getSubscriptionByOrganizer(organizerId);
-      const subscription = subscriptions.length > 0 ? subscriptions[0] : null;
+      const subscription = subscriptions.find(s => s.status === 'active' || s.status === 'trialing');
 
       if (!subscription) {
         return {
@@ -42,7 +66,6 @@ export class CreditsService {
       const used = subscription.placementCreditsUsed || 0;
       const remaining = available - used;
 
-      // Normalize reset date (Supabase returns strings, not Date objects)
       const resetDate = subscription.creditsResetDate 
         ? new Date(subscription.creditsResetDate).toISOString() 
         : null;
@@ -70,6 +93,7 @@ export class CreditsService {
 
   /**
    * Deduct placement credits from an organizer's subscription
+   * Uses new organizer subscription model, falls back to legacy community subscriptions
    * @param organizerId - The organizer's ID
    * @param creditsToDeduct - Number of credits to deduct
    * @param campaignId - Optional campaign ID for tracking
@@ -86,9 +110,52 @@ export class CreditsService {
     endDate?: string
   ): Promise<CreditDeductionResult> {
     try {
-      // Get active subscription
+      // First try new organizer subscription model
+      const organizerSubscription = await this.storage.getOrganizerSubscription(organizerId);
+      
+      if (organizerSubscription && (organizerSubscription.status === 'active' || organizerSubscription.status === 'trialing')) {
+        const available = organizerSubscription.placementCreditsAvailable || 0;
+        const used = organizerSubscription.placementCreditsUsed || 0;
+        const remaining = available - used;
+
+        if (remaining < creditsToDeduct) {
+          return {
+            success: false,
+            remainingCredits: remaining,
+            message: `Insufficient credits. You have ${remaining} credits but need ${creditsToDeduct}.`
+          };
+        }
+
+        // Update organizer subscription credits
+        const newUsed = used + creditsToDeduct;
+        await this.storage.updateOrganizerSubscription(organizerId, {
+          placementCreditsUsed: newUsed
+        });
+
+        // Track credit usage
+        if (placements && startDate && endDate) {
+          await this.trackCreditUsage(
+            organizerId,
+            organizerSubscription.id,
+            campaignId,
+            placements,
+            creditsToDeduct,
+            startDate,
+            endDate
+          );
+        }
+
+        const newRemaining = available - newUsed;
+        return {
+          success: true,
+          remainingCredits: newRemaining,
+          message: `${creditsToDeduct} credit(s) deducted. ${newRemaining} remaining.`
+        };
+      }
+
+      // Fallback to legacy community subscriptions
       const subscriptions = await this.storage.getSubscriptionByOrganizer(organizerId);
-      const subscription = subscriptions.length > 0 ? subscriptions[0] : null;
+      const subscription = subscriptions.find(s => s.status === 'active' || s.status === 'trialing');
 
       if (!subscription) {
         return {
@@ -176,23 +243,45 @@ export class CreditsService {
 
   /**
    * Reset placement credits for a subscription (called monthly on billing cycle)
+   * Supports both organizer subscriptions and legacy community subscriptions
    * @param subscriptionId - The subscription ID
+   * @param isOrganizerSubscription - Whether this is an organizer subscription (new model)
    */
-  async resetCredits(subscriptionId: string): Promise<boolean> {
+  async resetCredits(subscriptionId: string, isOrganizerSubscription: boolean = false): Promise<boolean> {
     try {
-      const subscription = await this.storage.getSubscriptionById(subscriptionId);
-
-      if (!subscription) {
-        console.error('Subscription not found for credit reset');
-        return false;
-      }
-
       // Reset credits to default amount (2 for monthly plan)
       const defaultCredits = 2;
       
       // Calculate next reset date (1 month from now)
       const nextResetDate = new Date();
       nextResetDate.setMonth(nextResetDate.getMonth() + 1);
+
+      if (isOrganizerSubscription) {
+        // Get organizer subscription by ID
+        const subscription = await this.storage.getOrganizerSubscriptionById(subscriptionId);
+        
+        if (!subscription) {
+          console.error('Organizer subscription not found for credit reset');
+          return false;
+        }
+
+        await this.storage.updateOrganizerSubscription(subscription.organizerId, {
+          placementCreditsAvailable: defaultCredits,
+          placementCreditsUsed: 0,
+          creditsResetDate: nextResetDate
+        });
+
+        console.log(`Credits reset for organizer subscription ${subscriptionId}. Next reset: ${nextResetDate}`);
+        return true;
+      }
+
+      // Legacy community subscription
+      const subscription = await this.storage.getSubscriptionById(subscriptionId);
+
+      if (!subscription) {
+        console.error('Subscription not found for credit reset');
+        return false;
+      }
 
       await this.storage.updateSubscriptionCredits(subscriptionId, {
         placementCreditsAvailable: defaultCredits,
@@ -204,6 +293,30 @@ export class CreditsService {
       return true;
     } catch (error) {
       console.error('Error resetting credits:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Reset credits for organizer (by organizerId)
+   * @param organizerId - The organizer's ID
+   */
+  async resetOrganizerCredits(organizerId: string): Promise<boolean> {
+    try {
+      const defaultCredits = 2;
+      const nextResetDate = new Date();
+      nextResetDate.setMonth(nextResetDate.getMonth() + 1);
+
+      await this.storage.updateOrganizerSubscription(organizerId, {
+        placementCreditsAvailable: defaultCredits,
+        placementCreditsUsed: 0,
+        creditsResetDate: nextResetDate
+      });
+
+      console.log(`Credits reset for organizer ${organizerId}. Next reset: ${nextResetDate}`);
+      return true;
+    } catch (error) {
+      console.error('Error resetting organizer credits:', error);
       return false;
     }
   }

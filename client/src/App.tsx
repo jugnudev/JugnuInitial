@@ -67,6 +67,7 @@ import TicketsViewTicket from "@/pages/TicketsViewTicket";
 import TicketsLookup from "@/pages/TicketsLookup";
 import PricingPage from "@/pages/PricingPage";
 import SubscribePage from "@/pages/SubscribePage";
+import OrganizerSubscribePage from "@/pages/OrganizerSubscribePage";
 import AccountBillingPage from "@/pages/AccountBillingPage";
 
 function Router() {
@@ -151,6 +152,7 @@ function Router() {
             <Route path="/business/signup" component={BusinessSignupPage} />
             <Route path="/account/profile" component={CommunitiesProfilePage} />
             <Route path="/account/billing" component={AccountBillingPage} />
+            <Route path="/account/subscribe" component={OrganizerSubscribePage} />
             <Route path="/account/apply-organizer" component={CommunitiesOrganizerApplicationPage} />
             <Route path="/admin/organizers" component={AdminOrganizers} />
             <Route path="/admin/communities" component={AdminCommunitiesPage} />

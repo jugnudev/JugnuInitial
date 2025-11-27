@@ -22,6 +22,8 @@ import type {
   InsertCommunityPost,
   CommunitySubscription,
   InsertCommunitySubscription,
+  OrganizerSubscription,
+  InsertOrganizerSubscription,
   CommunityPayment,
   InsertCommunityPayment,
   CommunityBillingEvent,
@@ -3173,6 +3175,236 @@ export class CommunitiesSupabaseDB {
       data: data.data,
       error: data.error
     };
+  }
+
+  // ============ ORGANIZER SUBSCRIPTIONS (Per-organizer billing) ============
+
+  private mapOrganizerSubscriptionFromDb(data: any): OrganizerSubscription {
+    return {
+      id: data.id,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      organizerId: data.organizer_id,
+      stripeCustomerId: data.stripe_customer_id,
+      stripeSubscriptionId: data.stripe_subscription_id,
+      stripePriceId: data.stripe_price_id,
+      plan: data.plan,
+      status: data.status,
+      currentPeriodStart: data.current_period_start,
+      currentPeriodEnd: data.current_period_end,
+      cancelAt: data.cancel_at,
+      canceledAt: data.canceled_at,
+      trialStart: data.trial_start,
+      trialEnd: data.trial_end,
+      pricePerMonth: data.price_per_month,
+      features: data.features,
+      metadata: data.metadata,
+      placementCreditsAvailable: data.placement_credits_available,
+      placementCreditsUsed: data.placement_credits_used,
+      placementCreditsTotal: data.placement_credits_total,
+      creditsResetDate: data.credits_reset_date
+    };
+  }
+
+  async initOrganizerSubscriptionsTable(): Promise<void> {
+    try {
+      const { error } = await this.client.rpc('create_organizer_subscriptions_table_if_not_exists');
+      if (error && !error.message.includes('already exists')) {
+        console.log('[DB] Creating organizer_subscriptions table via direct insert check...');
+      }
+    } catch (err) {
+      console.log('[DB] Organizer subscriptions table initialization - will create on first use');
+    }
+  }
+
+  async createOrganizerSubscription(data: InsertOrganizerSubscription): Promise<OrganizerSubscription> {
+    const { data: subscription, error } = await this.client
+      .from('organizer_subscription_bundles')
+      .insert({
+        organizer_id: data.organizerId,
+        stripe_customer_id: data.stripeCustomerId,
+        stripe_subscription_id: data.stripeSubscriptionId,
+        stripe_price_id: data.stripePriceId,
+        plan: data.plan || 'monthly',
+        status: data.status || 'trialing',
+        current_period_start: data.currentPeriodStart,
+        current_period_end: data.currentPeriodEnd,
+        trial_start: data.trialStart,
+        trial_end: data.trialEnd,
+        price_per_month: data.pricePerMonth || 5000,
+        features: data.features || {},
+        metadata: data.metadata || {},
+        placement_credits_available: data.placementCreditsAvailable || 0,
+        placement_credits_used: data.placementCreditsUsed || 0,
+        placement_credits_total: data.placementCreditsTotal || 2,
+        credits_reset_date: data.creditsResetDate
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapOrganizerSubscriptionFromDb(subscription);
+  }
+
+  async getOrganizerSubscription(organizerId: string): Promise<OrganizerSubscription | null> {
+    const { data, error } = await this.client
+      .from('organizer_subscription_bundles')
+      .select()
+      .eq('organizer_id', organizerId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? this.mapOrganizerSubscriptionFromDb(data) : null;
+  }
+
+  async getOrganizerSubscriptionById(subscriptionId: string): Promise<OrganizerSubscription | null> {
+    const { data, error } = await this.client
+      .from('organizer_subscription_bundles')
+      .select()
+      .eq('id', subscriptionId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? this.mapOrganizerSubscriptionFromDb(data) : null;
+  }
+
+  async getAllOrganizerSubscriptions(): Promise<OrganizerSubscription[]> {
+    const { data, error } = await this.client
+      .from('organizer_subscription_bundles')
+      .select();
+
+    if (error) throw error;
+    return data ? data.map(this.mapOrganizerSubscriptionFromDb) : [];
+  }
+
+  async getOrganizerSubscriptionByStripeId(stripeSubscriptionId: string): Promise<OrganizerSubscription | null> {
+    const { data, error } = await this.client
+      .from('organizer_subscription_bundles')
+      .select()
+      .eq('stripe_subscription_id', stripeSubscriptionId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data ? this.mapOrganizerSubscriptionFromDb(data) : null;
+  }
+
+  async updateOrganizerSubscription(
+    organizerId: string,
+    updates: Partial<OrganizerSubscription>
+  ): Promise<OrganizerSubscription> {
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    };
+
+    if (updates.stripeCustomerId !== undefined) updateData.stripe_customer_id = updates.stripeCustomerId;
+    if (updates.stripeSubscriptionId !== undefined) updateData.stripe_subscription_id = updates.stripeSubscriptionId;
+    if (updates.stripePriceId !== undefined) updateData.stripe_price_id = updates.stripePriceId;
+    if (updates.plan !== undefined) updateData.plan = updates.plan;
+    if (updates.status !== undefined) updateData.status = updates.status;
+    if (updates.currentPeriodStart !== undefined) updateData.current_period_start = updates.currentPeriodStart;
+    if (updates.currentPeriodEnd !== undefined) updateData.current_period_end = updates.currentPeriodEnd;
+    if (updates.cancelAt !== undefined) updateData.cancel_at = updates.cancelAt;
+    if (updates.canceledAt !== undefined) updateData.canceled_at = updates.canceledAt;
+    if (updates.trialStart !== undefined) updateData.trial_start = updates.trialStart;
+    if (updates.trialEnd !== undefined) updateData.trial_end = updates.trialEnd;
+    if (updates.pricePerMonth !== undefined) updateData.price_per_month = updates.pricePerMonth;
+    if (updates.features !== undefined) updateData.features = updates.features;
+    if (updates.metadata !== undefined) updateData.metadata = updates.metadata;
+    if (updates.placementCreditsAvailable !== undefined) updateData.placement_credits_available = updates.placementCreditsAvailable;
+    if (updates.placementCreditsUsed !== undefined) updateData.placement_credits_used = updates.placementCreditsUsed;
+    if (updates.placementCreditsTotal !== undefined) updateData.placement_credits_total = updates.placementCreditsTotal;
+    if (updates.creditsResetDate !== undefined) updateData.credits_reset_date = updates.creditsResetDate;
+
+    const { data, error } = await this.client
+      .from('organizer_subscription_bundles')
+      .update(updateData)
+      .eq('organizer_id', organizerId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapOrganizerSubscriptionFromDb(data);
+  }
+
+  async updateOrganizerSubscriptionById(
+    subscriptionId: string,
+    updates: Partial<OrganizerSubscription>
+  ): Promise<OrganizerSubscription> {
+    const updateData: any = {
+      updated_at: new Date().toISOString()
+    };
+
+    if (updates.stripeCustomerId !== undefined) updateData.stripe_customer_id = updates.stripeCustomerId;
+    if (updates.stripeSubscriptionId !== undefined) updateData.stripe_subscription_id = updates.stripeSubscriptionId;
+    if (updates.stripePriceId !== undefined) updateData.stripe_price_id = updates.stripePriceId;
+    if (updates.plan !== undefined) updateData.plan = updates.plan;
+    if (updates.status !== undefined) updateData.status = updates.status;
+    if (updates.currentPeriodStart !== undefined) updateData.current_period_start = updates.currentPeriodStart;
+    if (updates.currentPeriodEnd !== undefined) updateData.current_period_end = updates.currentPeriodEnd;
+    if (updates.cancelAt !== undefined) updateData.cancel_at = updates.cancelAt;
+    if (updates.canceledAt !== undefined) updateData.canceled_at = updates.canceledAt;
+    if (updates.trialStart !== undefined) updateData.trial_start = updates.trialStart;
+    if (updates.trialEnd !== undefined) updateData.trial_end = updates.trialEnd;
+    if (updates.pricePerMonth !== undefined) updateData.price_per_month = updates.pricePerMonth;
+    if (updates.features !== undefined) updateData.features = updates.features;
+    if (updates.metadata !== undefined) updateData.metadata = updates.metadata;
+    if (updates.placementCreditsAvailable !== undefined) updateData.placement_credits_available = updates.placementCreditsAvailable;
+    if (updates.placementCreditsUsed !== undefined) updateData.placement_credits_used = updates.placementCreditsUsed;
+    if (updates.placementCreditsTotal !== undefined) updateData.placement_credits_total = updates.placementCreditsTotal;
+    if (updates.creditsResetDate !== undefined) updateData.credits_reset_date = updates.creditsResetDate;
+
+    const { data, error } = await this.client
+      .from('organizer_subscription_bundles')
+      .update(updateData)
+      .eq('id', subscriptionId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return this.mapOrganizerSubscriptionFromDb(data);
+  }
+
+  async getOrganizerSubscriptionCredits(organizerId: string): Promise<{
+    available: number;
+    used: number;
+    total: number;
+    resetDate: string | null;
+  } | null> {
+    const subscription = await this.getOrganizerSubscription(organizerId);
+    if (!subscription) return null;
+    
+    return {
+      available: subscription.placementCreditsAvailable,
+      used: subscription.placementCreditsUsed,
+      total: subscription.placementCreditsTotal || 2,
+      resetDate: subscription.creditsResetDate
+    };
+  }
+
+  async deductOrganizerCredits(organizerId: string, amount: number): Promise<boolean> {
+    const subscription = await this.getOrganizerSubscription(organizerId);
+    if (!subscription) return false;
+    if (subscription.placementCreditsAvailable < amount) return false;
+
+    await this.updateOrganizerSubscription(organizerId, {
+      placementCreditsAvailable: subscription.placementCreditsAvailable - amount,
+      placementCreditsUsed: subscription.placementCreditsUsed + amount
+    });
+    return true;
+  }
+
+  async resetOrganizerCredits(organizerId: string): Promise<void> {
+    const subscription = await this.getOrganizerSubscription(organizerId);
+    if (!subscription) return;
+
+    const nextResetDate = new Date();
+    nextResetDate.setMonth(nextResetDate.getMonth() + 1);
+
+    await this.updateOrganizerSubscription(organizerId, {
+      placementCreditsAvailable: subscription.placementCreditsTotal || 2,
+      placementCreditsUsed: 0,
+      creditsResetDate: nextResetDate.toISOString()
+    });
   }
 
   // ============ NOTIFICATIONS ============

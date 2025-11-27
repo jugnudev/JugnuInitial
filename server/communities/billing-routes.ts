@@ -1427,4 +1427,531 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
   }
 });
 
+// ============ ORGANIZER-LEVEL BILLING (New Per-Organizer Model) ============
+
+/**
+ * POST /api/billing/organizer/subscribe
+ * Create a subscription at the organizer level (covers all their communities)
+ */
+router.post('/organizer/subscribe', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+
+    // Get the organizer
+    const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+    if (!organizer) {
+      return res.status(403).json({ ok: false, error: 'Business account required to subscribe' });
+    }
+
+    // Check if organizer already has a subscription
+    const existingSubscription = await communitiesStorage.getOrganizerSubscription(organizer.id);
+    
+    // Check trial eligibility (check both old community subscriptions and new organizer subscription)
+    const oldCommunitySubscriptions = await communitiesStorage.getSubscriptionByOrganizer(organizer.id);
+    const hasUsedTrialFromOldSystem = oldCommunitySubscriptions.some(sub => 
+      sub.stripeSubscriptionId !== null ||
+      sub.trialEnd !== null || 
+      sub.trialStart !== null ||
+      sub.status === 'trialing' ||
+      sub.status === 'active' ||
+      sub.status === 'ended' ||
+      sub.status === 'canceled' ||
+      sub.status === 'incomplete' ||
+      sub.status === 'incomplete_expired'
+    );
+    
+    const hasUsedTrialFromNewSystem = existingSubscription && (
+      existingSubscription.stripeSubscriptionId !== null ||
+      existingSubscription.trialEnd !== null ||
+      existingSubscription.status === 'trialing' ||
+      existingSubscription.status === 'active' ||
+      existingSubscription.status === 'incomplete'
+    );
+    
+    const trialEligible = !hasUsedTrialFromOldSystem && !hasUsedTrialFromNewSystem;
+    
+    console.log('[Billing Organizer] Trial eligibility:', { 
+      organizerId: organizer.id,
+      hasUsedTrialFromOldSystem,
+      hasUsedTrialFromNewSystem,
+      trialEligible 
+    });
+
+    // Handle existing incomplete subscription
+    if (existingSubscription?.stripeSubscriptionId && existingSubscription.status === 'incomplete') {
+      try {
+        const existingStripeSubscription = await stripe.subscriptions.retrieve(
+          existingSubscription.stripeSubscriptionId,
+          { expand: ['pending_setup_intent', 'latest_invoice.payment_intent'] }
+        );
+        
+        const existingHasTrial = existingStripeSubscription.trial_end !== null;
+        
+        if (existingHasTrial && !trialEligible) {
+          console.log('[Billing Organizer] Canceling incomplete subscription with invalid trial');
+          await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
+          await communitiesStorage.updateOrganizerSubscription(organizer.id, {
+            status: 'canceled',
+            canceledAt: new Date().toISOString()
+          });
+        } else if (existingStripeSubscription.status === 'incomplete' || existingStripeSubscription.status === 'trialing') {
+          let clientSecret: string | null = null;
+          
+          if (existingStripeSubscription.pending_setup_intent) {
+            const setupIntent = existingStripeSubscription.pending_setup_intent as Stripe.SetupIntent;
+            clientSecret = setupIntent.client_secret;
+          } else if (existingStripeSubscription.latest_invoice) {
+            const invoice = existingStripeSubscription.latest_invoice as any;
+            if (invoice.payment_intent?.client_secret) {
+              clientSecret = invoice.payment_intent.client_secret;
+            }
+          }
+          
+          if (clientSecret) {
+            console.log('[Billing Organizer] Reusing existing subscription:', existingStripeSubscription.id);
+            return res.json({
+              ok: true,
+              clientSecret,
+              subscriptionId: existingStripeSubscription.id,
+              customerId: existingSubscription.stripeCustomerId,
+              trialEnd: existingStripeSubscription.trial_end 
+                ? new Date(existingStripeSubscription.trial_end * 1000).toISOString() 
+                : null,
+              trialEligible: existingStripeSubscription.trial_end !== null
+            });
+          }
+        }
+      } catch (err: any) {
+        console.log('[Billing Organizer] Could not reuse existing subscription:', err.message);
+      }
+    }
+
+    // Handle existing active subscription
+    if (existingSubscription?.status === 'active') {
+      return res.status(400).json({ 
+        ok: false, 
+        error: 'You already have an active subscription' 
+      });
+    }
+
+    // Get or create Stripe customer
+    let customerId: string;
+    const existingCustomer = await stripe.customers.list({ email: user.email, limit: 1 });
+    
+    if (existingCustomer.data.length > 0) {
+      customerId = existingCustomer.data[0].id;
+    } else {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        metadata: { 
+          userId: user.id, 
+          organizerId: organizer.id,
+          businessName: organizer.businessName
+        }
+      });
+      customerId = customer.id;
+    }
+
+    // Get the price ID
+    const priceId = await getOrCreateCommunityPrice();
+
+    // Create subscription
+    const subscriptionParams: any = {
+      customer: customerId,
+      items: [{ price: priceId }],
+      payment_behavior: 'default_incomplete',
+      payment_settings: { 
+        save_default_payment_method: 'on_subscription',
+        payment_method_types: ['card']
+      },
+      expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
+      metadata: {
+        type: 'organizer',
+        organizerId: organizer.id,
+        userId: user.id
+      }
+    };
+    
+    if (trialEligible) {
+      subscriptionParams.trial_period_days = 14;
+      console.log('[Billing Organizer] Adding 14-day trial');
+    } else {
+      console.log('[Billing Organizer] Skipping trial - already used');
+    }
+    
+    const subscription = await stripe.subscriptions.create(subscriptionParams);
+
+    // Get client secret
+    let clientSecret: string | null = null;
+    
+    if (subscription.pending_setup_intent) {
+      const setupIntent = subscription.pending_setup_intent as Stripe.SetupIntent;
+      clientSecret = setupIntent.client_secret;
+    } else if (subscription.latest_invoice) {
+      const invoice = subscription.latest_invoice as any;
+      if (invoice.payment_intent?.client_secret) {
+        clientSecret = invoice.payment_intent.client_secret;
+      }
+    }
+    
+    if (!clientSecret) {
+      const setupIntent = await stripe.setupIntents.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        usage: 'off_session',
+        metadata: {
+          subscriptionId: subscription.id,
+          organizerId: organizer.id,
+          userId: user.id
+        }
+      });
+      clientSecret = setupIntent.client_secret;
+    }
+
+    // Save subscription to database
+    const trialEndDate = subscription.trial_end ? new Date(subscription.trial_end * 1000) : null;
+    
+    if (existingSubscription) {
+      await communitiesStorage.updateOrganizerSubscription(organizer.id, {
+        status: 'incomplete',
+        stripeSubscriptionId: subscription.id,
+        stripeCustomerId: customerId,
+        stripePriceId: priceId,
+        trialStart: trialEligible ? new Date().toISOString() : null,
+        trialEnd: trialEndDate?.toISOString(),
+        placementCreditsAvailable: 0,
+        placementCreditsUsed: 0
+      });
+    } else {
+      await communitiesStorage.createOrganizerSubscription({
+        organizerId: organizer.id,
+        status: 'incomplete',
+        stripeSubscriptionId: subscription.id,
+        stripeCustomerId: customerId,
+        stripePriceId: priceId,
+        plan: 'monthly',
+        trialStart: trialEligible ? new Date().toISOString() : null,
+        trialEnd: trialEndDate?.toISOString(),
+        pricePerMonth: 5000,
+        placementCreditsAvailable: 0,
+        placementCreditsUsed: 0,
+        placementCreditsTotal: 2
+      });
+    }
+
+    if (!clientSecret) {
+      return res.status(500).json({ ok: false, error: 'Failed to initialize payment setup' });
+    }
+
+    res.json({
+      ok: true,
+      clientSecret,
+      subscriptionId: subscription.id,
+      customerId,
+      trialEnd: trialEndDate?.toISOString(),
+      trialEligible
+    });
+  } catch (error: any) {
+    console.error('[Billing Organizer] Subscribe error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to create subscription' });
+  }
+});
+
+/**
+ * POST /api/billing/organizer/confirm
+ * Confirm subscription after payment method is set up
+ */
+router.post('/organizer/confirm', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { subscriptionId } = req.body;
+    const user = (req as any).user;
+
+    if (!subscriptionId) {
+      return res.status(400).json({ ok: false, error: 'Subscription ID required' });
+    }
+
+    const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+    if (!organizer) {
+      return res.status(403).json({ ok: false, error: 'Organizer not found' });
+    }
+
+    // Fetch latest subscription status from Stripe
+    const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+    
+    // Update subscription status
+    let newStatus = 'incomplete';
+    if (stripeSubscription.status === 'trialing') {
+      newStatus = 'trialing';
+    } else if (stripeSubscription.status === 'active') {
+      newStatus = 'active';
+    } else if (stripeSubscription.status === 'past_due') {
+      newStatus = 'past_due';
+    }
+
+    const updates: any = {
+      status: newStatus,
+      currentPeriodStart: stripeSubscription.current_period_start 
+        ? new Date(stripeSubscription.current_period_start * 1000).toISOString() 
+        : null,
+      currentPeriodEnd: stripeSubscription.current_period_end 
+        ? new Date(stripeSubscription.current_period_end * 1000).toISOString() 
+        : null
+    };
+
+    // Grant credits on activation or trial start
+    if (newStatus === 'active' || newStatus === 'trialing') {
+      updates.placementCreditsAvailable = 2;
+      updates.placementCreditsUsed = 0;
+      
+      const resetDate = new Date();
+      resetDate.setMonth(resetDate.getMonth() + 1);
+      updates.creditsResetDate = resetDate.toISOString();
+
+      // Activate all organizer's communities
+      const communities = await communitiesStorage.getCommunitiesByOrganizerId(organizer.id);
+      for (const community of communities) {
+        if (community.status === 'draft') {
+          await communitiesStorage.updateCommunity(community.id, { status: 'active' });
+          console.log('[Billing Organizer] Activated community:', community.name);
+        }
+      }
+    }
+
+    await communitiesStorage.updateOrganizerSubscription(organizer.id, updates);
+
+    console.log('[Billing Organizer] Subscription confirmed:', {
+      organizerId: organizer.id,
+      status: newStatus,
+      subscriptionId
+    });
+
+    res.json({
+      ok: true,
+      status: newStatus,
+      message: newStatus === 'active' || newStatus === 'trialing' 
+        ? 'Subscription activated successfully!' 
+        : 'Subscription status updated'
+    });
+  } catch (error: any) {
+    console.error('[Billing Organizer] Confirm error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to confirm subscription' });
+  }
+});
+
+/**
+ * Helper function to migrate legacy community subscription to organizer subscription
+ * This is idempotent - safe to call multiple times
+ */
+async function migrateToOrganizerSubscription(organizerId: string): Promise<{
+  migrated: boolean;
+  subscription: any | null;
+  message?: string;
+}> {
+  try {
+    // Check if organizer already has a subscription
+    const existingOrgSub = await communitiesStorage.getOrganizerSubscription(organizerId);
+    if (existingOrgSub) {
+      return { migrated: false, subscription: existingOrgSub, message: 'Already has organizer subscription' };
+    }
+
+    // Check for legacy community subscriptions
+    const legacySubscriptions = await communitiesStorage.getSubscriptionByOrganizer(organizerId);
+    const activeLegacy = legacySubscriptions.find(s => s.status === 'active' || s.status === 'trialing');
+    
+    if (!activeLegacy) {
+      return { migrated: false, subscription: null, message: 'No legacy subscription to migrate' };
+    }
+
+    console.log('[Billing Migration] Migrating legacy subscription for organizer:', organizerId);
+
+    // Create organizer subscription from legacy data
+    const newSubscription = await communitiesStorage.createOrganizerSubscription({
+      organizerId,
+      status: activeLegacy.status,
+      stripeCustomerId: activeLegacy.stripeCustomerId,
+      stripeSubscriptionId: activeLegacy.stripeSubscriptionId,
+      stripePriceId: null,
+      plan: 'monthly',
+      trialStart: activeLegacy.trialStart?.toString(),
+      trialEnd: activeLegacy.trialEnd?.toString(),
+      currentPeriodStart: activeLegacy.currentPeriodStart?.toString(),
+      currentPeriodEnd: activeLegacy.currentPeriodEnd?.toString(),
+      pricePerMonth: 5000,
+      placementCreditsAvailable: activeLegacy.placementCreditsAvailable || 2,
+      placementCreditsUsed: activeLegacy.placementCreditsUsed || 0,
+      placementCreditsTotal: 2
+    });
+
+    console.log('[Billing Migration] Created organizer subscription:', newSubscription.id);
+
+    return { migrated: true, subscription: newSubscription, message: 'Successfully migrated' };
+  } catch (error: any) {
+    console.error('[Billing Migration] Error:', error);
+    return { migrated: false, subscription: null, message: error.message };
+  }
+}
+
+/**
+ * GET /api/billing/organizer/subscription
+ * Get organizer's subscription status (auto-migrates legacy subscriptions)
+ */
+router.get('/organizer/subscription', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+
+    const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+    if (!organizer) {
+      return res.status(404).json({ ok: false, error: 'Organizer not found' });
+    }
+
+    // Try to get existing organizer subscription
+    let subscription = await communitiesStorage.getOrganizerSubscription(organizer.id);
+    
+    // Auto-migrate legacy subscription if needed
+    if (!subscription) {
+      const migrationResult = await migrateToOrganizerSubscription(organizer.id);
+      subscription = migrationResult.subscription;
+      
+      if (!subscription) {
+        // Check old community subscriptions (for display only, don't migrate)
+        const oldSubscriptions = await communitiesStorage.getSubscriptionByOrganizer(organizer.id);
+        const activeOld = oldSubscriptions.find(s => s.status === 'active' || s.status === 'trialing');
+        
+        // Get communities even without subscription
+        const communities = await communitiesStorage.getCommunitiesByOrganizerId(organizer.id);
+        
+        return res.json({
+          ok: true,
+          subscription: null,
+          hasLegacySubscription: !!activeOld,
+          legacySubscription: activeOld ? {
+            status: activeOld.status,
+            communityId: activeOld.communityId
+          } : null,
+          communities: communities.map(c => ({
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            status: c.status
+          }))
+        });
+      }
+    }
+
+    // Compute actual state
+    let computedState = subscription.status;
+    if (subscription.status === 'trialing' && subscription.trialEnd) {
+      const trialEnd = new Date(subscription.trialEnd);
+      if (trialEnd <= new Date()) {
+        computedState = 'ended';
+      }
+    }
+
+    // Get communities covered by this subscription
+    const communities = await communitiesStorage.getCommunitiesByOrganizerId(organizer.id);
+
+    res.json({
+      ok: true,
+      subscription: {
+        id: subscription.id,
+        status: subscription.status,
+        computedState,
+        plan: subscription.plan,
+        stripeCustomerId: subscription.stripeCustomerId,
+        stripeSubscriptionId: subscription.stripeSubscriptionId,
+        currentPeriodStart: subscription.currentPeriodStart,
+        currentPeriodEnd: subscription.currentPeriodEnd,
+        trialStart: subscription.trialStart,
+        trialEnd: subscription.trialEnd,
+        cancelAt: subscription.cancelAt,
+        canceledAt: subscription.canceledAt,
+        credits: {
+          available: subscription.placementCreditsAvailable,
+          used: subscription.placementCreditsUsed,
+          total: subscription.placementCreditsTotal || 2,
+          resetDate: subscription.creditsResetDate
+        }
+      },
+      communities: communities.map(c => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        status: c.status
+      }))
+    });
+  } catch (error: any) {
+    console.error('[Billing Organizer] Get subscription error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to get subscription' });
+  }
+});
+
+/**
+ * POST /api/billing/organizer/portal
+ * Create a Stripe billing portal session for the organizer
+ */
+router.post('/organizer/portal', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { returnUrl } = req.body;
+    const user = (req as any).user;
+
+    const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+    if (!organizer) {
+      return res.status(403).json({ ok: false, error: 'Organizer not found' });
+    }
+
+    const subscription = await communitiesStorage.getOrganizerSubscription(organizer.id);
+    if (!subscription?.stripeCustomerId) {
+      return res.status(400).json({ ok: false, error: 'No billing information found' });
+    }
+
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: subscription.stripeCustomerId,
+      return_url: returnUrl || `${process.env.VITE_APP_URL || 'https://thehouseofjugnu.com'}/account/billing`
+    });
+
+    res.json({
+      ok: true,
+      portalUrl: portalSession.url
+    });
+  } catch (error: any) {
+    console.error('[Billing Organizer] Portal error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to create portal session' });
+  }
+});
+
+/**
+ * GET /api/billing/organizer/credits
+ * Get organizer's placement credits balance
+ */
+router.get('/organizer/credits', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+
+    const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+    if (!organizer) {
+      return res.status(404).json({ ok: false, error: 'Organizer not found' });
+    }
+
+    const credits = await communitiesStorage.getOrganizerSubscriptionCredits(organizer.id);
+    
+    if (!credits) {
+      return res.json({
+        ok: true,
+        credits: { available: 0, used: 0, total: 0, resetDate: null },
+        hasSubscription: false
+      });
+    }
+
+    res.json({
+      ok: true,
+      credits,
+      hasSubscription: true
+    });
+  } catch (error: any) {
+    console.error('[Billing Organizer] Credits error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to get credits' });
+  }
+});
+
 export default router;
