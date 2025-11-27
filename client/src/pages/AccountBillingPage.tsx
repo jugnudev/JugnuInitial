@@ -299,12 +299,12 @@ export default function AccountBillingPage() {
     enabled: !!authData?.user 
   });
 
-  // Fetch communities
+  // Fetch user's owned communities (including draft status)
   const { data: communitiesData, isLoading: communitiesLoading } = useQuery<{ 
     ok: boolean; 
     communities: Community[];
   }>({ 
-    queryKey: ['/api/communities'],
+    queryKey: ['/api/user/communities'],
     enabled: !!organizerData?.organizer 
   });
 
