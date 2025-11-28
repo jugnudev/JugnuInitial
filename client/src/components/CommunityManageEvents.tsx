@@ -230,6 +230,7 @@ export default function CommunityManageEvents({ organizerId }: CommunityManageEv
                     </div>
                     <span className="text-white/90 text-xs truncate">
                       {format(new Date(event.startAt), 'h:mm a')}
+                      {event.endAt && ` – ${format(new Date(event.endAt), 'h:mm a')}`}
                     </span>
                   </div>
                   {event.venue && (
