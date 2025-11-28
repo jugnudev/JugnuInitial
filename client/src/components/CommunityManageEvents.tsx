@@ -221,7 +221,9 @@ export default function CommunityManageEvents({ organizerId }: CommunityManageEv
                       <Calendar className="h-3.5 w-3.5 text-copper-300" />
                     </div>
                     <span className="text-white/90 text-xs truncate">
-                      {format(new Date(event.startAt), 'MMM d, yyyy')}
+                      {event.endAt && format(new Date(event.startAt), 'MMM d') !== format(new Date(event.endAt), 'MMM d')
+                        ? `${format(new Date(event.startAt), 'MMM d')} – ${format(new Date(event.endAt), 'MMM d, yyyy')}`
+                        : format(new Date(event.startAt), 'MMM d, yyyy')}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
