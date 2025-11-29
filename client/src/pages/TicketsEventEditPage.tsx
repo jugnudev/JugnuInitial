@@ -86,6 +86,7 @@ interface TicketTier {
   salesStartAt?: string;
   salesEndAt?: string;
   soldCount?: number;
+  showRemaining?: boolean;
   tempId?: string;
 }
 
@@ -355,7 +356,8 @@ export function TicketsEventEditPage() {
       capacity: null,
       maxPerOrder: 10,
       salesStartAt: form.getValues('startAt'),
-      salesEndAt: form.getValues('endAt')
+      salesEndAt: form.getValues('endAt'),
+      showRemaining: true
     };
     setTicketTiers([...ticketTiers, newTier]);
   };
@@ -908,6 +910,25 @@ export function TicketsEventEditPage() {
                                   className="bg-charcoal-900/60 border-charcoal-700 focus:border-copper-500 text-white placeholder:text-neutral-500"
                                 />
                               </div>
+                            </div>
+                            
+                            <div className="mt-4">
+                              <label className="text-sm font-medium">Show Remaining Tickets</label>
+                              <div className="flex items-center gap-3 mt-2 h-10 px-4 bg-charcoal-900/60 border border-charcoal-700 rounded-md">
+                                <Switch
+                                  checked={tier.showRemaining !== false}
+                                  onCheckedChange={(checked) => updateTicketTier(index, { showRemaining: checked })}
+                                  data-testid={`switch-tier-show-remaining-${index}`}
+                                />
+                                <span className="text-sm text-neutral-400">
+                                  {tier.showRemaining !== false ? 'Visible to buyers' : 'Hidden from buyers'}
+                                </span>
+                              </div>
+                              <p className="text-xs text-neutral-500 mt-1">
+                                {tier.showRemaining !== false 
+                                  ? 'Buyers will see how many tickets are left' 
+                                  : 'Remaining count hidden on public pages'}
+                              </p>
                             </div>
                           </CardContent>
                         </Card>

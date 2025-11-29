@@ -26,6 +26,7 @@ interface Tier {
   salesEndAt: Date | null;
   maxPerOrder: number;
   minPerOrder: number;
+  showRemaining: boolean;
 }
 
 interface Event {
@@ -706,12 +707,12 @@ export function TicketsEventDetailPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="text-lg md:text-xl font-fraunces font-bold text-white">{tier.name}</h3>
-                            {remaining !== null && remaining < 10 && remaining > 0 && (
+                            {tier.showRemaining !== false && remaining !== null && remaining < 10 && remaining > 0 && (
                               <div className="premium-badge-low">
                                 Only {remaining} left!
                               </div>
                             )}
-                            {remaining !== null && remaining >= 10 && (
+                            {tier.showRemaining !== false && remaining !== null && remaining >= 10 && (
                               <div className="premium-badge-available">
                                 {remaining} available
                               </div>
