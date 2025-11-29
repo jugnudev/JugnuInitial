@@ -149,10 +149,10 @@ function CheckoutForm({ communityName, communityId, subscriptionId, trialEndDate
         }
         setIsProcessing(false);
       } else {
-        // Confirm subscription status with backend
+        // Confirm subscription status with backend - this pays the invoice for non-trial subs
         try {
           const authToken = localStorage.getItem('community_auth_token');
-          await fetch('/api/billing/confirm-subscription', {
+          const confirmResponse = await fetch('/api/billing/confirm-subscription', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -161,17 +161,32 @@ function CheckoutForm({ communityName, communityId, subscriptionId, trialEndDate
             body: JSON.stringify({ communityId, subscriptionId }),
             credentials: 'include',
           });
+          
+          const confirmData = await confirmResponse.json();
+          console.log('[Payment] Confirm subscription response:', confirmData);
+          
+          if (!confirmResponse.ok || (confirmData.status !== 'active' && confirmData.status !== 'trialing')) {
+            // Subscription not active yet - might need retry
+            if (confirmData.status === 'incomplete') {
+              setErrorMessage('Payment could not be processed. Please try again or use a different card.');
+              setIsProcessing(false);
+              return;
+            }
+          }
+          
+          toast({
+            title: trialEligible ? 'Payment Method Saved!' : 'Subscription Activated!',
+            description: trialEligible 
+              ? 'Your subscription is now active with a 14-day free trial.'
+              : 'Your subscription is now active.',
+          });
+          setIsProcessing(false);
+          onSuccess();
         } catch (confirmErr) {
           console.error('Error confirming subscription:', confirmErr);
+          setErrorMessage('Failed to confirm subscription. Please refresh and try again.');
+          setIsProcessing(false);
         }
-        
-        toast({
-          title: trialEligible ? 'Payment Method Saved!' : 'Subscription Activated!',
-          description: trialEligible 
-            ? 'Your subscription is now active with a 14-day free trial.'
-            : 'Your subscription is now active. You will be charged $50 CAD.',
-        });
-        onSuccess();
       }
     } catch (err: any) {
       console.error('Payment error:', err);

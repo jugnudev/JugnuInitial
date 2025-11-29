@@ -461,7 +461,10 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
 
 /**
  * POST /api/billing/confirm-subscription
- * Called after SetupIntent is confirmed to sync subscription status from Stripe
+ * Called after SetupIntent/PaymentIntent is confirmed to sync subscription status from Stripe
+ * 
+ * For non-trial subscriptions that used a SetupIntent, we need to pay the first invoice
+ * after the payment method has been saved to the customer.
  */
 router.post('/confirm-subscription', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -484,7 +487,33 @@ router.post('/confirm-subscription', requireAuth, async (req: Request, res: Resp
     }
 
     // Fetch latest subscription status from Stripe
-    const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+    let stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ['latest_invoice']
+    });
+    
+    console.log('[Billing] Confirm subscription - initial status:', stripeSubscription.status);
+    
+    // If subscription is still incomplete (non-trial with SetupIntent), pay the open invoice
+    if (stripeSubscription.status === 'incomplete') {
+      const invoice = stripeSubscription.latest_invoice as Stripe.Invoice;
+      
+      if (invoice && invoice.id && invoice.status === 'open') {
+        console.log('[Billing] Subscription incomplete - paying open invoice:', invoice.id);
+        
+        try {
+          // Pay the invoice using the customer's default payment method
+          const paidInvoice = await stripe.invoices.pay(invoice.id);
+          console.log('[Billing] Invoice paid successfully:', paidInvoice.id, 'status:', paidInvoice.status);
+          
+          // Re-fetch subscription to get updated status
+          stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+          console.log('[Billing] Subscription status after payment:', stripeSubscription.status);
+        } catch (payError: any) {
+          console.error('[Billing] Failed to pay invoice:', payError.message);
+          // If payment fails, still continue to update our records with the current status
+        }
+      }
+    }
     
     // Get our subscription record
     const existingSubscription = await communitiesStorage.getSubscriptionByCommunityId(communityId);
@@ -1671,6 +1700,9 @@ router.post('/organizer/subscribe', requireAuth, async (req: Request, res: Respo
 /**
  * POST /api/billing/organizer/confirm
  * Confirm subscription after payment method is set up
+ * 
+ * For non-trial subscriptions that used a SetupIntent, we need to pay the first invoice
+ * after the payment method has been saved to the customer.
  */
 router.post('/organizer/confirm', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -1687,7 +1719,33 @@ router.post('/organizer/confirm', requireAuth, async (req: Request, res: Respons
     }
 
     // Fetch latest subscription status from Stripe
-    const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+    let stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ['latest_invoice']
+    });
+    
+    console.log('[Billing Organizer] Confirm - initial status:', stripeSubscription.status);
+    
+    // If subscription is still incomplete (non-trial with SetupIntent), pay the open invoice
+    if (stripeSubscription.status === 'incomplete') {
+      const invoice = stripeSubscription.latest_invoice as Stripe.Invoice;
+      
+      if (invoice && invoice.id && invoice.status === 'open') {
+        console.log('[Billing Organizer] Subscription incomplete - paying open invoice:', invoice.id);
+        
+        try {
+          // Pay the invoice using the customer's default payment method
+          const paidInvoice = await stripe.invoices.pay(invoice.id);
+          console.log('[Billing Organizer] Invoice paid successfully:', paidInvoice.id, 'status:', paidInvoice.status);
+          
+          // Re-fetch subscription to get updated status
+          stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+          console.log('[Billing Organizer] Subscription status after payment:', stripeSubscription.status);
+        } catch (payError: any) {
+          console.error('[Billing Organizer] Failed to pay invoice:', payError.message);
+          // If payment fails, still continue to update our records with the current status
+        }
+      }
+    }
     
     // Update subscription status
     let newStatus = 'incomplete';
@@ -1699,13 +1757,14 @@ router.post('/organizer/confirm', requireAuth, async (req: Request, res: Respons
       newStatus = 'past_due';
     }
 
+    const sub = stripeSubscription as any;
     const updates: any = {
       status: newStatus,
-      currentPeriodStart: stripeSubscription.current_period_start 
-        ? new Date(stripeSubscription.current_period_start * 1000) 
+      currentPeriodStart: sub.current_period_start 
+        ? new Date(sub.current_period_start * 1000) 
         : undefined,
-      currentPeriodEnd: stripeSubscription.current_period_end 
-        ? new Date(stripeSubscription.current_period_end * 1000) 
+      currentPeriodEnd: sub.current_period_end 
+        ? new Date(sub.current_period_end * 1000) 
         : undefined
     };
 
