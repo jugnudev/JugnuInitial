@@ -496,18 +496,35 @@ router.post('/confirm-subscription', requireAuth, async (req: Request, res: Resp
     // If subscription is still incomplete (non-trial with SetupIntent), pay the open invoice
     if (stripeSubscription.status === 'incomplete') {
       const invoice = stripeSubscription.latest_invoice as Stripe.Invoice;
+      const customerId = stripeSubscription.customer as string;
       
-      if (invoice && invoice.id && invoice.status === 'open') {
+      if (invoice && invoice.id && invoice.status === 'open' && customerId) {
         console.log('[Billing] Subscription incomplete - paying open invoice:', invoice.id);
         
         try {
-          // Pay the invoice using the customer's default payment method
-          const paidInvoice = await stripe.invoices.pay(invoice.id);
-          console.log('[Billing] Invoice paid successfully:', paidInvoice.id, 'status:', paidInvoice.status);
+          // Get the customer's payment methods (the SetupIntent should have attached one)
+          const paymentMethods = await stripe.paymentMethods.list({
+            customer: customerId,
+            type: 'card',
+          });
           
-          // Re-fetch subscription to get updated status
-          stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
-          console.log('[Billing] Subscription status after payment:', stripeSubscription.status);
+          if (paymentMethods.data.length === 0) {
+            console.error('[Billing] No payment methods found for customer');
+          } else {
+            // Use the most recently created payment method
+            const paymentMethod = paymentMethods.data[0];
+            console.log('[Billing] Using payment method:', paymentMethod.id);
+            
+            // Pay the invoice with the specific payment method
+            const paidInvoice = await stripe.invoices.pay(invoice.id, {
+              payment_method: paymentMethod.id
+            });
+            console.log('[Billing] Invoice paid successfully:', paidInvoice.id, 'status:', paidInvoice.status);
+            
+            // Re-fetch subscription to get updated status
+            stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+            console.log('[Billing] Subscription status after payment:', stripeSubscription.status);
+          }
         } catch (payError: any) {
           console.error('[Billing] Failed to pay invoice:', payError.message);
           // If payment fails, still continue to update our records with the current status
@@ -1728,18 +1745,35 @@ router.post('/organizer/confirm', requireAuth, async (req: Request, res: Respons
     // If subscription is still incomplete (non-trial with SetupIntent), pay the open invoice
     if (stripeSubscription.status === 'incomplete') {
       const invoice = stripeSubscription.latest_invoice as Stripe.Invoice;
+      const customerId = stripeSubscription.customer as string;
       
-      if (invoice && invoice.id && invoice.status === 'open') {
+      if (invoice && invoice.id && invoice.status === 'open' && customerId) {
         console.log('[Billing Organizer] Subscription incomplete - paying open invoice:', invoice.id);
         
         try {
-          // Pay the invoice using the customer's default payment method
-          const paidInvoice = await stripe.invoices.pay(invoice.id);
-          console.log('[Billing Organizer] Invoice paid successfully:', paidInvoice.id, 'status:', paidInvoice.status);
+          // Get the customer's payment methods (the SetupIntent should have attached one)
+          const paymentMethods = await stripe.paymentMethods.list({
+            customer: customerId,
+            type: 'card',
+          });
           
-          // Re-fetch subscription to get updated status
-          stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
-          console.log('[Billing Organizer] Subscription status after payment:', stripeSubscription.status);
+          if (paymentMethods.data.length === 0) {
+            console.error('[Billing Organizer] No payment methods found for customer');
+          } else {
+            // Use the most recently created payment method
+            const paymentMethod = paymentMethods.data[0];
+            console.log('[Billing Organizer] Using payment method:', paymentMethod.id);
+            
+            // Pay the invoice with the specific payment method
+            const paidInvoice = await stripe.invoices.pay(invoice.id, {
+              payment_method: paymentMethod.id
+            });
+            console.log('[Billing Organizer] Invoice paid successfully:', paidInvoice.id, 'status:', paidInvoice.status);
+            
+            // Re-fetch subscription to get updated status
+            stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+            console.log('[Billing Organizer] Subscription status after payment:', stripeSubscription.status);
+          }
         } catch (payError: any) {
           console.error('[Billing Organizer] Failed to pay invoice:', payError.message);
           // If payment fails, still continue to update our records with the current status
