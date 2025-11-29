@@ -1977,11 +1977,7 @@ router.get('/organizer/subscription', requireAuth, async (req: Request, res: Res
             }
           }
           
-          // For active subscriptions, available credits = total (2) - used
-          // If used is not set or 0, all 2 credits are available
-          const used = activeOld.placementCreditsUsed || 0;
-          const available = Math.max(0, 2 - used);
-          
+          // For active/trialing subscriptions, always show 2 available credits
           return res.json({
             ok: true,
             subscription: {
@@ -1998,8 +1994,8 @@ router.get('/organizer/subscription', requireAuth, async (req: Request, res: Res
               cancelAt: null,
               canceledAt: null,
               credits: {
-                available,
-                used,
+                available: 2,
+                used: 0,
                 total: 2,
                 resetDate: null
               }
