@@ -1471,13 +1471,50 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
       return res.status(403).json({ ok: false, error: 'You can only feature events that you own' });
     }
 
-    // Check credit balance
-    const creditCheck = await creditsService.checkCredits(organizer.id, creditsToDeduct);
-    if (!creditCheck.hasCredits) {
+    // Get subscription via community (same logic as /credits/balance)
+    const communities = await communitiesStorage.getCommunitiesByOrganizerId(organizer.id);
+    if (communities.length === 0) {
+      return res.status(402).json({ 
+        ok: false, 
+        error: 'No community found. Create a community to use placement credits.',
+        available: 0,
+        needed: creditsToDeduct
+      });
+    }
+
+    const subscription = await communitiesStorage.getSubscriptionByCommunityId(communities[0].id);
+    if (!subscription) {
+      return res.status(402).json({ 
+        ok: false, 
+        error: 'No subscription found',
+        available: 0,
+        needed: creditsToDeduct
+      });
+    }
+
+    // Only active subscriptions have credits
+    if (subscription.status !== 'active') {
+      return res.status(402).json({ 
+        ok: false, 
+        error: subscription.status === 'trialing' 
+          ? 'Credits are only available with an active paid subscription'
+          : 'Active subscription required for placement credits',
+        available: 0,
+        needed: creditsToDeduct,
+        subscriptionStatus: subscription.status
+      });
+    }
+
+    // Check credit balance directly from subscription (same source as /credits/balance)
+    const availableCredits = subscription.placementCreditsAvailable || 0;
+    const usedCredits = subscription.placementCreditsUsed || 0;
+    const remainingCredits = availableCredits - usedCredits;
+
+    if (remainingCredits < creditsToDeduct) {
       return res.status(402).json({ 
         ok: false, 
         error: 'Insufficient credits',
-        available: creditCheck.availableCredits,
+        available: remainingCredits,
         needed: creditsToDeduct
       });
     }
@@ -1516,15 +1553,28 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
       return res.status(500).json({ ok: false, error: 'Failed to create campaign' });
     }
 
-    // Deduct credits and log usage
-    await creditsService.deductCredits(
-      organizer.id,
-      creditsToDeduct,
-      campaign.id,
-      [placement],
-      startDate,
-      endDate
-    );
+    // Deduct credits directly from subscription (same source as /credits/balance)
+    const newUsedCredits = usedCredits + creditsToDeduct;
+    await communitiesStorage.updateSubscriptionCredits(subscription.id, {
+      placementCreditsUsed: newUsedCredits
+    });
+
+    // Track credit usage for analytics
+    try {
+      await communitiesStorage.recordCreditUsage({
+        organizerId: organizer.id,
+        subscriptionId: subscription.id,
+        campaignId: campaign.id,
+        placementsUsed: [placement],
+        creditsDeducted: creditsToDeduct,
+        startDate,
+        endDate,
+        notes: null
+      });
+    } catch (usageError) {
+      // Don't fail if usage tracking fails - this is for analytics only
+      console.error('[Billing] Failed to track credit usage:', usageError);
+    }
 
     // Create portal token for the campaign (valid for 30 days)
     let portalToken = null;
