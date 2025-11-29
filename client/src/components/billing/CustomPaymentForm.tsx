@@ -83,6 +83,7 @@ interface PaymentFormProps {
   subscriptionId: string;
   trialEndDate?: string;
   trialEligible: boolean;
+  intentType: 'setup' | 'payment';
   onSuccess: () => void;
   onCancel: () => void;
 }
@@ -93,11 +94,12 @@ interface CheckoutFormProps {
   subscriptionId: string;
   trialEndDate?: string;
   trialEligible: boolean;
+  intentType: 'setup' | 'payment';
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-function CheckoutForm({ communityName, communityId, subscriptionId, trialEndDate, trialEligible, onSuccess, onCancel }: CheckoutFormProps) {
+function CheckoutForm({ communityName, communityId, subscriptionId, trialEndDate, trialEligible, intentType, onSuccess, onCancel }: CheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -117,8 +119,9 @@ function CheckoutForm({ communityName, communityId, subscriptionId, trialEndDate
     try {
       let confirmError: any = null;
       
-      // Use confirmSetup for trial (SetupIntent) or confirmPayment for immediate billing (PaymentIntent)
-      if (trialEligible) {
+      // Use intentType from backend to determine which Stripe method to call
+      // SetupIntent = confirmSetup(), PaymentIntent = confirmPayment()
+      if (intentType === 'setup') {
         const result = await stripe.confirmSetup({
           elements,
           confirmParams: {
@@ -287,7 +290,7 @@ function CheckoutForm({ communityName, communityId, subscriptionId, trialEndDate
   );
 }
 
-export function CustomPaymentForm({ clientSecret, communityId, communityName, subscriptionId, trialEndDate, trialEligible, onSuccess, onCancel }: PaymentFormProps) {
+export function CustomPaymentForm({ clientSecret, communityId, communityName, subscriptionId, trialEndDate, trialEligible, intentType, onSuccess, onCancel }: PaymentFormProps) {
   const options: StripeElementsOptions = {
     clientSecret,
     appearance: stripeAppearance,
@@ -303,6 +306,7 @@ export function CustomPaymentForm({ clientSecret, communityId, communityName, su
             subscriptionId={subscriptionId}
             trialEndDate={trialEndDate}
             trialEligible={trialEligible}
+            intentType={intentType}
             onSuccess={onSuccess} 
             onCancel={onCancel}
           />
@@ -329,6 +333,7 @@ export function CustomPaymentFormWrapper({
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
   const [trialEndDate, setTrialEndDate] = useState<string | undefined>(undefined);
   const [trialEligible, setTrialEligible] = useState<boolean>(true);
+  const [intentType, setIntentType] = useState<'setup' | 'payment'>('setup');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -371,6 +376,7 @@ export function CustomPaymentFormWrapper({
           setClientSecret(data.clientSecret);
           setSubscriptionId(data.subscriptionId);
           setTrialEligible(data.trialEligible ?? true);
+          setIntentType(data.intentType || 'setup'); // Default to setup for safety
           if (data.trialEnd) {
             setTrialEndDate(data.trialEnd);
           }
@@ -450,6 +456,7 @@ export function CustomPaymentFormWrapper({
       subscriptionId={subscriptionId}
       trialEndDate={trialEndDate}
       trialEligible={trialEligible}
+      intentType={intentType}
       onSuccess={onSuccess}
       onCancel={onCancel}
     />
@@ -469,6 +476,7 @@ export function OrganizerPaymentFormWrapper({
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
   const [trialEndDate, setTrialEndDate] = useState<string | undefined>(undefined);
   const [trialEligible, setTrialEligible] = useState<boolean>(true);
+  const [intentType, setIntentType] = useState<'setup' | 'payment'>('setup');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -500,6 +508,7 @@ export function OrganizerPaymentFormWrapper({
           setClientSecret(data.clientSecret);
           setSubscriptionId(data.subscriptionId);
           setTrialEligible(data.trialEligible ?? true);
+          setIntentType(data.intentType || 'setup'); // Default to setup for safety
           if (data.trialEnd) {
             setTrialEndDate(data.trialEnd);
           }
@@ -577,6 +586,7 @@ export function OrganizerPaymentFormWrapper({
       subscriptionId={subscriptionId}
       trialEndDate={trialEndDate}
       trialEligible={trialEligible}
+      intentType={intentType}
       onSuccess={onSuccess}
       onCancel={onCancel}
     />
@@ -588,11 +598,12 @@ interface OrganizerPaymentFormProps {
   subscriptionId: string;
   trialEndDate?: string;
   trialEligible: boolean;
+  intentType: 'setup' | 'payment';
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export function OrganizerPaymentForm({ clientSecret, subscriptionId, trialEndDate, trialEligible, onSuccess, onCancel }: OrganizerPaymentFormProps) {
+export function OrganizerPaymentForm({ clientSecret, subscriptionId, trialEndDate, trialEligible, intentType, onSuccess, onCancel }: OrganizerPaymentFormProps) {
   const options: StripeElementsOptions = {
     clientSecret,
     appearance: stripeAppearance,
@@ -606,6 +617,7 @@ export function OrganizerPaymentForm({ clientSecret, subscriptionId, trialEndDat
             subscriptionId={subscriptionId}
             trialEndDate={trialEndDate}
             trialEligible={trialEligible}
+            intentType={intentType}
             onSuccess={onSuccess} 
             onCancel={onCancel}
           />
@@ -619,11 +631,12 @@ interface OrganizerCheckoutFormProps {
   subscriptionId: string;
   trialEndDate?: string;
   trialEligible: boolean;
+  intentType: 'setup' | 'payment';
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-function OrganizerCheckoutForm({ subscriptionId, trialEndDate, trialEligible, onSuccess, onCancel }: OrganizerCheckoutFormProps) {
+function OrganizerCheckoutForm({ subscriptionId, trialEndDate, trialEligible, intentType, onSuccess, onCancel }: OrganizerCheckoutFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -643,7 +656,9 @@ function OrganizerCheckoutForm({ subscriptionId, trialEndDate, trialEligible, on
     try {
       let confirmError: any = null;
       
-      if (trialEligible) {
+      // Use intentType from backend to determine which Stripe method to call
+      // SetupIntent = confirmSetup(), PaymentIntent = confirmPayment()
+      if (intentType === 'setup') {
         const result = await stripe.confirmSetup({
           elements,
           confirmParams: {

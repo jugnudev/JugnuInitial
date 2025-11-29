@@ -362,6 +362,7 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
 
     // Get the client secret from either the payment intent or setup intent
     let clientSecret: string | null = null;
+    let intentType: 'setup' | 'payment' = 'setup'; // Track which type of intent we're using
     
     console.log('[Billing] Subscription created:', {
       id: subscription.id,
@@ -374,7 +375,8 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
     if (subscription.pending_setup_intent) {
       const setupIntent = subscription.pending_setup_intent as Stripe.SetupIntent;
       clientSecret = setupIntent.client_secret;
-      console.log('[Billing] Got client secret from pending_setup_intent');
+      intentType = 'setup';
+      console.log('[Billing] Got client secret from pending_setup_intent (SetupIntent)');
     } else if (subscription.latest_invoice) {
       // Access payment_intent via type assertion since it's expanded
       const invoice = subscription.latest_invoice as any;
@@ -382,7 +384,8 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
       console.log('[Billing] Invoice payment_intent:', paymentIntent?.id, 'status:', paymentIntent?.status);
       if (paymentIntent?.client_secret) {
         clientSecret = paymentIntent.client_secret;
-        console.log('[Billing] Got client secret from latest_invoice.payment_intent');
+        intentType = 'payment';
+        console.log('[Billing] Got client secret from latest_invoice.payment_intent (PaymentIntent)');
       }
     }
     
@@ -402,6 +405,7 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
         }
       });
       clientSecret = setupIntent.client_secret;
+      intentType = 'setup';
       console.log('[Billing] Created manual SetupIntent with client secret');
     }
 
@@ -446,7 +450,8 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
       subscriptionId: subscription.id,
       customerId,
       trialEnd: trialEndDate?.toISOString(),
-      trialEligible
+      trialEligible,
+      intentType // 'setup' or 'payment' - frontend uses this to call correct Stripe method
     });
   } catch (error: any) {
     console.error('Create subscription intent error:', error);
@@ -1582,16 +1587,19 @@ router.post('/organizer/subscribe', requireAuth, async (req: Request, res: Respo
     
     const subscription = await stripe.subscriptions.create(subscriptionParams);
 
-    // Get client secret
+    // Get client secret and track intent type
     let clientSecret: string | null = null;
+    let intentType: 'setup' | 'payment' = 'setup';
     
     if (subscription.pending_setup_intent) {
       const setupIntent = subscription.pending_setup_intent as Stripe.SetupIntent;
       clientSecret = setupIntent.client_secret;
+      intentType = 'setup';
     } else if (subscription.latest_invoice) {
       const invoice = subscription.latest_invoice as any;
       if (invoice.payment_intent?.client_secret) {
         clientSecret = invoice.payment_intent.client_secret;
+        intentType = 'payment';
       }
     }
     
@@ -1607,6 +1615,7 @@ router.post('/organizer/subscribe', requireAuth, async (req: Request, res: Respo
         }
       });
       clientSecret = setupIntent.client_secret;
+      intentType = 'setup';
     }
 
     // Save subscription to database
@@ -1650,7 +1659,8 @@ router.post('/organizer/subscribe', requireAuth, async (req: Request, res: Respo
       subscriptionId: subscription.id,
       customerId,
       trialEnd: trialEndDate?.toISOString(),
-      trialEligible
+      trialEligible,
+      intentType // 'setup' or 'payment' - frontend uses this to call correct Stripe method
     });
   } catch (error: any) {
     console.error('[Billing Organizer] Subscribe error:', error);
