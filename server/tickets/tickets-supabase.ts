@@ -300,6 +300,7 @@ export class TicketsSupabaseDB {
       max_per_order: data.maxPerOrder,
       sales_start_at: data.salesStartAt,
       sales_end_at: data.salesEndAt,
+      show_remaining: data.showRemaining ?? true,
       sort_order: data.sortOrder
     };
     

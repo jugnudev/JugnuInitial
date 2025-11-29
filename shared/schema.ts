@@ -275,6 +275,7 @@ export const ticketsTiers = pgTable("tickets_tiers", {
   salesStartAt: timestamp("sales_start_at", { withTimezone: true }),
   salesEndAt: timestamp("sales_end_at", { withTimezone: true }),
   visibility: text("visibility").notNull().default("public"), // public | hidden
+  showRemaining: boolean("show_remaining").notNull().default(true), // Whether to show remaining ticket count to buyers
   sortOrder: integer("sort_order").default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
 });
