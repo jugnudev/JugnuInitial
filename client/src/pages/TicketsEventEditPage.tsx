@@ -1217,8 +1217,15 @@ export function TicketsEventEditPage() {
                                   min="0"
                                   step="0.01"
                                   placeholder="2.50"
-                                  value={(field.value / 100).toFixed(2)}
-                                  onChange={(e) => field.onChange(Math.round(parseFloat(e.target.value) * 100) || 0)}
+                                  value={field.value / 100}
+                                  onChange={(e) => {
+                                    const dollars = parseFloat(e.target.value);
+                                    if (!isNaN(dollars)) {
+                                      field.onChange(Math.round(dollars * 100));
+                                    } else {
+                                      field.onChange(0);
+                                    }
+                                  }}
                                   data-testid="input-service-fee-amount"
                                   className="pl-7"
                                 />

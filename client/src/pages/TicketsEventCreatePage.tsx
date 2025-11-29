@@ -985,11 +985,17 @@ export function TicketsEventCreatePage() {
                           type="number"
                           min="0"
                           step="0.01"
-                          value={(form.feeStructure.amountCents / 100).toFixed(2)}
-                          onChange={(e) => setForm(prev => ({ 
-                            ...prev, 
-                            feeStructure: { ...prev.feeStructure, amountCents: Math.round(parseFloat(e.target.value) * 100) || 0 } 
-                          }))}
+                          value={form.feeStructure.amountCents / 100}
+                          onChange={(e) => {
+                            const dollars = parseFloat(e.target.value);
+                            setForm(prev => ({ 
+                              ...prev, 
+                              feeStructure: { 
+                                ...prev.feeStructure, 
+                                amountCents: !isNaN(dollars) ? Math.round(dollars * 100) : 0 
+                              } 
+                            }));
+                          }}
                           className="h-12 pl-7 bg-charcoal-900/60 border-charcoal-700 
                                    focus:border-copper-500 text-white"
                           data-testid="input-service-fee-amount"
