@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
@@ -66,54 +66,18 @@ const faqItems = [
   }
 ];
 
-function ManageSubscriptionButton({ communityId }: { communityId: string }) {
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleManageSubscription = async () => {
-    setIsLoading(true);
-    try {
-      const res = await apiRequest(
-        'POST',
-        '/api/billing/create-portal-session',
-        { communityId }
-      );
-      
-      const data = await res.json() as { ok: boolean; url: string };
-
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        throw new Error('No portal URL returned');
-      }
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to open billing portal. Please try again.",
-      });
-      setIsLoading(false);
-    }
-  };
+function ManageSubscriptionButton() {
+  const [, navigate] = useLocation();
 
   return (
     <Button
       size="lg"
       className="bg-gradient-to-r from-jade-500 to-emerald-600 hover:from-jade-600 hover:to-emerald-700 text-white font-semibold px-8 py-6 text-lg"
-      onClick={handleManageSubscription}
-      disabled={isLoading}
+      onClick={() => navigate('/account/billing')}
       data-testid="button-manage-subscription"
     >
-      {isLoading ? (
-        <>
-          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-          Opening Portal...
-        </>
-      ) : (
-        <>
-          <Settings className="w-5 h-5 mr-2" />
-          Manage Your Subscription
-        </>
-      )}
+      <Settings className="w-5 h-5 mr-2" />
+      Manage Your Subscription
     </Button>
   );
 }
@@ -249,7 +213,7 @@ export default function PricingPage() {
               {/* State-specific CTAs */}
               {!isLoadingUserState && canManageInPortal && firstCommunity && (
                 <div className="space-y-3">
-                  <ManageSubscriptionButton communityId={firstCommunity.id} />
+                  <ManageSubscriptionButton />
                   <p className="text-sm text-white/60">
                     {availableCredits} placement credit{availableCredits !== 1 ? 's' : ''} available
                   </p>

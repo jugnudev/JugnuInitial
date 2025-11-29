@@ -172,13 +172,15 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
       return res.status(403).json({ ok: false, error: 'Only community owners can manage billing' });
     }
 
-    // Check if organizer has already used a trial (across all their communities)
+    // Check if organizer has already used a trial (check BOTH community and organizer subscriptions)
     // A trial is considered "used" if ANY subscription exists with:
     // - A Stripe subscription ID (they went through checkout process)
     // - OR trial dates set
     // - OR any status indicating a subscription was started
-    const organizerSubscriptions = await communitiesStorage.getSubscriptionByOrganizer(organizer.id);
-    const hasUsedTrial = organizerSubscriptions.some(sub => 
+    
+    // Check legacy community subscriptions
+    const communitySubscriptions = await communitiesStorage.getSubscriptionByOrganizer(organizer.id);
+    const hasUsedTrialFromCommunity = communitySubscriptions.some(sub => 
       sub.stripeSubscriptionId !== null ||  // Has gone through Stripe checkout
       sub.trialEnd !== null || 
       sub.trialStart !== null ||
@@ -189,13 +191,32 @@ router.post('/create-subscription-intent', requireAuth, async (req: Request, res
       sub.status === 'incomplete' ||  // Started checkout process
       sub.status === 'incomplete_expired'
     );
+    
+    // Check organizer-level subscriptions (new system)
+    const organizerSubscription = await communitiesStorage.getOrganizerSubscription(organizer.id);
+    const hasUsedTrialFromOrganizer = organizerSubscription && (
+      organizerSubscription.stripeSubscriptionId !== null ||
+      organizerSubscription.trialEnd !== null ||
+      organizerSubscription.trialStart !== null ||
+      organizerSubscription.status === 'trialing' ||
+      organizerSubscription.status === 'active' ||
+      organizerSubscription.status === 'ended' ||
+      organizerSubscription.status === 'canceled' ||
+      organizerSubscription.status === 'incomplete' ||
+      organizerSubscription.status === 'incomplete_expired'
+    );
+    
+    const hasUsedTrial = hasUsedTrialFromCommunity || hasUsedTrialFromOrganizer;
     const trialEligible = !hasUsedTrial;
     
     console.log('[Billing] Trial eligibility check:', { 
       organizerId: organizer.id, 
+      hasUsedTrialFromCommunity,
+      hasUsedTrialFromOrganizer,
       hasUsedTrial, 
       trialEligible,
-      subscriptionCount: organizerSubscriptions.length
+      communitySubscriptionCount: communitySubscriptions.length,
+      hasOrganizerSubscription: !!organizerSubscription
     });
 
     // Check existing subscription
@@ -2019,7 +2040,7 @@ router.get('/organizer/subscription', requireAuth, async (req: Request, res: Res
  */
 router.post('/organizer/portal', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { returnUrl } = req.body;
+    const { returnUrl, flowType } = req.body;
     const user = (req as any).user;
 
     const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
@@ -2032,10 +2053,19 @@ router.post('/organizer/portal', requireAuth, async (req: Request, res: Response
       return res.status(400).json({ ok: false, error: 'No billing information found' });
     }
 
-    const portalSession = await stripe.billingPortal.sessions.create({
+    const portalConfig: any = {
       customer: subscription.stripeCustomerId,
       return_url: returnUrl || `${process.env.VITE_APP_URL || 'https://thehouseofjugnu.com'}/account/billing`
-    });
+    };
+
+    // If flowType is specified, use flow_data to direct user to specific section
+    if (flowType === 'payment_method_update' && subscription.stripeSubscriptionId) {
+      portalConfig.flow_data = {
+        type: 'payment_method_update',
+      };
+    }
+
+    const portalSession = await stripe.billingPortal.sessions.create(portalConfig);
 
     res.json({
       ok: true,
@@ -2044,6 +2074,55 @@ router.post('/organizer/portal', requireAuth, async (req: Request, res: Response
   } catch (error: any) {
     console.error('[Billing Organizer] Portal error:', error);
     res.status(500).json({ ok: false, error: error.message || 'Failed to create portal session' });
+  }
+});
+
+/**
+ * POST /api/billing/organizer/cancel
+ * Cancel the organizer's subscription (at end of billing period)
+ */
+router.post('/organizer/cancel', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+
+    const organizer = await communitiesStorage.getOrganizerByUserId(user.id);
+    if (!organizer) {
+      return res.status(403).json({ ok: false, error: 'Organizer not found' });
+    }
+
+    const subscription = await communitiesStorage.getOrganizerSubscription(organizer.id);
+    if (!subscription?.stripeSubscriptionId) {
+      return res.status(400).json({ ok: false, error: 'No active subscription found' });
+    }
+
+    // Cancel at period end (not immediately)
+    const canceledSubscription = await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+      cancel_at_period_end: true
+    });
+
+    // Update local database
+    await communitiesStorage.updateOrganizerSubscription(organizer.id, {
+      cancelAt: canceledSubscription.cancel_at 
+        ? new Date(canceledSubscription.cancel_at * 1000) 
+        : undefined,
+      canceledAt: new Date()
+    });
+
+    console.log('[Billing Organizer] Subscription canceled at period end:', {
+      organizerId: organizer.id,
+      subscriptionId: subscription.stripeSubscriptionId,
+      cancelAt: canceledSubscription.cancel_at
+    });
+
+    res.json({
+      ok: true,
+      cancelAt: canceledSubscription.cancel_at 
+        ? new Date(canceledSubscription.cancel_at * 1000).toISOString() 
+        : null
+    });
+  } catch (error: any) {
+    console.error('[Billing Organizer] Cancel error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to cancel subscription' });
   }
 });
 

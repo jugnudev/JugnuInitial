@@ -65,11 +65,7 @@ export default function OrganizerSubscribePage() {
 
   const handlePaymentSuccess = () => {
     refetchSubscription();
-    toast({
-      title: 'Subscription Activated!',
-      description: 'Your Jugnu subscription is now active.',
-    });
-    navigate('/account/billing');
+    navigate('/account/billing/success');
   };
 
   const isTrialing = subscription?.status === 'trialing';

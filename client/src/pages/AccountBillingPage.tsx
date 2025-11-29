@@ -1,10 +1,21 @@
 import { Helmet } from 'react-helmet-async';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { 
   CreditCard, 
   Calendar, 
@@ -16,7 +27,9 @@ import {
   Loader2,
   Building2,
   Star,
-  Percent
+  Percent,
+  XCircle,
+  RefreshCw
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { toast } from '@/hooks/use-toast';
@@ -58,7 +71,10 @@ interface OrganizerSubscription {
 
 export default function AccountBillingPage() {
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
   const [isOpeningPortal, setIsOpeningPortal] = useState(false);
+  const [isCanceling, setIsCanceling] = useState(false);
+  const [isUpdatingPayment, setIsUpdatingPayment] = useState(false);
 
   // Fetch current user
   const { data: authData, isLoading: authLoading } = useQuery<{ 
@@ -145,6 +161,94 @@ export default function AccountBillingPage() {
         variant: 'destructive',
       });
       setIsOpeningPortal(false);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    setIsCanceling(true);
+    try {
+      const authToken = localStorage.getItem('community_auth_token');
+      if (!authToken) {
+        throw new Error('Please log in to cancel subscription');
+      }
+
+      const response = await fetch('/api/billing/organizer/cancel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to cancel subscription');
+      }
+
+      const data = await response.json();
+      
+      toast({
+        title: 'Subscription Canceled',
+        description: data.cancelAt 
+          ? `Your subscription will end on ${new Date(data.cancelAt).toLocaleDateString()}`
+          : 'Your subscription has been canceled.',
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/billing/organizer/subscription'] });
+    } catch (error: any) {
+      console.error('Cancel error:', error);
+      toast({
+        title: 'Cancellation Failed',
+        description: error.message || 'Failed to cancel subscription. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsCanceling(false);
+    }
+  };
+
+  const handleUpdatePaymentMethod = async () => {
+    setIsUpdatingPayment(true);
+    try {
+      const authToken = localStorage.getItem('community_auth_token');
+      if (!authToken) {
+        throw new Error('Please log in to update payment method');
+      }
+
+      const response = await fetch('/api/billing/organizer/portal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ 
+          returnUrl: window.location.href,
+          flowType: 'payment_method_update'
+        }),
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to open payment update');
+      }
+
+      const data = await response.json();
+
+      if (data.portalUrl) {
+        window.location.href = data.portalUrl;
+      } else {
+        throw new Error('No portal URL returned');
+      }
+    } catch (error: any) {
+      console.error('Payment update error:', error);
+      toast({
+        title: 'Update Failed',
+        description: error.message || 'Failed to open payment update. Please try again.',
+        variant: 'destructive',
+      });
+      setIsUpdatingPayment(false);
     }
   };
 
@@ -506,40 +610,135 @@ export default function AccountBillingPage() {
                 </div>
               </div>
 
-              {/* CTAs */}
-              <div className="flex flex-col sm:flex-row gap-3">
-                {canAccessPortal && (
-                  <Button
-                    onClick={handleOpenBillingPortal}
-                    disabled={isOpeningPortal}
-                    className="flex-1 bg-copper-500 hover:bg-copper-600 text-black font-semibold"
-                    data-testid="button-manage-billing"
-                  >
-                    {isOpeningPortal ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Opening Portal...
-                      </>
-                    ) : (
-                      <>
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Manage Billing
-                      </>
-                    )}
-                  </Button>
-                )}
-
-                {isTrialing && !hasStripeCustomer && (
-                  <Link href="/account/subscribe?checkout=true" className="flex-1">
-                    <Button 
-                      className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold"
-                      data-testid="button-add-payment"
+              {/* Subscription Management Actions */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-white/60">Manage Subscription</h3>
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {/* Update Payment Method */}
+                  {canAccessPortal && (
+                    <Button
+                      onClick={handleUpdatePaymentMethod}
+                      disabled={isUpdatingPayment}
+                      variant="outline"
+                      className="border-white/20 text-white hover:bg-white/5"
+                      data-testid="button-update-payment"
                     >
-                      <CreditCard className="w-4 h-4 mr-2" />
-                      Add Payment Method
+                      {isUpdatingPayment ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="w-4 h-4 mr-2" />
+                          Update Payment Method
+                        </>
+                      )}
                     </Button>
-                  </Link>
-                )}
+                  )}
+
+                  {/* Add Payment Method (for trialing without payment) */}
+                  {isTrialing && !hasStripeCustomer && (
+                    <Link href="/account/subscribe?checkout=true">
+                      <Button 
+                        className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold"
+                        data-testid="button-add-payment"
+                      >
+                        <CreditCard className="w-4 h-4 mr-2" />
+                        Add Payment Method
+                      </Button>
+                    </Link>
+                  )}
+
+                  {/* View Invoices - Opens Stripe Portal */}
+                  {canAccessPortal && (
+                    <Button
+                      onClick={handleOpenBillingPortal}
+                      disabled={isOpeningPortal}
+                      variant="outline"
+                      className="border-white/20 text-white hover:bg-white/5"
+                      data-testid="button-view-invoices"
+                    >
+                      {isOpeningPortal ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          View Invoices
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {/* Cancel Subscription */}
+                  {(isActive || isTrialing) && subscription?.stripeSubscriptionId && !subscription?.cancelAt && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                          data-testid="button-cancel-subscription"
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Cancel Subscription
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-charcoal-900 border-white/10">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-white">Cancel Subscription?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-white/60">
+                            Your subscription will remain active until the end of your current billing period. 
+                            After that, you will lose access to platform features and your communities will be hidden from public discovery.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-white/10 text-white hover:bg-white/20 border-0">
+                            Keep Subscription
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleCancelSubscription}
+                            disabled={isCanceling}
+                            className="bg-red-500 hover:bg-red-600 text-white"
+                          >
+                            {isCanceling ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Canceling...
+                              </>
+                            ) : (
+                              'Yes, Cancel'
+                            )}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+
+                  {/* Reactivate Subscription (if canceled but not yet ended) */}
+                  {subscription?.cancelAt && (
+                    <div className="col-span-full p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-amber-400 font-medium">Subscription will end</p>
+                          <p className="text-white/60 text-sm">
+                            Your subscription will end on {new Date(subscription.cancelAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Button
+                          onClick={handleOpenBillingPortal}
+                          disabled={isOpeningPortal}
+                          className="bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+                        >
+                          <RefreshCw className="w-4 h-4 mr-2" />
+                          Reactivate
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
