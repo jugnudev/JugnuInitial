@@ -154,9 +154,9 @@ export default function PricingPage() {
               Simple, Flat-Rate Pricing
             </Badge>
             
-            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white">
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-tight">
               Simple, Transparent
-              <span className="block bg-gradient-to-r from-copper-400 to-amber-500 bg-clip-text text-transparent pb-1">
+              <span className="block bg-gradient-to-r from-copper-400 to-amber-500 bg-clip-text text-transparent pb-3">
                 Pricing
               </span>
             </h1>
