@@ -31,7 +31,7 @@ interface Event {
 export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCredits, selectedEventId: preselectedEventId, creditsLoading = false }: FeatureEventDialogProps) {
   const { toast } = useToast();
   const [selectedEventId, setSelectedEventId] = useState<string>("");
-  const [placementType, setPlacementType] = useState<"events_banner" | "homepage_feature">("events_banner");
+  const [placementType, setPlacementType] = useState<"events_banner" | "home_mid">("events_banner");
   const [startDate, setStartDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState<string>(format(addDays(new Date(), 1), "yyyy-MM-dd"));
   const [creditsNeeded, setCreditsNeeded] = useState<number>(0);
@@ -216,8 +216,8 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
                 <Calendar className="h-5 w-5 text-copper-500" />
               </div>
               <div className="flex items-center space-x-3 bg-white/5 border border-white/20 rounded-lg p-4 hover:bg-white/10 transition-colors">
-                <RadioGroupItem value="homepage_feature" id="homepage_feature" data-testid="radio-homepage-feature" />
-                <Label htmlFor="homepage_feature" className="flex-1 cursor-pointer">
+                <RadioGroupItem value="home_mid" id="home_mid" data-testid="radio-home-mid" />
+                <Label htmlFor="home_mid" className="flex-1 cursor-pointer">
                   <div>
                     <p className="text-white font-medium">Homepage Featured</p>
                     <p className="text-sm text-neutral-400">Premium placement on homepage</p>

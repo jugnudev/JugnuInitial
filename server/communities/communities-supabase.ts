@@ -4699,6 +4699,29 @@ export class CommunitiesSupabaseDB {
     if (error) throw error;
     return data;
   }
+
+  async createSponsorPortalToken(tokenData: {
+    campaignId: string;
+    token: string;
+    isActive: boolean;
+    expiresAt: string;
+    emailedTo?: string;
+  }): Promise<any> {
+    const { data, error } = await this.client
+      .from('sponsor_portal_tokens')
+      .insert({
+        campaign_id: tokenData.campaignId,
+        token: tokenData.token,
+        is_active: tokenData.isActive,
+        expires_at: tokenData.expiresAt,
+        emailed_to: tokenData.emailedTo
+      })
+      .select('id, token, campaign_id, expires_at')
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
 }
 
 export const communitiesStorage = new CommunitiesSupabaseDB();

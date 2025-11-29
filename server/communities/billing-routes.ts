@@ -1,8 +1,15 @@
 import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
+import crypto from 'crypto';
+import sgMail from '@sendgrid/mail';
 import { CommunitiesSupabaseDB } from './communities-supabase';
 import { CreditsService } from './credits-service';
 import { TicketsSupabaseDB } from '../tickets/tickets-supabase';
+
+// Initialize SendGrid
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+}
 
 const router = Router();
 const communitiesStorage = new CommunitiesSupabaseDB();
@@ -1519,9 +1526,111 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
       endDate
     );
 
+    // Create portal token for the campaign (valid for 30 days)
+    let portalToken = null;
+    let portalUrl = null;
+    try {
+      portalToken = await communitiesStorage.createSponsorPortalToken({
+        campaignId: campaign.id,
+        token: crypto.randomBytes(32).toString('hex'),
+        isActive: true,
+        expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString() // 90 days
+      });
+      
+      if (portalToken) {
+        const baseUrl = process.env.VITE_APP_URL || 'https://thehouseofjugnu.com';
+        portalUrl = `${baseUrl}/sponsor/portal/${portalToken.id}`;
+        
+        // Send portal link email to organizer (use user's email since organizer doesn't have email field)
+        const organizerEmail = user.email;
+        if (process.env.SENDGRID_API_KEY && organizerEmail) {
+          const placementDisplay = placement === 'events_banner' ? 'Events Page Banner' : 'Homepage Featured';
+          const startDisplay = new Date(startDate).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' });
+          const endDisplay = new Date(endDate).toLocaleDateString('en-CA', { month: 'long', day: 'numeric', year: 'numeric' });
+          
+          const msg = {
+            to: organizerEmail,
+            from: process.env.SENDGRID_FROM_EMAIL || 'relations@jugnucanada.com',
+            subject: `Your Featured Event Portal - ${event.title}`,
+            html: `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; }
+                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                  .header { background: linear-gradient(135deg, #c0580f 0%, #e67e22 100%); color: white; padding: 30px; border-radius: 10px 10px 0 0; }
+                  .content { background: #1a1a1e; padding: 30px; border: 1px solid #333; border-radius: 0 0 10px 10px; color: #f0f0f0; }
+                  .button { display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #c0580f 0%, #e67e22 100%); color: white; text-decoration: none; border-radius: 8px; margin-top: 20px; font-weight: bold; }
+                  .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #333; font-size: 12px; color: #888; }
+                  .details { background: rgba(192, 88, 15, 0.1); padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid rgba(192, 88, 15, 0.3); }
+                  .details-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+                  .details-label { color: #aaa; }
+                  .details-value { color: #f0f0f0; font-weight: 500; }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <div class="header">
+                    <h1 style="margin: 0;">Your Event is Now Featured!</h1>
+                    <p style="margin: 10px 0 0 0; opacity: 0.9;">Track performance in your exclusive analytics portal</p>
+                  </div>
+                  <div class="content">
+                    <p>Hi ${organizer.businessName || 'there'},</p>
+                    <p>Great news! Your event <strong>"${event.title}"</strong> has been successfully featured on Jugnu.</p>
+                    
+                    <div class="details">
+                      <div class="details-row">
+                        <span class="details-label">Event</span>
+                        <span class="details-value">${event.title}</span>
+                      </div>
+                      <div class="details-row">
+                        <span class="details-label">Placement</span>
+                        <span class="details-value">${placementDisplay}</span>
+                      </div>
+                      <div class="details-row">
+                        <span class="details-label">Start Date</span>
+                        <span class="details-value">${startDisplay}</span>
+                      </div>
+                      <div class="details-row">
+                        <span class="details-label">End Date</span>
+                        <span class="details-value">${endDisplay}</span>
+                      </div>
+                      <div class="details-row" style="border-bottom: none;">
+                        <span class="details-label">Credits Used</span>
+                        <span class="details-value">${creditsToDeduct}</span>
+                      </div>
+                    </div>
+                    
+                    <p>Access your exclusive analytics portal to track impressions, clicks, and engagement:</p>
+                    
+                    <a href="${portalUrl}" class="button">View Analytics Portal</a>
+                    
+                    <div class="footer">
+                      <p>This portal link is valid for 90 days. Save it for future reference.</p>
+                      <p style="margin-top: 10px;">Questions? Contact us at <a href="mailto:relations@jugnucanada.com" style="color: #c0580f;">relations@jugnucanada.com</a></p>
+                      <p style="margin-top: 15px; color: #666;">© ${new Date().getFullYear()} Jugnu. All rights reserved.</p>
+                    </div>
+                  </div>
+                </div>
+              </body>
+              </html>
+            `
+          };
+          
+          await sgMail.send(msg);
+          console.log(`[Billing] Portal link email sent to ${organizerEmail} for campaign ${campaign.id}`);
+        }
+      }
+    } catch (portalError: any) {
+      // Log error but don't fail the request - campaign was still created successfully
+      console.error('[Billing] Failed to create portal token or send email:', portalError.message);
+    }
+
     res.json({
       ok: true,
       campaignId: campaign.id,
+      portalUrl,
       message: 'Event featured successfully',
       creditsDeducted: creditsToDeduct
     });
