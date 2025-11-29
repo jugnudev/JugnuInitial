@@ -99,9 +99,30 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
       setEndDate(format(addDays(new Date(), 1), "yyyy-MM-dd"));
     },
     onError: (error: any) => {
+      // Parse error message - it may contain JSON from the API response
+      let errorMessage = "An error occurred while featuring your event.";
+      try {
+        const errorStr = error.message || "";
+        // Check if the error message contains JSON (e.g., "409: {json}")
+        const jsonMatch = errorStr.match(/\d+:\s*(\{.*\})/);
+        if (jsonMatch) {
+          const errorData = JSON.parse(jsonMatch[1]);
+          if (errorData.error === "Placement slot already booked for selected dates") {
+            errorMessage = "These dates are already booked. Please select different dates for your featured placement.";
+          } else {
+            errorMessage = errorData.error || errorMessage;
+          }
+        } else {
+          errorMessage = errorStr || errorMessage;
+        }
+      } catch {
+        // If parsing fails, use the raw message
+        errorMessage = error.message || errorMessage;
+      }
+      
       toast({
         title: "Failed to feature event",
-        description: error.message || "An error occurred while featuring your event.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
