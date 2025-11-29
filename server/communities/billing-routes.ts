@@ -1966,6 +1966,50 @@ router.get('/organizer/subscription', requireAuth, async (req: Request, res: Res
         // Get communities even without subscription
         const communities = await communitiesStorage.getCommunitiesByOrganizerId(organizer.id);
         
+        // If there's an active legacy subscription with Stripe, return a synthetic subscription object
+        // This allows the billing page to show management controls
+        if (activeOld && activeOld.stripeCustomerId) {
+          let computedState = activeOld.status;
+          if (activeOld.status === 'trialing' && activeOld.trialEnd) {
+            const trialEnd = new Date(activeOld.trialEnd);
+            if (trialEnd <= new Date()) {
+              computedState = 'ended';
+            }
+          }
+          
+          return res.json({
+            ok: true,
+            subscription: {
+              id: activeOld.id,
+              status: activeOld.status,
+              computedState,
+              plan: activeOld.plan || 'monthly',
+              stripeCustomerId: activeOld.stripeCustomerId,
+              stripeSubscriptionId: activeOld.stripeSubscriptionId,
+              currentPeriodStart: activeOld.currentPeriodStart,
+              currentPeriodEnd: activeOld.currentPeriodEnd,
+              trialStart: activeOld.trialStart,
+              trialEnd: activeOld.trialEnd,
+              cancelAt: null,
+              canceledAt: null,
+              credits: {
+                available: activeOld.placementCreditsAvailable || 2,
+                used: activeOld.placementCreditsUsed || 0,
+                total: 2,
+                resetDate: null
+              }
+            },
+            isLegacySubscription: true,
+            hasUsedTrial,
+            communities: communities.map(c => ({
+              id: c.id,
+              name: c.name,
+              slug: c.slug,
+              status: c.status
+            }))
+          });
+        }
+        
         return res.json({
           ok: true,
           subscription: null,

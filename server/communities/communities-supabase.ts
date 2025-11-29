@@ -3227,7 +3227,6 @@ export class CommunitiesSupabaseDB {
         stripe_price_id: data.stripePriceId,
         bundle_type: 'base', // Default bundle type for organizer subscriptions
         community_limit: 1, // Base plan includes 1 community
-        communities_count: 0, // Start with 0 communities in bundle
         price_cents: data.pricePerMonth || 5000, // price_cents is required
         currency: 'CAD', // Default currency
         plan: data.plan || 'monthly',
