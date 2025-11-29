@@ -894,67 +894,185 @@ export async function sendOrderConfirmationEmail(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+    
+    * { box-sizing: border-box; }
+    
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       line-height: 1.6;
-      color: #333;
+      color: #E8C4A0;
       margin: 0;
       padding: 0;
+      background-color: #0B0B0F;
     }
+    
     .container {
       max-width: 600px;
       margin: 0 auto;
-      padding: 20px;
+      background: #0B0B0F;
     }
+    
     .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #c0580f 0%, #d3541e 100%);
       color: white;
-      padding: 30px;
-      border-radius: 10px 10px 0 0;
+      padding: 50px 30px;
+      text-align: center;
+      border-bottom: 2px solid rgba(192, 88, 15, 0.3);
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    
+    .header p {
+      margin: 12px 0 0;
+      font-size: 16px;
+      opacity: 0.95;
+    }
+    
+    .content {
+      padding: 40px 30px;
+    }
+    
+    .greeting {
+      font-size: 18px;
+      color: #FFFFFF;
+      margin-bottom: 24px;
+    }
+    
+    .message-text {
+      color: #A89584;
+      font-size: 16px;
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+    
+    .message-text strong {
+      color: #E8C4A0;
+    }
+    
+    .order-box {
+      background: rgba(28, 28, 36, 0.6);
+      border: 1px solid rgba(192, 88, 15, 0.3);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 28px 0;
       text-align: center;
     }
-    .content {
-      background: white;
-      padding: 30px;
-      border: 1px solid #e5e7eb;
-      border-radius: 0 0 10px 10px;
+    
+    .order-id {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 14px;
+      color: #A89584;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
     }
+    
+    .order-number {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: #c0580f;
+    }
+    
+    .processing-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: rgba(23, 192, 169, 0.1);
+      border: 1px solid rgba(23, 192, 169, 0.3);
+      border-radius: 12px;
+      padding: 16px 24px;
+      margin: 28px 0;
+    }
+    
+    .processing-indicator span {
+      color: #17C0A9;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    
+    .button-container {
+      text-align: center;
+      margin: 32px 0;
+    }
+    
     .button {
       display: inline-block;
-      padding: 12px 24px;
-      background: #667eea;
+      padding: 16px 40px;
+      background: linear-gradient(135deg, #c0580f 0%, #d3541e 100%);
       color: white;
       text-decoration: none;
-      border-radius: 6px;
-      margin-top: 15px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 16px;
+      box-shadow: 0 4px 12px rgba(192, 88, 15, 0.3);
     }
+    
     .footer {
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid #e5e7eb;
-      font-size: 12px;
-      color: #6b7280;
+      background: rgba(28, 28, 36, 0.4);
+      border-top: 2px solid rgba(192, 88, 15, 0.2);
+      padding: 32px 30px;
       text-align: center;
+    }
+    
+    .footer p {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: #6B7280;
+    }
+    
+    .footer a {
+      color: #c0580f;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .copyright {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #4B5563;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>Order Confirmed! 🎉</h1>
-      <p>We're processing your tickets</p>
+      <h1>Order Confirmed</h1>
+      <p>Your tickets are on the way</p>
     </div>
+    
     <div class="content">
-      <p>Hi ${order.buyerName || 'there'},</p>
-      <p>Thank you for your purchase! Your order for <strong>${event.title}</strong> has been confirmed.</p>
-      <p>Order ID: <strong>${order.id.slice(0, 8).toUpperCase()}</strong></p>
-      <p>Your tickets are being generated and will be sent to this email address shortly. You'll receive another email with your QR codes and ticket details.</p>
-      <p style="text-align: center;">
-        <a href="${baseUrl}/my-tickets" class="button">View My Tickets</a>
-      </p>
-      <div class="footer">
-        <p>If you have any questions, please contact us at support@thehouseofjugnu.com</p>
+      <p class="greeting">Hi ${order.buyerName || 'there'},</p>
+      
+      <p class="message-text">Thank you for your purchase! Your order for <strong>${event.title}</strong> has been confirmed and is being processed.</p>
+      
+      <div class="order-box">
+        <div class="order-id">Order ID</div>
+        <div class="order-number">${order.id.slice(0, 8).toUpperCase()}</div>
       </div>
+      
+      <div class="processing-indicator">
+        <span>✓ Generating your tickets...</span>
+      </div>
+      
+      <p class="message-text">You'll receive another email shortly with your QR codes and complete ticket details. Keep an eye on your inbox!</p>
+      
+      <div class="button-container">
+        <a href="${baseUrl}/my-tickets" class="button">View My Tickets</a>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>Questions? Contact us at <a href="mailto:support@thehouseofjugnu.com">support@thehouseofjugnu.com</a></p>
+      <p class="copyright">© ${new Date().getFullYear()} Jugnu. All rights reserved.<br>Vancouver, BC, Canada</p>
     </div>
   </div>
 </body>
@@ -1032,52 +1150,169 @@ export async function sendRefundEmail(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+    
+    * { box-sizing: border-box; }
+    
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       line-height: 1.6;
-      color: #333;
+      color: #E8C4A0;
       margin: 0;
       padding: 0;
+      background-color: #0B0B0F;
     }
+    
     .container {
       max-width: 600px;
       margin: 0 auto;
-      padding: 20px;
+      background: #0B0B0F;
     }
+    
     .header {
-      background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+      background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
       color: white;
-      padding: 30px;
-      border-radius: 10px 10px 0 0;
+      padding: 50px 30px;
       text-align: center;
+      border-bottom: 2px solid rgba(127, 29, 29, 0.4);
     }
+    
+    .header h1 {
+      margin: 0;
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    
+    .header p {
+      margin: 12px 0 0;
+      font-size: 16px;
+      opacity: 0.95;
+    }
+    
     .content {
-      background: white;
-      padding: 30px;
-      border: 1px solid #e5e7eb;
-      border-radius: 0 0 10px 10px;
+      padding: 40px 30px;
     }
-    .refund-box {
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      border-radius: 8px;
+    
+    .greeting {
+      font-size: 18px;
+      color: #FFFFFF;
+      margin-bottom: 24px;
+    }
+    
+    .message-text {
+      color: #A89584;
+      font-size: 16px;
+      line-height: 1.7;
+      margin-bottom: 20px;
+    }
+    
+    .message-text strong {
+      color: #E8C4A0;
+    }
+    
+    .refund-card {
+      background: rgba(28, 28, 36, 0.6);
+      border: 1px solid rgba(127, 29, 29, 0.4);
+      border-radius: 16px;
+      padding: 28px;
+      margin: 28px 0;
+    }
+    
+    .refund-title {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: #FFFFFF;
+      margin: 0 0 24px;
+      text-align: center;
+    }
+    
+    .refund-details {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(168, 149, 132, 0.2);
+    }
+    
+    .refund-details:last-of-type {
+      border-bottom: none;
+    }
+    
+    .refund-label {
+      color: #A89584;
+      font-size: 14px;
+    }
+    
+    .refund-value {
+      color: #E8C4A0;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    
+    .refund-amount-box {
+      background: rgba(127, 29, 29, 0.2);
+      border: 1px solid rgba(220, 38, 38, 0.3);
+      border-radius: 12px;
       padding: 20px;
-      margin: 20px 0;
-    }
-    .refund-amount {
-      font-size: 24px;
-      font-weight: bold;
-      color: #dc2626;
+      margin-top: 20px;
       text-align: center;
-      margin: 10px 0;
     }
-    .footer {
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid #e5e7eb;
+    
+    .refund-amount-label {
       font-size: 12px;
-      color: #6b7280;
+      color: #A89584;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    
+    .refund-amount {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 32px;
+      font-weight: 700;
+      color: #dc2626;
+    }
+    
+    .info-box {
+      background: rgba(28, 28, 36, 0.4);
+      border: 1px solid rgba(192, 88, 15, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 24px 0;
+    }
+    
+    .info-box p {
+      margin: 0;
+      color: #A89584;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .footer {
+      background: rgba(28, 28, 36, 0.4);
+      border-top: 2px solid rgba(192, 88, 15, 0.2);
+      padding: 32px 30px;
       text-align: center;
+    }
+    
+    .footer p {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: #6B7280;
+    }
+    
+    .footer a {
+      color: #c0580f;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .copyright {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #4B5563;
     }
   </style>
 </head>
@@ -1087,30 +1322,57 @@ export async function sendRefundEmail(
       <h1>Refund Processed</h1>
       <p>Your ticket has been refunded</p>
     </div>
+    
     <div class="content">
-      <p>Hi ${order.buyerName || 'there'},</p>
-      <p>A refund has been processed for your ticket to <strong>${event.title}</strong>.</p>
+      <p class="greeting">Hi ${order.buyerName || 'there'},</p>
       
-      <div class="refund-box">
-        <p style="margin: 0 0 10px 0; text-align: center;"><strong>Refund Details</strong></p>
-        <p style="margin: 5px 0;"><strong>Ticket:</strong> ${ticket.serial}</p>
-        <p style="margin: 5px 0;"><strong>Event:</strong> ${event.title}</p>
-        <p style="margin: 5px 0;"><strong>Order ID:</strong> ${order.id.slice(0, 8).toUpperCase()}</p>
-        ${refundReason ? `<p style="margin: 5px 0;"><strong>Reason:</strong> ${refundReason}</p>` : ''}
-        <div class="refund-amount">${refundAmountDisplay}</div>
+      <p class="message-text">A refund has been processed for your ticket to <strong>${event.title}</strong>.</p>
+      
+      <div class="refund-card">
+        <h3 class="refund-title">Refund Details</h3>
+        
+        <div class="refund-details">
+          <span class="refund-label">Ticket Serial</span>
+          <span class="refund-value">${ticket.serial}</span>
+        </div>
+        
+        <div class="refund-details">
+          <span class="refund-label">Event</span>
+          <span class="refund-value">${event.title}</span>
+        </div>
+        
+        <div class="refund-details">
+          <span class="refund-label">Order ID</span>
+          <span class="refund-value">${order.id.slice(0, 8).toUpperCase()}</span>
+        </div>
+        
+        ${refundReason ? `
+        <div class="refund-details">
+          <span class="refund-label">Reason</span>
+          <span class="refund-value">${refundReason}</span>
+        </div>
+        ` : ''}
+        
+        <div class="refund-amount-box">
+          <div class="refund-amount-label">Refund Amount</div>
+          <div class="refund-amount">${refundAmountDisplay}</div>
+        </div>
       </div>
       
-      ${refundAmountCents > 0 ? `
-      <p>The refund will be processed to your original payment method within 5-10 business days.</p>
-      ` : `
-      <p>Your free ticket has been cancelled and is no longer valid.</p>
-      `}
-      
-      <p>If you have any questions about this refund, please contact the event organizer or reach out to our support team.</p>
-      
-      <div class="footer">
-        <p>If you have any questions, please contact us at support@thehouseofjugnu.com</p>
+      <div class="info-box">
+        ${refundAmountCents > 0 ? `
+        <p>The refund will be processed to your original payment method within 5-10 business days.</p>
+        ` : `
+        <p>Your free ticket has been cancelled and is no longer valid for entry.</p>
+        `}
       </div>
+      
+      <p class="message-text">If you have any questions about this refund, please contact the event organizer or reach out to our support team.</p>
+    </div>
+    
+    <div class="footer">
+      <p>Questions? Contact us at <a href="mailto:support@thehouseofjugnu.com">support@thehouseofjugnu.com</a></p>
+      <p class="copyright">© ${new Date().getFullYear()} Jugnu. All rights reserved.<br>Vancouver, BC, Canada</p>
     </div>
   </div>
 </body>
@@ -1210,10 +1472,179 @@ export async function sendTransferEmails(
       subject: `Ticket Transferred: ${event.title}`,
       html: `<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background-color:#f3f4f6}.container{max-width:600px;margin:0 auto;padding:20px}.header{background:linear-gradient(135deg,#c0580f 0%,#d3541e 100%);color:white;padding:30px;border-radius:10px 10px 0 0;text-align:center}.header h1{margin:0;font-size:28px;font-weight:600}.content{background:white;padding:30px;border:1px solid #e5e7eb;border-radius:0 0 10px 10px}.transfer-box{background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:20px;margin:20px 0}.info-grid{display:grid;grid-template-columns:1fr;gap:15px;margin:20px 0}.info-row{padding:12px;background:#f9fafb;border-radius:6px}.info-label{font-weight:600;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.5px}.info-value{color:#111827;font-size:16px;margin-top:4px}.footer{text-align:center;padding:20px;color:#6b7280;font-size:14px}</style>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+    
+    * { box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #E8C4A0;
+      margin: 0;
+      padding: 0;
+      background-color: #0B0B0F;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #0B0B0F;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #c0580f 0%, #d3541e 100%);
+      color: white;
+      padding: 50px 30px;
+      text-align: center;
+      border-bottom: 2px solid rgba(192, 88, 15, 0.3);
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    
+    .content {
+      padding: 40px 30px;
+    }
+    
+    .greeting {
+      font-size: 18px;
+      color: #FFFFFF;
+      margin-bottom: 24px;
+    }
+    
+    .transfer-box {
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 24px 0;
+      text-align: center;
+    }
+    
+    .transfer-box strong {
+      color: #fbbf24;
+      font-size: 16px;
+    }
+    
+    .transfer-box p {
+      color: #A89584;
+      margin: 10px 0 0;
+    }
+    
+    .info-card {
+      background: rgba(28, 28, 36, 0.6);
+      border: 1px solid rgba(192, 88, 15, 0.2);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 24px 0;
+    }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(168, 149, 132, 0.15);
+    }
+    
+    .info-row:last-child {
+      border-bottom: none;
+    }
+    
+    .info-label {
+      color: #A89584;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .info-value {
+      color: #E8C4A0;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    
+    .warning-text {
+      color: #A89584;
+      font-size: 14px;
+      line-height: 1.7;
+      margin-top: 24px;
+    }
+    
+    .footer {
+      background: rgba(28, 28, 36, 0.4);
+      border-top: 2px solid rgba(192, 88, 15, 0.2);
+      padding: 32px 30px;
+      text-align: center;
+    }
+    
+    .footer p {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: #6B7280;
+    }
+    
+    .footer a {
+      color: #c0580f;
+      text-decoration: none;
+      font-weight: 500;
+    }
+  </style>
 </head>
-<body><div class="container"><div class="header"><h1>🎫 Ticket Transferred</h1></div><div class="content"><p>Hi ${oldName},</p><div class="transfer-box"><strong>Your ticket has been transferred</strong><p style="margin:10px 0 0">Your ticket for <strong>${event.title}</strong> has been successfully transferred to another attendee.</p></div><div class="info-grid"><div class="info-row"><div class="info-label">Event</div><div class="info-value">${event.title}</div></div><div class="info-row"><div class="info-label">Date & Time</div><div class="info-value">${eventDate} at ${eventTime}</div></div><div class="info-row"><div class="info-label">Ticket Type</div><div class="info-value">${tier.name}</div></div><div class="info-row"><div class="info-label">Previous Ticket #</div><div class="info-value">${oldTicket.serial}</div></div><div class="info-row"><div class="info-label">Transferred To</div><div class="info-value">${newEmail}</div></div></div><p style="margin-top:24px;color:#6b7280">Your original ticket is no longer valid. If you believe this transfer was made in error, please contact the event organizer immediately.</p></div><div class="footer"><p>Questions? Contact us at <a href="mailto:support@thehouseofjugnu.com" style="color:#c0580f">support@thehouseofjugnu.com</a></p><p style="margin-top:10px">© ${new Date().getFullYear()} Jugnu</p></div></div></body>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Ticket Transferred</h1>
+    </div>
+    
+    <div class="content">
+      <p class="greeting">Hi ${oldName},</p>
+      
+      <div class="transfer-box">
+        <strong>Your ticket has been transferred</strong>
+        <p>Your ticket for <strong style="color:#E8C4A0">${event.title}</strong> has been successfully transferred to another attendee.</p>
+      </div>
+      
+      <div class="info-card">
+        <div class="info-row">
+          <span class="info-label">Event</span>
+          <span class="info-value">${event.title}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Date & Time</span>
+          <span class="info-value">${eventDate} at ${eventTime}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Ticket Type</span>
+          <span class="info-value">${tier.name}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Previous Ticket #</span>
+          <span class="info-value">${oldTicket.serial}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Transferred To</span>
+          <span class="info-value">${newEmail}</span>
+        </div>
+      </div>
+      
+      <p class="warning-text">Your original ticket is no longer valid. If you believe this transfer was made in error, please contact the event organizer immediately.</p>
+    </div>
+    
+    <div class="footer">
+      <p>Questions? Contact us at <a href="mailto:support@thehouseofjugnu.com">support@thehouseofjugnu.com</a></p>
+      <p style="margin-top:10px">© ${new Date().getFullYear()} Jugnu. All rights reserved.<br>Vancouver, BC, Canada</p>
+    </div>
+  </div>
+</body>
 </html>`
     });
     
@@ -1227,10 +1658,240 @@ export async function sendTransferEmails(
       subject: `Your Ticket for ${event.title}`,
       html: `<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background-color:#f3f4f6}.container{max-width:600px;margin:0 auto;padding:20px}.header{background:linear-gradient(135deg,#c0580f 0%,#d3541e 100%);color:white;padding:30px;border-radius:10px 10px 0 0;text-align:center}.header h1{margin:0;font-size:28px;font-weight:600}.content{background:white;padding:30px;border:1px solid #e5e7eb;border-radius:0 0 10px 10px}.welcome-box{background:#d1fae5;border:1px solid #10b981;border-radius:8px;padding:20px;margin:20px 0;text-align:center}.qr-container{text-align:center;padding:24px;background:#f9fafb;border-radius:8px;margin:20px 0}.qr-container img{max-width:240px;height:auto;border:2px solid #c0580f;border-radius:8px}.info-grid{display:grid;grid-template-columns:1fr;gap:15px;margin:20px 0}.info-row{padding:12px;background:#f9fafb;border-radius:6px}.info-label{font-weight:600;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.5px}.info-value{color:#111827;font-size:16px;margin-top:4px}.footer{text-align:center;padding:20px;color:#6b7280;font-size:14px}</style>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+    
+    * { box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #E8C4A0;
+      margin: 0;
+      padding: 0;
+      background-color: #0B0B0F;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #0B0B0F;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #c0580f 0%, #d3541e 100%);
+      color: white;
+      padding: 50px 30px;
+      text-align: center;
+      border-bottom: 2px solid rgba(192, 88, 15, 0.3);
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    
+    .content {
+      padding: 40px 30px;
+    }
+    
+    .greeting {
+      font-size: 18px;
+      color: #FFFFFF;
+      margin-bottom: 24px;
+    }
+    
+    .welcome-box {
+      background: rgba(23, 192, 169, 0.1);
+      border: 1px solid rgba(23, 192, 169, 0.3);
+      border-radius: 12px;
+      padding: 24px;
+      margin: 24px 0;
+      text-align: center;
+    }
+    
+    .welcome-box strong {
+      color: #17C0A9;
+      font-size: 18px;
+      display: block;
+      margin-bottom: 8px;
+    }
+    
+    .welcome-box p {
+      color: #A89584;
+      margin: 0;
+    }
+    
+    .info-card {
+      background: rgba(28, 28, 36, 0.6);
+      border: 1px solid rgba(192, 88, 15, 0.2);
+      border-radius: 16px;
+      padding: 24px;
+      margin: 24px 0;
+    }
+    
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(168, 149, 132, 0.15);
+    }
+    
+    .info-row:last-child {
+      border-bottom: none;
+    }
+    
+    .info-label {
+      color: #A89584;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .info-value {
+      color: #E8C4A0;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    
+    .qr-section h3 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 22px;
+      font-weight: 600;
+      color: #FFFFFF;
+      margin: 32px 0 16px;
+    }
+    
+    .qr-section p {
+      color: #A89584;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    
+    .qr-container {
+      text-align: center;
+      padding: 28px;
+      background: rgba(11, 11, 15, 0.8);
+      border-radius: 16px;
+      border: 2px solid rgba(192, 88, 15, 0.3);
+    }
+    
+    .qr-container img {
+      max-width: 220px;
+      height: auto;
+      border-radius: 8px;
+    }
+    
+    .qr-container .qr-caption {
+      margin-top: 16px;
+      font-size: 14px;
+      color: #E8C4A0;
+      font-weight: 500;
+    }
+    
+    .important-box {
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 24px 0;
+    }
+    
+    .important-box strong {
+      color: #fbbf24;
+    }
+    
+    .important-box p {
+      color: #A89584;
+      margin: 8px 0 0;
+      font-size: 14px;
+    }
+    
+    .footer {
+      background: rgba(28, 28, 36, 0.4);
+      border-top: 2px solid rgba(192, 88, 15, 0.2);
+      padding: 32px 30px;
+      text-align: center;
+    }
+    
+    .footer p {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: #6B7280;
+    }
+    
+    .footer a {
+      color: #c0580f;
+      text-decoration: none;
+      font-weight: 500;
+    }
+  </style>
 </head>
-<body><div class="container"><div class="header"><h1>🎉 Welcome! Your Ticket is Ready</h1></div><div class="content"><p>Hi ${newName},</p><div class="welcome-box"><strong style="font-size:18px">You've received a ticket!</strong><p style="margin:10px 0 0">A ticket for <strong>${event.title}</strong> has been transferred to you.</p></div><div class="info-grid"><div class="info-row"><div class="info-label">Event</div><div class="info-value">${event.title}</div></div><div class="info-row"><div class="info-label">Date & Time</div><div class="info-value">${eventDate} at ${eventTime}</div></div><div class="info-row"><div class="info-label">Venue</div><div class="info-value">${event.venue || 'TBA'}, ${event.city}, ${event.province}</div></div><div class="info-row"><div class="info-label">Ticket Type</div><div class="info-value">${tier.name}</div></div><div class="info-row"><div class="info-label">Your Ticket #</div><div class="info-value">${newTicket.serial}</div></div></div><h3 style="margin:30px 0 15px;color:#111827">Your QR Code</h3><p style="color:#6b7280;margin-bottom:15px">Present this QR code at the event entrance for check-in:</p><div class="qr-container"><img src="cid:ticket-qr-code" alt="Ticket QR Code"/><p style="margin-top:12px;font-size:14px;color:#6b7280">Scan this code at the venue</p></div><div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:16px;margin:20px 0"><strong>Important:</strong> Save this email or take a screenshot of your QR code. You'll need it for entry!</div></div><div class="footer"><p>Questions? Contact us at <a href="mailto:support@thehouseofjugnu.com" style="color:#c0580f">support@thehouseofjugnu.com</a></p><p style="margin-top:10px">© ${new Date().getFullYear()} Jugnu</p></div></div></body>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Welcome! Your Ticket is Ready</h1>
+    </div>
+    
+    <div class="content">
+      <p class="greeting">Hi ${newName},</p>
+      
+      <div class="welcome-box">
+        <strong>You've received a ticket!</strong>
+        <p>A ticket for <strong style="color:#E8C4A0">${event.title}</strong> has been transferred to you.</p>
+      </div>
+      
+      <div class="info-card">
+        <div class="info-row">
+          <span class="info-label">Event</span>
+          <span class="info-value">${event.title}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Date & Time</span>
+          <span class="info-value">${eventDate} at ${eventTime}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Venue</span>
+          <span class="info-value">${event.venue || 'TBA'}, ${event.city}, ${event.province}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Ticket Type</span>
+          <span class="info-value">${tier.name}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Your Ticket #</span>
+          <span class="info-value">${newTicket.serial}</span>
+        </div>
+      </div>
+      
+      <div class="qr-section">
+        <h3>Your QR Code</h3>
+        <p>Present this QR code at the event entrance for check-in:</p>
+        
+        <div class="qr-container">
+          <img src="cid:ticket-qr-code" alt="Ticket QR Code"/>
+          <p class="qr-caption">Scan this code at the venue</p>
+        </div>
+      </div>
+      
+      <div class="important-box">
+        <strong>Important:</strong>
+        <p>Save this email or take a screenshot of your QR code. You'll need it for entry!</p>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>Questions? Contact us at <a href="mailto:support@thehouseofjugnu.com">support@thehouseofjugnu.com</a></p>
+      <p style="margin-top:10px">© ${new Date().getFullYear()} Jugnu. All rights reserved.<br>Vancouver, BC, Canada</p>
+    </div>
+  </div>
+</body>
 </html>`,
       attachments: [
         {
@@ -1279,10 +1940,145 @@ export async function sendBulkAttendeeEmail(params: {
       subject,
       html: `<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#333;margin:0;padding:0;background-color:#f3f4f6}.container{max-width:600px;margin:0 auto;padding:20px}.header{background:linear-gradient(135deg,#c0580f 0%,#d3541e 100%);color:white;padding:30px;border-radius:10px 10px 0 0;text-align:center}.header h1{margin:0;font-size:24px;font-weight:600}.content{background:white;padding:30px;border:1px solid #e5e7eb;border-radius:0 0 10px 10px}.message-box{background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:20px;margin:20px 0;white-space:pre-wrap}.footer{text-align:center;padding:20px;color:#6b7280;font-size:14px}</style>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Inter:wght@400;500;600&display=swap');
+    
+    * { box-sizing: border-box; }
+    
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #E8C4A0;
+      margin: 0;
+      padding: 0;
+      background-color: #0B0B0F;
+    }
+    
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: #0B0B0F;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #c0580f 0%, #d3541e 100%);
+      color: white;
+      padding: 50px 30px;
+      text-align: center;
+      border-bottom: 2px solid rgba(192, 88, 15, 0.3);
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    
+    .header p {
+      margin: 12px 0 0;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .content {
+      padding: 40px 30px;
+    }
+    
+    .greeting {
+      font-size: 18px;
+      color: #FFFFFF;
+      margin-bottom: 16px;
+    }
+    
+    .event-context {
+      color: #A89584;
+      font-size: 15px;
+      margin-bottom: 24px;
+    }
+    
+    .event-context strong {
+      color: #E8C4A0;
+    }
+    
+    .message-card {
+      background: rgba(28, 28, 36, 0.6);
+      border: 1px solid rgba(192, 88, 15, 0.2);
+      border-radius: 16px;
+      padding: 28px;
+      margin: 24px 0;
+    }
+    
+    .message-content {
+      color: #E8C4A0;
+      font-size: 15px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+    }
+    
+    .organizer-note {
+      color: #6B7280;
+      font-size: 13px;
+      margin-top: 28px;
+      padding-top: 20px;
+      border-top: 1px solid rgba(168, 149, 132, 0.15);
+    }
+    
+    .footer {
+      background: rgba(28, 28, 36, 0.4);
+      border-top: 2px solid rgba(192, 88, 15, 0.2);
+      padding: 32px 30px;
+      text-align: center;
+    }
+    
+    .footer p {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: #6B7280;
+    }
+    
+    .footer a {
+      color: #c0580f;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .copyright {
+      margin-top: 20px;
+      font-size: 12px;
+      color: #4B5563;
+    }
+  </style>
 </head>
-<body><div class="container"><div class="header"><h1>📧 Message from ${organizerName}</h1></div><div class="content"><p>Hi ${name},</p><p>You're receiving this message regarding <strong>${eventTitle}</strong>.</p><div class="message-box">${htmlMessage}</div><p style="margin-top:24px;color:#6b7280">This message was sent by the event organizer.</p></div><div class="footer"><p>Questions? Contact us at <a href="mailto:support@thehouseofjugnu.com" style="color:#c0580f">support@thehouseofjugnu.com</a></p><p style="margin-top:10px">© ${new Date().getFullYear()} Jugnu</p></div></div></body>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Message from ${organizerName}</h1>
+      <p>Event Update</p>
+    </div>
+    
+    <div class="content">
+      <p class="greeting">Hi ${name},</p>
+      
+      <p class="event-context">You're receiving this message regarding <strong>${eventTitle}</strong>.</p>
+      
+      <div class="message-card">
+        <div class="message-content">${htmlMessage}</div>
+      </div>
+      
+      <p class="organizer-note">This message was sent by the event organizer.</p>
+    </div>
+    
+    <div class="footer">
+      <p>Questions? Contact us at <a href="mailto:support@thehouseofjugnu.com">support@thehouseofjugnu.com</a></p>
+      <p class="copyright">© ${new Date().getFullYear()} Jugnu. All rights reserved.<br>Vancouver, BC, Canada</p>
+    </div>
+  </div>
+</body>
 </html>`
     });
     
