@@ -685,7 +685,17 @@ export function TicketsEventDetailPage() {
                         <h4 className="font-semibold text-white text-sm">When & Where</h4>
                       </div>
                       <div className="text-sm text-gray-300 space-y-1">
-                        <p>{format(eventDate, 'MMM d, yyyy • h:mm a')}</p>
+                        <p>
+                          {event.endAt ? (() => {
+                            const endDate = new Date(event.endAt);
+                            const isSameDay = format(eventDate, 'yyyy-MM-dd') === format(endDate, 'yyyy-MM-dd');
+                            if (isSameDay) {
+                              return `${format(eventDate, 'MMM d, yyyy')} ${format(eventDate, 'h:mm a')} - ${format(endDate, 'h:mm a')}`;
+                            } else {
+                              return `${format(eventDate, 'MMM d, yyyy h:mm a')} - ${format(endDate, 'MMM d, yyyy h:mm a')}`;
+                            }
+                          })() : format(eventDate, 'MMM d, yyyy • h:mm a')}
+                        </p>
                         <p>{event.venue}</p>
                       </div>
                     </div>
