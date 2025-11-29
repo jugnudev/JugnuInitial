@@ -2370,15 +2370,13 @@ export default function Promote() {
             </Card>
 
             <Card className="p-6 bg-white/5 border-white/10 text-center opacity-60">
-              <div className="relative">
-                <Plus className="w-8 h-8 text-copper-500 mx-auto mb-3" />
-                <div className="absolute top-0 right-0">
-                  <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 px-2 py-0.5 text-xs font-semibold">
-                    Coming Soon
-                  </Badge>
-                </div>
+              <Plus className="w-8 h-8 text-copper-500 mx-auto mb-4" />
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <h4 className="font-medium text-white">Email Feature (150+ subscribers)</h4>
+                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 px-2 py-0.5 text-xs font-semibold whitespace-nowrap">
+                  Coming Soon
+                </Badge>
               </div>
-              <h4 className="font-medium text-white mb-2">Email Feature (150+ subscribers)</h4>
               <p className="text-muted text-sm mb-3">Sponsor mention in our community email during your week</p>
               <Badge className="bg-white/10 text-white/60">+CA$25</Badge>
             </Card>
