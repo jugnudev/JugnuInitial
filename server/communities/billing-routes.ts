@@ -1071,12 +1071,44 @@ router.get('/subscription/:communityId', requireAuth, async (req: Request, res: 
       payments = await communitiesStorage.getPaymentsBySubscriptionId(subscription.id);
     }
 
-    // Get credits balance for active subscriptions WITH Stripe subscription
-    // Credits only available for paid subscriptions (active or stripe_trial)
+    // Get credits balance for active subscriptions
+    // Credits available for paid subscriptions (active or stripe_trial) or legacy subscriptions with Stripe customer
     let creditsAvailable = 0;
-    if (hasStripeSubscription && (stateInfo.state === 'active' || stateInfo.state === 'stripe_trial') && subscription.organizerId) {
+    const isActiveSubscription = stateInfo.state === 'active' || stateInfo.state === 'stripe_trial';
+    
+    if (isActiveSubscription && subscription.organizerId) {
+      // First try to get credits from creditsService (handles both new and legacy subscriptions)
       const creditCheck = await creditsService.checkCredits(subscription.organizerId, 0);
       creditsAvailable = creditCheck.availableCredits;
+      
+      // Fallback: For legacy subscriptions, if creditsService returns 0, check subscription record directly
+      // This handles cases where placementCreditsAvailable was set but not synced to organizer model
+      if (creditsAvailable === 0 && subscription.placementCreditsAvailable !== undefined && subscription.placementCreditsAvailable !== null) {
+        const available = subscription.placementCreditsAvailable || 0;
+        const used = subscription.placementCreditsUsed || 0;
+        creditsAvailable = Math.max(0, available - used);
+      }
+      
+      // Final fallback: For active paid subscriptions where credits were never initialized
+      // Default to 2 credits (the standard monthly allocation) minus any used
+      if (creditsAvailable === 0 && hasStripeCustomer && subscription.placementCreditsAvailable === null) {
+        const defaultCredits = 2;
+        const used = subscription.placementCreditsUsed || 0;
+        creditsAvailable = Math.max(0, defaultCredits - used);
+        console.log(`[Billing] Defaulting to ${creditsAvailable} credits for legacy subscription ${subscription.id} (never initialized)`);
+      }
+    } else if (hasStripeCustomer && subscription.status === 'active') {
+      // Legacy subscriptions with Stripe customer in 'active' status but not matching new state model
+      // Check if credits exist in subscription record
+      if (subscription.placementCreditsAvailable !== undefined && subscription.placementCreditsAvailable !== null) {
+        const available = subscription.placementCreditsAvailable || 0;
+        const used = subscription.placementCreditsUsed || 0;
+        creditsAvailable = Math.max(0, available - used);
+      } else {
+        // Default to 2 for active paying customers who never had credits initialized
+        creditsAvailable = Math.max(0, 2 - (subscription.placementCreditsUsed || 0));
+        console.log(`[Billing] Defaulting to ${creditsAvailable} credits for legacy active subscription ${subscription.id}`);
+      }
     }
 
     res.json({
