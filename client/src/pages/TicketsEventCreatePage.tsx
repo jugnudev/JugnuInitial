@@ -65,6 +65,7 @@ interface TicketTier {
   salesStartAt: string;
   salesEndAt: string;
   sortOrder: number;
+  showRemaining: boolean;
 }
 
 export function TicketsEventCreatePage() {
@@ -106,7 +107,8 @@ export function TicketsEventCreatePage() {
       maxPerOrder: 10,
       salesStartAt: '',
       salesEndAt: '',
-      sortOrder: 0
+      sortOrder: 0,
+      showRemaining: true
     }
   ]);
 
@@ -284,7 +286,8 @@ export function TicketsEventCreatePage() {
       maxPerOrder: 10,
       salesStartAt: '',
       salesEndAt: '',
-      sortOrder: prev.length
+      sortOrder: prev.length,
+      showRemaining: true
     }]);
   };
 
@@ -789,6 +792,28 @@ export function TicketsEventCreatePage() {
                             data-testid={`input-tier-capacity-${index}`}
                           />
                           <p className="text-xs text-neutral-500">Leave empty for unlimited</p>
+                        </div>
+
+                        {/* Show Remaining Toggle */}
+                        <div className="space-y-2">
+                          <Label className="text-neutral-200 font-medium">
+                            Show Remaining Tickets
+                          </Label>
+                          <div className="flex items-center gap-3 h-12 px-4 bg-charcoal-900/60 border border-charcoal-700 rounded-md">
+                            <Switch
+                              checked={tier.showRemaining}
+                              onCheckedChange={(checked) => handleTierChange(index, 'showRemaining', checked)}
+                              data-testid={`switch-tier-show-remaining-${index}`}
+                            />
+                            <span className="text-sm text-neutral-400">
+                              {tier.showRemaining ? 'Visible to buyers' : 'Hidden from buyers'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-neutral-500">
+                            {tier.showRemaining 
+                              ? 'Buyers will see how many tickets are left' 
+                              : 'Remaining count hidden on public pages'}
+                          </p>
                         </div>
 
                         {/* Max Per Order */}
