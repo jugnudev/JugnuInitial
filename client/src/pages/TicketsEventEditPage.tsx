@@ -132,6 +132,7 @@ export function TicketsEventEditPage() {
   const [ticketTiers, setTicketTiers] = useState<TicketTier[]>([]);
   const [coverImage, setCoverImage] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feeAmountInputValue, setFeeAmountInputValue] = useState<string>("0.00");
 
   const isEnabled = import.meta.env.VITE_ENABLE_TICKETING === 'true';
   
@@ -1204,40 +1205,49 @@ export function TicketsEventEditPage() {
                       <FormField
                         control={form.control}
                         name="serviceFeeAmountCents"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Service Fee Amount</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                                  $
-                                </span>
-                                <Input
-                                  type="text"
-                                  min="0"
-                                  step="0.01"
-                                  placeholder="2.50"
-                                  defaultValue={(field.value / 100).toString()}
-                                  onBlur={(e) => {
-                                    const dollars = parseFloat(e.target.value);
-                                    if (!isNaN(dollars) && dollars >= 0) {
-                                      field.onChange(Math.round(dollars * 100));
-                                      e.target.value = (Math.round(dollars * 100) / 100).toString();
-                                    } else {
-                                      field.onChange(0);
-                                      e.target.value = "0";
-                                    }
-                                  }}
-                                  data-testid="input-service-fee-amount"
-                                  className="pl-7"
-                                />
-                              </div>
-                            </FormControl>
-                            <FormDescription>
-                              Fixed dollar amount to charge per order as a service fee
-                            </FormDescription>
-                          </FormItem>
-                        )}
+                        render={({ field }) => {
+                          // Sync form value to local state when it changes
+                          useEffect(() => {
+                            setFeeAmountInputValue((field.value / 100).toFixed(2));
+                          }, [field.value]);
+                          
+                          return (
+                            <FormItem>
+                              <FormLabel>Service Fee Amount</FormLabel>
+                              <FormControl>
+                                <div className="relative">
+                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                    $
+                                  </span>
+                                  <Input
+                                    type="text"
+                                    min="0"
+                                    step="0.01"
+                                    placeholder="2.50"
+                                    value={feeAmountInputValue}
+                                    onChange={(e) => setFeeAmountInputValue(e.target.value)}
+                                    onBlur={(e) => {
+                                      const dollars = parseFloat(e.target.value);
+                                      if (!isNaN(dollars) && dollars >= 0) {
+                                        const cents = Math.round(dollars * 100);
+                                        field.onChange(cents);
+                                        setFeeAmountInputValue((cents / 100).toFixed(2));
+                                      } else {
+                                        field.onChange(0);
+                                        setFeeAmountInputValue("0.00");
+                                      }
+                                    }}
+                                    data-testid="input-service-fee-amount"
+                                    className="pl-7"
+                                  />
+                                </div>
+                              </FormControl>
+                              <FormDescription>
+                                Fixed dollar amount to charge per order as a service fee
+                              </FormDescription>
+                            </FormItem>
+                          );
+                        }}
                       />
                     )}
                   </CardContent>
