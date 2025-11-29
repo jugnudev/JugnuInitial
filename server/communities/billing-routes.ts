@@ -1820,15 +1820,9 @@ router.get('/organizer/subscription', requireAuth, async (req: Request, res: Res
         
         // Check if user has ANY legacy subscription (including expired trials)
         // This determines if they've already used their trial
+        // If ANY subscription record exists, the trial was offered/started
         const anyLegacySubscription = oldSubscriptions.length > 0;
-        const hasUsedTrial = oldSubscriptions.some(s => {
-          // Trial was used if subscription exists and either:
-          // 1. Had a trial that ended
-          // 2. Status indicates trial was started
-          if (s.trialStart || s.trialEnd) return true;
-          if (s.status === 'trialing' || s.status === 'canceled' || s.status === 'expired') return true;
-          return false;
-        });
+        const hasUsedTrial = anyLegacySubscription;
         
         // Check if any legacy trial has expired
         const legacyTrialExpired = oldSubscriptions.some(s => {
