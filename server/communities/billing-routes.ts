@@ -1324,11 +1324,17 @@ router.get('/credits/balance', requireAuth, async (req: Request, res: Response) 
     // Note: Credit reset is handled by Stripe webhooks on billing cycle
     // For manual reset, admins can call creditsService.resetCredits(subscription.id)
     
+    // Calculate remaining credits (total available minus used)
+    const totalAvailable = subscription.placementCreditsAvailable || 0;
+    const used = subscription.placementCreditsUsed || 0;
+    const remaining = Math.max(0, totalAvailable - used);
+    
     res.json({
       ok: true,
       credits: {
-        available: subscription.placementCreditsAvailable || 0,
-        used: subscription.placementCreditsUsed || 0,
+        available: remaining, // Show remaining credits, not total pool
+        used: used,
+        total: totalAvailable, // Include total for reference
         resetDate: subscription.creditsResetDate || null
       },
       subscriptionStatus: subscription.status
@@ -1544,19 +1550,27 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
       });
     }
 
+    // Get community name to use as sponsor name (instead of user's personal name)
+    // This displays the community/business name on the featured banner
+    const communityName = communities[0]?.name || organizer.businessName || 'Featured Event';
+
     // Create sponsor campaign for featured event
     // Use date strings directly to avoid timezone conversion issues
     // startDate and endDate are in YYYY-MM-DD format
     const startAtDate = `${startDate}T00:00:00.000Z`;
     const endAtDate = `${endDate}T23:59:59.999Z`;
     
+    // Build the public event URL using the event slug for ticket purchases
+    const baseUrl = process.env.VITE_APP_URL || 'https://thehouseofjugnu.com';
+    const eventUrl = `${baseUrl}/tickets/event/${event.slug}`;
+    
     const campaign = await communitiesStorage.createSponsorCampaign({
       name: `Featured: ${event.title}`,
-      sponsorName: organizer.businessName || user.firstName + ' ' + user.lastName,
+      sponsorName: communityName,
       headline: event.title,
       subline: event.summary || `${event.venue} - ${new Date(event.startAt).toLocaleDateString()}`,
       ctaText: 'Get Tickets',
-      clickUrl: `${process.env.VITE_APP_URL || 'https://thehouseofjugnu.com'}/events?e=${eventId}`,
+      clickUrl: eventUrl,
       placements: [placement],
       startAt: startAtDate,
       endAt: endAtDate,
@@ -1572,9 +1586,13 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
 
     // Deduct credits directly from subscription (same source as /credits/balance)
     const newUsedCredits = usedCredits + creditsToDeduct;
+    console.log(`[Billing] Deducting credits: subscription=${subscription.id}, used=${usedCredits} -> ${newUsedCredits}, deducting=${creditsToDeduct}`);
+    
     await communitiesStorage.updateSubscriptionCredits(subscription.id, {
       placementCreditsUsed: newUsedCredits
     });
+    
+    console.log(`[Billing] Credits updated successfully for subscription ${subscription.id}`);
 
     // Track credit usage for analytics
     try {
