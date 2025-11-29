@@ -1902,6 +1902,7 @@ router.get('/organizer/subscription', requireAuth, async (req: Request, res: Res
           resetDate: subscription.creditsResetDate
         }
       },
+      hasUsedTrial: true,
       communities: communities.map(c => ({
         id: c.id,
         name: c.name,
