@@ -60,6 +60,14 @@ export const createEventSchema = z.object({
     mode: z.enum(['percent', 'flat']).default('percent'),
     percent: z.number().min(0).max(100).optional(),
     amountCents: z.number().int().min(0).optional()
+  }).refine((data) => {
+    if (data.mode === 'percent') {
+      return typeof data.percent === 'number';
+    } else {
+      return typeof data.amountCents === 'number';
+    }
+  }, {
+    message: "Percent is required when mode is 'percent', amountCents is required when mode is 'flat'"
   }).optional()
 });
 
