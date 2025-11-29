@@ -1887,17 +1887,19 @@ export default function Promote() {
                           const addOn = PRICING_CONFIG.addOns[addOnKey];
                           const isSelected = selectedAddOns.includes(addOnKey);
                           const isIncludedInFullFeature = selectedPackage === 'full_feature';
+                          const isComingSoon = addOnKey === 'email_feature';
+                          const isDisabled = isIncludedInFullFeature || isComingSoon;
                           
                           return (
                             <div
                               key={addOnKey}
-                              className={`flex items-center space-x-3 p-3 border rounded-lg transition-colors ${
-                                isIncludedInFullFeature 
+                              className={`flex items-center space-x-3 p-3 border rounded-lg transition-colors relative ${
+                                isDisabled
                                   ? 'bg-white/5 border-white/10 opacity-50 cursor-not-allowed' 
                                   : 'bg-white/5 border-white/10 cursor-pointer hover:border-copper-500/30'
                               }`}
                               onClick={() => {
-                                if (isIncludedInFullFeature) return;
+                                if (isDisabled) return;
                                 if (isSelected) {
                                   setSelectedAddOns(selectedAddOns.filter(id => id !== addOnKey));
                                 } else {
@@ -1907,11 +1909,19 @@ export default function Promote() {
                               data-testid={`addon-${addOnKey}`}
                             >
                               <Checkbox
-                                checked={isSelected}
+                                checked={isSelected && !isDisabled}
                                 onChange={() => {}} // Handled by parent click
+                                disabled={isDisabled}
                               />
                               <div className="flex-1">
-                                <div className="font-medium text-white">{addOn.name}</div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-white">{addOn.name}</span>
+                                  {isComingSoon && (
+                                    <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 px-2 py-0.5 text-xs font-semibold">
+                                      Coming Soon
+                                    </Badge>
+                                  )}
+                                </div>
                                 <div className="text-sm text-muted">{addOn.description}</div>
                               </div>
                               <div className="text-sm font-semibold text-copper-400">
@@ -2359,11 +2369,18 @@ export default function Promote() {
               <Badge className="bg-copper-500/20 text-copper-400">+CA$10</Badge>
             </Card>
 
-            <Card className="p-6 bg-white/5 border-white/10 text-center">
-              <Plus className="w-8 h-8 text-copper-500 mx-auto mb-3" />
+            <Card className="p-6 bg-white/5 border-white/10 text-center opacity-60">
+              <div className="relative">
+                <Plus className="w-8 h-8 text-copper-500 mx-auto mb-3" />
+                <div className="absolute top-0 right-0">
+                  <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30 px-2 py-0.5 text-xs font-semibold">
+                    Coming Soon
+                  </Badge>
+                </div>
+              </div>
               <h4 className="font-medium text-white mb-2">Email Feature (150+ subscribers)</h4>
               <p className="text-muted text-sm mb-3">Sponsor mention in our community email during your week</p>
-              <Badge className="bg-copper-500/20 text-copper-400">+CA$25</Badge>
+              <Badge className="bg-white/10 text-white/60">+CA$25</Badge>
             </Card>
 
             <Card className="p-6 bg-white/5 border-white/10 text-center">
