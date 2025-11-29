@@ -44,6 +44,12 @@ interface CommunityManageEventsProps {
 export default function CommunityManageEvents({ organizerId }: CommunityManageEventsProps) {
   const [featureDialogOpen, setFeatureDialogOpen] = useState(false);
   const [selectedEventForFeature, setSelectedEventForFeature] = useState<string | null>(null);
+  const [selectedEventData, setSelectedEventData] = useState<{
+    id: string;
+    title: string;
+    startAt: string;
+    venue: string;
+  } | null>(null);
 
   const { data, isLoading, error } = useQuery<{
     ok: boolean;
@@ -68,8 +74,14 @@ export default function CommunityManageEvents({ organizerId }: CommunityManageEv
 
   const allEvents = data?.events || [];
   
-  const handleFeatureEvent = (eventId: string) => {
-    setSelectedEventForFeature(eventId);
+  const handleFeatureEvent = (event: TicketedEvent) => {
+    setSelectedEventForFeature(event.id);
+    setSelectedEventData({
+      id: event.id,
+      title: event.title,
+      startAt: event.startAt,
+      venue: event.venue || 'TBD',
+    });
     setFeatureDialogOpen(true);
   };
   
@@ -326,7 +338,7 @@ export default function CommunityManageEvents({ organizerId }: CommunityManageEv
                         data-testid={`menu-feature-${event.slug}`}
                         onClick={(e) => {
                           e.preventDefault();
-                          handleFeatureEvent(event.id);
+                          handleFeatureEvent(event);
                         }}
                       >
                         <Sparkles className="h-4 w-4 mr-2 text-copper-300" />
@@ -365,6 +377,7 @@ export default function CommunityManageEvents({ organizerId }: CommunityManageEv
         onOpenChange={setFeatureDialogOpen}
         organizerId={organizerId}
         selectedEventId={selectedEventForFeature}
+        selectedEventData={selectedEventData}
         currentCredits={creditsData?.credits?.available || 0}
         creditsLoading={creditsLoading}
       />

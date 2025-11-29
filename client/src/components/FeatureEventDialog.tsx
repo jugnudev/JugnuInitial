@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Sparkles, Calendar, TrendingUp, AlertCircle, Loader2 } from "lucide-react";
+import { Sparkles, Calendar, TrendingUp, AlertCircle, Loader2, CheckCircle } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format, addDays, differenceInDays } from "date-fns";
@@ -18,6 +18,12 @@ interface FeatureEventDialogProps {
   organizerId: string;
   currentCredits: number;
   selectedEventId?: string | null;
+  selectedEventData?: {
+    id: string;
+    title: string;
+    startAt: string;
+    venue: string;
+  } | null;
   creditsLoading?: boolean;
 }
 
@@ -28,7 +34,7 @@ interface Event {
   venue: string;
 }
 
-export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCredits, selectedEventId: preselectedEventId, creditsLoading = false }: FeatureEventDialogProps) {
+export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCredits, selectedEventId: preselectedEventId, selectedEventData: preselectedEventData, creditsLoading = false }: FeatureEventDialogProps) {
   const { toast } = useToast();
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [placementType, setPlacementType] = useState<"events_banner" | "home_mid">("events_banner");
@@ -43,13 +49,16 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
     }
   }, [preselectedEventId]);
 
-  // Fetch organizer's events
+  // Only fetch organizer's events if no event is pre-selected
   const { data: eventsData, isLoading: eventsLoading } = useQuery<{ ok: boolean; events: Event[] }>({
     queryKey: ["/api/tickets/organizers/me/events"],
-    enabled: open,
+    enabled: open && !preselectedEventId, // Don't fetch if event is pre-selected
   });
 
   const events = eventsData?.events || [];
+  
+  // Use pre-selected event data if provided, otherwise find from events list
+  const hasPreselectedEvent = !!preselectedEventId;
 
   // Calculate credits needed whenever dates or placement type changes
   useEffect(() => {
@@ -126,7 +135,8 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
     });
   };
 
-  const selectedEvent = events.find((e) => e.id === selectedEventId);
+  // Get selected event - use preselected data if available, otherwise find from events list
+  const selectedEvent = preselectedEventData || events.find((e) => e.id === selectedEventId);
   const insufficientCredits = creditsNeeded > currentCredits;
 
   return (
@@ -162,9 +172,22 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
           {/* Event Selection */}
           <div className="space-y-2">
             <Label htmlFor="event" className="text-white font-medium">
-              Select Event
+              {hasPreselectedEvent ? "Selected Event" : "Select Event"}
             </Label>
-            {eventsLoading ? (
+            {hasPreselectedEvent && selectedEvent ? (
+              // Show the pre-selected event as a confirmation
+              <div className="bg-jade-500/10 border border-jade-500/30 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-jade-500 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-medium truncate">{selectedEvent.title}</p>
+                    <p className="text-sm text-neutral-400">
+                      {selectedEvent.venue} • {format(new Date(selectedEvent.startAt), "MMMM d, yyyy")}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : eventsLoading ? (
               <div className="flex items-center gap-2 text-neutral-400 py-2">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>Loading events...</span>
@@ -177,27 +200,29 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
                 </AlertDescription>
               </Alert>
             ) : (
-              <Select value={selectedEventId} onValueChange={setSelectedEventId}>
-                <SelectTrigger
-                  id="event"
-                  className="bg-white/5 border-white/20 text-white hover:bg-white/10"
-                  data-testid="select-event"
-                >
-                  <SelectValue placeholder="Choose an event" />
-                </SelectTrigger>
-                <SelectContent className="bg-charcoal-950/98 border-copper-500/30">
-                  {events.map((event) => (
-                    <SelectItem key={event.id} value={event.id} className="text-white hover:bg-copper-500/20">
-                      {event.title} - {format(new Date(event.startAt), "MMM d, yyyy")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {selectedEvent && (
-              <p className="text-sm text-neutral-400 mt-1">
-                {selectedEvent.venue} • {format(new Date(selectedEvent.startAt), "MMMM d, yyyy")}
-              </p>
+              <>
+                <Select value={selectedEventId} onValueChange={setSelectedEventId}>
+                  <SelectTrigger
+                    id="event"
+                    className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+                    data-testid="select-event"
+                  >
+                    <SelectValue placeholder="Choose an event" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-charcoal-950/98 border-copper-500/30">
+                    {events.map((event) => (
+                      <SelectItem key={event.id} value={event.id} className="text-white hover:bg-copper-500/20">
+                        {event.title} - {format(new Date(event.startAt), "MMM d, yyyy")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedEvent && (
+                  <p className="text-sm text-neutral-400 mt-1">
+                    {selectedEvent.venue} • {format(new Date(selectedEvent.startAt), "MMMM d, yyyy")}
+                  </p>
+                )}
+              </>
             )}
           </div>
 
