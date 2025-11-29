@@ -3257,7 +3257,7 @@ export default function EnhancedCommunityDetailPage() {
             </div>
             
             {/* Tags */}
-            <div>
+            <div className="space-y-3">
               <Label>Tags</Label>
               <div className="flex gap-2 mb-2">
                 <Input
