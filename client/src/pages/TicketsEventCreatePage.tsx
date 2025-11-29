@@ -46,7 +46,9 @@ interface EventCreateForm {
   coverUrl: string;
   feeStructure: {
     type: 'buyer_pays' | 'organizer_absorbs';
-    serviceFeePercent: number;
+    mode: 'percent' | 'flat';
+    percent: number;
+    amountCents: number;
   };
   taxSettings: {
     collectTax: boolean;
@@ -89,7 +91,9 @@ export function TicketsEventCreatePage() {
     coverUrl: '',
     feeStructure: {
       type: 'buyer_pays',
-      serviceFeePercent: 5
+      mode: 'percent',
+      percent: 5,
+      amountCents: 0
     },
     taxSettings: {
       collectTax: true,
@@ -920,28 +924,82 @@ export function TicketsEventCreatePage() {
                     </SelectContent>
                   </Select>
 
-                  <div className="space-y-2">
+                  <div className="space-y-2 mt-4">
                     <Label className="text-neutral-200 font-medium">
-                      Service Fee Percentage
+                      Fee Type
                     </Label>
-                    <div className="relative">
-                      <Input
-                        type="number"
-                        min="0"
-                        max="20"
-                        step="0.1"
-                        value={form.feeStructure.serviceFeePercent}
-                        onChange={(e) => setForm(prev => ({ 
-                          ...prev, 
-                          feeStructure: { ...prev.feeStructure, serviceFeePercent: parseFloat(e.target.value) || 0 } 
-                        }))}
-                        className="h-12 pr-10 bg-charcoal-900/60 border-charcoal-700 
+                    <Select 
+                      value={form.feeStructure.mode} 
+                      onValueChange={(value: 'percent' | 'flat') => 
+                        setForm(prev => ({ ...prev, feeStructure: { ...prev.feeStructure, mode: value } }))
+                      }
+                    >
+                      <SelectTrigger 
+                        className="h-12 bg-charcoal-900/60 border-charcoal-700 
                                  focus:border-copper-500 text-white"
-                        data-testid="input-service-fee"
-                      />
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">%</span>
-                    </div>
+                        data-testid="select-fee-mode"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-charcoal-900 border-charcoal-700 text-white">
+                        <SelectItem value="percent">Percentage of ticket price</SelectItem>
+                        <SelectItem value="flat">Fixed dollar amount</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
+
+                  {form.feeStructure.mode === 'percent' ? (
+                    <div className="space-y-2">
+                      <Label className="text-neutral-200 font-medium">
+                        Service Fee Percentage
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          value={form.feeStructure.percent}
+                          onChange={(e) => setForm(prev => ({ 
+                            ...prev, 
+                            feeStructure: { ...prev.feeStructure, percent: parseFloat(e.target.value) || 0 } 
+                          }))}
+                          className="h-12 pr-10 bg-charcoal-900/60 border-charcoal-700 
+                                   focus:border-copper-500 text-white"
+                          data-testid="input-service-fee-percent"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500">%</span>
+                      </div>
+                      <p className="text-xs text-neutral-500">
+                        Percentage of ticket price to charge as a service fee (0-100%)
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label className="text-neutral-200 font-medium">
+                        Service Fee Amount
+                      </Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">$</span>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={(form.feeStructure.amountCents / 100).toFixed(2)}
+                          onChange={(e) => setForm(prev => ({ 
+                            ...prev, 
+                            feeStructure: { ...prev.feeStructure, amountCents: Math.round(parseFloat(e.target.value) * 100) || 0 } 
+                          }))}
+                          className="h-12 pl-7 bg-charcoal-900/60 border-charcoal-700 
+                                   focus:border-copper-500 text-white"
+                          data-testid="input-service-fee-amount"
+                        />
+                      </div>
+                      <p className="text-xs text-neutral-500">
+                        Fixed dollar amount to charge per order as a service fee
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
