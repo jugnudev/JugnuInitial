@@ -74,6 +74,27 @@ const PRICING = {
 // Cache for dynamically created Stripe price ID
 let cachedPriceId: string | null = null;
 
+// Development-only: Initialize test credits for legacy subscriptions
+if (process.env.NODE_ENV === 'development') {
+  (async () => {
+    try {
+      // Find the test community subscription and add credits
+      const testCommunityId = '27f3a768-0d0c-4045-941d-3f1261a3f94e';
+      const subscription = await communitiesStorage.getSubscriptionByCommunityId(testCommunityId);
+      if (subscription && subscription.status === 'active') {
+        // Set 10 credits for testing, reset used to 0
+        await communitiesStorage.updateSubscriptionCredits(subscription.id, {
+          placementCreditsAvailable: 10,
+          placementCreditsUsed: 0
+        });
+        console.log(`[Dev] Reset test credits to 10 for community ${testCommunityId}`);
+      }
+    } catch (err) {
+      // Silently ignore errors - this is just for dev convenience
+    }
+  })();
+}
+
 /**
  * Get or create the Stripe price for community subscriptions
  * This ensures we have a valid price ID even if not configured via environment variable
