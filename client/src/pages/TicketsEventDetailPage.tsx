@@ -1013,14 +1013,9 @@ export function TicketsEventDetailPage() {
                           <span className="font-semibold">Processing your order...</span>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between w-full gap-4">
-                          <div className="flex items-center gap-3">
-                            <ShoppingCart className="w-5 h-5" />
-                            <span className="font-bold text-lg">Secure Checkout</span>
-                          </div>
-                          <div className="text-lg font-bold whitespace-nowrap">
-                            ${(total / 100).toFixed(2)} CAD
-                          </div>
+                        <div className="flex items-center justify-center gap-3">
+                          <ShoppingCart className="w-5 h-5" />
+                          <span className="font-bold text-lg">Secure Checkout</span>
                         </div>
                       )}
                     </Button>
