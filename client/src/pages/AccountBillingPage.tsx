@@ -834,20 +834,24 @@ export default function AccountBillingPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid sm:grid-cols-3 gap-6">
-                <div>
-                  <p className="text-sm text-white/60">Business Name</p>
-                  <p className="text-white font-medium">{organizer.businessName}</p>
+              {organizer ? (
+                <div className="grid sm:grid-cols-3 gap-6">
+                  <div>
+                    <p className="text-sm text-white/60">Business Name</p>
+                    <p className="text-white font-medium">{organizer.businessName || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-white/60">Email</p>
+                    <p className="text-white font-medium">{organizer.email || 'Not set'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-white/60">Communities</p>
+                    <p className="text-white font-medium">{communities.length} {communities.length === 1 ? 'community' : 'communities'}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-white/60">Email</p>
-                  <p className="text-white font-medium">{organizer.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-white/60">Communities</p>
-                  <p className="text-white font-medium">{communities.length} {communities.length === 1 ? 'community' : 'communities'}</p>
-                </div>
-              </div>
+              ) : (
+                <div className="text-white/60">Loading business information...</div>
+              )}
             </CardContent>
           </Card>
         </div>
