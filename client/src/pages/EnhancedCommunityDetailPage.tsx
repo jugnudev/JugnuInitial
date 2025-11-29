@@ -3184,36 +3184,36 @@ export default function EnhancedCommunityDetailPage() {
             </div>
             
             {/* Title */}
-            <div>
-              <Label htmlFor="title" className="text-sm md:text-base">Title *</Label>
+            <div className="space-y-3">
+              <Label htmlFor="title" className="text-sm md:text-base font-medium">Title *</Label>
               <Input
                 id="title"
                 value={postForm.title}
                 onChange={(e) => setPostForm(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="Give your post a title..."
-                className="text-sm md:text-base"
+                className="text-sm"
                 data-testid="post-title-input"
               />
             </div>
             
             {/* Content */}
-            <div>
-              <Label htmlFor="content" className="text-sm md:text-base">Content *</Label>
+            <div className="space-y-3">
+              <Label htmlFor="content" className="text-sm md:text-base font-medium">Content *</Label>
               <Textarea
                 id="content"
                 value={postForm.content}
                 onChange={(e) => setPostForm(prev => ({ ...prev, content: e.target.value }))}
                 placeholder="Write your post content... (Markdown supported)"
                 rows={6}
-                className="text-sm md:text-base"
+                className="text-sm"
                 data-testid="post-content-input"
               />
             </div>
             
             {/* Media Upload */}
-            <div>
-              <Label htmlFor="image">Image or Video (optional)</Label>
-              <p className="text-xs text-muted-foreground mb-3">
+            <div className="space-y-3">
+              <Label htmlFor="image" className="text-sm md:text-base font-medium">Image or Video (optional)</Label>
+              <p className="text-xs text-muted-foreground">
                 Upload an image or video for your announcement
               </p>
               <AnnouncementImageUploader
@@ -3232,11 +3232,12 @@ export default function EnhancedCommunityDetailPage() {
             
             {/* Link */}
             <div className="space-y-3">
-              <Label>Link (optional)</Label>
+              <Label className="text-sm md:text-base font-medium">Link (optional)</Label>
               <Input
                 value={postForm.linkUrl}
                 onChange={(e) => setPostForm(prev => ({ ...prev, linkUrl: e.target.value }))}
                 placeholder="https://example.com"
+                className="text-sm"
                 data-testid="post-link-url-input"
               />
               {postForm.linkUrl && (
@@ -3245,12 +3246,14 @@ export default function EnhancedCommunityDetailPage() {
                     value={postForm.linkText}
                     onChange={(e) => setPostForm(prev => ({ ...prev, linkText: e.target.value }))}
                     placeholder="Link text (e.g., 'Read More')"
+                    className="text-sm"
                   />
                   <Textarea
                     value={postForm.linkDescription}
                     onChange={(e) => setPostForm(prev => ({ ...prev, linkDescription: e.target.value }))}
                     placeholder="Brief description of the link..."
                     rows={2}
+                    className="text-sm"
                   />
                 </>
               )}
@@ -3258,8 +3261,8 @@ export default function EnhancedCommunityDetailPage() {
             
             {/* Tags */}
             <div className="space-y-3">
-              <Label>Tags</Label>
-              <div className="flex gap-2 mb-2">
+              <Label className="text-sm md:text-base font-medium">Tags</Label>
+              <div className="flex gap-2">
                 <Input
                   value={currentTag}
                   onChange={(e) => setCurrentTag(e.target.value)}
@@ -3270,6 +3273,7 @@ export default function EnhancedCommunityDetailPage() {
                     }
                   }}
                   placeholder="Add a tag..."
+                  className="text-sm"
                 />
                 <Button
                   type="button"
