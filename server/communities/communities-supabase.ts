@@ -3225,6 +3225,7 @@ export class CommunitiesSupabaseDB {
         stripe_customer_id: data.stripeCustomerId,
         stripe_subscription_id: data.stripeSubscriptionId,
         stripe_price_id: data.stripePriceId,
+        bundle_type: 'base', // Default bundle type for organizer subscriptions
         plan: data.plan || 'monthly',
         status: data.status || 'trialing',
         current_period_start: data.currentPeriodStart,
