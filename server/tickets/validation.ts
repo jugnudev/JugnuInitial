@@ -57,7 +57,9 @@ export const createEventSchema = z.object({
   }).optional(),
   feeStructure: z.object({
     type: z.enum(['buyer_pays', 'organizer_absorbs']),
-    serviceFeePercent: z.number().min(0).max(100)
+    mode: z.enum(['percent', 'flat']).default('percent'),
+    percent: z.number().min(0).max(100).optional(),
+    amountCents: z.number().int().min(0).optional()
   }).optional()
 });
 

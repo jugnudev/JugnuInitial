@@ -257,7 +257,7 @@ export const ticketsEvents = pgTable("tickets_events", {
   status: text("status").notNull().default("draft"), // draft | published | archived
   coverUrl: text("cover_url"),
   allowRefundsUntil: timestamp("allow_refunds_until", { withTimezone: true }),
-  feeStructure: jsonb("fee_structure").default(sql`'{"type": "buyer_pays", "serviceFeePercent": 5}'::jsonb`),
+  feeStructure: jsonb("fee_structure").default(sql`'{"type": "buyer_pays", "mode": "percent", "percent": 5, "amountCents": 0}'::jsonb`),
   taxSettings: jsonb("tax_settings").default(sql`'{"collectTax": true, "gstPercent": 5, "pstPercent": 7}'::jsonb`),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().default(sql`now()`),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().default(sql`now()`),
