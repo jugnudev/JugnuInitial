@@ -105,7 +105,7 @@ export default function AccountBillingPage() {
     : 0;
   const trialExpired = subscription?.computedState === 'ended';
   const hasStripeCustomer = !!subscription?.stripeCustomerId;
-  const canAccessPortal = isActive && hasStripeCustomer;
+  const canAccessPortal = (isActive || isTrialing) && hasStripeCustomer;
 
   const handleOpenBillingPortal = async () => {
     setIsOpeningPortal(true);
