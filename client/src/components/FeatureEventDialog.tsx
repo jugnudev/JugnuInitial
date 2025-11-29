@@ -7,16 +7,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Sparkles, Calendar, TrendingUp, AlertCircle, Loader2, CheckCircle } from "lucide-react";
+import { Sparkles, Calendar, TrendingUp, AlertCircle, Loader2, CheckCircle, Lock, Crown } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { format, addDays, differenceInDays } from "date-fns";
+import { useLocation } from "wouter";
 
 interface FeatureEventDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   organizerId: string;
   currentCredits: number;
+  subscriptionStatus?: string;
+  communityId?: string;
   selectedEventId?: string | null;
   selectedEventData?: {
     id: string;
@@ -34,13 +37,17 @@ interface Event {
   venue: string;
 }
 
-export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCredits, selectedEventId: preselectedEventId, selectedEventData: preselectedEventData, creditsLoading = false }: FeatureEventDialogProps) {
+export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCredits, subscriptionStatus, communityId, selectedEventId: preselectedEventId, selectedEventData: preselectedEventData, creditsLoading = false }: FeatureEventDialogProps) {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [selectedEventId, setSelectedEventId] = useState<string>("");
   const [placementType, setPlacementType] = useState<"events_banner" | "home_mid">("events_banner");
   const [startDate, setStartDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState<string>(format(addDays(new Date(), 1), "yyyy-MM-dd"));
   const [creditsNeeded, setCreditsNeeded] = useState<number>(0);
+  
+  // Check if user is on trial (no paid subscription yet)
+  const isOnTrial = subscriptionStatus === 'trialing' || subscriptionStatus === 'none';
 
   // Pre-select event if provided from parent
   useEffect(() => {
@@ -184,27 +191,69 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Credit Balance Display */}
-          <div className="bg-gradient-to-r from-copper-500/10 to-copper-600/10 backdrop-blur-sm border border-copper-500/30 rounded-xl p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-neutral-400">Available Credits</p>
-                <p className="text-2xl font-bold text-copper-500">{currentCredits}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-neutral-400">Credits Needed</p>
-                <p className={`text-2xl font-bold ${insufficientCredits ? "text-red-500" : "text-jade-500"}`}>
-                  {creditsNeeded}
+          {/* Trial Banner - Show when user is on trial */}
+          {isOnTrial && (
+            <div className="relative overflow-hidden bg-gradient-to-br from-copper-600/20 via-copper-500/15 to-amber-500/20 backdrop-blur-sm border-2 border-copper-500/40 rounded-2xl p-6">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-copper-500/10 rounded-full blur-2xl -translate-y-8 translate-x-8" />
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-copper-500/20 rounded-lg">
+                    <Crown className="h-6 w-6 text-copper-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Unlock Featured Placements</h3>
+                    <p className="text-sm text-copper-400">Premium feature for subscribers</p>
+                  </div>
+                </div>
+                <p className="text-neutral-300 text-sm mb-4">
+                  Featured placements help your events stand out. Subscribe to get 2 placement credits every month - included with your subscription at no extra cost.
+                </p>
+                <Button
+                  onClick={() => {
+                    onOpenChange(false);
+                    if (communityId) {
+                      setLocation(`/subscribe/${communityId}`);
+                    }
+                  }}
+                  className="w-full bg-gradient-to-r from-copper-600 to-copper-500 hover:from-copper-500 hover:to-copper-400 text-white font-semibold py-3 rounded-xl shadow-lg shadow-copper-500/25 transition-all duration-200"
+                  data-testid="button-subscribe-now"
+                >
+                  <Crown className="h-4 w-4 mr-2" />
+                  Subscribe Now - $50/month
+                </Button>
+                <p className="text-xs text-neutral-500 text-center mt-2">
+                  Cancel anytime • 2 featured placements included monthly
                 </p>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Event Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="event" className="text-white font-medium">
-              {hasPreselectedEvent ? "Selected Event" : "Select Event"}
-            </Label>
+          {/* Credit Balance Display - Only show when not on trial */}
+          {!isOnTrial && (
+            <div className="bg-gradient-to-r from-copper-500/10 to-copper-600/10 backdrop-blur-sm border border-copper-500/30 rounded-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-neutral-400">Available Credits</p>
+                  <p className="text-2xl font-bold text-copper-500">{currentCredits}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-neutral-400">Credits Needed</p>
+                  <p className={`text-2xl font-bold ${insufficientCredits ? "text-red-500" : "text-jade-500"}`}>
+                    {creditsNeeded}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Form elements - Only show when not on trial */}
+          {!isOnTrial && (
+            <div className="space-y-6">
+              {/* Event Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="event" className="text-white font-medium">
+                  {hasPreselectedEvent ? "Selected Event" : "Select Event"}
+                </Label>
             {hasPreselectedEvent && selectedEvent ? (
               // Show the pre-selected event as a confirmation
               <div className="bg-jade-500/10 border border-jade-500/30 rounded-lg p-4">
@@ -333,35 +382,39 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
               </AlertDescription>
             </Alert>
           )}
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} className="border-white/20 text-white hover:bg-white/10">
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!selectedEventId || insufficientCredits || featureEventMutation.isPending || creditsLoading}
-            className="bg-gradient-to-r from-copper-500 to-copper-600 text-white hover:from-copper-600 hover:to-copper-700"
-            data-testid="button-feature-event"
-          >
-            {creditsLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Loading credits...
-              </>
-            ) : featureEventMutation.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Featuring...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4 mr-2" />
-                Feature Event ({creditsNeeded} credits)
-              </>
-            )}
-          </Button>
+          {!isOnTrial && (
+            <Button
+              onClick={handleSubmit}
+              disabled={!selectedEventId || insufficientCredits || featureEventMutation.isPending || creditsLoading}
+              className="bg-gradient-to-r from-copper-500 to-copper-600 text-white hover:from-copper-600 hover:to-copper-700"
+              data-testid="button-feature-event"
+            >
+              {creditsLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Loading credits...
+                </>
+              ) : featureEventMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Featuring...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Feature Event ({creditsNeeded} credits)
+                </>
+              )}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

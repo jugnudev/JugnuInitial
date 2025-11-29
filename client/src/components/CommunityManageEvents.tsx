@@ -39,9 +39,10 @@ interface TicketedEvent {
 
 interface CommunityManageEventsProps {
   organizerId: string;
+  communityId?: string;
 }
 
-export default function CommunityManageEvents({ organizerId }: CommunityManageEventsProps) {
+export default function CommunityManageEvents({ organizerId, communityId }: CommunityManageEventsProps) {
   const [featureDialogOpen, setFeatureDialogOpen] = useState(false);
   const [selectedEventForFeature, setSelectedEventForFeature] = useState<string | null>(null);
   const [selectedEventData, setSelectedEventData] = useState<{
@@ -65,8 +66,9 @@ export default function CommunityManageEvents({ organizerId }: CommunityManageEv
       available: number;
       used: number;
       resetDate: string | null;
-      isBeta: boolean;
+      isBeta?: boolean;
     };
+    subscriptionStatus?: string;
   }>({
     queryKey: ['/api/billing/credits/balance'],
     enabled: !!organizerId,
@@ -376,6 +378,8 @@ export default function CommunityManageEvents({ organizerId }: CommunityManageEv
         open={featureDialogOpen}
         onOpenChange={setFeatureDialogOpen}
         organizerId={organizerId}
+        communityId={communityId}
+        subscriptionStatus={creditsData?.subscriptionStatus}
         selectedEventId={selectedEventForFeature}
         selectedEventData={selectedEventData}
         currentCredits={creditsData?.credits?.available || 0}

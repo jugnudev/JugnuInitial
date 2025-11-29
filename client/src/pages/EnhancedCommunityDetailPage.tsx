@@ -2326,7 +2326,7 @@ export default function EnhancedCommunityDetailPage() {
                 </CardHeader>
                 <CardContent className="p-4 md:p-6">
                   {organizerData?.organizer ? (
-                    <CommunityManageEvents organizerId={organizerData.organizer.id} />
+                    <CommunityManageEvents organizerId={organizerData.organizer.id} communityId={communityId} />
                   ) : (
                     <div className="text-center py-12">
                       <div className="inline-flex p-6 rounded-2xl bg-gradient-to-br from-copper-500/10 to-accent/10 mb-4">
