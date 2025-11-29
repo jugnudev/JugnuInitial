@@ -1534,6 +1534,11 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
     }
 
     // Create sponsor campaign for featured event
+    // Use date strings directly to avoid timezone conversion issues
+    // startDate and endDate are in YYYY-MM-DD format
+    const startAtDate = `${startDate}T00:00:00.000Z`;
+    const endAtDate = `${endDate}T23:59:59.999Z`;
+    
     const campaign = await communitiesStorage.createSponsorCampaign({
       name: `Featured: ${event.title}`,
       sponsorName: organizer.businessName || user.firstName + ' ' + user.lastName,
@@ -1542,11 +1547,12 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
       ctaText: 'Get Tickets',
       clickUrl: `${process.env.VITE_APP_URL || 'https://thehouseofjugnu.com'}/events?e=${eventId}`,
       placements: [placement],
-      startAt: new Date(startDate).toISOString(),
-      endAt: new Date(endDate + 'T23:59:59').toISOString(), // End of day
+      startAt: startAtDate,
+      endAt: endAtDate,
       priority: 5, // Medium priority for community-featured events
       isActive: true,
-      isSponsored: false // Community-featured events are not marked as sponsored
+      isSponsored: false, // Community-featured events are not marked as sponsored
+      imageUrl: event.coverUrl || null // Include event cover image
     });
 
     if (!campaign) {

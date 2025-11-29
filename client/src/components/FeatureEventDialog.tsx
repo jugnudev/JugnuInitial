@@ -84,13 +84,23 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
       const response = await apiRequest("POST", "/api/billing/credits/spend", data);
       return response;
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Parse dates without timezone conversion by treating as local date
+      const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+      const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+      const startDisplay = format(new Date(startYear, startMonth - 1, startDay), "MMM d");
+      const endDisplay = format(new Date(endYear, endMonth - 1, endDay), "MMM d");
+      
       toast({
         title: "Event featured successfully",
-        description: `Your event will be promoted from ${format(new Date(startDate), "MMM d")} to ${format(new Date(endDate), "MMM d")}.`,
+        description: `Your event will be promoted from ${startDisplay} to ${endDisplay}.`,
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/billing/credits/balance"] });
+      
+      // Force refresh the credits balance
+      await queryClient.invalidateQueries({ queryKey: ["/api/billing/credits/balance"] });
+      await queryClient.refetchQueries({ queryKey: ["/api/billing/credits/balance"] });
       queryClient.invalidateQueries({ queryKey: ["/api/billing/credits/usage"] });
+      
       onOpenChange(false);
       // Reset form
       setSelectedEventId("");

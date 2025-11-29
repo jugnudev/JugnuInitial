@@ -114,11 +114,11 @@ export function addSpotlightRoutes(app: Express) {
             is_active boolean NOT NULL DEFAULT true,
             is_sponsored boolean NOT NULL DEFAULT true,
             tags text[] DEFAULT '{}',
-            -- freq_cap_per_user_per_day int NOT NULL DEFAULT 0 -- Temporarily disabled
+            image_url text
           );
           
-          -- Temporarily disabled freq_cap_per_user_per_day column due to schema cache issue
-          -- ALTER TABLE public.sponsor_campaigns ADD COLUMN IF NOT EXISTS freq_cap_per_user_per_day int NOT NULL DEFAULT 0;
+          -- Add image_url column if it doesn't exist (for existing tables)
+          ALTER TABLE public.sponsor_campaigns ADD COLUMN IF NOT EXISTS image_url text;
         `
       });
 
@@ -383,14 +383,24 @@ export function addSpotlightRoutes(app: Express) {
       
       if (error) throw error;
 
-      // Group by placement
+      // Group by placement and transform sponsor_creatives to creative
       const spotlights: Record<string, any> = {};
       
       campaigns?.forEach((campaign: any) => {
         campaign.placements?.forEach((p: string) => {
           if (!placement || p === placement) {
             if (!spotlights[p] || spotlights[p].priority < campaign.priority) {
-              spotlights[p] = campaign;
+              // Transform sponsor_creatives array to creative object for frontend compatibility
+              const creative = campaign.sponsor_creatives?.find((c: any) => c.placement === p) 
+                || campaign.sponsor_creatives?.[0] 
+                || null;
+              
+              spotlights[p] = {
+                ...campaign,
+                creative, // Add as singular 'creative' for frontend
+                // Also keep campaignId for SpotlightHero component compatibility
+                campaignId: campaign.id
+              };
             }
           }
         });

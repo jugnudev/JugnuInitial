@@ -4676,6 +4676,7 @@ export class CommunitiesSupabaseDB {
     priority: number;
     isActive: boolean;
     isSponsored: boolean;
+    imageUrl?: string | null;
   }): Promise<any> {
     const { data, error } = await this.client
       .from('sponsor_campaigns')
@@ -4691,7 +4692,8 @@ export class CommunitiesSupabaseDB {
         end_at: campaignData.endAt,
         priority: campaignData.priority,
         is_active: campaignData.isActive,
-        is_sponsored: campaignData.isSponsored
+        is_sponsored: campaignData.isSponsored,
+        image_url: campaignData.imageUrl || null
       })
       .select()
       .single();
