@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Sparkles, CheckCircle, CreditCard, ArrowLeft, Loader2, AlertCircle, Building, Star, Percent } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { OrganizerPaymentFormWrapper } from '@/components/billing/CustomPaymentForm';
+import { CustomPaymentFormWrapper } from '@/components/billing/CustomPaymentForm';
 
 interface OrganizerSubscription {
   id: string;
@@ -89,7 +89,48 @@ export default function OrganizerSubscribePage() {
     );
   }
 
+  // Get the first community to use for subscription
+  const primaryCommunity = communities[0];
+
   if (showPaymentForm) {
+    // If no communities exist, show error
+    if (!primaryCommunity) {
+      return (
+        <>
+          <Helmet>
+            <title>Complete Payment | Jugnu</title>
+          </Helmet>
+          <div className="min-h-screen bg-gradient-to-br from-bg via-bg-secondary to-bg py-12 px-4">
+            <div className="max-w-lg mx-auto">
+              <Button
+                variant="ghost"
+                onClick={() => setShowPaymentForm(false)}
+                className="mb-6 text-white/70 hover:text-white"
+                data-testid="button-back-to-plan"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Plan Details
+              </Button>
+              <Card className="premium-surface-elevated border-white/10">
+                <CardContent className="pt-6">
+                  <div className="flex flex-col items-center justify-center py-8 gap-4">
+                    <AlertCircle className="w-12 h-12 text-amber-400" />
+                    <p className="text-white text-center">You need at least one community to subscribe.</p>
+                    <Button
+                      onClick={() => navigate('/community/create')}
+                      className="bg-copper-500 hover:bg-copper-600 text-white"
+                    >
+                      Create Your First Community
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </>
+      );
+    }
+
     return (
       <>
         <Helmet>
@@ -107,7 +148,9 @@ export default function OrganizerSubscribePage() {
               Back to Plan Details
             </Button>
 
-            <OrganizerPaymentFormWrapper
+            <CustomPaymentFormWrapper
+              communityId={primaryCommunity.id}
+              communityName={primaryCommunity.name}
               onSuccess={handlePaymentSuccess}
               onCancel={() => setShowPaymentForm(false)}
             />
