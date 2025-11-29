@@ -152,9 +152,8 @@ export default function Navigation() {
               {/* For Business Dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className={`flex items-center gap-1 px-0 h-auto py-0 transition-colors duration-200 font-medium whitespace-nowrap ${
+                  <button
+                    className={`flex items-center gap-1 transition-colors duration-200 font-medium whitespace-nowrap bg-transparent border-0 p-0 cursor-pointer ${
                       location === '/promote' || location === '/pricing' || location.startsWith('/loyalty')
                         ? 'text-accent' 
                         : 'text-text hover:text-accent'
@@ -164,7 +163,7 @@ export default function Navigation() {
                     <Briefcase className="h-4 w-4" />
                     For Business
                     <ChevronDown className="h-3 w-3" />
-                  </Button>
+                  </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem asChild>
@@ -192,9 +191,6 @@ export default function Navigation() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              {/* Spacer to push right-side items */}
-              <div className="flex-1"></div>
 
               <Link
                 href="/story"
