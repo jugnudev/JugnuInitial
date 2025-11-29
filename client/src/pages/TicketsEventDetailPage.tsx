@@ -29,6 +29,11 @@ interface Tier {
   showRemaining: boolean;
 }
 
+interface FeeStructure {
+  type: 'buyer_pays' | 'organizer_absorbs';
+  serviceFeePercent: number;
+}
+
 interface Event {
   id: string;
   slug: string;
@@ -47,6 +52,7 @@ interface Event {
   refundPolicy: string | null;
   hasGST: boolean;
   hasPST: boolean;
+  feeStructure: FeeStructure | null;
 }
 
 interface Organizer {
@@ -373,9 +379,13 @@ export function TicketsEventDetailPage() {
   };
 
   const calculateFees = (subtotal: number) => {
-    // No platform fees - businesses keep 100% of ticket revenue
-    // Note: Actual pricing is calculated server-side
-    return 0;
+    // Check if organizer has set up buyer-pays fee structure
+    if (!event.feeStructure || event.feeStructure.type !== 'buyer_pays') {
+      return 0;
+    }
+    // Calculate service fee based on event's feeStructure
+    const feePercent = event.feeStructure.serviceFeePercent || 0;
+    return Math.round(subtotal * (feePercent / 100));
   };
 
   const subtotal = calculateSubtotal();
