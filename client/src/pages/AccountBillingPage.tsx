@@ -271,7 +271,7 @@ export default function AccountBillingPage() {
                   </div>
                 </div>
 
-                <Link href="/account/subscribe">
+                <Link href="/account/subscribe?checkout=true">
                   <Button 
                     className="w-full bg-gradient-to-r from-copper-500 to-copper-600 hover:from-copper-600 hover:to-copper-700 text-white font-semibold py-6 text-lg"
                     data-testid="button-subscribe"
@@ -364,7 +364,7 @@ export default function AccountBillingPage() {
                       </p>
                     </div>
                   </div>
-                  <Link href="/account/subscribe">
+                  <Link href="/account/subscribe?checkout=true">
                     <Button className="bg-copper-500 hover:bg-copper-600 text-black font-semibold whitespace-nowrap">
                       <CreditCard className="w-4 h-4 mr-2" />
                       Add Payment
@@ -389,7 +389,7 @@ export default function AccountBillingPage() {
                       </p>
                     </div>
                   </div>
-                  <Link href="/account/subscribe">
+                  <Link href="/account/subscribe?checkout=true">
                     <Button className="bg-copper-500 hover:bg-copper-600 text-black font-semibold whitespace-nowrap">
                       <Sparkles className="w-4 h-4 mr-2" />
                       Subscribe Now
@@ -530,7 +530,7 @@ export default function AccountBillingPage() {
                 )}
 
                 {isTrialing && !hasStripeCustomer && (
-                  <Link href="/account/subscribe" className="flex-1">
+                  <Link href="/account/subscribe?checkout=true" className="flex-1">
                     <Button 
                       className="w-full bg-copper-500 hover:bg-copper-600 text-black font-semibold"
                       data-testid="button-add-payment"

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useLocation } from 'wouter';
+import { useLocation, useSearch } from 'wouter';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,7 +34,13 @@ interface Community {
 
 export default function OrganizerSubscribePage() {
   const [, navigate] = useLocation();
-  const [showPaymentForm, setShowPaymentForm] = useState(false);
+  const searchString = useSearch();
+  
+  // Check if we should auto-show the payment form (coming from billing page with ?checkout=true)
+  const urlParams = new URLSearchParams(searchString);
+  const autoCheckout = urlParams.get('checkout') === 'true';
+  
+  const [showPaymentForm, setShowPaymentForm] = useState(autoCheckout);
 
   const { data: subscriptionData, isLoading: isLoadingSubscription, refetch: refetchSubscription } = useQuery<{ 
     ok: boolean; 
