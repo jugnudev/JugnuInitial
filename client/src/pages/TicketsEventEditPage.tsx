@@ -1213,17 +1213,19 @@ export function TicketsEventEditPage() {
                                   $
                                 </span>
                                 <Input
-                                  type="number"
+                                  type="text"
                                   min="0"
                                   step="0.01"
                                   placeholder="2.50"
-                                  value={field.value / 100}
-                                  onChange={(e) => {
+                                  defaultValue={(field.value / 100).toString()}
+                                  onBlur={(e) => {
                                     const dollars = parseFloat(e.target.value);
-                                    if (!isNaN(dollars)) {
+                                    if (!isNaN(dollars) && dollars >= 0) {
                                       field.onChange(Math.round(dollars * 100));
+                                      e.target.value = (Math.round(dollars * 100) / 100).toString();
                                     } else {
                                       field.onChange(0);
+                                      e.target.value = "0";
                                     }
                                   }}
                                   data-testid="input-service-fee-amount"

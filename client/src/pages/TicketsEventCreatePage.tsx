@@ -982,19 +982,33 @@ export function TicketsEventCreatePage() {
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500">$</span>
                         <Input
-                          type="number"
+                          type="text"
                           min="0"
                           step="0.01"
-                          value={form.feeStructure.amountCents / 100}
-                          onChange={(e) => {
+                          placeholder="2.50"
+                          defaultValue={(form.feeStructure.amountCents / 100).toString()}
+                          onBlur={(e) => {
                             const dollars = parseFloat(e.target.value);
-                            setForm(prev => ({ 
-                              ...prev, 
-                              feeStructure: { 
-                                ...prev.feeStructure, 
-                                amountCents: !isNaN(dollars) ? Math.round(dollars * 100) : 0 
-                              } 
-                            }));
+                            if (!isNaN(dollars) && dollars >= 0) {
+                              const cents = Math.round(dollars * 100);
+                              setForm(prev => ({ 
+                                ...prev, 
+                                feeStructure: { 
+                                  ...prev.feeStructure, 
+                                  amountCents: cents
+                                } 
+                              }));
+                              e.target.value = (cents / 100).toString();
+                            } else {
+                              setForm(prev => ({ 
+                                ...prev, 
+                                feeStructure: { 
+                                  ...prev.feeStructure, 
+                                  amountCents: 0
+                                } 
+                              }));
+                              e.target.value = "0";
+                            }
                           }}
                           className="h-12 pl-7 bg-charcoal-900/60 border-charcoal-700 
                                    focus:border-copper-500 text-white"
