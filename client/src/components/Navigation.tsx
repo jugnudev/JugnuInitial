@@ -98,10 +98,10 @@ export default function Navigation() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:block">
-            <div className="ml-10 flex h-12 items-center gap-x-6">
+            <div className="ml-10 flex h-12 items-center gap-x-8">
               <Link
                 href="/"
-                className={`transition-colors duration-200 font-medium ${
+                className={`transition-colors duration-200 font-medium whitespace-nowrap ${
                   location === '/' 
                     ? 'text-accent' 
                     : 'text-text hover:text-accent'
@@ -112,7 +112,7 @@ export default function Navigation() {
               </Link>
               <Link
                 href="/events"
-                className={`transition-colors duration-200 font-medium ${
+                className={`transition-colors duration-200 font-medium whitespace-nowrap ${
                   location === '/events' || location.startsWith('/explore')
                     ? 'text-accent' 
                     : 'text-text hover:text-accent'
@@ -123,7 +123,7 @@ export default function Navigation() {
               </Link>
               <Link
                 href="/deals"
-                className={`transition-colors duration-200 font-medium ${
+                className={`transition-colors duration-200 font-medium whitespace-nowrap ${
                   location === '/deals' 
                     ? 'text-accent' 
                     : 'text-text hover:text-accent'
@@ -133,7 +133,7 @@ export default function Navigation() {
                 Deals
               </Link>
               {showCommunities && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 whitespace-nowrap">
                   <Link
                     href="/communities"
                     className={`transition-colors duration-200 font-medium ${
@@ -154,7 +154,7 @@ export default function Navigation() {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className={`flex items-center gap-1 px-3 h-auto py-2 transition-colors duration-200 font-medium ${
+                    className={`flex items-center gap-1 px-0 h-auto py-0 transition-colors duration-200 font-medium whitespace-nowrap ${
                       location === '/promote' || location === '/pricing' || location.startsWith('/loyalty')
                         ? 'text-accent' 
                         : 'text-text hover:text-accent'
@@ -198,7 +198,7 @@ export default function Navigation() {
 
               <Link
                 href="/story"
-                className={`transition-colors duration-200 font-medium ${
+                className={`transition-colors duration-200 font-medium whitespace-nowrap ${
                   location === '/story' 
                     ? 'text-accent' 
                     : 'text-text hover:text-accent'
@@ -210,12 +210,14 @@ export default function Navigation() {
               
               {/* Notification Bell - Show for authenticated users */}
               {isAuthenticated && (
-                <NotificationBell />
+                <div className="flex items-center">
+                  <NotificationBell />
+                </div>
               )}
               
               {/* Authentication - Show different content based on auth state */}
               {authLoading ? (
-                <div className="ml-4 flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span className="hidden sm:inline text-sm text-muted-foreground">Loading...</span>
                 </div>
@@ -224,7 +226,7 @@ export default function Navigation() {
                   <DropdownMenuTrigger asChild>
                     <Button 
                       variant="ghost" 
-                      className="ml-4 flex items-center gap-2 text-text hover:text-accent"
+                      className="flex items-center gap-2 px-0 text-text hover:text-accent"
                       data-testid="nav-user-menu"
                     >
                       <Avatar className="h-8 w-8">
@@ -233,7 +235,7 @@ export default function Navigation() {
                           {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="hidden sm:inline font-medium">
+                      <span className="hidden sm:inline font-medium whitespace-nowrap">
                         {user?.firstName || 'Account'}
                       </span>
                     </Button>
@@ -314,7 +316,7 @@ export default function Navigation() {
               ) : (
                 <Link href="/account/signup">
                   <Button 
-                    className="ml-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold px-4 touch-target shadow-lg hover:shadow-xl transition-all duration-200 border-0"
+                    className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold px-4 touch-target shadow-lg hover:shadow-xl transition-all duration-200 border-0 whitespace-nowrap"
                     data-testid="nav-signup"
                   >
                     <UserPlus className="h-4 w-4 mr-2" />
