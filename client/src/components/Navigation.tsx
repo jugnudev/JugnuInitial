@@ -97,227 +97,234 @@ export default function Navigation() {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:block">
-            <div className="ml-10 flex h-12 items-center gap-x-6">
-              <Link
-                href="/"
-                className={`transition-colors duration-200 font-medium ${
-                  location === '/' 
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-home"
-              >
-                Home
-              </Link>
-              <Link
-                href="/story"
-                className={`transition-colors duration-200 font-medium ${
-                  location === '/story' 
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-story"
-              >
-                Story
-              </Link>
-              <Link
-                href="/events"
-                className={`transition-colors duration-200 font-medium ${
-                  location === '/events' || location.startsWith('/explore')
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-events"
-              >
-                Events
-              </Link>
-              <Link
-                href="/deals"
-                className={`transition-colors duration-200 font-medium ${
-                  location === '/deals' 
-                    ? 'text-accent' 
-                    : 'text-text hover:text-accent'
-                }`}
-                data-testid="nav-deals"
-              >
-                Deals
-              </Link>
-              {showCommunities && (
-                <div className="flex items-center gap-2">
-                  <Link
-                    href="/communities"
-                    className={`transition-colors duration-200 font-medium ${
-                      location === '/communities' || location.startsWith('/communities/')
-                        ? 'text-accent' 
-                        : 'text-text hover:text-accent'
-                    }`}
-                    data-testid="nav-communities"
-                  >
-                    Communities
-                  </Link>
-                  <BetaBadge size="sm" variant="subtle" showIcon={false} />
-                </div>
-              )}
-              
-              {/* For Business Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className={`flex items-center gap-1 px-3 h-auto py-2 transition-colors duration-200 font-medium ${
-                      location === '/promote' || location === '/pricing' || location.startsWith('/loyalty')
-                        ? 'text-accent' 
-                        : 'text-text hover:text-accent'
-                    }`}
-                    data-testid="nav-for-business"
-                  >
-                    <Briefcase className="h-4 w-4" />
-                    For Business
-                    <ChevronDown className="h-3 w-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuItem asChild>
-                    <Link href="/promote" className="flex items-center gap-2 cursor-pointer" data-testid="nav-dropdown-promote">
-                      <Megaphone className="h-4 w-4" />
-                      Promote
+          <div className="hidden md:block flex-1">
+            <div className="ml-10 flex h-12 items-center gap-x-8 justify-between">
+              {/* Left Navigation Items */}
+              <div className="flex items-center gap-x-8">
+                <Link
+                  href="/"
+                  className={`transition-colors duration-200 font-medium ${
+                    location === '/' 
+                      ? 'text-accent' 
+                      : 'text-text hover:text-accent'
+                  }`}
+                  data-testid="nav-home"
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/events"
+                  className={`transition-colors duration-200 font-medium ${
+                    location === '/events' || location.startsWith('/explore')
+                      ? 'text-accent' 
+                      : 'text-text hover:text-accent'
+                  }`}
+                  data-testid="nav-events"
+                >
+                  Events
+                </Link>
+                <Link
+                  href="/deals"
+                  className={`transition-colors duration-200 font-medium ${
+                    location === '/deals' 
+                      ? 'text-accent' 
+                      : 'text-text hover:text-accent'
+                  }`}
+                  data-testid="nav-deals"
+                >
+                  Deals
+                </Link>
+                {showCommunities && (
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href="/communities"
+                      className={`transition-colors duration-200 font-medium ${
+                        location === '/communities' || location.startsWith('/communities/')
+                          ? 'text-accent' 
+                          : 'text-text hover:text-accent'
+                      }`}
+                      data-testid="nav-communities"
+                    >
+                      Communities
                     </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/pricing" className="flex items-center gap-2 cursor-pointer" data-testid="nav-dropdown-pricing">
-                      <DollarSign className="h-4 w-4" />
-                      Pricing
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/loyalty" className="flex items-center gap-2 cursor-pointer" data-testid="nav-dropdown-loyalty">
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-2">
-                          <Coins className="h-4 w-4" />
-                          Loyalty
-                        </div>
-                        <ComingSoonBadge size="sm" variant="subtle" showIcon={false} />
-                      </div>
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              
-              {/* Notification Bell - Show for authenticated users */}
-              {isAuthenticated && (
-                <NotificationBell />
-              )}
-              
-              {/* Authentication - Show different content based on auth state */}
-              {authLoading ? (
-                <div className="ml-4 flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="hidden sm:inline text-sm text-muted-foreground">Loading...</span>
-                </div>
-              ) : isAuthenticated ? (
+                    <BetaBadge size="sm" variant="subtle" showIcon={false} />
+                  </div>
+                )}
+                
+                {/* For Business Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      className="ml-4 flex items-center gap-2 text-text hover:text-accent"
-                      data-testid="nav-user-menu"
+                    <Button
+                      variant="ghost"
+                      className={`flex items-center gap-1 px-3 h-auto py-2 transition-colors duration-200 font-medium ${
+                        location === '/promote' || location === '/pricing' || location.startsWith('/loyalty')
+                          ? 'text-accent' 
+                          : 'text-text hover:text-accent'
+                      }`}
+                      data-testid="nav-for-business"
                     >
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user?.profileImageUrl} />
-                        <AvatarFallback className="bg-orange-500 text-white text-sm">
-                          {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="hidden sm:inline font-medium">
-                        {user?.firstName || 'Account'}
-                      </span>
+                      <Briefcase className="h-4 w-4" />
+                      For Business
+                      <ChevronDown className="h-3 w-3" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-56">
-                    <div className="px-2 py-2">
-                      <p className="text-sm font-medium text-foreground">
-                        {user?.firstName && user?.lastName 
-                          ? `${user.firstName} ${user.lastName}`
-                          : user?.email}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{user?.email}</p>
-                    </div>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link href="/account/profile" className="flex items-center gap-2 cursor-pointer">
-                        <User className="h-4 w-4" />
-                        Profile
+                      <Link href="/promote" className="flex items-center gap-2 cursor-pointer" data-testid="nav-dropdown-promote">
+                        <Megaphone className="h-4 w-4" />
+                        Promote
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/tickets/my-tickets" className="flex items-center gap-2 cursor-pointer" data-testid="nav-my-orders">
-                        <Receipt className="h-4 w-4" />
-                        My Orders
+                      <Link href="/pricing" className="flex items-center gap-2 cursor-pointer" data-testid="nav-dropdown-pricing">
+                        <DollarSign className="h-4 w-4" />
+                        Pricing
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                      <Link href="/account/billing" className="flex items-center gap-2 cursor-pointer" data-testid="nav-billing">
-                        <CreditCard className="h-4 w-4" />
-                        Billing
+                      <Link href="/loyalty" className="flex items-center gap-2 cursor-pointer" data-testid="nav-dropdown-loyalty">
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-2">
+                            <Coins className="h-4 w-4" />
+                            Loyalty
+                          </div>
+                          <ComingSoonBadge size="sm" variant="subtle" showIcon={false} />
+                        </div>
                       </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/account/profile#settings" className="flex items-center gap-2 cursor-pointer">
-                        <Settings className="h-4 w-4" />
-                        Settings
-                      </Link>
-                    </DropdownMenuItem>
-                    
-                    {/* Admin Menu Items - Only show for admin users */}
-                    {(user?.role === 'admin' || user?.role === 'organizer') && (
-                      <>
-                        <DropdownMenuSeparator />
-                        {user?.role === 'admin' && (
-                          <>
-                            <DropdownMenuItem asChild>
-                              <Link href="/admin/communities" className="flex items-center gap-2 cursor-pointer">
-                                <Shield className="h-4 w-4" />
-                                Admin Dashboard
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href="/admin/organizers" className="flex items-center gap-2 cursor-pointer">
-                                <BarChart3 className="h-4 w-4" />
-                                Manage Organizers
-                              </Link>
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </>
-                    )}
-                    
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      className="flex items-center gap-2 text-red-600 focus:text-red-600 cursor-pointer"
-                      onClick={() => signOutMutation.mutate()}
-                      disabled={signOutMutation.isPending}
-                    >
-                      {signOutMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <LogOut className="h-4 w-4" />
-                      )}
-                      {signOutMutation.isPending ? 'Signing out...' : 'Sign Out'}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              ) : (
-                <Link href="/account/signup">
-                  <Button 
-                    className="ml-4 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold px-4 touch-target shadow-lg hover:shadow-xl transition-all duration-200 border-0"
-                    data-testid="nav-signup"
-                  >
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Sign Up
-                  </Button>
+              </div>
+              
+              {/* Right Navigation Items */}
+              <div className="flex items-center gap-x-8">
+                <Link
+                  href="/story"
+                  className={`transition-colors duration-200 font-medium whitespace-nowrap ${
+                    location === '/story' 
+                      ? 'text-accent' 
+                      : 'text-text hover:text-accent'
+                  }`}
+                  data-testid="nav-story"
+                >
+                  Story
                 </Link>
-              )}
+                
+                {/* Notification Bell - Show for authenticated users */}
+                {isAuthenticated && (
+                  <NotificationBell />
+                )}
+                
+                {/* Authentication - Show different content based on auth state */}
+                {authLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="hidden sm:inline text-sm text-muted-foreground">Loading...</span>
+                  </div>
+                ) : isAuthenticated ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        className="flex items-center gap-2 text-text hover:text-accent"
+                        data-testid="nav-user-menu"
+                      >
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={user?.profileImageUrl} />
+                          <AvatarFallback className="bg-orange-500 text-white text-sm">
+                            {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="hidden sm:inline font-medium">
+                          {user?.firstName || 'Account'}
+                        </span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <div className="px-2 py-2">
+                        <p className="text-sm font-medium text-foreground">
+                          {user?.firstName && user?.lastName 
+                            ? `${user.firstName} ${user.lastName}`
+                            : user?.email}
+                        </p>
+                        <p className="text-xs text-muted-foreground">{user?.email}</p>
+                      </div>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/account/profile" className="flex items-center gap-2 cursor-pointer">
+                          <User className="h-4 w-4" />
+                          Profile
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/tickets/my-tickets" className="flex items-center gap-2 cursor-pointer" data-testid="nav-my-orders">
+                          <Receipt className="h-4 w-4" />
+                          My Orders
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/account/billing" className="flex items-center gap-2 cursor-pointer" data-testid="nav-billing">
+                          <CreditCard className="h-4 w-4" />
+                          Billing
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link href="/account/profile#settings" className="flex items-center gap-2 cursor-pointer">
+                          <Settings className="h-4 w-4" />
+                          Settings
+                        </Link>
+                      </DropdownMenuItem>
+                      
+                      {/* Admin Menu Items - Only show for admin users */}
+                      {(user?.role === 'admin' || user?.role === 'organizer') && (
+                        <>
+                          <DropdownMenuSeparator />
+                          {user?.role === 'admin' && (
+                            <>
+                              <DropdownMenuItem asChild>
+                                <Link href="/admin/communities" className="flex items-center gap-2 cursor-pointer">
+                                  <Shield className="h-4 w-4" />
+                                  Admin Dashboard
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem asChild>
+                                <Link href="/admin/organizers" className="flex items-center gap-2 cursor-pointer">
+                                  <BarChart3 className="h-4 w-4" />
+                                  Manage Organizers
+                                </Link>
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </>
+                      )}
+                      
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        className="flex items-center gap-2 text-red-600 focus:text-red-600 cursor-pointer"
+                        onClick={() => signOutMutation.mutate()}
+                        disabled={signOutMutation.isPending}
+                      >
+                        {signOutMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <LogOut className="h-4 w-4" />
+                        )}
+                        {signOutMutation.isPending ? 'Signing out...' : 'Sign Out'}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <Link href="/account/signup">
+                    <Button 
+                      className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold px-4 touch-target shadow-lg hover:shadow-xl transition-all duration-200 border-0"
+                      data-testid="nav-signup"
+                    >
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Sign Up
+                    </Button>
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
 
