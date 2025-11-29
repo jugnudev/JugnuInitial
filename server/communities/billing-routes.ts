@@ -1505,10 +1505,21 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
       });
     }
 
-    // Check credit balance directly from subscription (same source as /credits/balance)
-    const availableCredits = subscription.placementCreditsAvailable || 0;
-    const usedCredits = subscription.placementCreditsUsed || 0;
-    const remainingCredits = availableCredits - usedCredits;
+    // Check credit balance using same fallback logic as /credits/balance and subscription endpoint
+    // This ensures consistency across all endpoints
+    let remainingCredits = 0;
+    let usedCredits = subscription.placementCreditsUsed || 0;
+    
+    // Primary: Check if placementCreditsAvailable is set
+    if (subscription.placementCreditsAvailable !== null && subscription.placementCreditsAvailable !== undefined) {
+      remainingCredits = Math.max(0, subscription.placementCreditsAvailable - usedCredits);
+    } else if (subscription.stripeCustomerId) {
+      // Fallback for legacy subscriptions with Stripe customer but never-initialized credits
+      // Default to 2 credits (the standard monthly allocation) minus any used
+      const defaultCredits = 2;
+      remainingCredits = Math.max(0, defaultCredits - usedCredits);
+      console.log(`[Billing] Spend using default ${remainingCredits} credits for legacy subscription ${subscription.id}`);
+    }
 
     if (remainingCredits < creditsToDeduct) {
       return res.status(402).json({ 
