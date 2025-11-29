@@ -31,7 +31,10 @@ interface Tier {
 
 interface FeeStructure {
   type: 'buyer_pays' | 'organizer_absorbs';
-  serviceFeePercent: number;
+  mode?: 'percent' | 'flat';
+  percent?: number;
+  amountCents?: number;
+  serviceFeePercent?: number; // Legacy field for backwards compatibility
 }
 
 interface Event {
@@ -383,9 +386,22 @@ export function TicketsEventDetailPage() {
     if (!event.feeStructure || event.feeStructure.type !== 'buyer_pays') {
       return 0;
     }
-    // Calculate service fee based on event's feeStructure
-    const feePercent = event.feeStructure.serviceFeePercent || 0;
-    return Math.round(subtotal * (feePercent / 100));
+    
+    const fee = event.feeStructure;
+    
+    // Handle new mode-based fee structure
+    if (fee.mode === 'flat' && fee.amountCents !== undefined) {
+      // Flat fee: fixed amount per order in cents
+      return fee.amountCents;
+    } else if (fee.mode === 'percent' && fee.percent !== undefined) {
+      // Percentage fee: calculate based on subtotal
+      return Math.round(subtotal * (fee.percent / 100));
+    } else if (fee.serviceFeePercent !== undefined) {
+      // Legacy fallback for old feeStructure format
+      return Math.round(subtotal * (fee.serviceFeePercent / 100));
+    }
+    
+    return 0;
   };
 
   const subtotal = calculateSubtotal();
