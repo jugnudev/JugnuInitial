@@ -1432,11 +1432,24 @@ router.get('/credits/usage', requireAuth, async (req: Request, res: Response) =>
     }
 
     // Get usage history
-    const usage = await communitiesStorage.getCreditUsageByOrganizer(organizer.id);
+    const usageRaw = await communitiesStorage.getCreditUsageByOrganizer(organizer.id);
+
+    // Map snake_case fields to camelCase for frontend
+    const usage = (usageRaw || []).map((item: any) => ({
+      id: item.id,
+      organizerId: item.organizer_id,
+      campaignId: item.campaign_id,
+      creditsDeducted: item.credits_deducted,
+      placementsUsed: item.placements_used,
+      startDate: item.start_date,
+      endDate: item.end_date,
+      notes: item.notes,
+      createdAt: item.created_at
+    }));
 
     res.json({
       ok: true,
-      usage: usage || []
+      usage
     });
   } catch (error: any) {
     console.error('Get credit usage error:', error);
