@@ -554,7 +554,16 @@ export function TicketsEventDetailPage() {
                 <div className="flex flex-wrap gap-2 md:gap-6 text-white/90">
                   <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-2 rounded-full text-sm font-medium border border-white/20">
                     <Calendar className="w-4 h-4" />
-                    <span>{format(eventDate, 'MMM d, yyyy')}</span>
+                    <span>
+                      {(() => {
+                        const endDate = event.endAt ? new Date(event.endAt) : null;
+                        const isSameDay = endDate ? eventDate.toDateString() === endDate.toDateString() : true;
+                        if (endDate && !isSameDay) {
+                          return `${format(eventDate, 'MMM d')} - ${format(endDate, 'MMM d, yyyy')}`;
+                        }
+                        return format(eventDate, 'MMM d, yyyy');
+                      })()}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 bg-black/40 backdrop-blur-sm px-3 py-2 rounded-full text-sm font-medium border border-white/20">
                     <Clock className="w-4 h-4" />
