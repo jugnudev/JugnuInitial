@@ -331,7 +331,16 @@ export function addSpotlightRoutes(app: Express) {
       }
       
       // Parse target URL and merge UTM parameters
-      const url = new URL(targetUrl);
+      // Handle both absolute and relative URLs
+      const baseUrl = process.env.VITE_APP_URL || 'https://thehouseofjugnu.com';
+      let url: URL;
+      try {
+        // Try parsing as absolute URL first
+        url = new URL(targetUrl);
+      } catch {
+        // If it fails, treat as relative URL and prepend base
+        url = new URL(targetUrl, baseUrl);
+      }
       
       // Add UTM parameters if not present
       if (!url.searchParams.has('utm_source')) {

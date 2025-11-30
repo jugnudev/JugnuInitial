@@ -1564,11 +1564,54 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
     const baseUrl = process.env.VITE_APP_URL || 'https://thehouseofjugnu.com';
     const eventUrl = `${baseUrl}/tickets/event/${event.slug}`;
     
+    // Generate subline with date range and time info
+    const generateEventSubline = () => {
+      const startDateObj = new Date(event.startAt);
+      const endDateObj = event.endAt ? new Date(event.endAt) : startDateObj;
+      
+      // Format time
+      const formatTime = (date: Date) => {
+        return date.toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit', 
+          hour12: true 
+        });
+      };
+      
+      // Format date
+      const formatDate = (date: Date) => {
+        return date.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric'
+        });
+      };
+      
+      const startDate = formatDate(startDateObj);
+      const endDate = formatDate(endDateObj);
+      const startTime = formatTime(startDateObj);
+      const endTime = formatTime(endDateObj);
+      
+      // Check if it's a multi-day event
+      const isSameDay = startDateObj.toDateString() === endDateObj.toDateString();
+      
+      let dateTimeInfo = '';
+      if (isSameDay) {
+        // Same day: "Nov 22 • 7:00 PM - 11:00 PM"
+        dateTimeInfo = `${startDate} • ${startTime} - ${endTime}`;
+      } else {
+        // Multi-day: "Nov 22 - Nov 24"
+        dateTimeInfo = `${startDate} - ${endDate}`;
+      }
+      
+      // Combine venue with date/time
+      return event.venue ? `${event.venue} • ${dateTimeInfo}` : dateTimeInfo;
+    };
+    
     const campaign = await communitiesStorage.createSponsorCampaign({
       name: `Featured: ${event.title}`,
       sponsorName: communityName,
       headline: event.title,
-      subline: event.summary || `${event.venue} - ${new Date(event.startAt).toLocaleDateString()}`,
+      subline: event.summary || generateEventSubline(),
       ctaText: 'Get Tickets',
       clickUrl: eventUrl,
       placements: [placement],
