@@ -117,11 +117,18 @@ export function HomeMidSpotlight() {
       })
     }).catch(console.error);
 
-    // Build redirector URL with encoded target and utm_content
-    const redirectUrl = `/r/${spotlight.id}?to=${encodeURIComponent(spotlight.click_url)}&utm_content=home_mid`;
-    
-    // Open in new tab with proper attributes
-    window.open(redirectUrl, '_blank', 'noopener,noreferrer');
+    // For relative URLs (internal links like /tickets/event/...), navigate directly
+    // For absolute URLs (external links), use the redirector for UTM tracking
+    if (spotlight.click_url.startsWith('/')) {
+      // Add UTM parameters to internal link
+      const separator = spotlight.click_url.includes('?') ? '&' : '?';
+      const targetUrl = `${spotlight.click_url}${separator}utm_source=jugnu&utm_medium=spotlight&utm_campaign=${spotlight.id}&utm_content=home_mid`;
+      window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      // External link - use redirector for tracking
+      const redirectUrl = `/r/${spotlight.id}?to=${encodeURIComponent(spotlight.click_url)}&utm_content=home_mid`;
+      window.open(redirectUrl, '_blank', 'noopener,noreferrer');
+    }
   };
 
   // Don't render anything if no spotlight data
