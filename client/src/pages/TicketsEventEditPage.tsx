@@ -75,6 +75,15 @@ const eventFormSchema = z.object({
   serviceFeeMode: z.enum(['percent', 'flat']).default('percent'),
   serviceFeePercent: z.number().min(0).max(100).default(5),
   serviceFeeAmountCents: z.number().int().min(0).default(0)
+}).refine((data) => {
+  // If endAt is provided, it must be after startAt
+  if (data.endAt && data.startAt) {
+    return new Date(data.endAt) >= new Date(data.startAt);
+  }
+  return true;
+}, {
+  message: "End date must be after start date",
+  path: ["endAt"]
 });
 
 interface TicketTier {
@@ -672,6 +681,22 @@ export function TicketsEventEditPage() {
                         )}
                       />
                     </div>
+                    {/* Date validation error - shown inline for immediate feedback */}
+                    {(() => {
+                      const endAt = form.watch('endAt');
+                      const startAt = form.watch('startAt');
+                      if (endAt && startAt && new Date(endAt) < new Date(startAt)) {
+                        return (
+                          <Alert className="bg-red-500/10 border-red-500/30 mt-3">
+                            <AlertCircle className="h-4 w-4 text-red-400" />
+                            <AlertDescription className="text-red-300 ml-2">
+                              End date must be after start date. Please correct this before saving.
+                            </AlertDescription>
+                          </Alert>
+                        );
+                      }
+                      return null;
+                    })()}
                   </CardContent>
                 </Card>
 

@@ -234,6 +234,17 @@ export function TicketsEventCreatePage() {
       return;
     }
 
+    // Validate end date is after start date
+    if (form.endAt && form.startAt && new Date(form.endAt) < new Date(form.startAt)) {
+      toast({
+        title: "Invalid date range",
+        description: "End date must be after start date",
+        variant: "destructive",
+      });
+      setActiveTab("details");
+      return;
+    }
+
     const validTiers = ticketTiers.filter(tier => tier.name);
     if (validTiers.length === 0) {
       toast({
@@ -579,6 +590,13 @@ export function TicketsEventCreatePage() {
                     placeholder="Select end date and time"
                     testId="event-end-datetime"
                   />
+                  {/* Date validation error */}
+                  {form.endAt && form.startAt && new Date(form.endAt) < new Date(form.startAt) && (
+                    <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3">
+                      <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                      <span>End date must be after start date</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Location Details */}
