@@ -182,7 +182,7 @@ export function SubscriptionDashboard() {
                           <Badge className="bg-copper-500/20 text-copper-400 border-copper-500/30">
                             {item.creditsDeducted} credit{item.creditsDeducted !== 1 ? 's' : ''}
                           </Badge>
-                          {item.placementsUsed.map((placement) => (
+                          {(item.placementsUsed || []).map((placement) => (
                             <Badge 
                               key={placement}
                               variant="outline"
