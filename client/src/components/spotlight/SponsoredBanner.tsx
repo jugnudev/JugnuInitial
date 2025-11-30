@@ -13,6 +13,7 @@ interface SpotlightData {
   click_url: string;
   is_sponsored: boolean;
   freq_cap_per_user_per_day?: number;
+  image_url?: string; // Direct image URL (used for featured events)
   creative?: {
     image_desktop_url?: string;
     image_mobile_url?: string;
@@ -174,9 +175,10 @@ export function SponsoredBanner() {
     return null;
   }
 
+  // First check creative images, then fall back to direct image_url (used for featured events)
   const bgImage = window.innerWidth >= 768 
-    ? spotlight.creative?.image_desktop_url 
-    : spotlight.creative?.image_mobile_url || spotlight.creative?.image_desktop_url;
+    ? (spotlight.creative?.image_desktop_url || spotlight.image_url)
+    : (spotlight.creative?.image_mobile_url || spotlight.creative?.image_desktop_url || spotlight.image_url);
 
   return (
     <div
