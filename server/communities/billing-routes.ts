@@ -1560,9 +1560,9 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
     const startAtDate = `${startDate}T00:00:00.000Z`;
     const endAtDate = `${endDate}T23:59:59.999Z`;
     
-    // Build the public event URL using the event slug for ticket purchases
-    const baseUrl = process.env.VITE_APP_URL || 'https://thehouseofjugnu.com';
-    const eventUrl = `${baseUrl}/tickets/event/${event.slug}`;
+    // Build the public event URL using relative path (works in both dev and production)
+    // The redirector will handle prepending the base URL when needed
+    const eventUrl = `/tickets/event/${event.slug}`;
     
     // Generate subline with date range and time info
     const generateEventSubline = () => {

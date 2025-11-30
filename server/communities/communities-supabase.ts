@@ -4702,6 +4702,33 @@ export class CommunitiesSupabaseDB {
     return data;
   }
 
+  async updateSponsorCampaign(campaignId: string, updates: {
+    clickUrl?: string;
+    subline?: string;
+    sponsorName?: string;
+    headline?: string;
+    ctaText?: string;
+    isActive?: boolean;
+  }): Promise<any> {
+    const updateData: any = {};
+    if (updates.clickUrl !== undefined) updateData.click_url = updates.clickUrl;
+    if (updates.subline !== undefined) updateData.subline = updates.subline;
+    if (updates.sponsorName !== undefined) updateData.sponsor_name = updates.sponsorName;
+    if (updates.headline !== undefined) updateData.headline = updates.headline;
+    if (updates.ctaText !== undefined) updateData.cta_text = updates.ctaText;
+    if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+
+    const { data, error } = await this.client
+      .from('sponsor_campaigns')
+      .update(updateData)
+      .eq('id', campaignId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  }
+
   async createSponsorPortalToken(tokenData: {
     campaignId: string;
     token: string;
