@@ -129,7 +129,7 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
     blockedDates: string[];
     blockedRanges: Array<{ start: string; end: string; reason: string; campaignName: string }>;
   }>({
-    queryKey: ["/api/billing/credits/blocked-dates", { placement: placementType }],
+    queryKey: [`/api/billing/credits/blocked-dates?placement=${placementType}`],
     enabled: open && !isOnTrial && !!placementType,
   });
 
@@ -532,16 +532,17 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
             )}
           </div>
 
-          {/* Date Conflict Warning */}
+          {/* Date Conflict Warning - Red and prominent */}
           {dateConflict && (
-            <Alert className="bg-amber-500/10 border-amber-500/30">
-              <AlertCircle className="h-4 w-4 text-amber-500" />
-              <AlertDescription className="text-amber-200">
-                <strong>Date conflict:</strong> {dateConflict.message}
+            <Alert className="bg-red-500/15 border-red-500/50 border-2">
+              <AlertCircle className="h-5 w-5 text-red-400" />
+              <AlertDescription className="text-red-200 ml-2">
+                <p className="font-semibold text-red-300 mb-1">Date Conflict</p>
+                <p>{dateConflict.message}</p>
                 {dateConflict.nextAvailable && (
-                  <span className="block mt-1">
-                    Next available date: <strong>{format(parseISO(dateConflict.nextAvailable), "MMM d, yyyy")}</strong>
-                  </span>
+                  <p className="mt-2 text-white bg-red-500/20 px-3 py-2 rounded-md">
+                    Next available date: <span className="font-bold text-green-400">{format(parseISO(dateConflict.nextAvailable), "MMMM d, yyyy")}</span>
+                  </p>
                 )}
               </AlertDescription>
             </Alert>
