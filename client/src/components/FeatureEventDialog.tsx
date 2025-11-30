@@ -10,8 +10,25 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Sparkles, Calendar, TrendingUp, AlertCircle, Loader2, CheckCircle, Lock, Crown, CalendarX, Info } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { format, addDays, differenceInDays, parseISO, isBefore, startOfDay } from "date-fns";
+import { format, addDays, differenceInDays, parseISO } from "date-fns";
 import { useLocation } from "wouter";
+
+// Helper to get today's date in Pacific timezone (YYYY-MM-DD format)
+const getTodayPacific = (): string => {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+};
+
+// Helper to convert a date to Pacific date string
+const toPacificDateString = (date: Date): string => {
+  return date.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+};
+
+// Check if an event has ended (in Pacific timezone)
+const hasEventEnded = (eventEndDate: string): boolean => {
+  const eventEndPacific = toPacificDateString(parseISO(eventEndDate));
+  const todayPacific = getTodayPacific();
+  return eventEndPacific < todayPacific;
+};
 
 interface FeatureEventDialogProps {
   open: boolean;
@@ -72,13 +89,11 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
   // Get selected event - use preselected data if available, otherwise find from events list
   const selectedEvent = preselectedEventData || events.find((e) => e.id === selectedEventId);
 
-  // Check if the selected event has ended
+  // Check if the selected event has ended (in Pacific timezone)
   const eventHasEnded = useMemo(() => {
     if (!selectedEvent) return false;
     const eventEndDate = selectedEvent.endAt || selectedEvent.startAt;
-    const eventEnd = parseISO(eventEndDate);
-    const today = startOfDay(new Date());
-    return isBefore(eventEnd, today);
+    return hasEventEnded(eventEndDate);
   }, [selectedEvent]);
 
   // Calculate max date for feature - event end date or 90 days from now
@@ -395,7 +410,7 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
                   <SelectContent className="bg-charcoal-950/98 border-copper-500/30">
                     {events.map((event) => {
                       const eventEndDate = event.endAt || event.startAt;
-                      const isEnded = isBefore(parseISO(eventEndDate), startOfDay(new Date()));
+                      const isEnded = hasEventEnded(eventEndDate);
                       return (
                         <SelectItem 
                           key={event.id} 

@@ -1447,6 +1447,7 @@ router.get('/credits/usage', requireAuth, async (req: Request, res: Response) =>
 /**
  * GET /api/billing/credits/blocked-dates
  * Get dates that are already booked for a specific placement type
+ * Returns dates in Pacific timezone (PT) for consistent frontend display
  */
 router.get('/credits/blocked-dates', requireAuth, async (req: Request, res: Response) => {
   try {
@@ -1461,12 +1462,26 @@ router.get('/credits/blocked-dates', requireAuth, async (req: Request, res: Resp
 
     const supabase = getSupabaseAdmin();
     
-    // Get all active campaigns for this placement that haven't ended yet
+    // Helper to get current date in Pacific timezone
+    const getPacificDate = () => {
+      const now = new Date();
+      // Format as Pacific time YYYY-MM-DD
+      return now.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    };
+    
+    // Helper to convert UTC date to Pacific date string
+    const toPacificDateString = (utcDate: Date): string => {
+      return utcDate.toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    };
+    
+    const todayPacific = getPacificDate();
+    
+    // Get all active campaigns for this placement that haven't ended yet (in Pacific time)
+    // We need to check end_at >= today's date in Pacific timezone
     const { data: campaigns, error } = await supabase
       .from('sponsor_campaigns')
       .select('id, name, sponsor_name, start_at, end_at, placements')
       .eq('is_active', true)
-      .gte('end_at', new Date().toISOString())
       .contains('placements', [placement]);
 
     if (error) {
@@ -1474,27 +1489,40 @@ router.get('/credits/blocked-dates', requireAuth, async (req: Request, res: Resp
       return res.status(500).json({ ok: false, error: 'Failed to fetch blocked dates' });
     }
 
-    // Generate array of all blocked dates
+    // Generate array of all blocked dates (in Pacific timezone)
     const blockedDates = new Set<string>();
     const blockedRanges: Array<{ start: string; end: string; reason: string; campaignName: string }> = [];
 
     (campaigns || []).forEach((campaign: any) => {
       if (campaign.start_at && campaign.end_at) {
-        const start = new Date(campaign.start_at);
-        const end = new Date(campaign.end_at);
+        const startUtc = new Date(campaign.start_at);
+        const endUtc = new Date(campaign.end_at);
+        
+        // Convert to Pacific date strings
+        const startPacific = toPacificDateString(startUtc);
+        const endPacific = toPacificDateString(endUtc);
+        
+        // Skip campaigns that have already ended in Pacific time
+        if (endPacific < todayPacific) {
+          return;
+        }
         
         blockedRanges.push({
-          start: start.toISOString().split('T')[0],
-          end: end.toISOString().split('T')[0],
+          start: startPacific,
+          end: endPacific,
           reason: campaign.sponsor_name ? `Reserved by ${campaign.sponsor_name}` : 'Reserved',
           campaignName: campaign.name
         });
 
-        // Add each date in the range
-        const currentDate = new Date(start);
-        while (currentDate <= end) {
-          blockedDates.add(currentDate.toISOString().split('T')[0]);
-          currentDate.setDate(currentDate.getDate() + 1);
+        // Add each date in the range (using Pacific dates)
+        // Parse dates as noon UTC to avoid timezone edge cases when iterating
+        const currentDate = new Date(startPacific + 'T12:00:00Z');
+        const endDate = new Date(endPacific + 'T12:00:00Z');
+        
+        while (currentDate <= endDate) {
+          const dateStr = currentDate.toISOString().split('T')[0];
+          blockedDates.add(dateStr);
+          currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         }
       }
     });
@@ -1502,7 +1530,8 @@ router.get('/credits/blocked-dates', requireAuth, async (req: Request, res: Resp
     res.json({
       ok: true,
       blockedDates: Array.from(blockedDates).sort(),
-      blockedRanges
+      blockedRanges,
+      todayPacific // Include for frontend reference
     });
 
   } catch (error: any) {
