@@ -1555,10 +1555,16 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
     const communityName = communities[0]?.name || organizer.businessName || 'Featured Event';
 
     // Create sponsor campaign for featured event
-    // Use date strings directly to avoid timezone conversion issues
-    // startDate and endDate are in YYYY-MM-DD format
-    const startAtDate = `${startDate}T00:00:00.000Z`;
-    const endAtDate = `${endDate}T23:59:59.999Z`;
+    // IMPORTANT: Interpret dates in Pacific timezone (PT), not UTC
+    // Pacific time is UTC-8 (PST) or UTC-7 (PDT)
+    // For November, we use PST (UTC-8), so:
+    // - Start of day in Pacific = 08:00 UTC same day
+    // - End of day in Pacific (23:59:59) = 07:59:59 UTC next day
+    const startAtDate = `${startDate}T08:00:00.000Z`; // 00:00 Pacific = 08:00 UTC
+    const endAtDate = new Date(`${endDate}T08:00:00.000Z`);
+    endAtDate.setDate(endAtDate.getDate() + 1); // Add 1 day then subtract 1ms to get end of day Pacific
+    endAtDate.setMilliseconds(endAtDate.getMilliseconds() - 1);
+    const endAtDateStr = endAtDate.toISOString();
     
     // Build the public event URL using relative path (works in both dev and production)
     // The redirector will handle prepending the base URL when needed
@@ -1616,7 +1622,7 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
       clickUrl: eventUrl,
       placements: [placement],
       startAt: startAtDate,
-      endAt: endAtDate,
+      endAt: endAtDateStr,
       priority: 5, // Medium priority for community-featured events
       isActive: true,
       isSponsored: false, // Community-featured events are not marked as sponsored
