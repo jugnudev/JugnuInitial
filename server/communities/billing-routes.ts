@@ -1715,8 +1715,8 @@ router.post('/credits/spend', requireAuth, async (req: Request, res: Response) =
         // Same day: "Nov 22 • 7:00 PM - 11:00 PM"
         dateTimeInfo = `${startDate} • ${startTime} - ${endTime}`;
       } else {
-        // Multi-day: "Nov 22 - Nov 24"
-        dateTimeInfo = `${startDate} - ${endDate}`;
+        // Multi-day: "Nov 30, 7:00 PM - Dec 7, 10:00 PM"
+        dateTimeInfo = `${startDate}, ${startTime} - ${endDate}, ${endTime}`;
       }
       
       // Combine venue with date/time
