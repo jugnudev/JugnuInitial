@@ -194,9 +194,9 @@ export function SubscriptionDashboard() {
                         </div>
                         <div className="text-sm text-white/60">
                           <span className="text-white/80 font-medium">
-                            {format(new Date(item.startDate), 'MMM dd, yyyy')}
+                            {item.startDate ? format(new Date(item.startDate), 'MMM dd, yyyy') : 'N/A'}
                           </span>
-                          {item.startDate !== item.endDate && (
+                          {item.startDate && item.endDate && item.startDate !== item.endDate && (
                             <span> to {format(new Date(item.endDate), 'MMM dd, yyyy')}</span>
                           )}
                         </div>
@@ -205,7 +205,7 @@ export function SubscriptionDashboard() {
                         )}
                       </div>
                       <div className="text-xs text-white/40">
-                        {format(new Date(item.createdAt), 'MMM dd')}
+                        {item.createdAt ? format(new Date(item.createdAt), 'MMM dd') : ''}
                       </div>
                     </div>
                   </div>

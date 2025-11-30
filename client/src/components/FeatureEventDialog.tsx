@@ -104,6 +104,25 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
     return format(eventEnd, "yyyy-MM-dd");
   }, [selectedEvent]);
 
+  // Reset end date when event changes or if end date exceeds event end date
+  useEffect(() => {
+    if (!selectedEvent) return;
+    
+    const eventEndDate = selectedEvent.endAt || selectedEvent.startAt;
+    const eventEndPacific = toPacificDateString(parseISO(eventEndDate));
+    
+    // If current end date is after event end date, reset it
+    if (endDate > eventEndPacific) {
+      setEndDate(eventEndPacific);
+    }
+    
+    // Also reset start date if it's after event end date
+    if (startDate > eventEndPacific) {
+      setStartDate(getTodayPacific());
+      setEndDate(eventEndPacific);
+    }
+  }, [selectedEvent, selectedEventId]);
+
   // Fetch blocked dates for the selected placement type
   const { data: blockedDatesData, isLoading: blockedDatesLoading } = useQuery<{
     ok: boolean;
