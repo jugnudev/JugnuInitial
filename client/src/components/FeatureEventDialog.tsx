@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,10 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Sparkles, Calendar, TrendingUp, AlertCircle, Loader2, CheckCircle, Lock, Crown } from "lucide-react";
+import { Sparkles, Calendar, TrendingUp, AlertCircle, Loader2, CheckCircle, Lock, Crown, CalendarX, Info } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { format, addDays, differenceInDays } from "date-fns";
+import { format, addDays, differenceInDays, parseISO, isBefore, startOfDay } from "date-fns";
 import { useLocation } from "wouter";
 
 interface FeatureEventDialogProps {
@@ -25,6 +25,7 @@ interface FeatureEventDialogProps {
     id: string;
     title: string;
     startAt: string;
+    endAt?: string;
     venue: string;
   } | null;
   creditsLoading?: boolean;
@@ -34,6 +35,7 @@ interface Event {
   id: string;
   title: string;
   startAt: string;
+  endAt?: string;
   venue: string;
 }
 
@@ -66,6 +68,80 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
   
   // Use pre-selected event data if provided, otherwise find from events list
   const hasPreselectedEvent = !!preselectedEventId;
+
+  // Get selected event - use preselected data if available, otherwise find from events list
+  const selectedEvent = preselectedEventData || events.find((e) => e.id === selectedEventId);
+
+  // Check if the selected event has ended
+  const eventHasEnded = useMemo(() => {
+    if (!selectedEvent) return false;
+    const eventEndDate = selectedEvent.endAt || selectedEvent.startAt;
+    const eventEnd = parseISO(eventEndDate);
+    const today = startOfDay(new Date());
+    return isBefore(eventEnd, today);
+  }, [selectedEvent]);
+
+  // Calculate max date for feature - event end date or 90 days from now
+  const maxFeatureDate = useMemo(() => {
+    if (!selectedEvent) return format(addDays(new Date(), 90), "yyyy-MM-dd");
+    const eventEndDate = selectedEvent.endAt || selectedEvent.startAt;
+    const eventEnd = parseISO(eventEndDate);
+    return format(eventEnd, "yyyy-MM-dd");
+  }, [selectedEvent]);
+
+  // Fetch blocked dates for the selected placement type
+  const { data: blockedDatesData, isLoading: blockedDatesLoading } = useQuery<{
+    ok: boolean;
+    blockedDates: string[];
+    blockedRanges: Array<{ start: string; end: string; reason: string; campaignName: string }>;
+  }>({
+    queryKey: ["/api/billing/credits/blocked-dates", { placement: placementType }],
+    enabled: open && !isOnTrial && !!placementType,
+  });
+
+  const blockedDates = useMemo(() => new Set(blockedDatesData?.blockedDates || []), [blockedDatesData]);
+
+  // Check for date conflicts
+  const dateConflict = useMemo(() => {
+    if (!startDate || !endDate || blockedDates.size === 0) return null;
+
+    const start = parseISO(startDate);
+    const end = parseISO(endDate);
+    const conflictingDates: string[] = [];
+
+    let currentDate = new Date(start);
+    while (currentDate <= end) {
+      const dateStr = format(currentDate, "yyyy-MM-dd");
+      if (blockedDates.has(dateStr)) {
+        conflictingDates.push(dateStr);
+      }
+      currentDate = addDays(currentDate, 1);
+    }
+
+    if (conflictingDates.length === 0) return null;
+
+    // Find next available date
+    let nextAvailable: string | null = null;
+    let searchDate = addDays(end, 1);
+    const maxSearch = 90; // Search up to 90 days ahead
+
+    for (let i = 0; i < maxSearch; i++) {
+      const dateStr = format(searchDate, "yyyy-MM-dd");
+      if (!blockedDates.has(dateStr)) {
+        nextAvailable = dateStr;
+        break;
+      }
+      searchDate = addDays(searchDate, 1);
+    }
+
+    return {
+      dates: conflictingDates,
+      nextAvailable,
+      message: conflictingDates.length === 1
+        ? `${format(parseISO(conflictingDates[0]), "MMM d")} is already booked for this placement.`
+        : `${conflictingDates.length} dates in your selected range are already booked.`
+    };
+  }, [startDate, endDate, blockedDates]);
 
   // Calculate credits needed whenever dates or placement type changes
   useEffect(() => {
@@ -107,6 +183,7 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
       await queryClient.invalidateQueries({ queryKey: ["/api/billing/credits/balance"] });
       await queryClient.refetchQueries({ queryKey: ["/api/billing/credits/balance"] });
       queryClient.invalidateQueries({ queryKey: ["/api/billing/credits/usage"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/billing/credits/blocked-dates"] });
       
       onOpenChange(false);
       // Reset form
@@ -155,6 +232,24 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
       return;
     }
 
+    if (eventHasEnded) {
+      toast({
+        title: "Event has ended",
+        description: "You cannot feature events that have already ended.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (dateConflict) {
+      toast({
+        title: "Date conflict",
+        description: dateConflict.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (creditsNeeded > currentCredits) {
       toast({
         title: "Insufficient credits",
@@ -173,8 +268,6 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
     });
   };
 
-  // Get selected event - use preselected data if available, otherwise find from events list
-  const selectedEvent = preselectedEventData || events.find((e) => e.id === selectedEventId);
   const insufficientCredits = creditsNeeded > currentCredits;
 
   return (
@@ -228,8 +321,18 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
             </div>
           )}
 
+          {/* Event Has Ended Warning */}
+          {!isOnTrial && eventHasEnded && selectedEvent && (
+            <Alert className="bg-red-500/10 border-red-500/30">
+              <CalendarX className="h-4 w-4 text-red-500" />
+              <AlertDescription className="text-red-200">
+                <strong>This event has ended.</strong> You can only feature events that haven't finished yet. Please select a different event or create a new one.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Credit Balance Display - Only show when not on trial */}
-          {!isOnTrial && (
+          {!isOnTrial && !eventHasEnded && (
             <div className="bg-gradient-to-r from-copper-500/10 to-copper-600/10 backdrop-blur-sm border border-copper-500/30 rounded-xl p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -246,8 +349,8 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
             </div>
           )}
 
-          {/* Form elements - Only show when not on trial */}
-          {!isOnTrial && (
+          {/* Form elements - Only show when not on trial and event hasn't ended */}
+          {!isOnTrial && !eventHasEnded && (
             <div className="space-y-6">
               {/* Event Selection */}
               <div className="space-y-2">
@@ -290,16 +393,29 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
                     <SelectValue placeholder="Choose an event" />
                   </SelectTrigger>
                   <SelectContent className="bg-charcoal-950/98 border-copper-500/30">
-                    {events.map((event) => (
-                      <SelectItem key={event.id} value={event.id} className="text-white hover:bg-copper-500/20">
-                        {event.title} - {format(new Date(event.startAt), "MMM d, yyyy")}
-                      </SelectItem>
-                    ))}
+                    {events.map((event) => {
+                      const eventEndDate = event.endAt || event.startAt;
+                      const isEnded = isBefore(parseISO(eventEndDate), startOfDay(new Date()));
+                      return (
+                        <SelectItem 
+                          key={event.id} 
+                          value={event.id} 
+                          className={`text-white hover:bg-copper-500/20 ${isEnded ? 'opacity-50' : ''}`}
+                          disabled={isEnded}
+                        >
+                          {event.title} - {format(new Date(event.startAt), "MMM d, yyyy")}
+                          {isEnded && " (Ended)"}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
                 {selectedEvent && (
                   <p className="text-sm text-neutral-400 mt-1">
                     {selectedEvent.venue} • {format(new Date(selectedEvent.startAt), "MMMM d, yyyy")}
+                    {selectedEvent.endAt && selectedEvent.endAt !== selectedEvent.startAt && (
+                      <> to {format(new Date(selectedEvent.endAt), "MMMM d, yyyy")}</>
+                    )}
                   </p>
                 )}
               </>
@@ -334,47 +450,81 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
           </div>
 
           {/* Date Range */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="start-date" className="text-white font-medium">
-                Start Date
-              </Label>
-              <Input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                min={format(new Date(), "yyyy-MM-dd")}
-                className="bg-white/5 border-white/20 text-white"
-                data-testid="input-start-date"
-              />
+          <div className="space-y-2">
+            <Label className="text-white font-medium">Feature Dates</Label>
+            {blockedDatesLoading && (
+              <div className="flex items-center gap-2 text-neutral-400 text-sm mb-2">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>Checking availability...</span>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="start-date" className="text-neutral-400 text-sm">
+                  Start Date
+                </Label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  min={format(new Date(), "yyyy-MM-dd")}
+                  max={maxFeatureDate}
+                  className="bg-white/5 border-white/20 text-white"
+                  data-testid="input-start-date"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="end-date" className="text-neutral-400 text-sm">
+                  End Date
+                </Label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate}
+                  max={maxFeatureDate}
+                  className="bg-white/5 border-white/20 text-white"
+                  data-testid="input-end-date"
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="end-date" className="text-white font-medium">
-                End Date
-              </Label>
-              <Input
-                id="end-date"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                min={startDate}
-                className="bg-white/5 border-white/20 text-white"
-                data-testid="input-end-date"
-              />
-            </div>
+            {selectedEvent && (
+              <p className="text-xs text-neutral-500 flex items-center gap-1">
+                <Info className="h-3 w-3" />
+                Feature dates can't extend past the event end date ({format(parseISO(selectedEvent.endAt || selectedEvent.startAt), "MMM d, yyyy")})
+              </p>
+            )}
           </div>
+
+          {/* Date Conflict Warning */}
+          {dateConflict && (
+            <Alert className="bg-amber-500/10 border-amber-500/30">
+              <AlertCircle className="h-4 w-4 text-amber-500" />
+              <AlertDescription className="text-amber-200">
+                <strong>Date conflict:</strong> {dateConflict.message}
+                {dateConflict.nextAvailable && (
+                  <span className="block mt-1">
+                    Next available date: <strong>{format(parseISO(dateConflict.nextAvailable), "MMM d, yyyy")}</strong>
+                  </span>
+                )}
+              </AlertDescription>
+            </Alert>
+          )}
 
           {/* Credit Calculation Info */}
-          <div className="bg-white/5 border border-white/20 rounded-lg p-4">
-            <p className="text-sm text-neutral-300">
-              <span className="font-medium text-white">Calculation:</span>{" "}
-              {differenceInDays(new Date(endDate), new Date(startDate)) + 1} days × 1 credit per day = {creditsNeeded} credits
-            </p>
-          </div>
+          {!dateConflict && (
+            <div className="bg-white/5 border border-white/20 rounded-lg p-4">
+              <p className="text-sm text-neutral-300">
+                <span className="font-medium text-white">Calculation:</span>{" "}
+                {differenceInDays(new Date(endDate), new Date(startDate)) + 1} days × 1 credit per day = {creditsNeeded} credits
+              </p>
+            </div>
+          )}
 
           {/* Insufficient Credits Warning */}
-          {insufficientCredits && (
+          {insufficientCredits && !dateConflict && (
             <Alert className="bg-red-500/10 border-red-500/30">
               <AlertCircle className="h-4 w-4 text-red-500" />
               <AlertDescription className="text-red-200">
@@ -390,17 +540,17 @@ export function FeatureEventDialog({ open, onOpenChange, organizerId, currentCre
           <Button variant="outline" onClick={() => onOpenChange(false)} className="border-white/20 text-white hover:bg-white/10">
             Cancel
           </Button>
-          {!isOnTrial && (
+          {!isOnTrial && !eventHasEnded && (
             <Button
               onClick={handleSubmit}
-              disabled={!selectedEventId || insufficientCredits || featureEventMutation.isPending || creditsLoading}
+              disabled={!selectedEventId || insufficientCredits || !!dateConflict || featureEventMutation.isPending || creditsLoading || blockedDatesLoading}
               className="bg-gradient-to-r from-copper-500 to-copper-600 text-white hover:from-copper-600 hover:to-copper-700"
               data-testid="button-feature-event"
             >
-              {creditsLoading ? (
+              {creditsLoading || blockedDatesLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Loading credits...
+                  Checking...
                 </>
               ) : featureEventMutation.isPending ? (
                 <>

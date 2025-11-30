@@ -5,6 +5,7 @@ import sgMail from '@sendgrid/mail';
 import { CommunitiesSupabaseDB } from './communities-supabase';
 import { CreditsService } from './credits-service';
 import { TicketsSupabaseDB } from '../tickets/tickets-supabase';
+import { getSupabaseAdmin } from '../supabaseAdmin';
 
 // Initialize SendGrid
 if (process.env.SENDGRID_API_KEY) {
@@ -1440,6 +1441,73 @@ router.get('/credits/usage', requireAuth, async (req: Request, res: Response) =>
   } catch (error: any) {
     console.error('Get credit usage error:', error);
     res.status(500).json({ ok: false, error: error.message || 'Failed to get credit usage' });
+  }
+});
+
+/**
+ * GET /api/billing/credits/blocked-dates
+ * Get dates that are already booked for a specific placement type
+ */
+router.get('/credits/blocked-dates', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { placement } = req.query;
+    
+    if (!placement || (placement !== 'events_banner' && placement !== 'home_mid')) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Valid placement type required (events_banner or home_mid)'
+      });
+    }
+
+    const supabase = getSupabaseAdmin();
+    
+    // Get all active campaigns for this placement that haven't ended yet
+    const { data: campaigns, error } = await supabase
+      .from('sponsor_campaigns')
+      .select('id, name, sponsor_name, start_at, end_at, placements')
+      .eq('is_active', true)
+      .gte('end_at', new Date().toISOString())
+      .contains('placements', [placement]);
+
+    if (error) {
+      console.error('[Billing] Error fetching blocked dates:', error);
+      return res.status(500).json({ ok: false, error: 'Failed to fetch blocked dates' });
+    }
+
+    // Generate array of all blocked dates
+    const blockedDates = new Set<string>();
+    const blockedRanges: Array<{ start: string; end: string; reason: string; campaignName: string }> = [];
+
+    (campaigns || []).forEach((campaign: any) => {
+      if (campaign.start_at && campaign.end_at) {
+        const start = new Date(campaign.start_at);
+        const end = new Date(campaign.end_at);
+        
+        blockedRanges.push({
+          start: start.toISOString().split('T')[0],
+          end: end.toISOString().split('T')[0],
+          reason: campaign.sponsor_name ? `Reserved by ${campaign.sponsor_name}` : 'Reserved',
+          campaignName: campaign.name
+        });
+
+        // Add each date in the range
+        const currentDate = new Date(start);
+        while (currentDate <= end) {
+          blockedDates.add(currentDate.toISOString().split('T')[0]);
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+      }
+    });
+
+    res.json({
+      ok: true,
+      blockedDates: Array.from(blockedDates).sort(),
+      blockedRanges
+    });
+
+  } catch (error: any) {
+    console.error('[Billing] Blocked dates error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to fetch blocked dates' });
   }
 });
 

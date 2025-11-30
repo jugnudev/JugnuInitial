@@ -49,6 +49,7 @@ export default function CommunityManageEvents({ organizerId, communityId }: Comm
     id: string;
     title: string;
     startAt: string;
+    endAt?: string;
     venue: string;
   } | null>(null);
 
@@ -82,6 +83,7 @@ export default function CommunityManageEvents({ organizerId, communityId }: Comm
       id: event.id,
       title: event.title,
       startAt: event.startAt,
+      endAt: event.endAt || undefined,
       venue: event.venue || 'TBD',
     });
     setFeatureDialogOpen(true);
