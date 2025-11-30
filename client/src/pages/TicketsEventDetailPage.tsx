@@ -37,6 +37,12 @@ interface FeeStructure {
   serviceFeePercent?: number; // Legacy field for backwards compatibility
 }
 
+interface TaxSettings {
+  collectTax: boolean;
+  gstPercent: number;
+  pstPercent: number;
+}
+
 interface Event {
   id: string;
   slug: string;
@@ -53,8 +59,9 @@ interface Event {
   tiers: Tier[];
   organizerId: string;
   refundPolicy: string | null;
-  hasGST: boolean;
-  hasPST: boolean;
+  taxSettings?: TaxSettings | null;
+  hasGST?: boolean; // Legacy fallback
+  hasPST?: boolean; // Legacy fallback
   feeStructure: FeeStructure | null;
 }
 
@@ -374,10 +381,31 @@ export function TicketsEventDetailPage() {
     }, 0);
   };
 
+  const getTaxInfo = () => {
+    // Prefer taxSettings from database, fallback to legacy hasGST/hasPST
+    if (event.taxSettings && event.taxSettings.collectTax) {
+      return {
+        hasGST: event.taxSettings.gstPercent > 0,
+        hasPST: event.taxSettings.pstPercent > 0,
+        gstRate: event.taxSettings.gstPercent / 100,
+        pstRate: event.taxSettings.pstPercent / 100
+      };
+    }
+    // Legacy fallback
+    return {
+      hasGST: event.hasGST ?? false,
+      hasPST: event.hasPST ?? false,
+      gstRate: 0.05,
+      pstRate: 0.07
+    };
+  };
+
+  const taxInfo = getTaxInfo();
+
   const calculateTax = (subtotal: number) => {
     let tax = 0;
-    if (event.hasGST) tax += subtotal * 0.05;
-    if (event.hasPST) tax += subtotal * 0.07;
+    if (taxInfo.hasGST) tax += subtotal * taxInfo.gstRate;
+    if (taxInfo.hasPST) tax += subtotal * taxInfo.pstRate;
     return Math.round(tax);
   };
 
@@ -927,9 +955,9 @@ export function TicketsEventDetailPage() {
                           <span>Subtotal</span>
                           <span className="font-semibold">${(subtotal / 100).toFixed(2)}</span>
                         </div>
-                        {(event.hasGST || event.hasPST) && (
+                        {(taxInfo.hasGST || taxInfo.hasPST) && (
                           <div className="flex justify-between text-gray-300">
-                            <span>Tax {event.hasGST && event.hasPST ? '(GST + PST)' : event.hasGST ? '(GST)' : '(PST)'}</span>
+                            <span>Tax {taxInfo.hasGST && taxInfo.hasPST ? '(GST + PST)' : taxInfo.hasGST ? '(GST)' : '(PST)'}</span>
                             <span className="font-semibold">${(tax / 100).toFixed(2)}</span>
                           </div>
                         )}
