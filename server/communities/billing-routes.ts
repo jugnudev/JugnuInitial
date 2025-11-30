@@ -2474,4 +2474,30 @@ router.get('/organizer/credits', requireAuth, async (req: Request, res: Response
   }
 });
 
+/**
+ * POST /api/billing/dev/reset-credits
+ * Dev endpoint to reset credits for testing
+ */
+router.post('/dev/reset-credits/:subscriptionId', async (req: Request, res: Response) => {
+  try {
+    const { subscriptionId } = req.params;
+    const { available = 20, used = 0 } = req.body;
+
+    // Update subscription credits
+    const updated = await communitiesStorage.updateSubscriptionCredits(subscriptionId, {
+      placementCreditsAvailable: available,
+      placementCreditsUsed: used
+    });
+
+    res.json({
+      ok: true,
+      message: `Credits reset to ${available} available, ${used} used`,
+      updated
+    });
+  } catch (error: any) {
+    console.error('[Billing Dev] Reset credits error:', error);
+    res.status(500).json({ ok: false, error: error.message || 'Failed to reset credits' });
+  }
+});
+
 export default router;
